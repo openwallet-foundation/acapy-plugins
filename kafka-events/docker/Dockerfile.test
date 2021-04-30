@@ -1,0 +1,19 @@
+FROM python:3.6.13
+
+WORKDIR /usr/src/app
+
+RUN pip3 install --no-cache-dir poetry
+
+COPY ./kafka_events kafka_events
+COPY ./README.md .
+COPY ./pyproject.toml .
+COPY ./poetry.lock .
+
+RUN poetry install
+
+# Make site packages location more accessible (for use with volumes)
+RUN ln -s $(poetry env info -p)/lib/python3.6/site-packages site-packages
+
+COPY ./tests tests
+
+ENTRYPOINT ["/bin/sh", "-c", "poetry run pytest tests\"$@\"", "--"]

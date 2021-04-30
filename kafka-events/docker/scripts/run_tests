@@ -1,0 +1,26 @@
+#!/bin/bash
+
+CONTAINER_RUNTIME="${CONTAINER_RUNTIME:-docker}"
+
+# Skip the image build and use a host mounted volume to get up to date code
+FAST=${FAST:-0}
+
+cd "$(dirname "$0")" || exit
+
+if [[ $FAST -eq 0 ]]; then
+  $CONTAINER_RUNTIME build -t acapy-kafka-events-test -f ../Dockerfile.test ../.. || exit 1
+fi
+
+DOCKER_ARGS=""
+
+if [[ $FAST -eq 1 ]]; then
+  DOCKER_ARGS="${DOCKER_ARGS} -v $(pwd)/../kafka_events:/usr/src/app/kafka_events:z"
+fi
+
+# on Windows, docker run needs to be prefixed by winpty
+if [ "$OSTYPE" == "msys" ]; then
+  CONTAINER_RUNTIME="winpty docker"
+fi
+
+$CONTAINER_RUNTIME run --rm -ti --name acapy-kafka-events-test-runner \
+	$DOCKER_ARGS acapy-kafka-events-test "$@"
