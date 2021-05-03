@@ -9,6 +9,7 @@ from pytest_mock import MockerFixture
 import pytest
 
 from kafka_events import setup as event_setup
+from kafka_events import teardown as event_teardown
 
 
 @pytest.fixture
@@ -32,3 +33,4 @@ async def test_setup_and_receive_event(
     await event_setup(profile.context)
     await event_bus.notify(profile, Event("acapy::record::test"))
     mock_handle_event.assert_called_once()
+    await event_teardown(profile.context)

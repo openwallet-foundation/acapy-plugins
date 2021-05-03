@@ -10,14 +10,12 @@ from threading import Thread
 config = {"bootstrap.servers": "localhost:9092"}
 
 class AIOProducer:
-    def __init__(self, loop=None):
+    def __init__(self, configs = config, loop=None):
         self._loop = loop or asyncio.get_event_loop()
+        self._producer = confluent_kafka.Producer(configs)
         self._cancelled = False
         self._poll_thread = Thread(target=self._poll_loop)
-
-    def start(self, configs = config):
         self._poll_thread.start()
-        self._producer = confluent_kafka.Producer(configs)
 
     def _poll_loop(self):
         while not self._cancelled:

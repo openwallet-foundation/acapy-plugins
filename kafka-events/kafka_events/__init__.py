@@ -15,9 +15,13 @@ LOGGER = logging.getLogger(__name__)
 async def setup(context: InjectionContext):
     """Setup the plugin."""
     bus = context.inject(EventBus)
-    kafka_producer = context.inject(AIOProducer)
-    kafka_producer.start()
+    kafka_producer = AIOProducer() # TODO: pass in config
+    context.injector.bind_instance(AIOProducer, kafka_producer)
     bus.subscribe(ALL_EVENTS, handle_event)
+
+async def teardown(context: InjectionContext):
+    kafka_producer = context.inject(AIOProducer)
+    kafka_producer.close()
 
 
 async def handle_event(profile: Profile, event: Event):
