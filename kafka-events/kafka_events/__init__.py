@@ -6,7 +6,7 @@ import logging
 from aries_cloudagent.config.injection_context import InjectionContext
 from aries_cloudagent.core.profile import Profile
 from aries_cloudagent.core.event_bus import EventBus, Event
-
+from .kafka_producer import KafkaProducer
 
 ALL_EVENTS = re.compile(r".*")
 LOGGER = logging.getLogger(__name__)
@@ -15,6 +15,10 @@ LOGGER = logging.getLogger(__name__)
 async def setup(context: InjectionContext):
     """Setup the plugin."""
     bus = context.inject(EventBus)
+    # kafka_producer = context.inject(KafkaProducer)
+    # TODO: traverse all messages in acapy and register as avro schemas
+    # for schema in acapy.message.schemas:
+      # kafka_producer.register_schema(schema)
     bus.subscribe(ALL_EVENTS, handle_event)
 
 
@@ -44,3 +48,6 @@ async def handle_event(profile: Profile, event: Event):
       infrequent.
     """
     LOGGER.info("Handling event: %s", event)
+    kafka_producer = profile.context.inject(KafkaProducer)
+    kafka_producer.produce(event)
+    
