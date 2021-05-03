@@ -9,7 +9,6 @@ python = "^3.6.9"
 aries-cloudagent = {git = "https://github.com/hyperledger/aries-cloudagent-python", rev = "main"}
 ecdsa = "^0.16.1"
 confluent-kafka = "^1.6.1"
-avro = "^1.10.2"
 
 [tool.poetry.dev-dependencies]
 black = "^21.4b2"

@@ -150,18 +150,6 @@ tests = ["coverage[toml] (>=5.0.2)", "hypothesis", "pympler", "pytest (>=4.3.0)"
 tests_no_zope = ["coverage[toml] (>=5.0.2)", "hypothesis", "pympler", "pytest (>=4.3.0)", "six"]
 
 [[package]]
-name = "avro"
-version = "1.10.2"
-description = "Avro is a serialization and RPC framework."
-category = "main"
-optional = false
-python-versions = ">=2.7"
-
-[package.extras]
-snappy = ["python-snappy"]
-zstandard = ["zstandard"]
-
-[[package]]
 name = "base58"
 version = "2.1.0"
 description = "Base58 and Base58Check implementation."
@@ -903,7 +891,7 @@ testing = ["pytest (>=4.6)", "pytest-checkdocs (>=1.2.3)", "pytest-flake8", "pyt
 [metadata]
 lock-version = "1.1"
 python-versions = "^3.6.9"
-content-hash = "6a5e0f07b9d1df8230fcc1fb10d71278893ae8597711ef67e96ec9761dfa7016"
+content-hash = "ddd00ef237eace458c56506706faa52a54f6a9c249c305f1972598083afb3abe"
 
 [metadata.files]
 aiohttp = [
@@ -976,9 +964,6 @@ atomicwrites = [
 attrs = [
     {file = "attrs-20.3.0-py2.py3-none-any.whl", hash = "sha256:31b2eced602aa8423c2aea9c76a724617ed67cf9513173fd3a4f03e3a929c7e6"},
     {file = "attrs-20.3.0.tar.gz", hash = "sha256:832aa3cde19744e49938b91fea06d69ecb9e649c93ba974535d08ad92164f700"},
-]
-avro = [
-    {file = "avro-1.10.2.tar.gz", hash = "sha256:381b990cc4c4444743c3297348ffd46e0c3a5d7a17e15b2f4a9042f6e955c31a"},
 ]
 base58 = [
     {file = "base58-2.1.0-py3-none-any.whl", hash = "sha256:8225891d501b68c843ffe30b86371f844a21c6ba00da76f52f9b998ba771fb48"},
