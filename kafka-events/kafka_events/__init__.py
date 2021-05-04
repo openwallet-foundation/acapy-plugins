@@ -1,13 +1,14 @@
 """ACA-Py Event to Kafka Bridge."""
 
-import re
 import logging
+import re
 
 from aries_cloudagent.config.injection_context import InjectionContext
+from aries_cloudagent.core.event_bus import Event, EventBus
 from aries_cloudagent.core.profile import Profile
-from aries_cloudagent.core.event_bus import EventBus, Event
-from .aio_producer import AIOProducer
 
+from .aio_producer import AIOProducer
+from .aio_consumer import AIOConsumer
 ALL_EVENTS = re.compile(r".*")
 LOGGER = logging.getLogger(__name__)
 
@@ -15,13 +16,17 @@ LOGGER = logging.getLogger(__name__)
 async def setup(context: InjectionContext):
     """Setup the plugin."""
     bus = context.inject(EventBus)
-    kafka_producer = AIOProducer() # TODO: pass in config
-    context.injector.bind_instance(AIOProducer, kafka_producer)
+    producer = AIOProducer() 
+    context.injector.bind_instance(AIOProducer, producer)
+    consumer = AIOConsumer(context)
+    context.injector.bind_instance(AIOConsumer, consumer)
     bus.subscribe(ALL_EVENTS, handle_event)
 
 async def teardown(context: InjectionContext):
-    kafka_producer = context.inject(AIOProducer)
-    kafka_producer.close()
+    producer = context.inject(AIOProducer)
+    producer.close()
+    consumer = context.inject(AIOConsumer)
+    consumer.close()
 
 
 async def handle_event(profile: Profile, event: Event):
@@ -50,6 +55,6 @@ async def handle_event(profile: Profile, event: Event):
       infrequent.
     """
     LOGGER.info("Handling event: %s", event)
-    kafka_producer = profile.context.inject(AIOProducer)
-    kafka_producer.producer.produce(event.topic, event.payload)
+    producer = profile.context.inject(AIOProducer)
+    await producer.produce(event.topic, event.payload)
     
