@@ -1,15 +1,17 @@
-FROM bcgovimages/von-image:py36-1.15-1
+FROM python:3.7
 
 RUN pip3 install --no-cache-dir poetry
 
 USER root
-COPY ./kafka_events kafka_events
+
+COPY kafka-events kafka-events
+
 COPY ./README.md .
 COPY ./setup.py .
 COPY ./pyproject.toml .
 COPY ./poetry.lock .
 COPY ./docker/default.yml .
-RUN chown -R indy:indy .
+COPY ./docker/plugins-config.yaml .
 USER $user
 
 RUN poetry install --no-dev

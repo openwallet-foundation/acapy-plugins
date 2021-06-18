@@ -39,6 +39,9 @@ services:
     build:
       context: ..
       dockerfile: docker/Dockerfile
+    depends_on:
+      - kafka
+      - zookeeper
     volumes:
       - "./kafka_events:/home/indy/kafka_events:z"
     command: start --arg-file default.yml --plugin didcomm_resolver.role.resolver --plugin kafka-events -e http://kafka-events:3000 --log-level debug
