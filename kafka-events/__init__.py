@@ -34,7 +34,7 @@ async def setup(context: InjectionContext):
     consumer = AIOConsumer(context, INBOUND_PATTERN, config=consumer_conf)
 
     # Run the consumer in a thread
-    Thread(target=asyncio.run, args=(consumer.start(),)).start()
+    consumer.start_thread()
 
     # Add the Kafka consumer and producer in the context
     context.injector.bind_instance(AIOConsumer, consumer)

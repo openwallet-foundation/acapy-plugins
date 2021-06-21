@@ -6,7 +6,9 @@ admin-insecure-mode: true
 
 # Load toolbox plugin
 plugin:
-  - kafka_events
+  - kafka-events
+
+plugin-config: plugins-config.yaml
 
 # Transport
 inbound-transport:
