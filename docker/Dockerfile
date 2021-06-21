@@ -1,4 +1,4 @@
-FROM python:3.7
+FROM bcgovimages/von-image:py36-1.15-1
 
 RUN pip3 install --no-cache-dir poetry
 
@@ -12,6 +12,7 @@ COPY ./pyproject.toml .
 COPY ./poetry.lock .
 COPY ./docker/default.yml .
 COPY ./docker/plugins-config.yaml .
+RUN chown -R indy:indy .
 USER $user
 
 RUN poetry install --no-dev

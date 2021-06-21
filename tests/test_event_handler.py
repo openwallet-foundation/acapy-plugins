@@ -40,7 +40,7 @@ async def test_setup_and_receive_event(
     profile: Profile, event_bus: EventBus, mocker: MockerFixture
 ):
     """Test event handler setup and event receive."""
-    mock_handle_event = mocker.patch("kafka_events.handle_event")
+    mock_handle_event = mocker.patch("kafka-events.handle_event")
     await event_bus.notify(profile, Event("acapy::record::test"))
     mock_handle_event.assert_called_once()
 
@@ -49,7 +49,7 @@ async def test_kafka_produce_event(
     profile: Profile, event_bus: EventBus, mocker: MockerFixture
 ):
     """Test event handler setup and event receive."""
-    mock_handle_event = mocker.patch("kafka_events.handle_event")
+    mock_handle_event = mocker.patch("kafka-events.handle_event")
     await event_bus.notify(profile, Event("acapy::record::test"))
     mock_handle_event.assert_called_once()
     # check zookeeper for produced event

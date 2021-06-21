@@ -24,7 +24,7 @@ and/or the kafka-events plugin (paths must be adapted to your environment):
 ```sh
 $ docker run -it -p 3000:3000 -p 3001:3001 --rm \
 	-v ../aries-cloudagent-python/aries_cloudagent:/home/indy/site-packages/aries_cloudagent:z \
-	-v ../aries-acapy-kafka-events/kafka_events:/home/indy/aries-acapy-plugin-kafka-events/kafka_events:z \
+	-v ../aries-acapy-kafka-events/kafka-events:/home/indy/aries-acapy-plugin-kafka-events/kafka-events:z \
 	acapy-kafka-events
 ```
 
