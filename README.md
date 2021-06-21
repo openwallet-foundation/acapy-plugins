@@ -1,1 +1,0 @@
-# aries-acapy-plugin-kafka-events

@@ -1,5 +1,5 @@
 [tool.poetry]
-name = "kafka-events"
+name = "kafka_events"
 version = "0.1.0"
 description = "ACA-Py Event to Kafka Bridge"
 authors = ["Daniel Bluhm <dbluhm@pm.me>"]

@@ -6,13 +6,11 @@ import re
 from aries_cloudagent.config.injection_context import InjectionContext
 from aries_cloudagent.core.event_bus import Event, EventBus
 from aries_cloudagent.core.profile import Profile
-from threading import Thread
-import asyncio
 from .aio_producer import AIOProducer
 from .aio_consumer import AIOConsumer
 
-OUTBOUND_PATTERN = "acapy-outbound-.*"
-INBOUND_PATTERN = "acapy-inbound-.*"
+OUTBOUND_PATTERN = "acapy::outbound::.*"  # For Event Bus
+INBOUND_PATTERN = "acapy-inbound-.*"  # For Kafka Consumer
 LOGGER = logging.getLogger(__name__)
 TOPICS = []
 
@@ -20,7 +18,7 @@ TOPICS = []
 async def setup(context: InjectionContext):
     """Setup the plugin."""
 
-    plugin_conf = context.settings.get("plugin_config", {}).get("kafka-events", {})
+    plugin_conf = context.settings.get("plugin_config", {}).get("kafka_events", {})
     producer_conf = {}
     consumer_conf = {}
     if plugin_conf:
@@ -76,5 +74,8 @@ async def handle_event(profile: Profile, event: Event):
     """
     LOGGER.info("Handling event: %s", event)
     producer = profile.context.inject(AIOProducer)
-
     await producer.produce(event.topic, event.payload)
+
+
+def holholahola():
+    pass
