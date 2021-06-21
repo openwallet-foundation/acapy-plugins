@@ -75,7 +75,3 @@ async def handle_event(profile: Profile, event: Event):
     LOGGER.info("Handling event: %s", event)
     producer = profile.context.inject(AIOProducer)
     await producer.produce(event.topic, event.payload)
-
-
-def holholahola():
-    pass
