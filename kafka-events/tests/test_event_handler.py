@@ -39,7 +39,12 @@ async def test_setup_and_receive_event_to_be_produced_to_kafka(mocker: MockerFix
     assert kafka_productor.called
 
 
-@pytest.mark.skip(msg="Pending")
 @pytest.mark.asyncio
 async def test_teardown(mocker: MockerFixture):
-    pass
+    async def aux_stop():
+        pass
+
+    context = MagicMock()
+    context.inject.return_value.stop.side_effect = aux_stop
+    await event_teardown(context)
+    assert context.inject.return_value.stop.called
