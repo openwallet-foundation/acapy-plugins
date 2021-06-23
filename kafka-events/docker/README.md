@@ -27,6 +27,12 @@ $ docker run -it -p 3000:3000 -p 3001:3001 --rm \
 	-v ../aries-acapy-kafka_events/kafka_events:/home/indy/aries-acapy-plugin-kafka_events/kafka_events:z \
 	acapy-kafka_events
 ```
+## Services
+
+- Kafka & Zookeeper: Kafka exposed externally in `localhost:29092` and in the docker-compose network in `kafka:9092`.
+- ACA-PY + kafka plugin: Exposed externally in `localhost:3001`.
+- Restproxy: Exposed in the docker-compose network in `restproxy:8086`.
+- RestWrapper: Exposed externally in `localhost:8080` the Open APIs spec is available in `http://localhost:8080/docs`
 
 ## Adjusting Parameters
 
