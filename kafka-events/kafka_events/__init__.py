@@ -31,20 +31,33 @@ async def setup(context: InjectionContext):
     producer = AIOProducer(producer_conf)
     consumer = AIOConsumer(context, INBOUND_PATTERN, config=consumer_conf)
 
-    # Run the consumer in a thread
-    consumer.start_thread()
-
     # Add the Kafka consumer and producer in the context
     context.injector.bind_instance(AIOConsumer, consumer)
     context.injector.bind_instance(AIOProducer, producer)
 
-    bus = context.inject(EventBus)
-    bus.subscribe(re.compile(OUTBOUND_PATTERN), handle_event)
+    await start(context)
 
 
 async def teardown(context: InjectionContext):
+    # Stop de consumer
+    LOGGER.info("Stopping Kafka consumer")
     consumer = context.inject(AIOConsumer)
-    await consumer.stop()
+    consumer.stop()
+    # Stop the producer
+    LOGGER.info("Stopping Kafka producer")
+    bus = context.inject(EventBus)
+    bus.unsubscribe(re.compile(OUTBOUND_PATTERN), handle_event)
+
+
+async def start(context: InjectionContext):
+    # Run the consumer in a thread
+    LOGGER.info("Starting Kafka consumer")
+    consumer = context.inject(AIOConsumer)
+    consumer.start_thread()
+    # Setup the producer
+    LOGGER.info("Starting Kafka producer")
+    bus = context.inject(EventBus)
+    bus.subscribe(re.compile(OUTBOUND_PATTERN), handle_event)
 
 
 async def handle_event(profile: Profile, event: Event):
