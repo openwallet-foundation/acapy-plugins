@@ -1,6 +1,5 @@
 """Test event handler."""
 
-# pylint: disable=redefined-outer-name
 from unittest.mock import MagicMock
 
 from aries_cloudagent.core.event_bus import Event, EventBus
@@ -18,7 +17,7 @@ async def setup_module(profile: Profile):
     """ setup for execution of the given module."""
     context = MagicMock()
     context.settings = {}
-    context.inject.return_value = event_bus
+    context.inject.side_effect = [MagicMock(), event_bus]
     await event_setup(context)
 
 
