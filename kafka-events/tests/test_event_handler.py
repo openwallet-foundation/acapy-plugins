@@ -1,55 +1,50 @@
 """Test event handler."""
 
 # pylint: disable=redefined-outer-name
+from unittest.mock import MagicMock
 
 from aries_cloudagent.core.event_bus import Event, EventBus
-from aries_cloudagent.core.in_memory import InMemoryProfile
 from aries_cloudagent.core.profile import Profile
 from pytest_mock import MockerFixture
 import pytest
-
 from kafka_events import setup as event_setup
 from kafka_events import teardown as event_teardown
 
+event_bus = EventBus()
 
-@pytest.fixture
-def event_bus():
-    """Event bus fixture."""
-    yield EventBus()
-
-
-@pytest.fixture
-def profile(event_bus):
-    """Profile fixture."""
-    yield InMemoryProfile.test_profile(bind={EventBus: event_bus})
 
 @pytest.mark.asyncio
 async def setup_module(profile: Profile):
     """ setup for execution of the given module."""
-    await event_setup(profile.context)
+    context = MagicMock()
+    context.settings = {}
+    context.inject.return_value = event_bus
+    await event_setup(context)
+
 
 @pytest.mark.asyncio
-async def teardown_module():
-    """ teardown previously setup from setup_module
-    method.
-    """
-    await event_teardown(profile.context)
-
-@pytest.mark.asyncio
-async def test_setup_and_receive_event(
-    profile: Profile, event_bus: EventBus, mocker: MockerFixture
-):
+async def test_setup_and_receive_event_to_be_produced_to_kafka(mocker: MockerFixture):
     """Test event handler setup and event receive."""
-    mock_handle_event = mocker.patch("kafka_events.handle_event")
-    await event_bus.notify(profile, Event("acapy::record::test"))
-    mock_handle_event.assert_called_once()
+
+    async def aux_produce(*args):
+        pass
+
+    await setup_module(Profile)
+    mocker.patch("kafka_events.AIOProducer")
+    mocker.patch("kafka_events.AIOConsumer")
+    profile = MagicMock()
+    kafka_productor = profile.context.inject.return_value.produce
+    kafka_productor.side_effect = aux_produce
+    await event_bus.notify(profile, Event("acapy::outbound::test"))
+    assert kafka_productor.called
+
 
 @pytest.mark.asyncio
-async def test_kafka_produce_event(
-    profile: Profile, event_bus: EventBus, mocker: MockerFixture
-):
-    """Test event handler setup and event receive."""
-    mock_handle_event = mocker.patch("kafka_events.handle_event")
-    await event_bus.notify(profile, Event("acapy::record::test"))
-    mock_handle_event.assert_called_once()
-    # check zookeeper for produced event
+async def test_teardown(mocker: MockerFixture):
+    async def aux_stop():
+        pass
+
+    context = MagicMock()
+    context.inject.return_value.stop.side_effect = aux_stop
+    await event_teardown(context)
+    assert context.inject.return_value.stop.called

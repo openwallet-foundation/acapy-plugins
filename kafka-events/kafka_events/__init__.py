@@ -6,27 +6,45 @@ import re
 from aries_cloudagent.config.injection_context import InjectionContext
 from aries_cloudagent.core.event_bus import Event, EventBus
 from aries_cloudagent.core.profile import Profile
-
 from .aio_producer import AIOProducer
 from .aio_consumer import AIOConsumer
-ALL_EVENTS = re.compile(r".*")
+
+OUTBOUND_PATTERN = "acapy::outbound::.*"  # For Event Bus
+INBOUND_PATTERN = "acapy-inbound-.*"  # For Kafka Consumer
 LOGGER = logging.getLogger(__name__)
+TOPICS = []
 
 
 async def setup(context: InjectionContext):
     """Setup the plugin."""
-    bus = context.inject(EventBus)
-    producer = AIOProducer() 
-    context.injector.bind_instance(AIOProducer, producer)
-    consumer = AIOConsumer(context)
+
+    plugin_conf = context.settings.get("plugin_config", {}).get("kafka_events", {})
+    producer_conf = {}
+    consumer_conf = {}
+    if plugin_conf:
+        producer_conf = plugin_conf.pop("producer-config") or {}
+        consumer_conf = plugin_conf.pop("consumer-config") or {}
+        producer_conf.update(plugin_conf)
+        consumer_conf.update(plugin_conf)
+
+    # Instance the classes
+    producer = AIOProducer(producer_conf)
+    consumer = AIOConsumer(context, INBOUND_PATTERN, config=consumer_conf)
+
+    # Run the consumer in a thread
+    consumer.start_thread()
+
+    # Add the Kafka consumer and producer in the context
     context.injector.bind_instance(AIOConsumer, consumer)
-    bus.subscribe(ALL_EVENTS, handle_event)
+    context.injector.bind_instance(AIOProducer, producer)
+
+    bus = context.inject(EventBus)
+    bus.subscribe(re.compile(OUTBOUND_PATTERN), handle_event)
+
 
 async def teardown(context: InjectionContext):
-    producer = context.inject(AIOProducer)
-    producer.close()
     consumer = context.inject(AIOConsumer)
-    consumer.close()
+    await consumer.stop()
 
 
 async def handle_event(profile: Profile, event: Event):
@@ -57,4 +75,3 @@ async def handle_event(profile: Profile, event: Event):
     LOGGER.info("Handling event: %s", event)
     producer = profile.context.inject(AIOProducer)
     await producer.produce(event.topic, event.payload)
-    

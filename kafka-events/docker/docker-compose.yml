@@ -31,7 +31,7 @@ services:
       KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
 
   #*************************************************************
-  # acapy-kafka-events: aca-py that produces kafka events.     *
+  # acapy-kafka_events: aca-py that produces kafka events.     *
   #*************************************************************
 
   acapy-kafka-events:
@@ -39,6 +39,9 @@ services:
     build:
       context: ..
       dockerfile: docker/Dockerfile
-    volumes:
-      - "./kafka_events:/home/indy/kafka_events:z"
-    command: start --arg-file default.yml --plugin didcomm_resolver.role.resolver --plugin kafka-events -e http://kafka-events:3000 --log-level debug
+    ports:
+      - "3001:3001"
+    depends_on:
+      - kafka
+      - zookeeper
+    command: start --arg-file default.yml --plugin didcomm_resolver.role.resolver --plugin kafka_events -e http://kafka_events:3000 --log-level debug

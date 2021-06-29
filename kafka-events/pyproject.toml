@@ -1,5 +1,5 @@
 [tool.poetry]
-name = "kafka-events"
+name = "kafka_events"
 version = "0.1.0"
 description = "ACA-Py Event to Kafka Bridge"
 authors = ["Daniel Bluhm <dbluhm@pm.me>"]
@@ -8,7 +8,7 @@ authors = ["Daniel Bluhm <dbluhm@pm.me>"]
 python = "^3.6.9"
 aries-cloudagent = {git = "https://github.com/hyperledger/aries-cloudagent-python", rev = "main"}
 ecdsa = "^0.16.1"
-confluent-kafka = "^1.6.1"
+aiokafka = "^0.7.1"
 avro-python3 = "^1.10.2"
 
 [tool.poetry.dev-dependencies]

@@ -1,0 +1,53 @@
+kafka_events:
+
+  # General #
+
+  bootstrap_servers: "kafka"
+  client_id: "aca-py"
+#  request_timeout_ms: 40000
+#  connections_max_idle_ms: 540000
+#  api_version: "auto"
+
+  ## Security ##
+
+#  security_protocol: "PLAINTEXT"
+#  ssl_context: "<ssl_context>"
+#  sasl_mechanism: "PLAIN",
+#  sasl_plain_password: "<password>"
+#  sasl_plain_username: "<username>"
+#  sasl_kerberos_service_name: "<service_name>"
+#  sasl_kerberos_domain_name: "<domain_name>"
+#  sasl_oauth_token_provider: "<token>"
+
+  ### For consumers ###
+
+  consumer-config:
+#    group_id: "kafka_events"
+#    fetch_max_wait_ms: 500
+#    fetch_max_bytes: 52428800 # 50 * 1024 * 1024 = 50MB
+#    fetch_min_bytes: 1
+#    max_partition_fetch_bytes: 10485761 # 1024 * 1024 = 1MB
+#    auto_offset_reset: "latest"
+#    enable_auto_commit: True
+#    auto_commit_interval_ms: 5000
+#    check_crcs: True
+#    metadata_max_age_ms: 300000 # 5 * 60 * 1000 = 5 Minutes
+#    max_poll_interval_ms: 300000 # 5 * 60 * 1000 = 5 Minutes
+#    rebalance_timeout_ms: # empty, no timeout
+#    session_timeout_ms: 10000 # 10 * 1000 = 10 Seconds
+#    heartbeat_interval_ms: 3000 # 3 * 1000 = 3 Seconds
+#    consumer_timeout_ms: 200 # 0'2 Seconds
+#    max_poll_records: # empty, no max poll records
+
+  ### For producers ###
+
+  producer-config:
+#    metadata_max_age_ms: 300000 # 5 * 60 * 1000 = 5 Minutes
+#    compression_type: # empty, 'gzip', 'snappy' or 'lz4' allowed
+#    max_batch_size: 16384
+#    max_request_size: 1048576,
+#    linger_ms: 0,
+#    send_backoff_ms: 100 # 0'1 Seconds
+
+
+

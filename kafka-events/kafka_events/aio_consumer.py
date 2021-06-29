@@ -1,67 +1,57 @@
-"""
-Producer developed from https://github.com/confluentinc/confluent-kafka-python/blob/master/examples/asyncio_example.py example.
-https://www.confluent.io/blog/kafka-python-asyncio-integration/
-"""
-import asyncio
-from confluent_kafka import KafkaException
-from threading import Thread
-from confluent_kafka import avro
-from confluent_kafka.avro import AvroConsumer
-from confluent_kafka.avro.serializer import SerializerError
+import json
 from aries_cloudagent.core.event_bus import Event, EventBus
+import logging
+from aiokafka import AIOKafkaConsumer
+import asyncio
+import threading
 
-# Parse Schema used for serializing event class
-# user example
-event_schema = avro.loads("""
-    {
-        "namespace": "confluent.io.examples.serialization.avro",
-        "name": "User",
-        "type": "record",
-        "fields": [
-            {"name": "name", "type": "string"},
-            {"name": "favorite_number", "type": "int"},
-            {"name": "favorite_color", "type": "string"}
-        ]
-    }
-""")
+DEFAULT_CONFIG = {"bootstrap_servers": "kafka", "group_id": "aca-py-events"}
+LOGGER = logging.getLogger(__name__)
 
-config = {
-    'bootstrap.servers': "localhost:9092",
-    'schema.registry.url': "http://localhost:8083",
-    'group.id':'example_avro',
-    'auto.offset.reset': "earliest",
-    'topics':["event1","event2"]
-    }
 
 class AIOConsumer:
-    def __init__(self, context, configs = config, loop=None):
+    def __init__(self, context, pattern: str, config: dict = None):
         self._context = context
-        self._loop = loop or asyncio.get_event_loop()
-        topics = config.pop("topics",[])
-        self._consumer = AvroConsumer(config, reader_value_schema=event_schema)
-        self._consumer.subscribe(topics)
-        self._cancelled = False
-        self._poll_thread = Thread(target=self._poll_loop)
-        self._poll_thread.start()
+        self._config = config if config else DEFAULT_CONFIG
+        self._consumer = None
+        self._pattern = pattern
 
-    def _poll_loop(self):
+    async def start(self):
+        LOGGER.info("Starting the Kafka consuming service")
+        self._consumer = AIOKafkaConsumer(**self._config)
+        await self._poll_loop()
+
+    async def _poll_loop(self):
+        try:
+            # Consume messages
+            await self._consumer.start()
+            self._consumer.subscribe(pattern=self._pattern)
+            async for msg in self._consumer:
+
+                await self._read_message(msg)
+
+        except Exception as exc:
+            LOGGER.error(f"Init Kafka consumer fails due: {exc}")
+
+    def _sync_start(self):
+        loop = asyncio.new_event_loop()
+        asyncio.set_event_loop(loop)
+
+        loop.run_until_complete(self.start())
+        loop.close()
+
+    def start_thread(self):
+        threading.Thread(target=self._sync_start).start()
+
+    async def _read_message(self, msg):
+
+        event_bus_topic = str(msg.topic).replace("-", "::")
         event_bus = self._context.inject(EventBus)
-        while not self._cancelled:
-            try:
-                msg = self._consumer.poll(0.1)
-                # There were no messages on the queue, continue polling
-                if msg is None:
-                    continue
-                if msg.error():
-                    print("Consumer error: {}".format(msg.error())) #TODO: change to logs
-                    continue
-                event = Event(msg.topic(), msg.value())
-                # event_bus.notify(context,event)
-            except SerializerError as e:
-                # Report malformed record, discard results, continue polling
-                print("Message deserialization failed {}".format(e)) #TODO: change to logs
-                continue
+        event = Event(event_bus_topic, json.loads(msg.value))
+        await event_bus.notify(self._context, event)
 
-    def close(self):
-        self._cancelled = True
-        self._poll_thread.join()
+    async def stop(self):
+
+        LOGGER.info("Stoping Kafka consuming service")
+        await self._consumer.stop()
+        LOGGER.info("Kafka service is stopped")
