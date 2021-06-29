@@ -1,4 +1,4 @@
-"""Routes for DIDComm Resolver."""
+"""Routes for enable & disable the Kafka interface."""
 
 from aiohttp import web
 from aiohttp_apispec import docs, response_schema
@@ -33,13 +33,13 @@ class StartKafkaSchema(OpenAPISchema):
 @response_schema(StopKafkaSchema(), 200, description="Stop Kafka Consumer/Producer")
 async def stop_kafka(request: web.Request):
     """
-    Request handler to stop the kafka consume & produce.
+    Request handler to stop the kafka consumer & producer.
 
     Args:
         request: aiohttp request object
 
     Returns:
-        The connection list response
+        The kafka interface status
 
     """
     context: AdminRequestContext = request["context"]
@@ -59,13 +59,13 @@ async def stop_kafka(request: web.Request):
 @response_schema(StartKafkaSchema(), 200, description="")
 async def start_kafka(request: web.Request):
     """
-    Request handler for listing resolver connections.
+    Request handler to start the kafka consumer & producer.
 
     Args:
         request: aiohttp request object
 
     Returns:
-        The connection list response
+        The kafka interface status
 
     """
     context: AdminRequestContext = request["context"]
@@ -101,7 +101,7 @@ def post_process_routes(app: web.Application):
             "description": "Kafka commands to stop/start the interfaces.",
             "externalDocs": {
                 "description": "Specification",
-                "url": "https://hackmd.io/ZjsDJg_8Ta6rsbq5ZSgHxA",
+                "url": "https://hackmd.io/35SDgAUBSCKiOuqlHyBn-Q",
             },
         }
     )
