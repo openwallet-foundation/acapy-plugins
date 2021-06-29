@@ -31,7 +31,7 @@ async def topics():
 async def consume(response: Response, topic: str = "acapy-outbound-test"):
     create_consumer()
     suscribe_topic(topic)
-    records = consume()
+    records = consume_topic()
     response = []
     for record in records:
         response.append(record.get("value"))
@@ -62,7 +62,7 @@ def suscribe_topic(topic):
     )
 
 
-def consume():
+def consume_topic():
     headers = {
         "Accept": "application/vnd.kafka.json.v2+json",
     }
