@@ -5,10 +5,10 @@ import re
 
 from aries_cloudagent.config.injection_context import InjectionContext
 from aries_cloudagent.core.event_bus import Event, EventBus
+from aries_cloudagent.core.in_memory import InMemoryProfile
 from aries_cloudagent.core.profile import Profile
 from aries_cloudagent.transport.outbound.status import OutboundSendStatus
 
-from .kafka_profile import KafkaProfile
 from .aio_producer import AIOProducer
 from .aio_consumer import AIOConsumer
 
@@ -31,7 +31,7 @@ async def setup(context: InjectionContext):
         consumer_conf.update(plugin_conf)
 
     # Build profile
-    profile = KafkaProfile(context=context)
+    profile = InMemoryProfile(context=context)
     # Instance the classes
     producer = AIOProducer(producer_conf)
     consumer = AIOConsumer(profile, INBOUND_PATTERN, config=consumer_conf)
