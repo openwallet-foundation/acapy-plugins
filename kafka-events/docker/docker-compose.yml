@@ -44,4 +44,28 @@ services:
     depends_on:
       - kafka
       - zookeeper
-    command: start --arg-file default.yml --plugin didcomm_resolver.role.resolver --plugin kafka_events -e http://kafka_events:3000 --log-level debug
+    command: start --arg-file default.yml --plugin didcomm_resolver.role.resolver --plugin kafka_events -e http://acapy-kafka-events:3000 --log-level debug
+
+  restproxy:
+    image: confluentinc/cp-kafka-rest
+    restart: always
+    depends_on:
+      - kafka
+    hostname: restproxy
+    container_name: restproxy
+    environment:
+      KAFKA_REST_HOST_NAME: restproxy
+      KAFKA_REST_BOOTSTRAP_SERVERS: kafka:9092
+      KAFKA_REST_LISTENERS: http://0.0.0.0:8086
+
+  restwrapper:
+    build:
+      context: ../http_kafka_queue_processor
+      dockerfile: Dockerfile
+    restart: always
+    depends_on:
+      - restproxy
+    ports:
+      - 8080:80
+    environment:
+      KAFKA_REST: http://restproxy:8086
