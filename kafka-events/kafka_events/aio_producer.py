@@ -11,12 +11,23 @@ class AIOProducer:
     def __init__(self, config: dict = None):
         self._config = config if config else DEFAULT_CONFIG
         self._producer = None
+        self._active = False
+
+    @property
+    def active(self):
+        return self._active
+
+    @active.setter
+    def active(self, x: bool):
+        self._active = x
 
     async def produce(self, topic: str, payload: dict):
         """
         An awaitable produce method.
         """
-
+        if not self._active:
+            LOGGER.warning("No active Kafka Producer")
+            return
         topic = topic.replace("::", "-")
         try:
             # Produce message

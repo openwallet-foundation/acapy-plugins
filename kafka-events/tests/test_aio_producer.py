@@ -18,6 +18,7 @@ async def test_produce_kafka_msg(mocker: MockerFixture):
     aio_kafka.start.side_effect = aux_function
     aio_kafka.stop.side_effect = aux_function
     aio_kafka.send_and_wait.side_effect = aux_function
+    producer.active = True
 
     await producer.produce("test::topic", {"payload": "test"})
     assert aio_kafka.start.called
@@ -35,6 +36,7 @@ async def test_exception_raised_to_produce_kafka_msg(mocker: MockerFixture):
     logger = mocker.patch("kafka_events.aio_producer.LOGGER")
     aio_kafka.start.side_effect = aux_function
     aio_kafka.stop.side_effect = aux_function
+    producer.active = True
 
     await producer.produce("test::topic", {"payload": "test"})
     assert aio_kafka.start.called

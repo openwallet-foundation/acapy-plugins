@@ -10,8 +10,8 @@ LOGGER = logging.getLogger(__name__)
 
 
 class AIOConsumer:
-    def __init__(self, context, pattern: str, config: dict = None):
-        self._context = context
+    def __init__(self, profile, pattern: str, config: dict = None):
+        self._profile = profile
         self._config = config if config else DEFAULT_CONFIG
         self._consumer = None
         self._pattern = pattern
@@ -47,9 +47,7 @@ class AIOConsumer:
     async def _read_message(self, msg):
 
         event_bus_topic = str(msg.topic).replace("-", "::")
-        event_bus = self._context.inject(EventBus)
-        event = Event(event_bus_topic, json.loads(msg.value))
-        await event_bus.notify(self._context, event)
+        await self._profile.notify(event_bus_topic, json.loads(msg.value))
 
     def stop(self):
         try:
