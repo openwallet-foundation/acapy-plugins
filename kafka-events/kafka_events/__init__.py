@@ -1,21 +1,73 @@
 """ACA-Py Event to Kafka Bridge."""
 
-import re
 import logging
+import re
 
 from aries_cloudagent.config.injection_context import InjectionContext
+from aries_cloudagent.core.event_bus import Event, EventBus
+from aries_cloudagent.core.in_memory import InMemoryProfile
 from aries_cloudagent.core.profile import Profile
-from aries_cloudagent.core.event_bus import EventBus, Event
+from aries_cloudagent.transport.outbound.status import OutboundSendStatus
 
+from .aio_producer import AIOProducer
+from .aio_consumer import AIOConsumer
 
-ALL_EVENTS = re.compile(r".*")
+OUTBOUND_PATTERN = "acapy::outbound::message$"  # For Event Bus
+INBOUND_PATTERN = "acapy-inbound-.*"  # For Kafka Consumer
 LOGGER = logging.getLogger(__name__)
+TOPICS = []
 
 
 async def setup(context: InjectionContext):
     """Setup the plugin."""
+
+    plugin_conf = context.settings.get("plugin_config", {}).get("kafka_events", {})
+    producer_conf = {}
+    consumer_conf = {}
+    if plugin_conf:
+        producer_conf = plugin_conf.pop("producer-config") or {}
+        consumer_conf = plugin_conf.pop("consumer-config") or {}
+        producer_conf.update(plugin_conf)
+        consumer_conf.update(plugin_conf)
+
+    # Build profile
+    profile = InMemoryProfile(context=context)
+    # Instance the classes
+    producer = AIOProducer(producer_conf)
+    consumer = AIOConsumer(profile, INBOUND_PATTERN, config=consumer_conf)
+
+    # Add the Kafka consumer and producer in the context
+    context.injector.bind_instance(AIOConsumer, consumer)
+    context.injector.bind_instance(AIOProducer, producer)
+
+    # Handle event for Kafka
     bus = context.inject(EventBus)
-    bus.subscribe(ALL_EVENTS, handle_event)
+    bus.subscribe(re.compile(OUTBOUND_PATTERN), handle_event)
+    await start(context)
+
+
+async def teardown(context: InjectionContext):
+    # Stop de consumer
+    LOGGER.info("Stopping Kafka consumer")
+    consumer = context.inject(AIOConsumer)
+    consumer.stop()
+    # Stop the producer
+    LOGGER.info("Stopping Kafka producer")
+    producer = context.inject(AIOProducer)
+    producer.active = False
+
+
+async def start(context: InjectionContext):
+    # Run the consumer in a thread
+    producer = context.inject(AIOProducer)
+    consumer = context.inject(AIOConsumer)
+
+    if not producer.active:
+        LOGGER.info("Starting Kafka consumer")
+        consumer.start_thread()
+        # Setup the producer
+        LOGGER.info("Starting Kafka producer")
+        producer.active = True
 
 
 async def handle_event(profile: Profile, event: Event):
@@ -44,3 +96,17 @@ async def handle_event(profile: Profile, event: Event):
       infrequent.
     """
     LOGGER.info("Handling event: %s", event)
+    producer = profile.inject(AIOProducer)
+
+    if producer.active:
+        await producer.produce(event.topic, event.payload)
+        await profile.notify(
+            topic=f"{event.topic}::{OutboundSendStatus.SENT_TO_EXTERNAL_QUEUE.value}",
+            payload=event.payload,
+        )
+
+    else:
+        await profile.notify(
+            topic=f"{event.topic}::{OutboundSendStatus.UNDELIVERABLE.value}",
+            payload=event.payload,
+        )

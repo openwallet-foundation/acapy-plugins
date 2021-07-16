@@ -8,6 +8,8 @@ admin-insecure-mode: true
 plugin:
   - kafka_events
 
+plugin-config: plugins-config.yaml
+
 # Transport
 inbound-transport:
   - [http, 0.0.0.0, 3000]

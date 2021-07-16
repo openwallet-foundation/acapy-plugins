@@ -1,0 +1,71 @@
+version: '3'
+services:
+  #*************************************************************
+  # zookeeper: kafka broker.                                   *
+  #*************************************************************
+
+  zookeeper:
+    image: confluentinc/cp-zookeeper:latest
+    environment:
+      ZOOKEEPER_CLIENT_PORT: 2181
+      ZOOKEEPER_TICK_TIME: 2000
+    ports:
+      - 22181:2181
+
+  #*************************************************************
+  # kafka: producer example setup.                             *
+  #*************************************************************
+
+  kafka:
+    image: confluentinc/cp-kafka:latest
+    depends_on:
+      - zookeeper
+    ports:
+      - 29092:29092
+    environment:
+      KAFKA_BROKER_ID: 1
+      KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:9092,PLAINTEXT_HOST://localhost:29092
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT,PLAINTEXT_HOST:PLAINTEXT
+      KAFKA_INTER_BROKER_LISTENER_NAME: PLAINTEXT
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+
+  #*************************************************************
+  # acapy-kafka_events: aca-py that produces kafka events.     *
+  #*************************************************************
+
+  acapy-kafka-events:
+    image: acapy-kafka-events
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile
+    ports:
+      - "3001:3001"
+    depends_on:
+      - kafka
+      - zookeeper
+    command: start --arg-file default.yml --plugin didcomm_resolver.role.resolver --plugin kafka_events -e http://acapy-kafka-events:3000 --log-level debug
+
+  restproxy:
+    image: confluentinc/cp-kafka-rest
+    restart: always
+    depends_on:
+      - kafka
+    hostname: restproxy
+    container_name: restproxy
+    environment:
+      KAFKA_REST_HOST_NAME: restproxy
+      KAFKA_REST_BOOTSTRAP_SERVERS: kafka:9092
+      KAFKA_REST_LISTENERS: http://0.0.0.0:8086
+
+  restwrapper:
+    build:
+      context: ../http_kafka_queue_processor
+      dockerfile: Dockerfile
+    restart: always
+    depends_on:
+      - restproxy
+    ports:
+      - 8080:80
+    environment:
+      KAFKA_REST: http://restproxy:8086
