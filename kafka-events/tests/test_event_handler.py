@@ -1,6 +1,5 @@
 """Test event handler."""
 
-# pylint: disable=redefined-outer-name
 from unittest.mock import MagicMock
 
 from aries_cloudagent.core.event_bus import Event, EventBus
@@ -18,7 +17,7 @@ async def setup_module(profile: Profile):
     """ setup for execution of the given module."""
     context = MagicMock()
     context.settings = {}
-    context.inject.return_value = event_bus
+    context.inject.side_effect = [event_bus, MagicMock(), MagicMock()]
     await event_setup(context)
 
 
@@ -26,17 +25,19 @@ async def setup_module(profile: Profile):
 async def test_setup_and_receive_event_to_be_produced_to_kafka(mocker: MockerFixture):
     """Test event handler setup and event receive."""
 
-    async def aux_produce(*args):
+    async def aux_produce(*args, **kwargs):
         pass
 
     await setup_module(Profile)
     mocker.patch("kafka_events.AIOProducer")
     mocker.patch("kafka_events.AIOConsumer")
     profile = MagicMock()
-    kafka_productor = profile.context.inject.return_value.produce
+    kafka_productor = profile.inject.return_value.produce
     kafka_productor.side_effect = aux_produce
-    await event_bus.notify(profile, Event("acapy::outbound::test"))
+    profile.notify.side_effect = aux_produce
+    await event_bus.notify(profile, Event("acapy::outbound::message"))
     assert kafka_productor.called
+    assert profile.notify.called
 
 
 @pytest.mark.asyncio

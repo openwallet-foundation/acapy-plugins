@@ -137,7 +137,7 @@ uvloop = ["uvloop"]
 type = "git"
 url = "https://github.com/hyperledger/aries-cloudagent-python"
 reference = "main"
-resolved_reference = "68347f8e1f3b918464019bdc2d891926de023f5c"
+resolved_reference = "ee306a40ee070905cc67af767e420db80603123c"
 
 [[package]]
 name = "async-timeout"
@@ -146,6 +146,14 @@ description = "Timeout context manager for asyncio programs"
 category = "main"
 optional = false
 python-versions = ">=3.5.3"
+
+[[package]]
+name = "asynctest"
+version = "0.13.0"
+description = "Enhance the standard unittest package with features for testing asyncio libraries"
+category = "dev"
+optional = false
+python-versions = ">=3.5"
 
 [[package]]
 name = "atomicwrites"
@@ -354,7 +362,7 @@ pyflakes = ">=2.3.0,<2.4.0"
 
 [[package]]
 name = "frozendict"
-version = "2.0.2"
+version = "2.0.3"
 description = "A simple immutable dictionary"
 category = "main"
 optional = false
@@ -1000,7 +1008,7 @@ testing = ["pytest (>=4.6)", "pytest-checkdocs (>=1.2.3)", "pytest-flake8", "pyt
 [metadata]
 lock-version = "1.1"
 python-versions = "^3.6.9"
-content-hash = "d40375e1b66c9816d39548acbabc7e793e2ba8e2fef6702ae7a21b6d907a03b1"
+content-hash = "374aff5126bd7c719c3787e749ef00ff9070dd28f325d0db3b3dbda6ff1f4ea8"
 
 [metadata.files]
 aiohttp = [
@@ -1096,6 +1104,10 @@ aries-cloudagent = []
 async-timeout = [
     {file = "async-timeout-3.0.1.tar.gz", hash = "sha256:0c3c816a028d47f659d6ff5c745cb2acf1f966da1fe5c19c77a70282b25f4c5f"},
     {file = "async_timeout-3.0.1-py3-none-any.whl", hash = "sha256:4291ca197d287d274d0b6cb5d6f8f8f82d434ed288f962539ff18cc9012f9ea3"},
+]
+asynctest = [
+    {file = "asynctest-0.13.0-py3-none-any.whl", hash = "sha256:5da6118a7e6d6b54d83a8f7197769d046922a44d2a99c21382f0a6e4fadae676"},
+    {file = "asynctest-0.13.0.tar.gz", hash = "sha256:c27862842d15d83e6a34eb0b2866c323880eb3a75e4485b079ea11748fd77fac"},
 ]
 atomicwrites = [
     {file = "atomicwrites-1.4.0-py2.py3-none-any.whl", hash = "sha256:6d1784dea7c0c8d4a5172b6c620f40b6e4cbfdf96d783691f2e1302a7b88e197"},
@@ -1219,7 +1231,8 @@ flake8 = [
     {file = "flake8-3.9.2.tar.gz", hash = "sha256:07528381786f2a6237b061f6e96610a4167b226cb926e2aa2b6b1d78057c576b"},
 ]
 frozendict = [
-    {file = "frozendict-2.0.2-py3-none-any.whl", hash = "sha256:4d5a25859bfeb1dadcf4e41f8a8a528f6cbe8271ae471e9a9b973524e7188524"},
+    {file = "frozendict-2.0.3-py3-none-any.whl", hash = "sha256:58143e2d3d11699bc295d9e7e05f10dde99a727e2295d7f43542ecdc42c5ec70"},
+    {file = "frozendict-2.0.3.tar.gz", hash = "sha256:163c616188beb97fdc8ef6e73ec2ebd70a844d4cf19d2e383aa94d1b8376653d"},
 ]
 hiredis = [
     {file = "hiredis-2.0.0-cp36-cp36m-macosx_10_9_x86_64.whl", hash = "sha256:b4c8b0bc5841e578d5fb32a16e0c305359b987b850a06964bd5a62739d688048"},
