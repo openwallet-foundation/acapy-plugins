@@ -6,15 +6,15 @@ from aries_cloudagent.core.event_bus import Event, EventBus
 from aries_cloudagent.core.profile import Profile
 from pytest_mock import MockerFixture
 import pytest
-from kafka_events import setup as event_setup
-from kafka_events import teardown as event_teardown
+from kafka_queue import setup as event_setup
+from kafka_queue import teardown as event_teardown
 
 event_bus = EventBus()
 
 
 @pytest.mark.asyncio
 async def setup_module(profile: Profile):
-    """ setup for execution of the given module."""
+    """setup for execution of the given module."""
     context = MagicMock()
     context.settings = {}
     context.inject.side_effect = [event_bus, MagicMock(), MagicMock()]
@@ -29,14 +29,14 @@ async def test_setup_and_receive_event_to_be_produced_to_kafka(mocker: MockerFix
         pass
 
     await setup_module(Profile)
-    mocker.patch("kafka_events.AIOProducer")
-    mocker.patch("kafka_events.AIOConsumer")
+    mocker.patch("kafka_queue.AIOProducer")
+    mocker.patch("kafka_queue.AIOConsumer")
     profile = MagicMock()
-    kafka_productor = profile.inject.return_value.produce
-    kafka_productor.side_effect = aux_produce
+    kafka_producer = profile.inject.return_value.produce
+    kafka_producer.side_effect = aux_produce
     profile.notify.side_effect = aux_produce
     await event_bus.notify(profile, Event("acapy::outbound::message"))
-    assert kafka_productor.called
+    assert kafka_producer.called
     assert profile.notify.called
 
 

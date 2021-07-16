@@ -6,7 +6,7 @@ admin-insecure-mode: true
 
 # Load toolbox plugin
 plugin:
-  - kafka_events
+  - kafka_queue
 
 plugin-config: plugins-config.yaml
 

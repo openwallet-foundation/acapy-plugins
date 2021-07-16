@@ -1,4 +1,4 @@
-kafka_events:
+kafka_queue:
 
   # General #
 
@@ -22,7 +22,7 @@ kafka_events:
   ### For consumers ###
 
   consumer-config:
-#    group_id: "kafka_events"
+#    group_id: "kafka_queue"
 #    fetch_max_wait_ms: 500
 #    fetch_max_bytes: 52428800 # 50 * 1024 * 1024 = 50MB
 #    fetch_min_bytes: 1

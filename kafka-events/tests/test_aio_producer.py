@@ -3,7 +3,7 @@
 from aries_cloudagent.core.event_bus import Event, EventBus
 from pytest_mock import MockerFixture
 import pytest
-from kafka_events.aio_producer import AIOProducer
+from kafka_queue.aio_producer import AIOProducer
 
 event_bus = EventBus()
 
@@ -14,7 +14,7 @@ async def test_produce_kafka_msg(mocker: MockerFixture):
         pass
 
     producer = AIOProducer()
-    aio_kafka = mocker.patch("kafka_events.aio_producer.AIOKafkaProducer").return_value
+    aio_kafka = mocker.patch("kafka_queue.aio_producer.AIOKafkaProducer").return_value
     aio_kafka.start.side_effect = aux_function
     aio_kafka.stop.side_effect = aux_function
     aio_kafka.send_and_wait.side_effect = aux_function
@@ -32,8 +32,8 @@ async def test_exception_raised_to_produce_kafka_msg(mocker: MockerFixture):
         pass
 
     producer = AIOProducer()
-    aio_kafka = mocker.patch("kafka_events.aio_producer.AIOKafkaProducer").return_value
-    logger = mocker.patch("kafka_events.aio_producer.LOGGER")
+    aio_kafka = mocker.patch("kafka_queue.aio_producer.AIOKafkaProducer").return_value
+    logger = mocker.patch("kafka_queue.aio_producer.LOGGER")
     aio_kafka.start.side_effect = aux_function
     aio_kafka.stop.side_effect = aux_function
     producer.active = True

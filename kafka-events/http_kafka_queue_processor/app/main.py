@@ -2,6 +2,7 @@ from fastapi import FastAPI, Response, status
 import requests
 import json
 import os
+
 app = FastAPI()
 app.title = "Simple Kafka Client"
 URL = os.getenv("KAFKA_REST")
@@ -30,12 +31,9 @@ async def topics():
 @app.get("/consume", status_code=200)
 async def consume(response: Response, topic: str = "acapy-outbound-test"):
     create_consumer()
-    suscribe_topic(topic)
-    records = consume_topic()
-    response = []
-    for record in records:
-        response.append(record.get("value"))
-
+    subscribe_topic(topic)
+    records = consume_topic() or []
+    response = [record.get("value") for record in records]
     close_consumer()
 
     return response
@@ -51,7 +49,7 @@ def create_consumer():
     requests.post(f"{URL}/consumers/my_json_consumer", headers=headers, data=data)
 
 
-def suscribe_topic(topic):
+def subscribe_topic(topic):
     headers = {"Content-Type": "application/vnd.kafka.json.v2+json"}
 
     data = json.dumps({"topics": [topic]})

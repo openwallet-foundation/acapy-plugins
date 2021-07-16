@@ -9,7 +9,7 @@ LOGGER = logging.getLogger(__name__)
 
 class AIOProducer:
     def __init__(self, config: dict = None):
-        self._config = config if config else DEFAULT_CONFIG
+        self._config = config or DEFAULT_CONFIG
         self._producer = None
         self._active = False
 

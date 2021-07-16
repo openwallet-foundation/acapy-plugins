@@ -4,7 +4,7 @@ WORKDIR /usr/src/app
 
 RUN pip3 install --no-cache-dir poetry
 
-COPY ./kafka_events kafka_events
+COPY ./kafka_queue kafka_queue
 COPY ./README.md .
 COPY ./pyproject.toml .
 COPY ./poetry.lock .

@@ -22,7 +22,7 @@ jobs:
           pip install black==20.8b1
       - name: Black Format Check
         run: |
-          black --check kafka_events
+          black --check kafka_queue
 
   test:
     name: Tests

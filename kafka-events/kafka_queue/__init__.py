@@ -21,7 +21,7 @@ TOPICS = []
 async def setup(context: InjectionContext):
     """Setup the plugin."""
 
-    plugin_conf = context.settings.get("plugin_config", {}).get("kafka_events", {})
+    plugin_conf = context.settings.get("plugin_config", {}).get("kafka_queue", {})
     producer_conf = {}
     consumer_conf = {}
     if plugin_conf:

@@ -7,7 +7,7 @@ from aries_cloudagent.messaging.models.base import BaseModelError
 from aries_cloudagent.messaging.models.openapi import OpenAPISchema
 from aries_cloudagent.storage.error import StorageError
 from marshmallow import fields
-from kafka_events import teardown, start
+from kafka_queue import teardown, start
 
 
 class StopKafkaSchema(OpenAPISchema):

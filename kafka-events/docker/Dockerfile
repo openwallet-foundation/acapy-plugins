@@ -4,7 +4,7 @@ RUN pip3 install --no-cache-dir poetry
 
 USER root
 
-COPY kafka_events kafka_events
+COPY kafka_queue kafka_queue
 
 COPY ./README.md .
 COPY ./setup.py .

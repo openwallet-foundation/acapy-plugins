@@ -12,7 +12,7 @@ LOGGER = logging.getLogger(__name__)
 class AIOConsumer:
     def __init__(self, profile, pattern: str, config: dict = None):
         self._profile = profile
-        self._config = config if config else DEFAULT_CONFIG
+        self._config = config or DEFAULT_CONFIG
         self._consumer = None
         self._pattern = pattern
         self._loop = None
