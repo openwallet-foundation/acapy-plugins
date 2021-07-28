@@ -1,0 +1,48 @@
+version: '3'
+services:
+  #*************************************************************
+  # zookeeper: kafka broker.                                   *
+  #*************************************************************
+
+  zookeeper:
+    image: confluentinc/cp-zookeeper:latest
+    environment:
+      ZOOKEEPER_CLIENT_PORT: 2181
+      ZOOKEEPER_TICK_TIME: 2000
+    ports:
+      - 22181:2181
+
+  #*************************************************************
+  # acapy-kafka_queue: aca-py that produces kafka events.     *
+  #*************************************************************
+
+  acapy-kafka-queue:
+    image: acapy-kafka-queue
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile
+    ports:
+      - "3001:3001"
+    depends_on:
+      - zookeeper
+    command: start --arg-file default.yml --plugin kafka_queue -e http://acapy-kafka-queue:3000 --log-level debug
+
+  #*************************************************************
+  # tester: drives tests in a                                  *
+  # "Juggernaut" fashion!                                      *
+  #*************************************************************
+
+  tests:
+      container_name: juggernaut
+      build:
+        context: .
+        dockerfile: Dockerfile.test.runner
+      environment:
+        - WAIT_BEFORE_HOSTS=3
+        - WAIT_HOSTS=zookeeper:2181, acapy-kafka-queue:3001
+        - WAIT_HOSTS_TIMEOUT=60
+        - WAIT_SLEEP_INTERVAL=1
+        - WAIT_HOST_CONNECT_TIMEOUT=30
+      depends_on:
+        - zookeeper
+        - acapy-kafka-queue
