@@ -14,6 +14,7 @@ import json
 import uuid
 
 from confluent_kafka.avro import AvroProducer
+
 # from .aio_consumer import AIOConsumer
 
 OUTBOUND_PATTERN = "acapy::outbound::message$"  # For Event Bus
@@ -26,37 +27,24 @@ BASIC_MESSAGE_SCHEMA = {
     "type": "acapy::basicmessage",
     "name": "basicMessage",
     "fields": [
-        {
-        "name": "connection_id",
-        "type": "string"
-        },
-            {
-      "name": "message_id",
-      "type": "string"
-    },
-        {
-      "name": "content",
-      "type": "string"
-    },
-            {
-      "name": "state",
-      "type": "string" # todo: update to message state
-    },
-            {
-      "name": "sent_time",
-      "type": "string" # todo: update to time stamp
-    },
-    ]
+        {"name": "connection_id", "type": "string"},
+        {"name": "message_id", "type": "string"},
+        {"name": "content", "type": "string"},
+        {"name": "state", "type": "string"},  # todo: update to message state
+        {"name": "sent_time", "type": "string"},  # todo: update to time stamp
+    ],
 }
 key_schema = avro.loads("""{"type": "string"}""")
 value_schema = avro.loads(BASIC_MESSAGE_SCHEMA)
+
 
 async def setup(context: InjectionContext):
     """Setup the plugin."""
     # Handle event for Kafka
     bus = context.inject(EventBus)
-    #bus.subscribe(re.compile(OUTBOUND_PATTERN), handle_event)
+    # bus.subscribe(re.compile(OUTBOUND_PATTERN), handle_event)
     bus.subscribe(re.compile(BASIC_MESSAGE_PATTERN), handle_event)
+
 
 async def handle_event(profile: Profile, event: Event):
     """
@@ -85,19 +73,27 @@ async def handle_event(profile: Profile, event: Event):
     """
     producer_config = {
         "bootstrap.servers": "kafka",
-        # "schema.registry.url": 
+        # "schema.registry.url":
     }
     topic = event.topic.replace("::", "-")
     try:
         # Produce message
         LOGGER.info(f"Sending message {event.payload} with Kafka topic {topic}")
-        producer = AvroProducer(producer_config, default_key_schema=key_schema, default_value_schema=value_schema)
+        producer = AvroProducer(
+            producer_config,
+            default_key_schema=key_schema,
+            default_value_schema=value_schema,
+        )
         try:
             producer.produce(topic=topic, key=str(uuid.uuid4()), value=event.payload)
         except Exception as e:
-            LOGGER.error(f"Exception while producing event value - {event.payload} to topic - {topic}: {e}")
+            LOGGER.error(
+                f"Exception while producing event value - {event.payload} to topic - {topic}: {e}"
+            )
         else:
-            LOGGER.debug(f"Successfully producing record value - {event.payload} to topic - {topic}")
+            LOGGER.debug(
+                f"Successfully producing record value - {event.payload} to topic - {topic}"
+            )
 
         # producer.flush() # used to make this method synchronous, blocking until all topics sent
     except Exception as exc:
