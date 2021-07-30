@@ -47,7 +47,9 @@ def _get_kwargs(
     }
 
 
-def _parse_response(*, response: httpx.Response) -> Optional[V10PresentationExchangeList]:
+def _parse_response(
+    *, response: httpx.Response
+) -> Optional[V10PresentationExchangeList]:
     if response.status_code == 200:
         response_200 = V10PresentationExchangeList.from_dict(response.json())
 
@@ -55,7 +57,9 @@ def _parse_response(*, response: httpx.Response) -> Optional[V10PresentationExch
     return None
 
 
-def _build_response(*, response: httpx.Response) -> Response[V10PresentationExchangeList]:
+def _build_response(
+    *, response: httpx.Response
+) -> Response[V10PresentationExchangeList]:
     return Response(
         status_code=response.status_code,
         content=response.content,

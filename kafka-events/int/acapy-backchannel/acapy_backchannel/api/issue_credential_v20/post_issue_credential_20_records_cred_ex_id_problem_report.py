@@ -3,8 +3,12 @@ from typing import Any, Dict, Optional
 import httpx
 
 from ...client import Client
-from ...models.v20_cred_issue_problem_report_request import V20CredIssueProblemReportRequest
-from ...models.v20_issue_credential_module_response import V20IssueCredentialModuleResponse
+from ...models.v20_cred_issue_problem_report_request import (
+    V20CredIssueProblemReportRequest,
+)
+from ...models.v20_issue_credential_module_response import (
+    V20IssueCredentialModuleResponse,
+)
 from ...types import Response
 
 
@@ -14,7 +18,9 @@ def _get_kwargs(
     cred_ex_id: str,
     json_body: V20CredIssueProblemReportRequest,
 ) -> Dict[str, Any]:
-    url = "{}/issue-credential-2.0/records/{cred_ex_id}/problem-report".format(client.base_url, cred_ex_id=cred_ex_id)
+    url = "{}/issue-credential-2.0/records/{cred_ex_id}/problem-report".format(
+        client.base_url, cred_ex_id=cred_ex_id
+    )
 
     headers: Dict[str, Any] = client.get_headers()
     cookies: Dict[str, Any] = client.get_cookies()
@@ -30,7 +36,9 @@ def _get_kwargs(
     }
 
 
-def _parse_response(*, response: httpx.Response) -> Optional[V20IssueCredentialModuleResponse]:
+def _parse_response(
+    *, response: httpx.Response
+) -> Optional[V20IssueCredentialModuleResponse]:
     if response.status_code == 200:
         response_200 = V20IssueCredentialModuleResponse.from_dict(response.json())
 
@@ -38,7 +46,9 @@ def _parse_response(*, response: httpx.Response) -> Optional[V20IssueCredentialM
     return None
 
 
-def _build_response(*, response: httpx.Response) -> Response[V20IssueCredentialModuleResponse]:
+def _build_response(
+    *, response: httpx.Response
+) -> Response[V20IssueCredentialModuleResponse]:
     return Response(
         status_code=response.status_code,
         content=response.content,

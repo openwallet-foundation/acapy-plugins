@@ -2,7 +2,9 @@ from typing import Any, Dict, List, Type, TypeVar, Union
 
 import attr
 
-from ..models.clear_pending_revocations_request_purge import ClearPendingRevocationsRequestPurge
+from ..models.clear_pending_revocations_request_purge import (
+    ClearPendingRevocationsRequestPurge,
+)
 from ..types import UNSET, Unset
 
 T = TypeVar("T", bound="ClearPendingRevocationsRequest")

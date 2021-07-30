@@ -2,9 +2,15 @@ from typing import Any, Dict, List, Type, TypeVar, Union
 
 import attr
 
-from ..models.v10_presentation_request_requested_attributes import V10PresentationRequestRequestedAttributes
-from ..models.v10_presentation_request_requested_predicates import V10PresentationRequestRequestedPredicates
-from ..models.v10_presentation_request_self_attested_attributes import V10PresentationRequestSelfAttestedAttributes
+from ..models.v10_presentation_request_requested_attributes import (
+    V10PresentationRequestRequestedAttributes,
+)
+from ..models.v10_presentation_request_requested_predicates import (
+    V10PresentationRequestRequestedPredicates,
+)
+from ..models.v10_presentation_request_self_attested_attributes import (
+    V10PresentationRequestSelfAttestedAttributes,
+)
 from ..types import UNSET, Unset
 
 T = TypeVar("T", bound="V10PresentationRequest")
@@ -46,12 +52,18 @@ class V10PresentationRequest:
     @classmethod
     def from_dict(cls: Type[T], src_dict: Dict[str, Any]) -> T:
         d = src_dict.copy()
-        requested_attributes = V10PresentationRequestRequestedAttributes.from_dict(d.pop("requested_attributes"))
+        requested_attributes = V10PresentationRequestRequestedAttributes.from_dict(
+            d.pop("requested_attributes")
+        )
 
-        requested_predicates = V10PresentationRequestRequestedPredicates.from_dict(d.pop("requested_predicates"))
+        requested_predicates = V10PresentationRequestRequestedPredicates.from_dict(
+            d.pop("requested_predicates")
+        )
 
-        self_attested_attributes = V10PresentationRequestSelfAttestedAttributes.from_dict(
-            d.pop("self_attested_attributes")
+        self_attested_attributes = (
+            V10PresentationRequestSelfAttestedAttributes.from_dict(
+                d.pop("self_attested_attributes")
+            )
         )
 
         trace = d.pop("trace", UNSET)

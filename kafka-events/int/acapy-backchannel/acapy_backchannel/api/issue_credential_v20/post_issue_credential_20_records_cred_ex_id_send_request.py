@@ -12,7 +12,9 @@ def _get_kwargs(
     client: Client,
     cred_ex_id: str,
 ) -> Dict[str, Any]:
-    url = "{}/issue-credential-2.0/records/{cred_ex_id}/send-request".format(client.base_url, cred_ex_id=cred_ex_id)
+    url = "{}/issue-credential-2.0/records/{cred_ex_id}/send-request".format(
+        client.base_url, cred_ex_id=cred_ex_id
+    )
 
     headers: Dict[str, Any] = client.get_headers()
     cookies: Dict[str, Any] = client.get_cookies()

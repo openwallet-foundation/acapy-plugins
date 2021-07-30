@@ -12,7 +12,9 @@ def _get_kwargs(
     client: Client,
     mediation_id: str,
 ) -> Dict[str, Any]:
-    url = "{}/mediation/{mediation_id}/default-mediator".format(client.base_url, mediation_id=mediation_id)
+    url = "{}/mediation/{mediation_id}/default-mediator".format(
+        client.base_url, mediation_id=mediation_id
+    )
 
     headers: Dict[str, Any] = client.get_headers()
     cookies: Dict[str, Any] = client.get_cookies()

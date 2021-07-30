@@ -2,7 +2,9 @@ from typing import Any, Dict, List, Type, TypeVar, Union
 
 import attr
 
-from ..models.v20_cred_ex_record_indy_cred_request_metadata import V20CredExRecordIndyCredRequestMetadata
+from ..models.v20_cred_ex_record_indy_cred_request_metadata import (
+    V20CredExRecordIndyCredRequestMetadata,
+)
 from ..types import UNSET, Unset
 
 T = TypeVar("T", bound="V20CredExRecordIndy")
@@ -71,7 +73,9 @@ class V20CredExRecordIndy:
         if isinstance(_cred_request_metadata, Unset):
             cred_request_metadata = UNSET
         else:
-            cred_request_metadata = V20CredExRecordIndyCredRequestMetadata.from_dict(_cred_request_metadata)
+            cred_request_metadata = V20CredExRecordIndyCredRequestMetadata.from_dict(
+                _cred_request_metadata
+            )
 
         cred_rev_id = d.pop("cred_rev_id", UNSET)
 

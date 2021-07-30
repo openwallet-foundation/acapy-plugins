@@ -12,7 +12,9 @@ def _get_kwargs(
     client: Client,
     cred_def_id: str,
 ) -> Dict[str, Any]:
-    url = "{}/revocation/active-registry/{cred_def_id}".format(client.base_url, cred_def_id=cred_def_id)
+    url = "{}/revocation/active-registry/{cred_def_id}".format(
+        client.base_url, cred_def_id=cred_def_id
+    )
 
     headers: Dict[str, Any] = client.get_headers()
     cookies: Dict[str, Any] = client.get_cookies()

@@ -36,7 +36,9 @@ class CredentialDefinitionGetResults:
         if isinstance(_credential_definition, Unset):
             credential_definition = UNSET
         else:
-            credential_definition = CredentialDefinition.from_dict(_credential_definition)
+            credential_definition = CredentialDefinition.from_dict(
+                _credential_definition
+            )
 
         credential_definition_get_results = cls(
             credential_definition=credential_definition,

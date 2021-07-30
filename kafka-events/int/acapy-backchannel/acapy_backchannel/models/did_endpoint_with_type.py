@@ -2,7 +2,9 @@ from typing import Any, Dict, List, Type, TypeVar, Union
 
 import attr
 
-from ..models.did_endpoint_with_type_endpoint_type import DIDEndpointWithTypeEndpointType
+from ..models.did_endpoint_with_type_endpoint_type import (
+    DIDEndpointWithTypeEndpointType,
+)
 from ..types import UNSET, Unset
 
 T = TypeVar("T", bound="DIDEndpointWithType")

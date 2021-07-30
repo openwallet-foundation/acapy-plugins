@@ -7,7 +7,9 @@ from ..models.v20_cred_ex_record_cred_offer import V20CredExRecordCredOffer
 from ..models.v20_cred_ex_record_cred_preview import V20CredExRecordCredPreview
 from ..models.v20_cred_ex_record_cred_proposal import V20CredExRecordCredProposal
 from ..models.v20_cred_ex_record_cred_request import V20CredExRecordCredRequest
-from ..models.v20_cred_ex_record_cred_request_metadata import V20CredExRecordCredRequestMetadata
+from ..models.v20_cred_ex_record_cred_request_metadata import (
+    V20CredExRecordCredRequestMetadata,
+)
 from ..models.v20_cred_ex_record_initiator import V20CredExRecordInitiator
 from ..models.v20_cred_ex_record_role import V20CredExRecordRole
 from ..models.v20_cred_ex_record_state import V20CredExRecordState
@@ -198,7 +200,9 @@ class V20CredExRecord:
         if isinstance(_cred_request_metadata, Unset):
             cred_request_metadata = UNSET
         else:
-            cred_request_metadata = V20CredExRecordCredRequestMetadata.from_dict(_cred_request_metadata)
+            cred_request_metadata = V20CredExRecordCredRequestMetadata.from_dict(
+                _cred_request_metadata
+            )
 
         error_msg = d.pop("error_msg", UNSET)
 

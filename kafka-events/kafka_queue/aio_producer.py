@@ -43,6 +43,7 @@ class AIOProducer:
 
     async def _start(self):
         self._producer = AIOKafkaProducer(**self._config)
+
         await self._producer.start()
 
     async def _stop(self):

@@ -3,8 +3,12 @@ from typing import Any, Dict, Union
 import httpx
 
 from ...client import Client
-from ...models.get_issue_credential_20_records_role import GetIssueCredential20RecordsRole
-from ...models.get_issue_credential_20_records_state import GetIssueCredential20RecordsState
+from ...models.get_issue_credential_20_records_role import (
+    GetIssueCredential20RecordsRole,
+)
+from ...models.get_issue_credential_20_records_state import (
+    GetIssueCredential20RecordsState,
+)
 from ...types import UNSET, Response, Unset
 
 

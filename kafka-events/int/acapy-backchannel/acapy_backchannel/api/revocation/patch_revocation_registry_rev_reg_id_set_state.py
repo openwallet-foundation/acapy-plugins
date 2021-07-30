@@ -3,7 +3,9 @@ from typing import Any, Dict, Optional
 import httpx
 
 from ...client import Client
-from ...models.patch_revocation_registry_rev_reg_id_set_state_state import PatchRevocationRegistryRevRegIdSetStateState
+from ...models.patch_revocation_registry_rev_reg_id_set_state_state import (
+    PatchRevocationRegistryRevRegIdSetStateState,
+)
 from ...models.rev_reg_result import RevRegResult
 from ...types import UNSET, Response
 
@@ -14,7 +16,9 @@ def _get_kwargs(
     rev_reg_id: str,
     state: PatchRevocationRegistryRevRegIdSetStateState,
 ) -> Dict[str, Any]:
-    url = "{}/revocation/registry/{rev_reg_id}/set-state".format(client.base_url, rev_reg_id=rev_reg_id)
+    url = "{}/revocation/registry/{rev_reg_id}/set-state".format(
+        client.base_url, rev_reg_id=rev_reg_id
+    )
 
     headers: Dict[str, Any] = client.get_headers()
     cookies: Dict[str, Any] = client.get_cookies()

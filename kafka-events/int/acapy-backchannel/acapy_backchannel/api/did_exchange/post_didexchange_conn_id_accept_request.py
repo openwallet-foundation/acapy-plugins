@@ -14,7 +14,9 @@ def _get_kwargs(
     mediation_id: Union[Unset, str] = UNSET,
     my_endpoint: Union[Unset, str] = UNSET,
 ) -> Dict[str, Any]:
-    url = "{}/didexchange/{conn_id}/accept-request".format(client.base_url, conn_id=conn_id)
+    url = "{}/didexchange/{conn_id}/accept-request".format(
+        client.base_url, conn_id=conn_id
+    )
 
     headers: Dict[str, Any] = client.get_headers()
     cookies: Dict[str, Any] = client.get_cookies()

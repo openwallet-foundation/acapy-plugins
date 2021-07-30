@@ -14,7 +14,9 @@ def _get_kwargs(
     conn_id: str,
     json_body: SendMessage,
 ) -> Dict[str, Any]:
-    url = "{}/connections/{conn_id}/send-message".format(client.base_url, conn_id=conn_id)
+    url = "{}/connections/{conn_id}/send-message".format(
+        client.base_url, conn_id=conn_id
+    )
 
     headers: Dict[str, Any] = client.get_headers()
     cookies: Dict[str, Any] = client.get_cookies()
@@ -30,7 +32,9 @@ def _get_kwargs(
     }
 
 
-def _parse_response(*, response: httpx.Response) -> Optional[BasicMessageModuleResponse]:
+def _parse_response(
+    *, response: httpx.Response
+) -> Optional[BasicMessageModuleResponse]:
     if response.status_code == 200:
         response_200 = BasicMessageModuleResponse.from_dict(response.json())
 
@@ -38,7 +42,9 @@ def _parse_response(*, response: httpx.Response) -> Optional[BasicMessageModuleR
     return None
 
 
-def _build_response(*, response: httpx.Response) -> Response[BasicMessageModuleResponse]:
+def _build_response(
+    *, response: httpx.Response
+) -> Response[BasicMessageModuleResponse]:
     return Response(
         status_code=response.status_code,
         content=response.content,

@@ -2,7 +2,9 @@ from typing import Any, Dict, List, Type, TypeVar, Union, cast
 
 import attr
 
-from ..models.indy_proof_req_attr_spec_restrictions_item import IndyProofReqAttrSpecRestrictionsItem
+from ..models.indy_proof_req_attr_spec_restrictions_item import (
+    IndyProofReqAttrSpecRestrictionsItem,
+)
 from ..models.indy_proof_req_non_revoked import IndyProofReqNonRevoked
 from ..types import UNSET, Unset
 
@@ -68,7 +70,9 @@ class IndyProofReqAttrSpec:
         restrictions = []
         _restrictions = d.pop("restrictions", UNSET)
         for restrictions_item_data in _restrictions or []:
-            restrictions_item = IndyProofReqAttrSpecRestrictionsItem.from_dict(restrictions_item_data)
+            restrictions_item = IndyProofReqAttrSpecRestrictionsItem.from_dict(
+                restrictions_item_data
+            )
 
             restrictions.append(restrictions_item)
 

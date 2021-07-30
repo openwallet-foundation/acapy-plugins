@@ -4,7 +4,9 @@ import httpx
 
 from ...client import Client
 from ...models.v10_presentation_exchange import V10PresentationExchange
-from ...models.v10_presentation_send_request_request import V10PresentationSendRequestRequest
+from ...models.v10_presentation_send_request_request import (
+    V10PresentationSendRequestRequest,
+)
 from ...types import Response
 
 

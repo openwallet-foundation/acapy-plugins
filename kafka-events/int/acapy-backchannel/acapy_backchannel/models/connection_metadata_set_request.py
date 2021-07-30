@@ -2,7 +2,9 @@ from typing import Any, Dict, List, Type, TypeVar
 
 import attr
 
-from ..models.connection_metadata_set_request_metadata import ConnectionMetadataSetRequestMetadata
+from ..models.connection_metadata_set_request_metadata import (
+    ConnectionMetadataSetRequestMetadata,
+)
 
 T = TypeVar("T", bound="ConnectionMetadataSetRequest")
 

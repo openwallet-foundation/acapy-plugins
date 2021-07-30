@@ -14,7 +14,9 @@ def _get_kwargs(
     rev_reg_id: str,
     json_body: RevRegUpdateTailsFileUri,
 ) -> Dict[str, Any]:
-    url = "{}/revocation/registry/{rev_reg_id}".format(client.base_url, rev_reg_id=rev_reg_id)
+    url = "{}/revocation/registry/{rev_reg_id}".format(
+        client.base_url, rev_reg_id=rev_reg_id
+    )
 
     headers: Dict[str, Any] = client.get_headers()
     cookies: Dict[str, Any] = client.get_cookies()

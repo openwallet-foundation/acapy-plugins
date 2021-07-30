@@ -5,7 +5,9 @@ import httpx
 from ...client import Client
 from ...models.get_issue_credential_records_role import GetIssueCredentialRecordsRole
 from ...models.get_issue_credential_records_state import GetIssueCredentialRecordsState
-from ...models.v10_credential_exchange_list_result import V10CredentialExchangeListResult
+from ...models.v10_credential_exchange_list_result import (
+    V10CredentialExchangeListResult,
+)
 from ...types import UNSET, Response, Unset
 
 
@@ -47,7 +49,9 @@ def _get_kwargs(
     }
 
 
-def _parse_response(*, response: httpx.Response) -> Optional[V10CredentialExchangeListResult]:
+def _parse_response(
+    *, response: httpx.Response
+) -> Optional[V10CredentialExchangeListResult]:
     if response.status_code == 200:
         response_200 = V10CredentialExchangeListResult.from_dict(response.json())
 
@@ -55,7 +59,9 @@ def _parse_response(*, response: httpx.Response) -> Optional[V10CredentialExchan
     return None
 
 
-def _build_response(*, response: httpx.Response) -> Response[V10CredentialExchangeListResult]:
+def _build_response(
+    *, response: httpx.Response
+) -> Response[V10CredentialExchangeListResult]:
     return Response(
         status_code=response.status_code,
         content=response.content,

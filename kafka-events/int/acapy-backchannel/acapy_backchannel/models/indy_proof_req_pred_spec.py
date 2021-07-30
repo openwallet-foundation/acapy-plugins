@@ -4,7 +4,9 @@ import attr
 
 from ..models.indy_proof_req_non_revoked import IndyProofReqNonRevoked
 from ..models.indy_proof_req_pred_spec_p_type import IndyProofReqPredSpecPType
-from ..models.indy_proof_req_pred_spec_restrictions import IndyProofReqPredSpecRestrictions
+from ..models.indy_proof_req_pred_spec_restrictions import (
+    IndyProofReqPredSpecRestrictions,
+)
 from ..types import UNSET, Unset
 
 T = TypeVar("T", bound="IndyProofReqPredSpec")
@@ -73,7 +75,9 @@ class IndyProofReqPredSpec:
         restrictions = []
         _restrictions = d.pop("restrictions", UNSET)
         for restrictions_item_data in _restrictions or []:
-            restrictions_item = IndyProofReqPredSpecRestrictions.from_dict(restrictions_item_data)
+            restrictions_item = IndyProofReqPredSpecRestrictions.from_dict(
+                restrictions_item_data
+            )
 
             restrictions.append(restrictions_item)
 

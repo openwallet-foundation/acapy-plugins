@@ -32,7 +32,9 @@ class ClearPendingRevocationsRequestPurge:
 
             additional_properties[prop_name] = additional_property
 
-        clear_pending_revocations_request_purge.additional_properties = additional_properties
+        clear_pending_revocations_request_purge.additional_properties = (
+            additional_properties
+        )
         return clear_pending_revocations_request_purge
 
     @property

@@ -11,7 +11,9 @@ T = TypeVar("T", bound="V10PresentationRequestRequestedAttributes")
 class V10PresentationRequestRequestedAttributes:
     """Nested object mapping proof request attribute referents to requested-attribute specifiers"""
 
-    additional_properties: Dict[str, IndyRequestedCredsRequestedAttr] = attr.ib(init=False, factory=dict)
+    additional_properties: Dict[str, IndyRequestedCredsRequestedAttr] = attr.ib(
+        init=False, factory=dict
+    )
 
     def to_dict(self) -> Dict[str, Any]:
 
@@ -34,7 +36,9 @@ class V10PresentationRequestRequestedAttributes:
 
             additional_properties[prop_name] = additional_property
 
-        v10_presentation_request_requested_attributes.additional_properties = additional_properties
+        v10_presentation_request_requested_attributes.additional_properties = (
+            additional_properties
+        )
         return v10_presentation_request_requested_attributes
 
     @property

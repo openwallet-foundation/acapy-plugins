@@ -13,7 +13,9 @@ def _get_kwargs(
     conn_id: str,
     ref_id: str,
 ) -> Dict[str, Any]:
-    url = "{}/connections/{conn_id}/establish-inbound/{ref_id}".format(client.base_url, conn_id=conn_id, ref_id=ref_id)
+    url = "{}/connections/{conn_id}/establish-inbound/{ref_id}".format(
+        client.base_url, conn_id=conn_id, ref_id=ref_id
+    )
 
     headers: Dict[str, Any] = client.get_headers()
     cookies: Dict[str, Any] = client.get_cookies()

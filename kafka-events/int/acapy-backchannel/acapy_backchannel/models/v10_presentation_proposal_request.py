@@ -49,7 +49,9 @@ class V10PresentationProposalRequest:
         d = src_dict.copy()
         connection_id = d.pop("connection_id")
 
-        presentation_proposal = PresentationPreview.from_dict(d.pop("presentation_proposal"))
+        presentation_proposal = PresentationPreview.from_dict(
+            d.pop("presentation_proposal")
+        )
 
         auto_present = d.pop("auto_present", UNSET)
 

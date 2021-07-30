@@ -11,7 +11,9 @@ T = TypeVar("T", bound="IndyProofRequestRequestedAttributes")
 class IndyProofRequestRequestedAttributes:
     """Requested attribute specifications of proof request"""
 
-    additional_properties: Dict[str, IndyProofReqAttrSpec] = attr.ib(init=False, factory=dict)
+    additional_properties: Dict[str, IndyProofReqAttrSpec] = attr.ib(
+        init=False, factory=dict
+    )
 
     def to_dict(self) -> Dict[str, Any]:
 
@@ -34,7 +36,9 @@ class IndyProofRequestRequestedAttributes:
 
             additional_properties[prop_name] = additional_property
 
-        indy_proof_request_requested_attributes.additional_properties = additional_properties
+        indy_proof_request_requested_attributes.additional_properties = (
+            additional_properties
+        )
         return indy_proof_request_requested_attributes
 
     @property

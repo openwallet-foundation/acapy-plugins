@@ -4,7 +4,9 @@ import httpx
 
 from ...client import Client
 from ...models.v10_credential_exchange import V10CredentialExchange
-from ...models.v10_credential_proposal_request_mand import V10CredentialProposalRequestMand
+from ...models.v10_credential_proposal_request_mand import (
+    V10CredentialProposalRequestMand,
+)
 from ...types import Response
 
 

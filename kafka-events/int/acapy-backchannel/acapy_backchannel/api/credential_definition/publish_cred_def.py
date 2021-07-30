@@ -29,7 +29,9 @@ def _get_kwargs(
     }
 
 
-def _parse_response(*, response: httpx.Response) -> Optional[CredentialDefinitionSendResults]:
+def _parse_response(
+    *, response: httpx.Response
+) -> Optional[CredentialDefinitionSendResults]:
     if response.status_code == 200:
         response_200 = CredentialDefinitionSendResults.from_dict(response.json())
 
@@ -37,7 +39,9 @@ def _parse_response(*, response: httpx.Response) -> Optional[CredentialDefinitio
     return None
 
 
-def _build_response(*, response: httpx.Response) -> Response[CredentialDefinitionSendResults]:
+def _build_response(
+    *, response: httpx.Response
+) -> Response[CredentialDefinitionSendResults]:
     return Response(
         status_code=response.status_code,
         content=response.content,

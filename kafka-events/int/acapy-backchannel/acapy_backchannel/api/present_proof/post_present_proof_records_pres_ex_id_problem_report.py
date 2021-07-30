@@ -4,7 +4,9 @@ import httpx
 
 from ...client import Client
 from ...models.present_proof_module_response import PresentProofModuleResponse
-from ...models.v10_presentation_problem_report_request import V10PresentationProblemReportRequest
+from ...models.v10_presentation_problem_report_request import (
+    V10PresentationProblemReportRequest,
+)
 from ...types import Response
 
 
@@ -14,7 +16,9 @@ def _get_kwargs(
     pres_ex_id: str,
     json_body: V10PresentationProblemReportRequest,
 ) -> Dict[str, Any]:
-    url = "{}/present-proof/records/{pres_ex_id}/problem-report".format(client.base_url, pres_ex_id=pres_ex_id)
+    url = "{}/present-proof/records/{pres_ex_id}/problem-report".format(
+        client.base_url, pres_ex_id=pres_ex_id
+    )
 
     headers: Dict[str, Any] = client.get_headers()
     cookies: Dict[str, Any] = client.get_cookies()
@@ -30,7 +34,9 @@ def _get_kwargs(
     }
 
 
-def _parse_response(*, response: httpx.Response) -> Optional[PresentProofModuleResponse]:
+def _parse_response(
+    *, response: httpx.Response
+) -> Optional[PresentProofModuleResponse]:
     if response.status_code == 200:
         response_200 = PresentProofModuleResponse.from_dict(response.json())
 
@@ -38,7 +44,9 @@ def _parse_response(*, response: httpx.Response) -> Optional[PresentProofModuleR
     return None
 
 
-def _build_response(*, response: httpx.Response) -> Response[PresentProofModuleResponse]:
+def _build_response(
+    *, response: httpx.Response
+) -> Response[PresentProofModuleResponse]:
     return Response(
         status_code=response.status_code,
         content=response.content,

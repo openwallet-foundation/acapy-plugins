@@ -2,7 +2,9 @@ from typing import Any, Dict, List, Type, TypeVar
 
 import attr
 
-from ..models.query_result_results_additional_property import QueryResultResultsAdditionalProperty
+from ..models.query_result_results_additional_property import (
+    QueryResultResultsAdditionalProperty,
+)
 
 T = TypeVar("T", bound="QueryResultResults")
 
@@ -11,7 +13,9 @@ T = TypeVar("T", bound="QueryResultResults")
 class QueryResultResults:
     """Query results keyed by protocol"""
 
-    additional_properties: Dict[str, QueryResultResultsAdditionalProperty] = attr.ib(init=False, factory=dict)
+    additional_properties: Dict[str, QueryResultResultsAdditionalProperty] = attr.ib(
+        init=False, factory=dict
+    )
 
     def to_dict(self) -> Dict[str, Any]:
 
@@ -30,7 +34,9 @@ class QueryResultResults:
 
         additional_properties = {}
         for prop_name, prop_dict in d.items():
-            additional_property = QueryResultResultsAdditionalProperty.from_dict(prop_dict)
+            additional_property = QueryResultResultsAdditionalProperty.from_dict(
+                prop_dict
+            )
 
             additional_properties[prop_name] = additional_property
 
@@ -44,7 +50,9 @@ class QueryResultResults:
     def __getitem__(self, key: str) -> QueryResultResultsAdditionalProperty:
         return self.additional_properties[key]
 
-    def __setitem__(self, key: str, value: QueryResultResultsAdditionalProperty) -> None:
+    def __setitem__(
+        self, key: str, value: QueryResultResultsAdditionalProperty
+    ) -> None:
         self.additional_properties[key] = value
 
     def __delitem__(self, key: str) -> None:

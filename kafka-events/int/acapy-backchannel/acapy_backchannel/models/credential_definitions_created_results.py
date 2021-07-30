@@ -30,7 +30,9 @@ class CredentialDefinitionsCreatedResults:
     @classmethod
     def from_dict(cls: Type[T], src_dict: Dict[str, Any]) -> T:
         d = src_dict.copy()
-        credential_definition_ids = cast(List[str], d.pop("credential_definition_ids", UNSET))
+        credential_definition_ids = cast(
+            List[str], d.pop("credential_definition_ids", UNSET)
+        )
 
         credential_definitions_created_results = cls(
             credential_definition_ids=credential_definition_ids,

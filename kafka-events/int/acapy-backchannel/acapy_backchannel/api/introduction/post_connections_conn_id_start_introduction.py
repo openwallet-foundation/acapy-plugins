@@ -14,7 +14,9 @@ def _get_kwargs(
     target_connection_id: str,
     message: Union[Unset, str] = UNSET,
 ) -> Dict[str, Any]:
-    url = "{}/connections/{conn_id}/start-introduction".format(client.base_url, conn_id=conn_id)
+    url = "{}/connections/{conn_id}/start-introduction".format(
+        client.base_url, conn_id=conn_id
+    )
 
     headers: Dict[str, Any] = client.get_headers()
     cookies: Dict[str, Any] = client.get_cookies()

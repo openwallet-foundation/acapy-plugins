@@ -14,7 +14,9 @@ def _get_kwargs(
     mediation_id: str,
     json_body: AdminMediationDeny,
 ) -> Dict[str, Any]:
-    url = "{}/mediation/requests/{mediation_id}/deny".format(client.base_url, mediation_id=mediation_id)
+    url = "{}/mediation/requests/{mediation_id}/deny".format(
+        client.base_url, mediation_id=mediation_id
+    )
 
     headers: Dict[str, Any] = client.get_headers()
     cookies: Dict[str, Any] = client.get_cookies()

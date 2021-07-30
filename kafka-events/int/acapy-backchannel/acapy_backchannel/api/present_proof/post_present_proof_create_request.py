@@ -3,7 +3,9 @@ from typing import Any, Dict, Optional
 import httpx
 
 from ...client import Client
-from ...models.v10_presentation_create_request_request import V10PresentationCreateRequestRequest
+from ...models.v10_presentation_create_request_request import (
+    V10PresentationCreateRequestRequest,
+)
 from ...models.v10_presentation_exchange import V10PresentationExchange
 from ...types import Response
 

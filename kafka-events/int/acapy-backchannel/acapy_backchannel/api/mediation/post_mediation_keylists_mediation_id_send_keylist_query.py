@@ -15,7 +15,9 @@ def _get_kwargs(
     paginate_limit: Union[Unset, int] = -1,
     paginate_offset: Union[Unset, int] = 0,
 ) -> Dict[str, Any]:
-    url = "{}/mediation/keylists/{mediation_id}/send-keylist-query".format(client.base_url, mediation_id=mediation_id)
+    url = "{}/mediation/keylists/{mediation_id}/send-keylist-query".format(
+        client.base_url, mediation_id=mediation_id
+    )
 
     headers: Dict[str, Any] = client.get_headers()
     cookies: Dict[str, Any] = client.get_cookies()

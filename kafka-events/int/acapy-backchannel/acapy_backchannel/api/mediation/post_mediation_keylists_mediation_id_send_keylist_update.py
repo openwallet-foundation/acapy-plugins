@@ -14,7 +14,9 @@ def _get_kwargs(
     mediation_id: str,
     json_body: KeylistUpdateRequest,
 ) -> Dict[str, Any]:
-    url = "{}/mediation/keylists/{mediation_id}/send-keylist-update".format(client.base_url, mediation_id=mediation_id)
+    url = "{}/mediation/keylists/{mediation_id}/send-keylist-update".format(
+        client.base_url, mediation_id=mediation_id
+    )
 
     headers: Dict[str, Any] = client.get_headers()
     cookies: Dict[str, Any] = client.get_cookies()

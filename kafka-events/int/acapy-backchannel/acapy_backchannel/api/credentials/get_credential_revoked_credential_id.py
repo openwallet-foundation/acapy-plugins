@@ -14,7 +14,9 @@ def _get_kwargs(
     from_: Union[Unset, str] = UNSET,
     to: Union[Unset, str] = UNSET,
 ) -> Dict[str, Any]:
-    url = "{}/credential/revoked/{credential_id}".format(client.base_url, credential_id=credential_id)
+    url = "{}/credential/revoked/{credential_id}".format(
+        client.base_url, credential_id=credential_id
+    )
 
     headers: Dict[str, Any] = client.get_headers()
     cookies: Dict[str, Any] = client.get_cookies()

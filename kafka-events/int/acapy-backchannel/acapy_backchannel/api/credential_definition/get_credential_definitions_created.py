@@ -3,7 +3,9 @@ from typing import Any, Dict, Optional, Union
 import httpx
 
 from ...client import Client
-from ...models.credential_definitions_created_results import CredentialDefinitionsCreatedResults
+from ...models.credential_definitions_created_results import (
+    CredentialDefinitionsCreatedResults,
+)
 from ...types import UNSET, Response, Unset
 
 
@@ -41,7 +43,9 @@ def _get_kwargs(
     }
 
 
-def _parse_response(*, response: httpx.Response) -> Optional[CredentialDefinitionsCreatedResults]:
+def _parse_response(
+    *, response: httpx.Response
+) -> Optional[CredentialDefinitionsCreatedResults]:
     if response.status_code == 200:
         response_200 = CredentialDefinitionsCreatedResults.from_dict(response.json())
 
@@ -49,7 +53,9 @@ def _parse_response(*, response: httpx.Response) -> Optional[CredentialDefinitio
     return None
 
 
-def _build_response(*, response: httpx.Response) -> Response[CredentialDefinitionsCreatedResults]:
+def _build_response(
+    *, response: httpx.Response
+) -> Response[CredentialDefinitionsCreatedResults]:
     return Response(
         status_code=response.status_code,
         content=response.content,

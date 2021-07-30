@@ -29,7 +29,9 @@ from .connection_list import ConnectionList
 from .connection_metadata import ConnectionMetadata
 from .connection_metadata_results import ConnectionMetadataResults
 from .connection_metadata_set_request import ConnectionMetadataSetRequest
-from .connection_metadata_set_request_metadata import ConnectionMetadataSetRequestMetadata
+from .connection_metadata_set_request_metadata import (
+    ConnectionMetadataSetRequestMetadata,
+)
 from .connection_module_response import ConnectionModuleResponse
 from .connection_static_request import ConnectionStaticRequest
 from .connection_static_result import ConnectionStaticResult
@@ -74,7 +76,9 @@ from .holder_module_response import HolderModuleResponse
 from .indy_cred_info import IndyCredInfo
 from .indy_cred_info_attrs import IndyCredInfoAttrs
 from .indy_proof_req_attr_spec import IndyProofReqAttrSpec
-from .indy_proof_req_attr_spec_restrictions_item import IndyProofReqAttrSpecRestrictionsItem
+from .indy_proof_req_attr_spec_restrictions_item import (
+    IndyProofReqAttrSpecRestrictionsItem,
+)
 from .indy_proof_req_non_revoked import IndyProofReqNonRevoked
 from .indy_proof_req_pred_spec import IndyProofReqPredSpec
 from .indy_proof_req_pred_spec_p_type import IndyProofReqPredSpecPType
@@ -109,7 +113,9 @@ from .menu_form import MenuForm
 from .menu_form_param import MenuFormParam
 from .menu_json import MenuJson
 from .menu_option import MenuOption
-from .patch_revocation_registry_rev_reg_id_set_state_state import PatchRevocationRegistryRevRegIdSetStateState
+from .patch_revocation_registry_rev_reg_id_set_state_state import (
+    PatchRevocationRegistryRevRegIdSetStateState,
+)
 from .perform_request import PerformRequest
 from .perform_request_params import PerformRequestParams
 from .ping_request import PingRequest
@@ -124,7 +130,9 @@ from .publish_revocations import PublishRevocations
 from .publish_revocations_rrid_2_crid import PublishRevocationsRrid2Crid
 from .query_result import QueryResult
 from .query_result_results import QueryResultResults
-from .query_result_results_additional_property import QueryResultResultsAdditionalProperty
+from .query_result_results_additional_property import (
+    QueryResultResultsAdditionalProperty,
+)
 from .receive_invitation_request import ReceiveInvitationRequest
 from .rev_reg_create_request import RevRegCreateRequest
 from .rev_reg_issued_result import RevRegIssuedResult
@@ -150,11 +158,21 @@ from .taa_result import TAAResult
 from .v10_credential_create import V10CredentialCreate
 from .v10_credential_exchange import V10CredentialExchange
 from .v10_credential_exchange_credential import V10CredentialExchangeCredential
-from .v10_credential_exchange_credential_offer import V10CredentialExchangeCredentialOffer
-from .v10_credential_exchange_credential_offer_dict import V10CredentialExchangeCredentialOfferDict
-from .v10_credential_exchange_credential_proposal_dict import V10CredentialExchangeCredentialProposalDict
-from .v10_credential_exchange_credential_request import V10CredentialExchangeCredentialRequest
-from .v10_credential_exchange_credential_request_metadata import V10CredentialExchangeCredentialRequestMetadata
+from .v10_credential_exchange_credential_offer import (
+    V10CredentialExchangeCredentialOffer,
+)
+from .v10_credential_exchange_credential_offer_dict import (
+    V10CredentialExchangeCredentialOfferDict,
+)
+from .v10_credential_exchange_credential_proposal_dict import (
+    V10CredentialExchangeCredentialProposalDict,
+)
+from .v10_credential_exchange_credential_request import (
+    V10CredentialExchangeCredentialRequest,
+)
+from .v10_credential_exchange_credential_request_metadata import (
+    V10CredentialExchangeCredentialRequestMetadata,
+)
 from .v10_credential_exchange_initiator import V10CredentialExchangeInitiator
 from .v10_credential_exchange_list_result import V10CredentialExchangeListResult
 from .v10_credential_exchange_raw_credential import V10CredentialExchangeRawCredential
@@ -170,17 +188,29 @@ from .v10_presentation_exchange import V10PresentationExchange
 from .v10_presentation_exchange_initiator import V10PresentationExchangeInitiator
 from .v10_presentation_exchange_list import V10PresentationExchangeList
 from .v10_presentation_exchange_presentation import V10PresentationExchangePresentation
-from .v10_presentation_exchange_presentation_proposal_dict import V10PresentationExchangePresentationProposalDict
-from .v10_presentation_exchange_presentation_request import V10PresentationExchangePresentationRequest
-from .v10_presentation_exchange_presentation_request_dict import V10PresentationExchangePresentationRequestDict
+from .v10_presentation_exchange_presentation_proposal_dict import (
+    V10PresentationExchangePresentationProposalDict,
+)
+from .v10_presentation_exchange_presentation_request import (
+    V10PresentationExchangePresentationRequest,
+)
+from .v10_presentation_exchange_presentation_request_dict import (
+    V10PresentationExchangePresentationRequestDict,
+)
 from .v10_presentation_exchange_role import V10PresentationExchangeRole
 from .v10_presentation_exchange_verified import V10PresentationExchangeVerified
 from .v10_presentation_problem_report_request import V10PresentationProblemReportRequest
 from .v10_presentation_proposal_request import V10PresentationProposalRequest
 from .v10_presentation_request import V10PresentationRequest
-from .v10_presentation_request_requested_attributes import V10PresentationRequestRequestedAttributes
-from .v10_presentation_request_requested_predicates import V10PresentationRequestRequestedPredicates
-from .v10_presentation_request_self_attested_attributes import V10PresentationRequestSelfAttestedAttributes
+from .v10_presentation_request_requested_attributes import (
+    V10PresentationRequestRequestedAttributes,
+)
+from .v10_presentation_request_requested_predicates import (
+    V10PresentationRequestRequestedPredicates,
+)
+from .v10_presentation_request_self_attested_attributes import (
+    V10PresentationRequestSelfAttestedAttributes,
+)
 from .v10_presentation_send_request_request import V10PresentationSendRequestRequest
 from .v20_cred_attr_spec import V20CredAttrSpec
 from .v20_cred_ex_record import V20CredExRecord
@@ -193,7 +223,9 @@ from .v20_cred_ex_record_cred_request_metadata import V20CredExRecordCredRequest
 from .v20_cred_ex_record_dif import V20CredExRecordDIF
 from .v20_cred_ex_record_dif_item import V20CredExRecordDIFItem
 from .v20_cred_ex_record_indy import V20CredExRecordIndy
-from .v20_cred_ex_record_indy_cred_request_metadata import V20CredExRecordIndyCredRequestMetadata
+from .v20_cred_ex_record_indy_cred_request_metadata import (
+    V20CredExRecordIndyCredRequestMetadata,
+)
 from .v20_cred_ex_record_initiator import V20CredExRecordInitiator
 from .v20_cred_ex_record_role import V20CredExRecordRole
 from .v20_cred_ex_record_state import V20CredExRecordState

@@ -3,8 +3,12 @@ from typing import Any, Dict, List, Type, TypeVar, Union
 import attr
 
 from ..models.indy_proof_req_non_revoked import IndyProofReqNonRevoked
-from ..models.indy_proof_request_requested_attributes import IndyProofRequestRequestedAttributes
-from ..models.indy_proof_request_requested_predicates import IndyProofRequestRequestedPredicates
+from ..models.indy_proof_request_requested_attributes import (
+    IndyProofRequestRequestedAttributes,
+)
+from ..models.indy_proof_request_requested_predicates import (
+    IndyProofRequestRequestedPredicates,
+)
 from ..types import UNSET, Unset
 
 T = TypeVar("T", bound="IndyProofRequest")
@@ -57,9 +61,13 @@ class IndyProofRequest:
         d = src_dict.copy()
         name = d.pop("name")
 
-        requested_attributes = IndyProofRequestRequestedAttributes.from_dict(d.pop("requested_attributes"))
+        requested_attributes = IndyProofRequestRequestedAttributes.from_dict(
+            d.pop("requested_attributes")
+        )
 
-        requested_predicates = IndyProofRequestRequestedPredicates.from_dict(d.pop("requested_predicates"))
+        requested_predicates = IndyProofRequestRequestedPredicates.from_dict(
+            d.pop("requested_predicates")
+        )
 
         version = d.pop("version")
 

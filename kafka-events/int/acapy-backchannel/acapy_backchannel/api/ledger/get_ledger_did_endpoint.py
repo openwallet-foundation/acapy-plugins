@@ -3,7 +3,9 @@ from typing import Any, Dict, Optional, Union
 import httpx
 
 from ...client import Client
-from ...models.get_ledger_did_endpoint_endpoint_type import GetLedgerDidEndpointEndpointType
+from ...models.get_ledger_did_endpoint_endpoint_type import (
+    GetLedgerDidEndpointEndpointType,
+)
 from ...models.ledger_modules_result import LedgerModulesResult
 from ...types import UNSET, Response, Unset
 

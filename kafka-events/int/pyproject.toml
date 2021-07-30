@@ -1,7 +1,7 @@
 [tool.poetry]
-name = "acapy-resolver-didcomm-int-tests"
+name = "acapy-kafka-queue-int-tests"
 version = "0.1.0"
-description = "Integration tests for ACA-Py DIDComm Resolver"
+description = "Integration tests for ACA-Py kafka queue"
 authors = ["Daniel Bluhm <dbluhm@pm.me>"]
 license = "Apache-2.0"
 
@@ -12,9 +12,13 @@ pytest-asyncio = "^0.15.1"
 pytest-cov = "^2.12.1"
 asynctest = "0.13.0"
 requests = "^2.25.1"
-acapy-backchannel = {path="./acapy-backchannel", develop=true}
+acapy-backchannel = {path="acapy-backchannel", develop = true}
+aries-staticagent = "^0.8.0"
 
 [tool.poetry.dev-dependencies]
+black = "^21.6b0"
+flake8 = "^3.9.2"
+pre-commit = "^2.13.0"
 
 [build-system]
 requires = ["poetry-core>=1.0.0"]
