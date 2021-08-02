@@ -10,13 +10,24 @@ from aries_cloudagent.core.event_bus import Event, EventBus
 from aries_cloudagent.core.profile import Profile
 
 # from .aio_consumer import AIOConsumer
-
-OUTBOUND_PATTERN = "acapy::outbound::message$"  # For Event Bus
-INBOUND_PATTERN = "acapy-inbound-.*"  # For Kafka Consumer
-BASIC_MESSAGE_PATTERN = "acapy::basicmessage::.*"
+EVENT_PATTERN_WEBHOOK = re.compile("^acapy::webhook::(.*)$")
+EVENT_PATTERN_RECORD = re.compile("^acapy::record::([^:]*)(?:::.*)?$")
+OUTBOUND_PATTERN = re.compile("acapy::outbound::message$")  # For Event Bus
+INBOUND_PATTERN = re.compile("acapy-inbound-.*")  # For Kafka Consumer
+BASIC_MESSAGE_PATTERN = re.compile("acapy::basicmessage::.*")
 LOGGER = logging.getLogger(__name__)
 TOPICS = []
 DEFAULT_CONFIG = {"bootstrap_servers": "kafka"}
+"""
+
+ - TOPICS
+  - outbound
+  - webhooks
+
+webhook, no kid
+outbound, keys
+transport,
+"""
 
 
 async def setup(context: InjectionContext):
@@ -33,8 +44,10 @@ async def setup(context: InjectionContext):
     )  # Add the Kafka producer in the context
     # Handle event for Kafka
     bus = context.inject(EventBus)
-    bus.subscribe(re.compile(OUTBOUND_PATTERN), handle_event)
-    bus.subscribe(re.compile(BASIC_MESSAGE_PATTERN), handle_event)
+    bus.subscribe(EVENT_PATTERN_WEBHOOK, handle_event)
+    bus.subscribe(BASIC_MESSAGE_PATTERN, handle_event)
+    bus.subscribe(OUTBOUND_PATTERN, handle_event)
+    bus.subscribe(EVENT_PATTERN_RECORD, handle_event)
 
 
 async def handle_event(profile: Profile, event: Event):
@@ -63,13 +76,17 @@ async def handle_event(profile: Profile, event: Event):
       infrequent.
     """
     producer = profile.inject(AIOKafkaProducer)
+    await producer.start()
     LOGGER.info("Handling Kafka producer event: %s", event)
     topic = event.topic.replace("::", "-")
+    """
+    if subwallet is present in profile, for example webhook,
+    extract and put into the payload for futher processing
+    """
     try:
-        async with producer:
-            LOGGER.info(f"Sending message {event.payload} with Kafka topic {topic}")
-            await producer.send_and_wait(
-                topic, str.encode(json.dumps(event.payload))
-            )  # Produce message
+        LOGGER.info(f"Sending message {event.payload} with Kafka topic {topic}")
+        await producer.send_and_wait(
+            topic, str.encode(json.dumps(event.payload))
+        )  # Produce message
     except Exception as exc:
-        LOGGER.error(f"Kafka producer failed sending a message due {exc}")
+        LOGGER.error(f"Kafka producer failed sending a message due to: {exc}")
