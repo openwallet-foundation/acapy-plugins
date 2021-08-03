@@ -1,3 +1,5 @@
+import asyncio
+from aiokafka import AIOKafkaConsumer
 from aiohttp import web
 from aries_staticagent import StaticConnection, Module
 
@@ -13,6 +15,7 @@ class BaseAgent:
         self.port = port
         self.connection = connection
         self._runner = None
+        
 
     async def handle_web_request(self, request: web.Request):
         """Handle HTTP POST."""
@@ -33,7 +36,17 @@ class BaseAgent:
         await self.runner.setup()
         site = web.TCPSite(self.runner, self.host, self.port)
         await site.start()
+        loop = asyncio.get_event_loop()
+        # TODO: add proper config retrieval from docker config
+        consumer = AIOKafkaConsumer(**{"bootstrap_servers": "kafka", "group_id": "aca-py-events"})
+        await consumer.start()
+        consumer.subscribe(pattern="acapy.*")
+        async def consume():
+            async for msg in consumer:
+                print(f"tests seeing message {msg.value} with Kafka topic {msg.topic}")
 
+        loop.create_task(consume())
+    
     async def cleanup(self):
         """Clean up async start."""
         await self.runner.cleanup()

@@ -37,6 +37,21 @@ yarl = ">=1.0,<2.0"
 speedups = ["aiodns", "brotlipy", "cchardet"]
 
 [[package]]
+name = "aiokafka"
+version = "0.7.1"
+description = "Kafka integration with asyncio."
+category = "main"
+optional = false
+python-versions = "*"
+
+[package.dependencies]
+dataclasses = {version = ">=0.5", markers = "python_version < \"3.7\""}
+kafka-python = ">=2.0.0"
+
+[package.extras]
+snappy = ["python-snappy (>=0.5)"]
+
+[[package]]
 name = "anyio"
 version = "3.3.0"
 description = "High level compatibility layer for multiple asynchronous event loop implementations"
@@ -428,6 +443,17 @@ description = "iniconfig: brain-dead simple config-ini parsing"
 category = "main"
 optional = false
 python-versions = "*"
+
+[[package]]
+name = "kafka-python"
+version = "2.0.2"
+description = "Pure Python client for Apache Kafka"
+category = "main"
+optional = false
+python-versions = "*"
+
+[package.extras]
+crc32c = ["crc32c"]
 
 [[package]]
 name = "mccabe"
@@ -828,7 +854,7 @@ testing = ["pytest (>=4.6)", "pytest-checkdocs (>=2.4)", "pytest-flake8", "pytes
 [metadata]
 lock-version = "1.1"
 python-versions = "^3.6.9"
-content-hash = "d4d37b9ff8a00699b5eff34ea41a1387cb7e9382402a9a39f1438aeb800e9997"
+content-hash = "ca5338f8ba598ae94c5e7a46c37bac0cd6eb6da563b19f17a413d2e21581eea1"
 
 [metadata.files]
 acapy-backchannel = []
@@ -870,6 +896,37 @@ aiohttp = [
     {file = "aiohttp-3.7.4.post0-cp39-cp39-win32.whl", hash = "sha256:932bb1ea39a54e9ea27fc9232163059a0b8855256f4052e776357ad9add6f1c9"},
     {file = "aiohttp-3.7.4.post0-cp39-cp39-win_amd64.whl", hash = "sha256:02f46fc0e3c5ac58b80d4d56eb0a7c7d97fcef69ace9326289fb9f1955e65cfe"},
     {file = "aiohttp-3.7.4.post0.tar.gz", hash = "sha256:493d3299ebe5f5a7c66b9819eacdcfbbaaf1a8e84911ddffcdc48888497afecf"},
+]
+aiokafka = [
+    {file = "aiokafka-0.7.1-cp36-cp36m-macosx_10_9_x86_64.whl", hash = "sha256:90a91155aeb28c872b74ecb3c9f671253db10cf23dc3af858bd9ed1630c0d1ae"},
+    {file = "aiokafka-0.7.1-cp36-cp36m-manylinux1_i686.whl", hash = "sha256:02f67258a78e5d9d17470816ea879a653c5efecc0c6686e18d792fbd38e1f70c"},
+    {file = "aiokafka-0.7.1-cp36-cp36m-manylinux1_x86_64.whl", hash = "sha256:dfd8d58f7418aabc07f1e8c1b904f478bf955919b743d4d44607dbf18a2c54b2"},
+    {file = "aiokafka-0.7.1-cp36-cp36m-manylinux2010_i686.whl", hash = "sha256:8b5e71d6da8edf0f592080488b198af42fbe9778de077762e4452d574e694efa"},
+    {file = "aiokafka-0.7.1-cp36-cp36m-manylinux2010_x86_64.whl", hash = "sha256:5fac6f1168c15b08f3fcb951347343a78d8c130292127d8a4e23466a5d2510f7"},
+    {file = "aiokafka-0.7.1-cp36-cp36m-win32.whl", hash = "sha256:4cb2544ca8d5d5a4055c57fbb6c4ecfc82e6f3b670485c291b256c90d506acf3"},
+    {file = "aiokafka-0.7.1-cp36-cp36m-win_amd64.whl", hash = "sha256:061799f1b8b005f950012a11948ff8a6ab48114eac91341acd8feec5430f0f31"},
+    {file = "aiokafka-0.7.1-cp37-cp37m-macosx_10_9_x86_64.whl", hash = "sha256:b7390a9d9d03a2a3dbee0f8fa6735b008408e0f561a279b3df13e9758ab6d67f"},
+    {file = "aiokafka-0.7.1-cp37-cp37m-manylinux1_i686.whl", hash = "sha256:e8276baed94281ef4548f19e039b9b4a8af79afee324bd259d8898638ca15da6"},
+    {file = "aiokafka-0.7.1-cp37-cp37m-manylinux1_x86_64.whl", hash = "sha256:2294ba68ff87fdf6cf70a5603afb4020c4fc7a39053ccd8e6abdf0aa34ba1ca3"},
+    {file = "aiokafka-0.7.1-cp37-cp37m-manylinux2010_i686.whl", hash = "sha256:edcf1cdcf9246edd5c4c1b649609a7ac5bfe4276da586aede470b73f9d00b809"},
+    {file = "aiokafka-0.7.1-cp37-cp37m-manylinux2010_x86_64.whl", hash = "sha256:c70ed4b09e01d774d1821db30f6fbc6475a41224d0dc1488d018ef97610dc3da"},
+    {file = "aiokafka-0.7.1-cp37-cp37m-win32.whl", hash = "sha256:2f1a2fcb5f0643527d77446437d27ed93ae94844c1b324e904a813acce675db8"},
+    {file = "aiokafka-0.7.1-cp37-cp37m-win_amd64.whl", hash = "sha256:035d1fb4cb22273bb0a47f31040fabfd9b248f8026dd306dd50e7e69f005a71d"},
+    {file = "aiokafka-0.7.1-cp38-cp38-macosx_10_9_x86_64.whl", hash = "sha256:120d3c477e7e9a53dd55f1a16b9c67e8a51cdc38e5e46fc25aae7d20f78519f2"},
+    {file = "aiokafka-0.7.1-cp38-cp38-manylinux1_i686.whl", hash = "sha256:6e7d031b8bc08f9d9c4149c6afaedb650082309f01a3b79f0619814cc299fc4d"},
+    {file = "aiokafka-0.7.1-cp38-cp38-manylinux1_x86_64.whl", hash = "sha256:49517e2309826c27eaff940384e90773d89c69da023907663cda7853a00fb9ee"},
+    {file = "aiokafka-0.7.1-cp38-cp38-manylinux2010_i686.whl", hash = "sha256:95edb38631bf5dbb8cd65fecd8620e11a15534cd6dd22e0dc45488b4266b5452"},
+    {file = "aiokafka-0.7.1-cp38-cp38-manylinux2010_x86_64.whl", hash = "sha256:09cef9cf579193b497d3c65644b71ba1523660b7677805d0efea6c3206e4e643"},
+    {file = "aiokafka-0.7.1-cp38-cp38-win32.whl", hash = "sha256:47cda205e8fe16edf126c362a59071d0a4b74dd07bee6f070b26e5d2580cc37b"},
+    {file = "aiokafka-0.7.1-cp38-cp38-win_amd64.whl", hash = "sha256:8ebb032a05a6696b25abbe5db677890adca9a3284d13e1975842009c1d7678dd"},
+    {file = "aiokafka-0.7.1-cp39-cp39-macosx_10_9_x86_64.whl", hash = "sha256:45704e5a8c81e4db6333ab6315effc1b83feec1dfc2fc3a28e7c7600b0d80a23"},
+    {file = "aiokafka-0.7.1-cp39-cp39-manylinux1_i686.whl", hash = "sha256:90a4cb54ae23ff55758a9ce8f3ba1ec67c6f2328f9197c3bacc61a24f812cf04"},
+    {file = "aiokafka-0.7.1-cp39-cp39-manylinux1_x86_64.whl", hash = "sha256:567a3b856639bff36b8c74a92dfecd64ace8d07d755bb3ee6d5332273d2a8c6e"},
+    {file = "aiokafka-0.7.1-cp39-cp39-manylinux2010_i686.whl", hash = "sha256:b19d00b16637d02cfcee3d5cfdbcfd497702c09ae1f63e194830798cd223f910"},
+    {file = "aiokafka-0.7.1-cp39-cp39-manylinux2010_x86_64.whl", hash = "sha256:f3a2138649ca2427a91dfc0927ddd445a9a6aaf9a9b0972d683cb230923f821f"},
+    {file = "aiokafka-0.7.1-cp39-cp39-win32.whl", hash = "sha256:02156dee5156a0c5283d45df0f0e8aa516ec7f3d966d7dfeb35f8ada7c8f8557"},
+    {file = "aiokafka-0.7.1-cp39-cp39-win_amd64.whl", hash = "sha256:4c463265252236b7759920998862b56bad3d6eedfdfd3fce0774ad99bb2c4877"},
+    {file = "aiokafka-0.7.1.tar.gz", hash = "sha256:b5a6fb1cfd77eac4b397ef5af3765d1d881c86b157137b12ca4f12aef1db433c"},
 ]
 anyio = [
     {file = "anyio-3.3.0-py3-none-any.whl", hash = "sha256:929a6852074397afe1d989002aa96d457e3e1e5441357c60d03e7eea0e65e1b0"},
@@ -1110,6 +1167,10 @@ importlib-resources = [
 iniconfig = [
     {file = "iniconfig-1.1.1-py2.py3-none-any.whl", hash = "sha256:011e24c64b7f47f6ebd835bb12a743f2fbe9a26d4cecaa7f53bc4f35ee9da8b3"},
     {file = "iniconfig-1.1.1.tar.gz", hash = "sha256:bc3af051d7d14b2ee5ef9969666def0cd1a000e121eaea580d4a313df4b37f32"},
+]
+kafka-python = [
+    {file = "kafka-python-2.0.2.tar.gz", hash = "sha256:04dfe7fea2b63726cd6f3e79a2d86e709d608d74406638c5da33a01d45a9d7e3"},
+    {file = "kafka_python-2.0.2-py2.py3-none-any.whl", hash = "sha256:2d92418c7cb1c298fa6c7f0fb3519b520d0d7526ac6cb7ae2a4fc65a51a94b6e"},
 ]
 mccabe = [
     {file = "mccabe-0.6.1-py2.py3-none-any.whl", hash = "sha256:ab8a6258860da4b6677da4bd2fe5dc2c659cff31b3ee4f7f5d64e79735b80d42"},

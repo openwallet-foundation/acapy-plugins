@@ -3,8 +3,9 @@
 import json
 import logging
 import re
+import asyncio
 
-from aiokafka import AIOKafkaProducer
+from aiokafka import AIOKafkaProducer, AIOKafkaConsumer
 from aries_cloudagent.config.injection_context import InjectionContext
 from aries_cloudagent.core.event_bus import Event, EventBus
 from aries_cloudagent.core.profile import Profile
@@ -20,7 +21,6 @@ LOGGER = logging.getLogger(__name__)
 TOPICS = []
 DEFAULT_CONFIG = {"bootstrap_servers": "kafka"}
 
-
 async def setup(context: InjectionContext):
     """Setup the plugin."""
 
@@ -32,17 +32,31 @@ async def setup(context: InjectionContext):
         producer_conf = DEFAULT_CONFIG
     producer = AIOKafkaProducer(**producer_conf)
     await producer.start()
-    context.injector.bind_instance(
+    context.injector.bind_instance( # Add the Kafka producer in the context
         AIOKafkaProducer, producer
-    )  # Add the Kafka producer in the context
+    ) 
     # Handle event for Kafka
     bus = context.inject(EventBus)
     bus.subscribe(EVENT_PATTERN_WEBHOOK, handle_event)
     bus.subscribe(BASIC_MESSAGE_PATTERN, handle_event)
     bus.subscribe(OUTBOUND_PATTERN, handle_event)
     bus.subscribe(EVENT_PATTERN_RECORD, handle_event)
+    loop = asyncio.get_event_loop()
+    try:
+      consumer_conf = context.settings["plugin_config"]["kafka_queue"][
+          "consumer-config"
+      ]
+    except KeyError:
+        consumer_conf = {"bootstrap_servers": "kafka", "group_id": "aca-py-events"}
+    consumer = AIOKafkaConsumer(**consumer_conf)
+    await consumer.start()
+    consumer.subscribe(pattern=INBOUND_PATTERN)
+    async def consume():
+      async for msg in consumer:
+        topic = str(msg.topic).replace("-", "::")
+        await bus.notify(topic, json.loads(msg.value))
 
-    # TODO: create task to call 'async for' to consume kafka events
+    loop.create_task(consume())
 
 async def handle_event(profile: Profile, event: Event):
     """
@@ -72,15 +86,13 @@ async def handle_event(profile: Profile, event: Event):
     producer = profile.inject(AIOKafkaProducer)
     LOGGER.info("Handling Kafka producer event: %s", event)
     topic = event.topic.replace("::", "-")
-    # TODO: add subwallet id to webhooks topics
-    """
-    if subwallet is present in profile, for example webhook,
-    extract and put into the payload for futher processing
-    """
+    payload = event.payload
+    payload["wallet_id"] = profile.settings.get("wallet.id")
     try:
-        LOGGER.info(f"Sending message {event.payload} with Kafka topic {topic}")
+
+        LOGGER.info(f"Sending message {payload} with Kafka topic {topic}")
         await producer.send_and_wait(
-            topic, str.encode(json.dumps(event.payload))
+            topic, str.encode(json.dumps(payload))
         )  # Produce message
     except Exception as exc:
         LOGGER.error(f"Kafka producer failed sending a message due to: {exc}")

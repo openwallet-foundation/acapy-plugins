@@ -10,7 +10,7 @@ RUN chmod +x /wait
 COPY acapy-backchannel acapy-backchannel
 COPY pyproject.toml .
 COPY poetry.lock .
-RUN poetry install --no-dev
+RUN poetry install
 
 COPY tests/* tests/
 
