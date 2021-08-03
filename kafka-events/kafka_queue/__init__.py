@@ -10,6 +10,7 @@ from aries_cloudagent.core.event_bus import Event, EventBus
 from aries_cloudagent.core.profile import Profile
 
 # from .aio_consumer import AIOConsumer
+# TODO: combine these regular expressions into a single regex
 EVENT_PATTERN_WEBHOOK = re.compile("^acapy::webhook::(.*)$")
 EVENT_PATTERN_RECORD = re.compile("^acapy::record::([^:]*)(?:::.*)?$")
 OUTBOUND_PATTERN = re.compile("acapy::outbound::message$")  # For Event Bus
@@ -18,16 +19,6 @@ BASIC_MESSAGE_PATTERN = re.compile("acapy::basicmessage::.*")
 LOGGER = logging.getLogger(__name__)
 TOPICS = []
 DEFAULT_CONFIG = {"bootstrap_servers": "kafka"}
-"""
-
- - TOPICS
-  - outbound
-  - webhooks
-
-webhook, no kid
-outbound, keys
-transport,
-"""
 
 
 async def setup(context: InjectionContext):
@@ -51,6 +42,7 @@ async def setup(context: InjectionContext):
     bus.subscribe(OUTBOUND_PATTERN, handle_event)
     bus.subscribe(EVENT_PATTERN_RECORD, handle_event)
 
+    # TODO: create task to call 'async for' to consume kafka events
 
 async def handle_event(profile: Profile, event: Event):
     """
@@ -78,9 +70,9 @@ async def handle_event(profile: Profile, event: Event):
       infrequent.
     """
     producer = profile.inject(AIOKafkaProducer)
-    #await producer.start()
     LOGGER.info("Handling Kafka producer event: %s", event)
     topic = event.topic.replace("::", "-")
+    # TODO: add subwallet id to webhooks topics
     """
     if subwallet is present in profile, for example webhook,
     extract and put into the payload for futher processing
