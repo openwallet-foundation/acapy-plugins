@@ -39,8 +39,10 @@ async def setup(context: InjectionContext):
         ]
     except KeyError:
         producer_conf = DEFAULT_CONFIG
+    producer = AIOKafkaProducer(**producer_conf)
+    await producer.start()
     context.injector.bind_instance(
-        AIOKafkaProducer, AIOKafkaProducer(**producer_conf)
+        AIOKafkaProducer, producer
     )  # Add the Kafka producer in the context
     # Handle event for Kafka
     bus = context.inject(EventBus)
@@ -76,7 +78,7 @@ async def handle_event(profile: Profile, event: Event):
       infrequent.
     """
     producer = profile.inject(AIOKafkaProducer)
-    await producer.start()
+    #await producer.start()
     LOGGER.info("Handling Kafka producer event: %s", event)
     topic = event.topic.replace("::", "-")
     """
