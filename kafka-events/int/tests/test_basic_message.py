@@ -6,7 +6,7 @@ from aries_staticagent import StaticConnection
 
 
 @pytest.mark.asyncio
-async def test_send(connection: StaticConnection, connection_id: str):
+async def test_send(connection: StaticConnection, connection_id: str, agent):
     await asyncio.wait_for(
         connection.send_async(
             {
@@ -17,3 +17,5 @@ async def test_send(connection: StaticConnection, connection_id: str):
         ),
         timeout=60,
     )
+    assert agent.mock_event_bus.events == []
+

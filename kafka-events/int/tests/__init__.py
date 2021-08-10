@@ -1,8 +1,9 @@
 import asyncio
+import json
 from aiokafka import AIOKafkaConsumer
 from aiohttp import web
 from aries_staticagent import StaticConnection, Module
-
+from aries_cloudagent.core.event_bus import MockEventBus
 
 class BaseAgent:
     """Simple Agent class.
@@ -15,7 +16,7 @@ class BaseAgent:
         self.port = port
         self.connection = connection
         self._runner = None
-
+        self.mock_event_bus = MockEventBus()
     async def handle_web_request(self, request: web.Request):
         """Handle HTTP POST."""
         response = []
@@ -45,7 +46,8 @@ class BaseAgent:
 
         async def consume():
             async for msg in consumer:
-                print(f"tests seeing message {msg.value} with Kafka topic {msg.topic}")
+                topic = str(msg.topic).replace("-", "::")
+                self.mock_event_bus.notify(topic, json.loads(msg.value))
 
         loop.create_task(consume())
 
