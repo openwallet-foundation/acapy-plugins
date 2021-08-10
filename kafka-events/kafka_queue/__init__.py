@@ -3,9 +3,8 @@
 import json
 import logging
 import re
-import asyncio
 
-from aiokafka import AIOKafkaProducer, AIOKafkaConsumer
+from aiokafka import AIOKafkaProducer  # , AIOKafkaConsumer
 from aries_cloudagent.config.injection_context import InjectionContext
 from aries_cloudagent.core.event_bus import Event, EventBus
 from aries_cloudagent.core.profile import Profile
@@ -14,12 +13,13 @@ from aries_cloudagent.core.profile import Profile
 # TODO: combine these regular expressions into a single regex
 EVENT_PATTERN_WEBHOOK = re.compile("^acapy::webhook::(.*)$")
 EVENT_PATTERN_RECORD = re.compile("^acapy::record::([^:]*)(?:::.*)?$")
+BASIC_MESSAGE_PATTERN = re.compile("acapy::basicmessage::.*")
 OUTBOUND_PATTERN = re.compile("acapy::outbound::message$")  # For Event Bus
 INBOUND_PATTERN = re.compile("acapy-inbound-.*")  # For Kafka Consumer
-BASIC_MESSAGE_PATTERN = re.compile("acapy::basicmessage::.*")
 LOGGER = logging.getLogger(__name__)
 TOPICS = []
 DEFAULT_CONFIG = {"bootstrap_servers": "kafka"}
+
 
 async def setup(context: InjectionContext):
     """Setup the plugin."""
@@ -30,33 +30,48 @@ async def setup(context: InjectionContext):
         ]
     except KeyError:
         producer_conf = DEFAULT_CONFIG
+
     producer = AIOKafkaProducer(**producer_conf)
     await producer.start()
-    context.injector.bind_instance( # Add the Kafka producer in the context
+
+    context.injector.bind_instance(  # Add the Kafka producer in the context
         AIOKafkaProducer, producer
-    ) 
+    )
+
     # Handle event for Kafka
     bus = context.inject(EventBus)
+    if not bus:
+        raise ValueError("EventBus missing in context")
+
     bus.subscribe(EVENT_PATTERN_WEBHOOK, handle_event)
     bus.subscribe(BASIC_MESSAGE_PATTERN, handle_event)
-    bus.subscribe(OUTBOUND_PATTERN, handle_event)
     bus.subscribe(EVENT_PATTERN_RECORD, handle_event)
-    loop = asyncio.get_event_loop()
-    try:
-      consumer_conf = context.settings["plugin_config"]["kafka_queue"][
-          "consumer-config"
-      ]
-    except KeyError:
-        consumer_conf = {"bootstrap_servers": "kafka", "group_id": "aca-py-events"}
-    consumer = AIOKafkaConsumer(**consumer_conf)
-    await consumer.start()
-    consumer.subscribe(pattern=INBOUND_PATTERN)
-    async def consume():
-      async for msg in consumer:
-        topic = str(msg.topic).replace("-", "::")
-        await bus.notify(topic, json.loads(msg.value))
 
-    loop.create_task(consume())
+    # TODO Revisit when outbound messages are delivered over the event bus
+    # bus.subscribe(OUTBOUND_PATTERN, handle_event)
+
+    # TODO Reinstate this when we've got inbound figured out
+    # try:
+    #     consumer_conf = context.settings["plugin_config"]["kafka_queue"][
+    #         "consumer-config"
+    #     ]
+    # except KeyError:
+    #     consumer_conf = {"bootstrap_servers": "kafka", "group_id": "aca-py-events"}
+    # consumer = AIOKafkaConsumer(**consumer_conf)
+    # await consumer.start()
+    # consumer.subscribe(pattern=INBOUND_PATTERN)
+
+    # async def consume(bus: EventBus):
+    #     """Loop to consume messages off of the Kafka queue."""
+    #     async for msg in consumer:
+    #         topic = str(msg.topic).replace("-", "::")
+
+    #         # TODO Obtain this profile through similar means as the inbound message
+    #         # handling
+    #         await bus.notify(profile, Event(topic, json.loads(msg.value)))
+
+    # asyncio.get_event_loop().create_task(consume(bus))
+
 
 async def handle_event(profile: Profile, event: Event):
     """
@@ -83,13 +98,15 @@ async def handle_event(profile: Profile, event: Event):
       yet been updated to use the event bus. These events should be relatively
       infrequent.
     """
+
     producer = profile.inject(AIOKafkaProducer)
+    if not producer:
+        raise ValueError("AIOKafkaProducer missing in context")
     LOGGER.info("Handling Kafka producer event: %s", event)
     topic = event.topic.replace("::", "-")
     payload = event.payload
     payload["wallet_id"] = profile.settings.get("wallet.id")
     try:
-
         LOGGER.info(f"Sending message {payload} with Kafka topic {topic}")
         await producer.send_and_wait(
             topic, str.encode(json.dumps(payload))
