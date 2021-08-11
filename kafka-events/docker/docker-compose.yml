@@ -69,3 +69,13 @@ services:
       - 8080:80
     environment:
       KAFKA_REST: http://restproxy:8086
+  
+  kafka-topics-ui:
+    image: landoop/kafka-topics-ui
+    ports:
+      - 8000:8000
+    depends_on:
+      - restproxy
+    environment:
+      KAFKA_REST_PROXY_URL: http://restproxy:8086
+      PROXY: "true"
