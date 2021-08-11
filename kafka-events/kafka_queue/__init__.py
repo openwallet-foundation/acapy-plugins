@@ -3,9 +3,11 @@
 import json
 import logging
 import re
+from typing import Any, Mapping
 
 from aiokafka import AIOKafkaProducer  # , AIOKafkaConsumer
 from aries_cloudagent.config.injection_context import InjectionContext
+from aries_cloudagent.config.settings import Settings
 from aries_cloudagent.core.event_bus import Event, EventBus
 from aries_cloudagent.core.profile import Profile
 
@@ -21,17 +23,19 @@ TOPICS = []
 DEFAULT_CONFIG = {"bootstrap_servers": "kafka"}
 
 
-async def setup(context: InjectionContext):
-    """Setup the plugin."""
-
+def get_config(settings: Settings) -> Mapping[str, Any]:
+    """Retrieve producer configuration from settings."""
     try:
-        producer_conf = context.settings["plugin_config"]["kafka_queue"][
-            "producer-config"
-        ]
+        producer_conf = settings["plugin_config"]["kafka_queue"]["producer-config"]
     except KeyError:
         producer_conf = DEFAULT_CONFIG
 
-    producer = AIOKafkaProducer(**producer_conf)
+    return producer_conf
+
+
+async def setup(context: InjectionContext):
+    """Setup the plugin."""
+    producer = AIOKafkaProducer(**get_config(context.settings))
     await producer.start()
 
     context.injector.bind_instance(  # Add the Kafka producer in the context
@@ -111,5 +115,5 @@ async def handle_event(profile: Profile, event: Event):
         await producer.send_and_wait(
             topic, str.encode(json.dumps(payload))
         )  # Produce message
-    except Exception as exc:
-        LOGGER.error(f"Kafka producer failed sending a message due to: {exc}")
+    except Exception:
+        LOGGER.exception("Kafka producer failed to send message")
