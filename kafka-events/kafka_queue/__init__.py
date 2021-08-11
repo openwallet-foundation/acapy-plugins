@@ -30,7 +30,7 @@ async def setup(context: InjectionContext):
         ]
     except KeyError:
         producer_conf = DEFAULT_CONFIG
-    
+
     if producer_conf is None:
         print("config is None: ", producer_conf, context.settings["plugin_config"])
         raise Exception

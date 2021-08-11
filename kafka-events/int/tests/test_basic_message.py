@@ -18,4 +18,3 @@ async def test_send(connection: StaticConnection, connection_id: str, agent):
         timeout=60,
     )
     assert agent.mock_event_bus.events == []
-
