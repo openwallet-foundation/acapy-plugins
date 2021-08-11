@@ -16,11 +16,6 @@ acapy-backchannel = {path="acapy-backchannel", develop = true}
 aries-staticagent = "^0.8.0"
 aiokafka = "^0.7.1"
 
-[tool.poetry.dependencies.aries-cloudagent]
-    git = "https://github.com/hyperledger/aries-cloudagent-python"
-    rev = "main"
-    extras = ["indy"]
-
 [tool.poetry.dev-dependencies]
 black = "^21.6b0"
 flake8 = "^3.9.2"

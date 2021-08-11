@@ -1,6 +1,7 @@
 """Basic in memory queue."""
 import asyncio
 import json
+import base64
 from typing import Union
 
 from aiokafka.producer.producer import AIOKafkaProducer
@@ -18,6 +19,7 @@ class KafkaOutboundQueue(BaseOutboundQueue):
 
     def __init__(self, settings: Settings):
         """Initialize base queue type."""
+        super().__init__(settings)
         self.producer = AIOKafkaProducer(**get_config(settings))
 
     async def __aenter__(self):
@@ -62,7 +64,7 @@ class KafkaOutboundQueue(BaseOutboundQueue):
                 {
                     "headers": {"Content-Type": content_type},
                     "endpoint": endpoint,
-                    "payload": payload,
+                    "payload": base64.urlsafe_b64encode(payload).decode(),
                 }
             )
         )
