@@ -5,6 +5,7 @@ from aiohttp import web
 from aries_staticagent import StaticConnection, Module
 from aries_cloudagent.core.event_bus import MockEventBus
 
+
 class BaseAgent:
     """Simple Agent class.
     Used to start up an agent with statically configured handlers.
@@ -17,6 +18,7 @@ class BaseAgent:
         self.connection = connection
         self._runner = None
         self.mock_event_bus = MockEventBus()
+
     async def handle_web_request(self, request: web.Request):
         """Handle HTTP POST."""
         response = []

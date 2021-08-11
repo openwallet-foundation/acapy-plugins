@@ -42,6 +42,7 @@ kafka_queue:
   ### For producers ###
 
   producer-config:
+    bootstrap_servers: Kafka
 #    metadata_max_age_ms: 300000 # 5 * 60 * 1000 = 5 Minutes
 #    compression_type: # empty, 'gzip', 'snappy' or 'lz4' allowed
 #    max_batch_size: 16384

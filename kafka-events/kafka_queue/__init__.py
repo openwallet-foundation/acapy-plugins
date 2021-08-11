@@ -30,6 +30,10 @@ def get_config(settings: Settings) -> Mapping[str, Any]:
     except KeyError:
         producer_conf = DEFAULT_CONFIG
 
+    if producer_conf is None:
+        print("config is None: ", producer_conf, settings["plugin_config"])
+        raise Exception
+
     return producer_conf
 
 
