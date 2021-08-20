@@ -3,7 +3,6 @@ import json
 from aiokafka import AIOKafkaConsumer
 from aiohttp import web
 from aries_staticagent import StaticConnection, Module
-from aries_cloudagent.core.event_bus import MockEventBus
 
 
 class BaseAgent:
@@ -17,7 +16,7 @@ class BaseAgent:
         self.port = port
         self.connection = connection
         self._runner = None
-        self.mock_event_bus = MockEventBus()
+        self.received = []
 
     async def handle_web_request(self, request: web.Request):
         """Handle HTTP POST."""
@@ -32,13 +31,6 @@ class BaseAgent:
 
     async def start_async(self):
         """Start the agent listening for HTTP POSTs."""
-        app = web.Application()
-        app.add_routes([web.post("/", self.handle_web_request)])
-        self.runner = web.AppRunner(app)
-        await self.runner.setup()
-        site = web.TCPSite(self.runner, self.host, self.port)
-        await site.start()
-        loop = asyncio.get_event_loop()
         # TODO: add proper config retrieval from docker config
         consumer = AIOKafkaConsumer(
             **{"bootstrap_servers": "kafka", "group_id": "aca-py-events"}
@@ -49,13 +41,12 @@ class BaseAgent:
         async def consume():
             async for msg in consumer:
                 topic = str(msg.topic).replace("-", "::")
-                self.mock_event_bus.notify(topic, json.loads(msg.value))
+                self.received.append((topic, json.loads(msg.value)))
 
-        loop.create_task(consume())
+        await consume()
 
     async def cleanup(self):
         """Clean up async start."""
-        await self.runner.cleanup()
 
     def start(self):
         """Start sychronously."""
