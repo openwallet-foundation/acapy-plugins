@@ -58,18 +58,6 @@ services:
       KAFKA_REST_BOOTSTRAP_SERVERS: kafka:9092
       KAFKA_REST_LISTENERS: http://0.0.0.0:8086
 
-  restwrapper:
-    build:
-      context: ../http_kafka_queue_processor
-      dockerfile: Dockerfile
-    restart: always
-    depends_on:
-      - restproxy
-    ports:
-      - 8080:80
-    environment:
-      KAFKA_REST: http://restproxy:8086
-  
   kafka-topics-ui:
     image: landoop/kafka-topics-ui
     ports:
