@@ -86,6 +86,7 @@ services:
         - zookeeper
         - kafka
         - acapy-kafka-queue
+        - kafka-visuals
 
   kafka-visuals:
     image: kbhargava/kafka-visuals

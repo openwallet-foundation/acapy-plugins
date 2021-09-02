@@ -1,10 +1,11 @@
 """Common fixtures for testing."""
 
 import asyncio
-from contextlib import suppress
 import os
-import base64
 from typing import Iterator, Optional
+
+from aiokafka.consumer.consumer import AIOKafkaConsumer
+from aiokafka.producer.producer import AIOKafkaProducer
 from acapy_backchannel.models.conn_record import ConnRecord
 import pytest
 import hashlib
@@ -23,8 +24,6 @@ from acapy_backchannel.models import (
 
 from aries_staticagent import StaticConnection, Target
 
-from . import BaseAgent
-
 
 @pytest.fixture(scope="session")
 def event_loop():
@@ -42,21 +41,9 @@ def host():
 
 
 @pytest.fixture(scope="session")
-def suite_host():
-    """Hostname of agent under test."""
-    return os.environ.get("SUITE_HOST", "localhost")
-
-
-@pytest.fixture(scope="session")
 def port():
     """Port of agent under test."""
     return os.environ.get("AGENT_PORT", 3000)
-
-
-@pytest.fixture(scope="session")
-def suite_port():
-    """Port of agent under test."""
-    return os.environ.get("SUITE_PORT", 3002)
 
 
 @pytest.fixture(scope="session")
@@ -82,18 +69,13 @@ def agent_seed():
 
 
 @pytest.fixture(scope="session")
-def suite_endpoint(suite_host, suite_port):
-    yield "http://{}:{}".format(suite_host, suite_port)
-
-
-@pytest.fixture(scope="session")
 def agent_endpoint(host, port):
     yield "http://{}:{}".format(host, port)
 
 
 @pytest.fixture(scope="session")
 def agent_connection(
-    suite_seed, agent_seed, suite_endpoint, backchannel
+    suite_seed, agent_seed, backchannel
 ) -> Iterator[ConnectionStaticResult]:
     """Yield agent's representation of this connection."""
 
@@ -104,7 +86,7 @@ def agent_connection(
             {
                 "my_seed": agent_seed,
                 "their_seed": suite_seed,
-                "their_endpoint": suite_endpoint,
+                "their_endpoint": "http://example.com",
                 "their_label": "test-runner",
             }
         ),
@@ -152,19 +134,18 @@ def connection(agent_connection: ConnectionStaticResult, suite_seed: str):
     )
 
 
-@pytest.fixture(scope="session")
-def agent(suite_host, suite_port, connection: StaticConnection):
-    yield BaseAgent(suite_host, suite_port, connection)
+@pytest.fixture
+def consumer():
+    def _consumer(topic: str):
+        consumer = AIOKafkaConsumer(topic, bootstrap_servers="kafka", group_id="test")
+        return consumer
+
+    yield _consumer
 
 
-@pytest.fixture(scope="session", autouse=True)
-async def http_endpoint(agent: BaseAgent):
-    """Start up http endpoint for suite."""
-    server_task = asyncio.ensure_future(agent.start_async())
+@pytest.fixture
+async def producer():
+    producer = AIOKafkaProducer(bootstrap_servers="kafka")
 
-    yield
-
-    server_task.cancel()
-    with suppress(asyncio.CancelledError):
-        await server_task
-    await agent.cleanup()
+    async with producer:
+        yield producer
