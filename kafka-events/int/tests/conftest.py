@@ -1,28 +1,23 @@
 """Common fixtures for testing."""
 
 import asyncio
+import hashlib
 import os
 from typing import Iterator, Optional
 
 from aiokafka.consumer.consumer import AIOKafkaConsumer
 from aiokafka.producer.producer import AIOKafkaProducer
-from acapy_backchannel.models.conn_record import ConnRecord
+from aries_staticagent import StaticConnection, Target
 import pytest
-import hashlib
 
-from acapy_backchannel import Client
-from acapy_backchannel.api.connection import (
-    create_static,
-    set_metadata,
-    delete_connection,
-)
-from acapy_backchannel.models import (
+from acapy_client import Client
+from acapy_client.api.connection import create_static, delete_connection, set_metadata
+from acapy_client.models import (
+    ConnectionMetadataSetRequest,
     ConnectionStaticRequest,
     ConnectionStaticResult,
-    ConnectionMetadataSetRequest,
 )
-
-from aries_staticagent import StaticConnection, Target
+from acapy_client.models.conn_record import ConnRecord
 
 
 @pytest.fixture(scope="session")

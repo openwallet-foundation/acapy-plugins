@@ -11,8 +11,7 @@ pytest = "^6.2.4"
 pytest-asyncio = "^0.15.1"
 pytest-cov = "^2.12.1"
 asynctest = "0.13.0"
-requests = "^2.25.1"
-acapy-backchannel = {path="acapy-backchannel", develop = true}
+acapy-client = {git="https://github.com/indicio-tech/acapy-client.git", branch="acapy/main"}
 aries-staticagent = "^0.8.0"
 aiokafka = "^0.7.1"
 
