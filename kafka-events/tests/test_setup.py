@@ -1,4 +1,6 @@
 """Test setup."""
+import asyncio
+from typing import Any
 from aiokafka import AIOKafkaProducer
 from aries_cloudagent.config.injection_context import InjectionContext
 from aries_cloudagent.core.event_bus import EventBus, MockEventBus
@@ -20,9 +22,16 @@ def context(event_bus):
     yield context
 
 
+def async_mock(result: Any = None):
+    f = asyncio.Future()
+    f.set_result(result)
+    return f
+
+
 @pytest.mark.asyncio
 async def test_setup(context, event_bus):
     mock_producer = mock.MagicMock(spec=AIOKafkaProducer)
+    mock_producer.start = async_mock()
     with mock.patch.object(
         test_module, "AIOKafkaProducer", mock.MagicMock(return_value=mock_producer)
     ):
