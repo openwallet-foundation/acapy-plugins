@@ -1,4 +1,4 @@
-FROM bcgovimages/von-image:py36-1.16-0
+FROM bcgovimages/von-image:py36-1.16-1
 
 RUN pip3 install --no-cache-dir poetry
 

@@ -6,7 +6,7 @@ authors = ["Daniel Bluhm <dbluhm@pm.me>"]
 
 [tool.poetry.dependencies]
 python = "^3.6.9"
-aries-cloudagent = {git = "https://github.com/dbluhm/aries-cloudagent-python", rev = "8bfa102cd80c30795e7a097d8a4c4472516abd43"}
+aries-cloudagent = {git = "https://github.com/hyperledger/aries-cloudagent-python", rev = "2f358df3a239b00188b074f04681b5b2ca755ea9"}
 ecdsa = "^0.16.1"
 aiokafka = "^0.7.1"
 
@@ -23,3 +23,8 @@ rope = "^0.19.0"
 [build-system]
 requires = ["setuptools", "poetry-core>=1.0.0"]
 build-backend = "poetry.core.masonry.api"
+
+[tool.pytest.ini_options]
+testpaths = [
+    "tests"
+]
