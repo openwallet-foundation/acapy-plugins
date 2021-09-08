@@ -1,5 +1,7 @@
 import logging
-from typing import cast
+from typing import Any, Mapping, cast
+
+from aries_cloudagent.config.settings import Settings
 
 from aiokafka import AIOKafkaConsumer
 from aiokafka.structs import ConsumerRecord
@@ -10,12 +12,29 @@ from aries_cloudagent.transport.inbound.base import BaseInboundTransport
 
 LOGGER = logging.getLogger(__name__)
 
+DEFAULT_CONFIG = {
+    "group_id": "kafka_queue",
+    "inbound_topics": [
+        "acapy-inbound-message",
+    ],
+}
+
+
+def get_config(settings: Settings) -> Mapping[str, Any]:
+    """Retrieve consumer configuration from settings."""
+    try:
+        consumer_conf = (
+            settings["plugin_config"]["kafka_queue"]["consumer-config"]
+            or DEFAULT_CONFIG
+        )
+    except KeyError:
+        consumer_conf = DEFAULT_CONFIG
+
+    return consumer_conf
+
 
 class KafkaInboundTransport(BaseInboundTransport):
     """Inbound Transport using Kafka."""
-
-    INBOUND_TOPIC = "acapy-inbound-message"
-    DEFAULT_GROUP = "acapy"
 
     def __init__(self, host: str, port: int, create_session, **kwargs) -> None:
         """
@@ -30,8 +49,11 @@ class KafkaInboundTransport(BaseInboundTransport):
         super().__init__("kafka", create_session, **kwargs)
         self.host = host
         self.port = port
+        config = get_config({})
         self.consumer = AIOKafkaConsumer(
-            self.INBOUND_TOPIC, bootstrap_servers=self.host, group_id=self.DEFAULT_GROUP
+            **config.get("inbound_topics"),
+            bootstrap_servers=self.host,
+            group_id=config.get("consumer_group_id")
         )
 
     async def start(self):

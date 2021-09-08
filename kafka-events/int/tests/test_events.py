@@ -1,8 +1,6 @@
 """Basic Message Tests"""
 import asyncio
-from typing import Callable
 
-from aiokafka.consumer.consumer import AIOKafkaConsumer
 import pytest
 
 from aries_staticagent import StaticConnection

@@ -4,6 +4,8 @@ kafka_queue:
 
   bootstrap_servers: "kafka"
   client_id: "aca-py"
+
+
 #  request_timeout_ms: 40000
 #  connections_max_idle_ms: 540000
 #  api_version: "auto"
@@ -22,7 +24,9 @@ kafka_queue:
   ### For consumers ###
 
   consumer-config:
-#    group_id: "kafka_queue"
+    inbound_topics:
+      - "acapy-inbound-message"
+    group_id: "kafka_queue"
 #    fetch_max_wait_ms: 500
 #    fetch_max_bytes: 52428800 # 50 * 1024 * 1024 = 50MB
 #    fetch_min_bytes: 1
@@ -43,6 +47,10 @@ kafka_queue:
 
   producer-config:
     bootstrap_servers: Kafka
+    outbound_topics:
+      - "^acapy::webhook::(.*)$"
+      - "^acapy::record::([^:]*)(?:::.*)?$"
+      - "acapy::basicmessage::.*"
 #    metadata_max_age_ms: 300000 # 5 * 60 * 1000 = 5 Minutes
 #    compression_type: # empty, 'gzip', 'snappy' or 'lz4' allowed
 #    max_batch_size: 16384
