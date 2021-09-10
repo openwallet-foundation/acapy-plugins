@@ -1,11 +1,14 @@
 """Basic Message Tests"""
 import asyncio
 from typing import Callable
+from acapy_client.models.send_message import SendMessage
 
 from aiokafka.consumer.consumer import AIOKafkaConsumer
 import pytest
 
 from aries_staticagent import StaticConnection
+from acapy_client import Client
+from acapy_client.api.basicmessage import send_basicmessage
 
 
 @pytest.mark.asyncio
@@ -22,3 +25,16 @@ async def test_event_pushed_to_kafka(
         )
         msg = await asyncio.wait_for(consumer.getone(), 1)
         assert msg
+
+
+@pytest.mark.asyncio
+async def test_outbound_queue(
+    backchannel: Client, connection_id: str, consumer
+):
+    async with consumer("acapy-outbound-message") as consumer:
+        await send_basicmessage.asyncio(
+            client=backchannel, conn_id=connection_id, json_body=SendMessage(content="test")
+        )
+        msg = await asyncio.wait_for(consumer.getone(), 1)
+        assert msg
+        print(msg)
