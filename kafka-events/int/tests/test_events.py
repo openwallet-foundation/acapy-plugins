@@ -28,12 +28,12 @@ async def test_event_pushed_to_kafka(
 
 
 @pytest.mark.asyncio
-async def test_outbound_queue(
-    backchannel: Client, connection_id: str, consumer
-):
+async def test_outbound_queue(backchannel: Client, connection_id: str, consumer):
     async with consumer("acapy-outbound-message") as consumer:
         await send_basicmessage.asyncio(
-            client=backchannel, conn_id=connection_id, json_body=SendMessage(content="test")
+            client=backchannel,
+            conn_id=connection_id,
+            json_body=SendMessage(content="test"),
         )
         msg = await asyncio.wait_for(consumer.getone(), 1)
         assert msg
