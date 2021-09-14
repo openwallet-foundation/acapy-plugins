@@ -47,6 +47,9 @@ jobs:
           poetry build
     - name: Publish package
       env:
-          POETRY_PYPI_TOKEN_PYPI: ${{secrets.PYPI_API_TOKEN}}
+          POETRY_HTTP_BASIC_INTERNAL_PYPI_USERNAME: ${{secrets.PYPI_PUBLISHER_USER}}
+          POETRY_HTTP_BASIC_INTERNAL_PYPI_PASSWORD: ${{secrets.PYPI_PUBLISHER_PASSWORD}}
+
       run: |
-          poetry publish
+          poetry config repositories.internal-pypi ${{secrets.PYPI_URL}}
+          poetry publish -r internal-pypi
