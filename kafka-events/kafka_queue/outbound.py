@@ -53,7 +53,8 @@ class KafkaOutboundQueue(BaseOutboundQueue):
                     "endpoint": endpoint,
                     "payload": base64.urlsafe_b64encode(payload).decode(),
                 }
-            )
+            ),
+            encoding="utf8"
         )
         try:
             return await self.producer.send_and_wait("acapy-outbound-message", message)
