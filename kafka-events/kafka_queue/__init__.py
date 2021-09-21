@@ -75,6 +75,10 @@ async def handle_event(profile: Profile, event: Event):
                 break
         LOGGER.info(f"Sending message {event.payload} with Kafka topic {topic}")
         # Produce message
-        await producer.send_and_wait(topic, str.encode(json.dumps(event.payload)))
+        await producer.send_and_wait(
+            topic,
+            str.encode(json.dumps(event.payload)),
+            key=profile.settings.get("wallet.id"),
+        )
     except Exception:
         LOGGER.exception("Kafka producer failed to send message")
