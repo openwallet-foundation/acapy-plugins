@@ -3,6 +3,7 @@
 import json
 import logging
 import re
+from string import Template
 from typing import Any, Mapping
 
 from aiokafka import AIOKafkaProducer
@@ -12,12 +13,20 @@ from aries_cloudagent.core.event_bus import Event, EventBus
 from aries_cloudagent.core.profile import Profile
 
 DEFAULT_CONFIG = {
+    """
+    assumed metadata variables available for topic templates.
+    wallet_id.
+    
+    regex mapped to string template using metadata variables.
+    you can manually specify state an protocol
+    """
     "bootstrap_servers": "kafka",
-    "outbound_topics": [
-        "^acapy::webhook::(.*)$",
-        "^acapy::record::([^:]*)(?:::.*)?$",
-        "acapy::basicmessage::.*",
-    ],
+    "outbound_topic_templates": {
+        "^acapy::webhook::(.*)$": "acapy-webhook-$walletId",
+        "^acapy::record::([^:]*)::([^:]*)$": "acapy-record-with-state-$walletId",
+        "^acapy::record::([^:])?": "acapy-record-$walletId",
+        "acapy::basicmessage::.*": "acapy-basicmessage",
+    },
 }
 
 LOGGER = logging.getLogger(__name__)
@@ -50,26 +59,13 @@ async def setup(context: InjectionContext):
     if not bus:
         raise ValueError("EventBus missing in context")
 
-    for event in config.get("outbound_topics"):
+    for event in config.get("outbound_topic_templates"):
         bus.subscribe(re.compile(event), handle_event)
 
 
 async def handle_event(profile: Profile, event: Event):
     """
     produce kafka events from eventbus events
-
-    ACA-Py eventbus events are namespaced with `acapy`; for example:
-
-        acapy::record::present_proof::presentation_received
-
-    There are two primary namespaces of ACA-Py events.
-    - `record`: record update events. These
-      follow the pattern:
-        - stateful, acapy::record::{RECORD_TOPIC}::{STATE}
-        - stateless, acapy::record::{RECORD_TOPIC}
-      note, majority of records are stateful.
-    - `webhook`: events that notify controllers about changes.
-        - ...TODO: add webhook event example
     """
 
     producer = profile.inject(AIOKafkaProducer)
@@ -77,9 +73,13 @@ async def handle_event(profile: Profile, event: Event):
         raise ValueError("AIOKafkaProducer missing in context")
 
     LOGGER.info("Handling Kafka producer event: %s", event)
-    topic = event.topic.replace("::", "-")
     event.payload["wallet_id"] = profile.settings.get("wallet.id")
+    config = get_config(profile.settings)
     try:
+        for pattern, template in config.get("outbound_topic_templates").items():
+            if re.match(pattern, event.topic):
+                topic = Template(template).substitute(**event.payload)
+                break
         LOGGER.info(f"Sending message {event.payload} with Kafka topic {topic}")
         # Produce message
         await producer.send_and_wait(topic, str.encode(json.dumps(event.payload)))
