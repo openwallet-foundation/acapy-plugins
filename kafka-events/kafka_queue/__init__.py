@@ -13,13 +13,6 @@ from aries_cloudagent.core.event_bus import Event, EventBus
 from aries_cloudagent.core.profile import Profile
 
 DEFAULT_CONFIG = {
-    """
-    assumed metadata variables available for topic templates.
-    wallet_id.
-    
-    regex mapped to string template using metadata variables.
-    you can manually specify state an protocol
-    """
     "bootstrap_servers": "kafka",
     "outbound_topic_templates": {
         "^acapy::webhook::(.*)$": "acapy-webhook-$walletId",
