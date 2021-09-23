@@ -47,10 +47,11 @@ kafka_queue:
 
   producer-config:
     bootstrap_servers: Kafka
-    outbound_topics:
-      - "^acapy::webhook::(.*)$"
-      - "^acapy::record::([^:]*)(?:::.*)?$"
-      - "acapy::basicmessage::.*"
+    outbound_topic_templates:
+      ^acapy::webhook::(.*)$: acapy-webhook-$walletId
+      ^acapy::record::([^:]*)::([^:]*)$: acapy-record-with-state-$wallet_id
+      ^acapy::record::([^:])?: acapy-record-$wallet_id
+      acapy::basicmessage::.*: acapy-basicmessage
 #    metadata_max_age_ms: 300000 # 5 * 60 * 1000 = 5 Minutes
 #    compression_type: # empty, 'gzip', 'snappy' or 'lz4' allowed
 #    max_batch_size: 16384
