@@ -43,18 +43,21 @@ def get_config(settings: Settings) -> Mapping[str, Any]:
 async def setup(context: InjectionContext):
     """Setup the plugin."""
     config = get_config(context.settings)
+    LOGGER.info(f"Setting up kafka plugin with configuration: {config}")
     producer = AIOKafkaProducer(**config.get("producer"))
+    LOGGER.info(f"  - Starting kafka producer")
     await producer.start()
 
     # Add the Kafka producer in the context
     context.injector.bind_instance(AIOKafkaProducer, producer)
-
+    LOGGER.info("   - Subscribing Kafka producer to eventbus events")
     # Handle event for Kafka
     bus = context.inject(EventBus)
     if not bus:
         raise ValueError("EventBus missing in context")
 
     for event in config.get("outbound_topic_templates"):
+        LOGGER.info(f"      - subscribing to event: {event}")
         bus.subscribe(re.compile(event), handle_event)
 
 
