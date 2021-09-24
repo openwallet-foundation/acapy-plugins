@@ -46,9 +46,10 @@ kafka_queue:
   ### For producers ###
 
   producer-config:
-    bootstrap_servers: Kafka
+    producer:
+      bootstrap_servers: kafka
     outbound_topic_templates:
-      ^acapy::webhook::(.*)$: acapy-webhook-$walletId
+      ^acapy::webhook::(.*)$: acapy-webhook-$wallet_id
       ^acapy::record::([^:]*)::([^:]*)$: acapy-record-with-state-$wallet_id
       ^acapy::record::([^:])?: acapy-record-$wallet_id
       acapy::basicmessage::.*: acapy-basicmessage
