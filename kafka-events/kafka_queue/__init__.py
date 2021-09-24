@@ -13,7 +13,7 @@ from aries_cloudagent.core.event_bus import Event, EventBus
 from aries_cloudagent.core.profile import Profile
 
 DEFAULT_CONFIG = {
-    "producer-config": {
+    "producer": {
         "bootstrap_servers": "kafka",
     },
     "outbound_topic_templates": {
@@ -31,11 +31,11 @@ def get_config(settings: Settings) -> Mapping[str, Any]:
     """Retrieve producer configuration from settings."""
     try:
         producer_conf = (
-            settings["plugin_config"]["kafka_queue"]["producer-config"]
-            or DEFAULT_CONFIG["producer-config"]
+            settings["plugin_config"]["kafka_queue"]["producer-config"]["producer"]
+            or DEFAULT_CONFIG["producer"]
         )
     except KeyError:
-        producer_conf = DEFAULT_CONFIG["producer-config"]
+        producer_conf = DEFAULT_CONFIG["producer"]
 
     return producer_conf
 
