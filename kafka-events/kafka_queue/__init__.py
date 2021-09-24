@@ -15,7 +15,7 @@ from aries_cloudagent.core.profile import Profile
 DEFAULT_CONFIG = {
     "bootstrap_servers": "kafka",
     "outbound_topic_templates": {
-        "^acapy::webhook::(.*)$": "acapy-webhook-$walletId",
+        "^acapy::webhook::(.*)$": "acapy-webhook-$wallet_id",
         "^acapy::record::([^:]*)::([^:]*)$": "acapy-record-with-state-$wallet_id",
         "^acapy::record::([^:])?": "acapy-record-$wallet_id",
         "acapy::basicmessage::.*": "acapy-basicmessage",
