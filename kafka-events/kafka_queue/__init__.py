@@ -31,11 +31,11 @@ def get_config(settings: Settings) -> Mapping[str, Any]:
     """Retrieve producer configuration from settings."""
     try:
         producer_conf = (
-            settings["plugin_config"]["kafka_queue"]["producer-config"]["producer"]
-            or DEFAULT_CONFIG["producer"]
+            settings["plugin_config"]["kafka_queue"]["producer-config"]
+            or DEFAULT_CONFIG
         )
     except KeyError:
-        producer_conf = DEFAULT_CONFIG["producer"]
+        producer_conf = DEFAULT_CONFIG
 
     return producer_conf
 
@@ -43,7 +43,7 @@ def get_config(settings: Settings) -> Mapping[str, Any]:
 async def setup(context: InjectionContext):
     """Setup the plugin."""
     config = get_config(context.settings)
-    producer = AIOKafkaProducer(**config)
+    producer = AIOKafkaProducer(**config.get("producer"))
     await producer.start()
 
     # Add the Kafka producer in the context
