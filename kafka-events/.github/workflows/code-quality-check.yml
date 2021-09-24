@@ -94,7 +94,7 @@ jobs:
     - name: Print logs on failure
       if: failure()
       run: |
-        docker-compose -f int/docker-compose.yml logs
+        docker-compose -f int/docker-compose.yml logs acapy-kafka-queue
     - name: Clean up integration tests
       if: always()
       run: |
