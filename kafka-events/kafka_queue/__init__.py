@@ -45,7 +45,7 @@ async def setup(context: InjectionContext):
     config = get_config(context.settings)
     LOGGER.info(f"Setting up kafka plugin with configuration: {config}")
     producer = AIOKafkaProducer(**config.get("producer"))
-    LOGGER.info(f"  - Starting kafka producer")
+    LOGGER.info("  - Starting kafka producer")
     await producer.start()
 
     # Add the Kafka producer in the context
