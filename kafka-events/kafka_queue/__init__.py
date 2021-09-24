@@ -13,7 +13,9 @@ from aries_cloudagent.core.event_bus import Event, EventBus
 from aries_cloudagent.core.profile import Profile
 
 DEFAULT_CONFIG = {
-    "bootstrap_servers": "kafka",
+    "producer-config": {
+        "bootstrap_servers": "kafka",
+    },
     "outbound_topic_templates": {
         "^acapy::webhook::(.*)$": "acapy-webhook-$wallet_id",
         "^acapy::record::([^:]*)::([^:]*)$": "acapy-record-with-state-$wallet_id",
@@ -30,10 +32,10 @@ def get_config(settings: Settings) -> Mapping[str, Any]:
     try:
         producer_conf = (
             settings["plugin_config"]["kafka_queue"]["producer-config"]
-            or DEFAULT_CONFIG
+            or DEFAULT_CONFIG["producer-config"]
         )
     except KeyError:
-        producer_conf = DEFAULT_CONFIG
+        producer_conf = DEFAULT_CONFIG["producer-config"]
 
     return producer_conf
 
