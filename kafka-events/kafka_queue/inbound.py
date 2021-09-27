@@ -49,7 +49,7 @@ class KafkaInboundTransport(BaseInboundTransport):
         super().__init__("kafka", create_session, **kwargs)
         self.host = host
         self.port = port
-        config = get_config(self.root_profile.get("settings", {}))
+        config = get_config(self.root_profile.context.settings)
         self.consumer = AIOKafkaConsumer(
             **config.get("inbound_topics"),
             bootstrap_servers=self.host,
