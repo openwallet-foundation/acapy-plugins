@@ -51,7 +51,7 @@ class KafkaInboundTransport(BaseInboundTransport):
         self.port = port
         config = get_config(self.root_profile.context.settings)
         self.consumer = AIOKafkaConsumer(
-            **config.get("inbound_topics"),
+            *config.get("inbound_topics"),
             bootstrap_servers=self.host,
             group_id=config.get("consumer_group_id")
         )
