@@ -19,7 +19,7 @@ class KafkaOutboundQueue(BaseOutboundQueue):
     def __init__(self, settings: Settings):
         """Initialize base queue type."""
         super().__init__(settings)
-        self.producer = AIOKafkaProducer(**get_config(settings))
+        self.producer = AIOKafkaProducer(**get_config(settings).get("producer"))
 
     async def start(self):
         """Start the queue."""
