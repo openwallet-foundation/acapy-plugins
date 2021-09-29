@@ -30,10 +30,7 @@ LOGGER = logging.getLogger(__name__)
 def get_config(settings: BaseSettings) -> Mapping:
     """Retrieve producer configuration from settings."""
     try:
-        producer_conf = (
-            settings["plugin_config"]["kafka_queue"]
-            or DEFAULT_CONFIG
-        )
+        producer_conf = settings["plugin_config"]["kafka_queue"] or DEFAULT_CONFIG
     except KeyError:
         producer_conf = DEFAULT_CONFIG
 
@@ -75,7 +72,9 @@ async def handle_event(profile: Profile, event: EventWithMetadata):
     event.payload["wallet_id"] = profile.settings.get("wallet.id")
     config = get_config(profile.settings)
     try:
-        template = config.get("outbound_topic_templates", {})[event.metadata.pattern.pattern]
+        template = config.get("outbound_topic_templates", {})[
+            event.metadata.pattern.pattern
+        ]
         kafka_topic = Template(template).substitute(**event.payload)
         LOGGER.info(f"Sending message {event.payload} with Kafka topic {kafka_topic}")
         # Produce message
