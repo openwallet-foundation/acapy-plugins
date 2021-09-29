@@ -20,7 +20,7 @@ DEFAULT_CONFIG = {
         "^acapy::webhook::(.*)$": "acapy-webhook-$wallet_id",
         "^acapy::record::([^:]*)::([^:]*)$": "acapy-record-with-state-$wallet_id",
         "^acapy::record::([^:])?": "acapy-record-$wallet_id",
-        "acapy::basicmessage::.*": "acapy-basicmessage",
+        "acapy::basicmessage::received": "acapy-basicmessage-received",
     },
 }
 
