@@ -6,7 +6,13 @@ from aiokafka import AIOKafkaProducer
 from aries_cloudagent.config.injection_context import InjectionContext
 from aries_cloudagent.core.profile import Profile
 from aries_cloudagent.core.in_memory import InMemoryProfile
-from aries_cloudagent.core.event_bus import Event, EventBus, EventMetadata, EventWithMetadata, MockEventBus
+from aries_cloudagent.core.event_bus import (
+    Event,
+    EventBus,
+    EventMetadata,
+    EventWithMetadata,
+    MockEventBus,
+)
 import pytest
 
 import kafka_queue as test_module
@@ -26,10 +32,7 @@ def producer():
 def profile(event_bus, producer):
     yield InMemoryProfile.test_profile(
         {"plugin_config": {"kafka_queue": test_module.DEFAULT_CONFIG}},
-        {
-            EventBus: event_bus,
-            AIOKafkaProducer: producer
-        }
+        {EventBus: event_bus, AIOKafkaProducer: producer},
     )
 
 
@@ -59,8 +62,6 @@ async def test_handle_event(profile, producer: mock.MagicMock):
     pattern = re.compile(topic)
     match = pattern.match(topic)
     assert match
-    event = EventWithMetadata(
-        topic, {}, EventMetadata(pattern, match)
-    )
+    event = EventWithMetadata(topic, {}, EventMetadata(pattern, match))
     await test_module.handle_event(profile, event)
     producer.send_and_wait.assert_called_once()
