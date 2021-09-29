@@ -72,9 +72,7 @@ def _recipients_from_packed_message(packed_message: bytes) -> List[str]:
     except Exception as err:
         raise ValueError("Invalid packed message") from err
 
-    recips_json = b64_to_bytes(wrapper["protected"], urlsafe=True).decode(
-        "ascii"
-    )
+    recips_json = b64_to_bytes(wrapper["protected"], urlsafe=True).decode("ascii")
     try:
         recips_outer = json.loads(recips_json)
     except Exception as err:
@@ -91,7 +89,7 @@ async def receive_message(
     message = await request.body()
     LOGGER.debug("Received message, pushing to Kafka: %s", message)
 
-    recips = ','.join(_recipients_from_packed_message(message)).encode("utf8")
+    recips = ",".join(_recipients_from_packed_message(message)).encode("utf8")
     LOGGER.info(
         f"   Sending Kafka event with topic: {INBOUND_TOPIC}, message: {message}, key: {recips[0]}"
     )
