@@ -6,7 +6,7 @@ authors = ["Daniel Bluhm <dbluhm@pm.me>"]
 
 [tool.poetry.dependencies]
 python = "^3.6.9"
-aries-cloudagent = {git = "https://github.com/hyperledger/aries-cloudagent-python", rev = "2f358df3a239b00188b074f04681b5b2ca755ea9"}
+aries-cloudagent = {git = "https://github.com/sicpa-dlab/aries-cloudagent-python", rev = "feature/event-bus-includes-metadata"}
 ecdsa = "^0.16.1"
 aiokafka = "^0.7.1"
 

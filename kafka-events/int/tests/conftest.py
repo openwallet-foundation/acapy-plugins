@@ -132,8 +132,7 @@ def connection(agent_connection: ConnectionStaticResult, suite_seed: str):
 @pytest.fixture
 def consumer():
     def _consumer(topic: str):
-        consumer = AIOKafkaConsumer(topic, bootstrap_servers="kafka", group_id="test")
-        return consumer
+        return AIOKafkaConsumer(topic, bootstrap_servers="kafka", group_id="test")
 
     yield _consumer
 
