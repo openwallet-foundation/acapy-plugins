@@ -4,7 +4,7 @@ import json
 import logging
 import re
 from string import Template
-from typing import Any, Mapping
+from typing import Mapping
 
 from aiokafka import AIOKafkaProducer
 from aries_cloudagent.config.base import BaseSettings
@@ -22,6 +22,7 @@ DEFAULT_CONFIG = {
         "^acapy::record::([^:])?": "acapy-record-$wallet_id",
         "acapy::basicmessage::received": "acapy-basicmessage-received",
     },
+    "proxy": False,
 }
 
 LOGGER = logging.getLogger(__name__)
