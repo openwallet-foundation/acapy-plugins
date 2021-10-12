@@ -10,6 +10,7 @@ from aries_cloudagent.transport.outbound.queue.base import (
     BaseOutboundQueue,
     OutboundQueueError,
 )
+from http_kafka_relay.relay import _recipients_from_packed_message
 
 from . import get_config
 
@@ -65,11 +66,17 @@ class KafkaOutboundQueue(BaseOutboundQueue):
                     }
                 )
             )
+            topic = "acapy-outbound-message"
+            partition_key = endpoint
         else:
             LOGGER.info("  - Preparing message for queue")
             message = str.encode(json.dumps(base64.urlsafe_b64encode(payload).decode()))
+            topic = "acapy-outbound_to_inbound"
+            partition_key = ",".join(_recipients_from_packed_message(message)).encode(
+                "utf8"
+            )
         try:
             LOGGER.info("  - Producing message for kafka")
-            return await self.producer.send_and_wait("acapy-outbound-message", message)
+            return await self.producer.send_and_wait(topic, message, key=partition_key)
         except Exception:
             LOGGER.exception("Error while pushing to kafka")

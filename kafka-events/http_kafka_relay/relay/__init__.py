@@ -1,10 +1,10 @@
 """HTTP to Kafka Relay."""
 import logging
 import os
+from typing import List, Union
 
 from aiokafka import AIOKafkaProducer
-from fastapi import FastAPI, Request, Depends, Response
-
+from fastapi import Depends, FastAPI, Request, Response
 
 DEFAULT_BOOTSTRAP_SERVER = "kafka"
 DEFAULT_INBOUND_TOPIC = "acapy-inbound-message"
