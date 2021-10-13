@@ -55,7 +55,9 @@ class KafkaOutboundQueue(BaseOutboundQueue):
         """Initialize base queue type."""
         super().__init__(settings)
         self.config = get_config(settings)
-        LOGGER.info(f"Setting up kafka outbound queue with configuration: {self.config}")
+        LOGGER.info(
+            f"Setting up kafka outbound queue with configuration: {self.config}"
+        )
         self.producer = AIOKafkaProducer(**self.config.get("producer", {}))
 
     async def start(self):
