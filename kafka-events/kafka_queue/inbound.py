@@ -62,10 +62,12 @@ class KafkaInboundTransport(BaseInboundTransport):
     async def start(self):
         async with self.consumer:
             async for msg in self.consumer:
-                assert isinstance(msg, ConsumerRecord[bytes, bytes])
+                assert isinstance(msg, ConsumerRecord)
+                msg = cast(ConsumerRecord[bytes, bytes], msg)
                 session = await self.create_session(
                     accept_undelivered=False, can_respond=False
                 )
+
                 if msg.value is None:
                     LOGGER.error("Received empty message record")
                     continue
