@@ -1,3 +1,6 @@
+import json
+from json import JSONDecodeError
+import base64
 import logging
 from typing import Any, Mapping, cast
 
@@ -51,7 +54,7 @@ class KafkaInboundTransport(BaseInboundTransport):
         self.port = port
         config = get_config(self.root_profile.context.settings)
         self.consumer = AIOKafkaConsumer(
-            *config.get("inbound_topics"),
+            *config.get("inbound_topics", {}),
             bootstrap_servers=self.host,
             group_id=config.get("consumer_group_id")
         )
@@ -59,15 +62,25 @@ class KafkaInboundTransport(BaseInboundTransport):
     async def start(self):
         async with self.consumer:
             async for msg in self.consumer:
-                assert isinstance(msg, ConsumerRecord)
+                assert isinstance(msg, ConsumerRecord[bytes, bytes])
                 session = await self.create_session(
                     accept_undelivered=False, can_respond=False
                 )
-                async with session:
-                    try:
-                        await session.receive(cast(bytes, msg.value))
-                    except (MessageParseError, WireFormatParseError):
-                        LOGGER.exception("Failed to process message")
+                if msg.value is None:
+                    LOGGER.error("Received empty message record")
+                    continue
+
+                try:
+                    inbound = json.loads(msg.value)
+                    payload = base64.urlsafe_b64decode(inbound["payload"])
+
+                    async with session:
+                        await session.receive(cast(bytes, payload))
+
+                except (JSONDecodeError, KeyError):
+                    LOGGER.exception("Received invalid inbound message record")
+                except (MessageParseError, WireFormatParseError):
+                    LOGGER.exception("Failed to process message")
 
     async def stop(self):
         await self.consumer.stop()

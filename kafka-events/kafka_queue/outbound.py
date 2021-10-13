@@ -2,7 +2,7 @@
 import base64
 import json
 import logging
-from typing import Union
+from typing import List, Union
 
 from aiokafka.producer.producer import AIOKafkaProducer
 from aries_cloudagent.config.settings import Settings
@@ -10,22 +10,53 @@ from aries_cloudagent.transport.outbound.queue.base import (
     BaseOutboundQueue,
     OutboundQueueError,
 )
-from http_kafka_relay.relay import _recipients_from_packed_message
 
 from . import get_config
 
 LOGGER = logging.getLogger(__name__)
 
 
+def b64_to_bytes(val: Union[str, bytes], urlsafe=False) -> bytes:
+    """Convert a base 64 string to bytes."""
+    if isinstance(val, str):
+        val = val.encode("ascii")
+    if urlsafe:
+        missing_padding = len(val) % 4
+        if missing_padding:
+            val += b"=" * (4 - missing_padding)
+        return base64.urlsafe_b64decode(val)
+    return base64.b64decode(val)
+
+
+def _recipients_from_packed_message(packed_message: bytes) -> List[str]:
+    """
+    Inspect the header of the packed message and extract the recipient key.
+    """
+    try:
+        wrapper = json.loads(packed_message)
+    except Exception as err:
+        raise ValueError("Invalid packed message") from err
+
+    recips_json = b64_to_bytes(wrapper["protected"], urlsafe=True).decode("ascii")
+    try:
+        recips_outer = json.loads(recips_json)
+    except Exception as err:
+        raise ValueError("Invalid packed message recipients") from err
+
+    return [recip["header"]["kid"] for recip in recips_outer["recipients"]]
+
+
 class KafkaOutboundQueue(BaseOutboundQueue):
     """Kafka queue implementation class."""
+
+    DEFAULT_OUTBOUND_TOPIC = "acapy-outbound-message"
 
     def __init__(self, settings: Settings):
         """Initialize base queue type."""
         super().__init__(settings)
-        config = get_config(self.root_profile.context.settings)
-        LOGGER.info(f"Setting up kafka outbound queue with configuration: {config}")
-        self.producer = AIOKafkaProducer(**config.get("producer"))
+        self.config = get_config(settings)
+        LOGGER.info(f"Setting up kafka outbound queue with configuration: {self.config}")
+        self.producer = AIOKafkaProducer(**self.config.get("producer", {}))
 
     async def start(self):
         """Start the queue."""
@@ -36,10 +67,6 @@ class KafkaOutboundQueue(BaseOutboundQueue):
         """Stop the queue."""
         LOGGER.info("  - Stopping kafka outbound queue producer")
         await self.producer.stop()
-
-    async def push(self, key: str, message: bytes):
-        """Present only to fulfill base class."""
-        raise NotImplementedError
 
     async def enqueue_message(
         self,
@@ -53,28 +80,20 @@ class KafkaOutboundQueue(BaseOutboundQueue):
             content_type = "application/ssi-agent-wire"
         else:
             content_type = "application/json"
-            payload = payload.encode(encoding="utf-8")
-        config = get_config(self.root_profile.context.settings)
-        if config.get("proxy", False):
-            LOGGER.info("  - Preparing proxy message for queue")
-            message = str.encode(
-                json.dumps(
-                    {
-                        "headers": {"Content-Type": content_type},
-                        "endpoint": endpoint,
-                        "payload": base64.urlsafe_b64encode(payload).decode(),
-                    }
-                )
-            )
-            topic = "acapy-outbound-message"
-            partition_key = endpoint
-        else:
-            LOGGER.info("  - Preparing message for queue")
-            message = str.encode(json.dumps(base64.urlsafe_b64encode(payload).decode()))
-            topic = "acapy-outbound_to_inbound"
-            partition_key = ",".join(_recipients_from_packed_message(message)).encode(
-                "utf8"
-            )
+            payload = payload.encode()
+
+        message = str.encode(
+            json.dumps(
+                {
+                    "headers": {"Content-Type": content_type},
+                    "endpoint": endpoint,
+                    "payload": base64.urlsafe_b64encode(payload).decode(),
+                }
+            ),
+        )
+        topic = self.config.get("outbound-topic", self.DEFAULT_OUTBOUND_TOPIC)
+        partition_key = ",".join(_recipients_from_packed_message(message)).encode()
+
         try:
             LOGGER.info("  - Producing message for kafka")
             return await self.producer.send_and_wait(topic, message, key=partition_key)

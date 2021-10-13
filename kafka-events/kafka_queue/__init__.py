@@ -4,7 +4,7 @@ import json
 import logging
 import re
 from string import Template
-from typing import Mapping
+from typing import Any, Mapping
 
 from aiokafka import AIOKafkaProducer
 from aries_cloudagent.config.base import BaseSettings
@@ -28,7 +28,7 @@ DEFAULT_CONFIG = {
 LOGGER = logging.getLogger(__name__)
 
 
-def get_config(settings: BaseSettings) -> Mapping:
+def get_config(settings: BaseSettings) -> Mapping[str, Any]:
     """Retrieve producer configuration from settings."""
     try:
         producer_conf = settings["plugin_config"]["kafka_queue"] or DEFAULT_CONFIG

@@ -1,6 +1,8 @@
 """HTTP to Kafka Relay."""
 import logging
 import os
+import json
+import base64
 from typing import List, Union
 
 from aiokafka import AIOKafkaProducer
@@ -53,6 +55,13 @@ async def receive_message(
 ):
     """Receive a new agent message and post to Kafka."""
     message = await request.body()
-    LOGGER.debug("Received message, pushing to Kafka: %s", message)
-    await producer.send_and_wait(INBOUND_TOPIC, message)
+    value = str.encode(
+        json.dumps(
+            {
+                "payload": base64.urlsafe_b64encode(message).decode(),
+            }
+        ),
+    )
+    LOGGER.debug("Received message, pushing to Kafka: %s", value)
+    await producer.send_and_wait(INBOUND_TOPIC, value)
     return Response(status_code=200)
