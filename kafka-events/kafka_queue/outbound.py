@@ -2,7 +2,7 @@
 import base64
 import json
 import logging
-from typing import List, Union
+from typing import List, Optional, Union
 
 from aiokafka.producer.producer import AIOKafkaProducer
 from aries_cloudagent.config.settings import Settings
@@ -58,17 +58,19 @@ class KafkaOutboundQueue(BaseOutboundQueue):
         LOGGER.info(
             f"Setting up kafka outbound queue with configuration: {self.config}"
         )
-        self.producer = AIOKafkaProducer(**self.config.get("producer", {}))
+        self.producer: Optional[AIOKafkaProducer] = None
 
     async def start(self):
         """Start the queue."""
         LOGGER.info("  - Starting kafka outbound queue producer")
+        self.producer = AIOKafkaProducer(**self.config.get("producer", {}))
         await self.producer.start()
 
     async def stop(self):
         """Stop the queue."""
         LOGGER.info("  - Stopping kafka outbound queue producer")
-        await self.producer.stop()
+        if self.producer:
+            await self.producer.stop()
 
     async def enqueue_message(
         self,
@@ -76,8 +78,11 @@ class KafkaOutboundQueue(BaseOutboundQueue):
         endpoint: str,
     ):
         """Prepare and send message to external queue."""
+        if not self.producer:
+            raise OutboundQueueError("No producer started")
         if not endpoint:
             raise OutboundQueueError("No endpoint provided")
+
         if isinstance(payload, bytes):
             content_type = "application/ssi-agent-wire"
         else:
@@ -94,10 +99,15 @@ class KafkaOutboundQueue(BaseOutboundQueue):
             ),
         )
         topic = self.config.get("outbound-topic", self.DEFAULT_OUTBOUND_TOPIC)
-        partition_key = ",".join(_recipients_from_packed_message(message)).encode()
+        partition_key = ",".join(_recipients_from_packed_message(payload)).encode()
 
         try:
-            LOGGER.info("  - Producing message for kafka")
+            LOGGER.info(
+                "  - Producing message for kafka: (%s)[%s]: %s",
+                topic,
+                partition_key,
+                message,
+            )
             return await self.producer.send_and_wait(topic, message, key=partition_key)
         except Exception:
             LOGGER.exception("Error while pushing to kafka")

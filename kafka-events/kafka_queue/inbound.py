@@ -54,7 +54,7 @@ class KafkaInboundTransport(BaseInboundTransport):
         self.port = port
         config = get_config(self.root_profile.context.settings)
         self.consumer = AIOKafkaConsumer(
-            *config.get("inbound_topics", {}),
+            *config.get("inbound_topics", []),
             bootstrap_servers=self.host,
             group_id=config.get("consumer_group_id")
         )
@@ -64,10 +64,6 @@ class KafkaInboundTransport(BaseInboundTransport):
             async for msg in self.consumer:
                 assert isinstance(msg, ConsumerRecord)
                 msg = cast(ConsumerRecord[bytes, bytes], msg)
-                session = await self.create_session(
-                    accept_undelivered=False, can_respond=False
-                )
-
                 if msg.value is None:
                     LOGGER.error("Received empty message record")
                     continue
@@ -75,6 +71,10 @@ class KafkaInboundTransport(BaseInboundTransport):
                 try:
                     inbound = json.loads(msg.value)
                     payload = base64.urlsafe_b64decode(inbound["payload"])
+
+                    session = await self.create_session(
+                        accept_undelivered=False, can_respond=False
+                    )
 
                     async with session:
                         await session.receive(cast(bytes, payload))

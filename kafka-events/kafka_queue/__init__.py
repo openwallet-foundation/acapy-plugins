@@ -70,7 +70,7 @@ async def handle_event(profile: Profile, event: EventWithMetadata):
         raise ValueError("AIOKafkaProducer missing in context")
 
     LOGGER.info("Handling Kafka producer event: %s", event)
-    event.payload["wallet_id"] = profile.settings.get("wallet.id")
+    event.payload["wallet_id"] = profile.settings.get("wallet.id", "base")
     config = get_config(profile.settings)
     try:
         template = config.get("outbound_topic_templates", {})[
