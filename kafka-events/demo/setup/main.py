@@ -108,7 +108,7 @@ async def main():
     mediator_invite = await get_mediator_invite(mediator)
     conn_record = await agent_receive_invitation(agent, mediator_invite)
     print("Mediator and agent are now connected.")
-    print(f"Ggent connection id: {conn_record.connection_id}")
+    print(f"Agent connection id: {conn_record.connection_id}")
 
     assert conn_record
     assert isinstance(conn_record.connection_id, str)
