@@ -1,9 +1,13 @@
 """HTTP to Kafka Relay."""
+import base64
+import json
 import logging
 import os
+from typing import Iterable, List, Union
 
 from aiokafka import AIOKafkaProducer
-from fastapi import FastAPI, Request, Depends, Response
+
+from fastapi import Depends, FastAPI, Request, Response
 
 
 DEFAULT_BOOTSTRAP_SERVER = "kafka"
@@ -47,6 +51,36 @@ async def stop_producer():
     LOGGER.info("Kafka Producer stopped")
 
 
+def b64_to_bytes(val: Union[str, bytes], urlsafe=False) -> bytes:
+    """Convert a base 64 string to bytes."""
+    if isinstance(val, str):
+        val = val.encode("ascii")
+    if urlsafe:
+        missing_padding = len(val) % 4
+        if missing_padding:
+            val += b"=" * (4 - missing_padding)
+        return base64.urlsafe_b64decode(val)
+    return base64.b64decode(val)
+
+
+def _recipients_from_packed_message(packed_message: bytes) -> List[str]:
+    """
+    Inspect the header of the packed message and extract the recipient key.
+    """
+    try:
+        wrapper = json.loads(packed_message)
+    except Exception as err:
+        raise ValueError("Invalid packed message") from err
+
+    recips_json = b64_to_bytes(wrapper["protected"], urlsafe=True).decode("ascii")
+    try:
+        recips_outer = json.loads(recips_json)
+    except Exception as err:
+        raise ValueError("Invalid packed message recipients") from err
+
+    return [recip["header"]["kid"] for recip in recips_outer["recipients"]]
+
+
 @app.post("/")
 async def receive_message(
     request: Request, producer: AIOKafkaProducer = Depends(producer_dep)
@@ -54,5 +88,10 @@ async def receive_message(
     """Receive a new agent message and post to Kafka."""
     message = await request.body()
     LOGGER.debug("Received message, pushing to Kafka: %s", message)
-    await producer.send_and_wait(INBOUND_TOPIC, message)
+
+    recips = ",".join(_recipients_from_packed_message(message)).encode("utf8")
+    LOGGER.info(
+        f"   Sending Kafka event with topic: {INBOUND_TOPIC}, message: {message}, key: {recips[0]}"
+    )
+    await producer.send_and_wait(INBOUND_TOPIC, message, key=recips)
     return Response(status_code=200)
