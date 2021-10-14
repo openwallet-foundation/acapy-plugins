@@ -88,12 +88,13 @@ async def receive_message(
 ):
     """Receive a new agent message and post to Kafka."""
     message = await request.body()
-    LOGGER.debug("Received message, pushing to Kafka: %s", message)
-
-    recips = ",".join(_recipients_from_packed_message(message)).encode("utf8")
-    LOGGER.info(
-        f"Sending Kafka event with topic: {INBOUND_TOPIC}, message: {message}, "
-        f"key: {recips[0]}"
+    value = str.encode(
+        json.dumps(
+            {
+                "payload": base64.urlsafe_b64encode(message).decode(),
+            }
+        ),
     )
-    await producer.send_and_wait(INBOUND_TOPIC, message, key=recips)
+    LOGGER.debug("Received message, pushing to Kafka: %s", value)
+    await producer.send_and_wait(INBOUND_TOPIC, value)
     return Response(status_code=200)
