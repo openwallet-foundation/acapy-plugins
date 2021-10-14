@@ -3,7 +3,6 @@ import logging
 import os
 import json
 import base64
-from typing import List, Union
 
 from aiokafka import AIOKafkaProducer
 from fastapi import Depends, FastAPI, Request, Response
@@ -22,7 +21,9 @@ class ProducerDependency:
 
     def __init__(self):
         """Create Dependency."""
-        self.producer = AIOKafkaProducer(bootstrap_servers=KAFKA_BOOTSTRAP)
+        self.producer = AIOKafkaProducer(
+            bootstrap_servers=KAFKA_BOOTSTRAP, enable_idempotence=True
+        )
         self.started = False
 
     async def __call__(self) -> AIOKafkaProducer:
