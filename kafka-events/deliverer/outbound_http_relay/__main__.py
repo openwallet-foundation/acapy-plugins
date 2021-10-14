@@ -29,9 +29,7 @@ class OutboundPayload(BaseModel):
     _endpoint_scheme: str = PrivateAttr()
 
     class Config:
-        json_encoders = {
-            bytes: lambda v: base64.urlsafe_b64encode(v).decode()
-        }
+        json_encoders = {bytes: lambda v: base64.urlsafe_b64encode(v).decode()}
 
     def __init__(self, **data):
         super().__init__(**data)
@@ -79,25 +77,23 @@ async def main():
     async with consumer:
         async for msg in consumer:
             outbound = OutboundPayload.from_queue(msg)
-            if outbound.endpoint_scheme == "http" or outbound.endpoint_scheme == "https":
+            if (
+                outbound.endpoint_scheme == "http"
+                or outbound.endpoint_scheme == "https"
+            ):
                 print(f"Dispatch message to {outbound.endpoint}")
-                failed = False
                 try:
                     response = await http_client.post(
                         outbound.endpoint,
                         data=outbound.payload,
                         headers=outbound.headers,
-                        timeout=10
+                        timeout=10,
                     )
                 except aiohttp.ClientError as err:
                     log_error("Delivery error:", err)
-                    failed = True
                 else:
                     if response.status < 200 or response.status >= 300:
                         log_error("Invalid response code:", response.status)
-                        failed = True
-
-
 
 
 if __name__ == "__main__":
