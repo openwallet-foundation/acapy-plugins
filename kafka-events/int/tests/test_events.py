@@ -35,4 +35,3 @@ async def test_outbound_queue(backchannel: Client, connection_id: str, consumer)
         )
         msg = await asyncio.wait_for(consumer.getone(), 5)
         assert msg
-        print(msg)

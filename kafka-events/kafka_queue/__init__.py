@@ -22,12 +22,13 @@ DEFAULT_CONFIG = {
         "^acapy::record::([^:])?": "acapy-record-$wallet_id",
         "acapy::basicmessage::received": "acapy-basicmessage-received",
     },
+    "proxy": False,
 }
 
 LOGGER = logging.getLogger(__name__)
 
 
-def get_config(settings: BaseSettings) -> Mapping:
+def get_config(settings: BaseSettings) -> Mapping[str, Any]:
     """Retrieve producer configuration from settings."""
     try:
         producer_conf = settings["plugin_config"]["kafka_queue"] or DEFAULT_CONFIG
@@ -69,7 +70,7 @@ async def handle_event(profile: Profile, event: EventWithMetadata):
         raise ValueError("AIOKafkaProducer missing in context")
 
     LOGGER.info("Handling Kafka producer event: %s", event)
-    event.payload["wallet_id"] = profile.settings.get("wallet.id")
+    event.payload["wallet_id"] = profile.settings.get("wallet.id", "base")
     config = get_config(profile.settings)
     try:
         template = config.get("outbound_topic_templates", {})[

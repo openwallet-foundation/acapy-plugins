@@ -3,12 +3,11 @@ import base64
 import json
 import logging
 import os
-from typing import Iterable, List, Union
+from typing import List, Union
 
 from aiokafka import AIOKafkaProducer
 
 from fastapi import Depends, FastAPI, Request, Response
-
 
 DEFAULT_BOOTSTRAP_SERVER = "kafka"
 DEFAULT_INBOUND_TOPIC = "acapy-inbound-message"
@@ -24,7 +23,9 @@ class ProducerDependency:
 
     def __init__(self):
         """Create Dependency."""
-        self.producer = AIOKafkaProducer(bootstrap_servers=KAFKA_BOOTSTRAP)
+        self.producer = AIOKafkaProducer(
+            bootstrap_servers=KAFKA_BOOTSTRAP, enable_idempotence=True
+        )
         self.started = False
 
     async def __call__(self) -> AIOKafkaProducer:
@@ -87,11 +88,13 @@ async def receive_message(
 ):
     """Receive a new agent message and post to Kafka."""
     message = await request.body()
-    LOGGER.debug("Received message, pushing to Kafka: %s", message)
-
-    recips = ",".join(_recipients_from_packed_message(message)).encode("utf8")
-    LOGGER.info(
-        f"   Sending Kafka event with topic: {INBOUND_TOPIC}, message: {message}, key: {recips[0]}"
+    value = str.encode(
+        json.dumps(
+            {
+                "payload": base64.urlsafe_b64encode(message).decode(),
+            }
+        ),
     )
-    await producer.send_and_wait(INBOUND_TOPIC, message, key=recips)
+    LOGGER.debug("Received message, pushing to Kafka: %s", value)
+    await producer.send_and_wait(INBOUND_TOPIC, value)
     return Response(status_code=200)
