@@ -2,7 +2,7 @@
 import asyncio
 import base64
 import json
-import os
+from os import getenv
 import sys
 from urllib.parse import urlparse
 from typing import Dict
@@ -12,9 +12,9 @@ import aiohttp
 from aiokafka import AIOKafkaConsumer, ConsumerRecord
 
 
-OUTBOUND_TOPIC = os.environ.get("OUTBOUND_TOPIC", "acapy-outbound-message")
-BOOTSTRAP_SERVER = os.environ.get("BOOTSTRAP_SERVER", "kafka")
-GROUP = os.environ.get("GROUP", "test")
+OUTBOUND_TOPIC = getenv("OUTBOUND_TOPIC", "acapy-outbound-message")
+BOOTSTRAP_SERVER = getenv("BOOTSTRAP_SERVER", "kafka")
+GROUP = getenv("GROUP", "kafka_queue")
 
 
 def log_error(*args):
