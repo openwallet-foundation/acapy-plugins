@@ -31,6 +31,5 @@ ENV WAIT_VERSION 2.7.2
 ADD https://github.com/ufoscout/docker-compose-wait/releases/download/$WAIT_VERSION/wait /wait
 RUN chmod +x /wait
 
-COPY ./relay/ ./relay/
-ENTRYPOINT ["/bin/sh", "-c", "/wait && \"$@\"", "--"]
-CMD ["uvicorn", "relay:app", "--host", "0.0.0.0", "--port", "80"]
+COPY ./deliverer/ ./deliverer/
+ENTRYPOINT ["/bin/sh", "-c", "/wait && python -m deliverer \"$@\"", "--"]
