@@ -51,6 +51,5 @@ async def test_deliverer(
         json_body=SendMessage(content="test"),
     )
     await asyncio.sleep(1)
-    messages = await echo.get_messages(connection)
-    assert messages
-    assert messages[0]["content"] == "test"
+    message = await echo.get_message(connection)
+    assert message["content"] == "test"
