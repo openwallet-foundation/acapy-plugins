@@ -12,9 +12,12 @@ import aiohttp
 from aiokafka import AIOKafkaConsumer, ConsumerRecord
 
 
-OUTBOUND_TOPIC = getenv("OUTBOUND_TOPIC", "acapy-outbound-message")
-BOOTSTRAP_SERVER = getenv("BOOTSTRAP_SERVER", "kafka")
-GROUP = getenv("GROUP", "kafka_queue")
+DEFAULT_BOOTSTRAP_SERVER = "kafka"
+DEFAULT_OUTBOUND_TOPIC = "acapy-outbound-message"
+DEFAULT_GROUP = "kafka_queue"
+OUTBOUND_TOPIC = getenv("OUTBOUND_TOPIC", DEFAULT_OUTBOUND_TOPIC)
+BOOTSTRAP_SERVER = getenv("BOOTSTRAP_SERVER", DEFAULT_BOOTSTRAP_SERVER)
+GROUP = getenv("GROUP", DEFAULT_GROUP)
 
 
 def log_error(*args):
@@ -81,7 +84,7 @@ async def main():
                 outbound.endpoint_scheme == "http"
                 or outbound.endpoint_scheme == "https"
             ):
-                print(f"Dispatch message to {outbound.endpoint}")
+                print(f"Dispatch message to {outbound.endpoint}", flush=True)
                 try:
                     response = await http_client.post(
                         outbound.endpoint,
