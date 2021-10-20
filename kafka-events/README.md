@@ -132,6 +132,6 @@ Kafka details in KafkaEvents
 
 
 ### Authors
-Luis Gomez, [Luis-GA](https://github.com/Luis-GA)
-Adam Burdett, [burdettadam](https://github.com/burdettadam)
-Daniel Bluhm, [dbluhm](https://github.com/dbluhm)
+- Luis Gomez, [Luis-GA](https://github.com/Luis-GA)
+- Adam Burdett, [burdettadam](https://github.com/burdettadam)
+- Daniel Bluhm, [dbluhm](https://github.com/dbluhm)
