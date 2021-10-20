@@ -1,0 +1,21 @@
+[tool.poetry]
+name = "outbound_http_relay"
+version = "0.1.0"
+description = "Kafka Consumer for outbound messages from ACA-Py"
+authors = ["Daniel Bluhm <dbluhm@pm.me>"]
+license = "Apache-2.0"
+
+[tool.poetry.dependencies]
+python = "^3.6.9"
+aiokafka = "^0.7.2"
+aiohttp = "^3.7.4"
+pydantic = "^1.8.2"
+
+[tool.poetry.dev-dependencies]
+black = "^21.9b0"
+flake8 = "^3.9.2"
+pre-commit = "^2.15.0"
+
+[build-system]
+requires = ["poetry-core>=1.0.0"]
+build-backend = "poetry.core.masonry.api"

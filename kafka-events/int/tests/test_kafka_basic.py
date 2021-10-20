@@ -1,6 +1,5 @@
 """Testing basic kafka stuff."""
 
-from aiokafka import AIOKafkaProducer, AIOKafkaConsumer
 from aiokafka.structs import ConsumerRecord
 import pytest
 

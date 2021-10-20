@@ -11,7 +11,7 @@ from fastapi import Depends, FastAPI, Request, Response
 
 DEFAULT_BOOTSTRAP_SERVER = "kafka"
 DEFAULT_INBOUND_TOPIC = "acapy-inbound-message"
-KAFKA_BOOTSTRAP = os.environ.get("KAFKA_BOOTSTRAP", DEFAULT_BOOTSTRAP_SERVER)
+BOOTSTRAP_SERVER = os.environ.get("BOOTSTRAP_SERVER", DEFAULT_BOOTSTRAP_SERVER)
 INBOUND_TOPIC = os.environ.get("INBOUND_TOPIC", DEFAULT_INBOUND_TOPIC)
 
 app = FastAPI(title="HTTP to Kafka Relay", version="0.1.0")
@@ -24,7 +24,7 @@ class ProducerDependency:
     def __init__(self):
         """Create Dependency."""
         self.producer = AIOKafkaProducer(
-            bootstrap_servers=KAFKA_BOOTSTRAP, enable_idempotence=True
+            bootstrap_servers=BOOTSTRAP_SERVER, enable_idempotence=True
         )
         self.started = False
 
