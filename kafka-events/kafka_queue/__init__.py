@@ -60,6 +60,18 @@ async def setup(context: InjectionContext):
         bus.subscribe(re.compile(event), handle_event)
 
 
+RECORD_RE = re.compile(r"acapy::record::([^:]*)(?:::(.*))?")
+WEBHOOK_RE = re.compile(r"acapy::webhook::{.*}")
+
+
+def _derive_category(topic: str):
+    match = RECORD_RE.match(topic)
+    if match:
+        return match.group(1)
+    if WEBHOOK_RE.match(topic):
+        return "webhook"
+
+
 async def handle_event(profile: Profile, event: EventWithMetadata):
     """
     produce kafka events from eventbus events
@@ -70,18 +82,24 @@ async def handle_event(profile: Profile, event: EventWithMetadata):
         raise ValueError("AIOKafkaProducer missing in context")
 
     LOGGER.info("Handling Kafka producer event: %s", event)
-    event.payload["wallet_id"] = profile.settings.get("wallet.id", "base")
+    payload = {
+        "wallet_id": profile.settings.get("wallet.id", "base"),
+        "state": event.payload.get("state"),
+        "topic": event.topic,
+        "category": _derive_category(event.topic),
+        "payload": event.payload,
+    }
     config = get_config(profile.settings)
     try:
         template = config.get("outbound_topic_templates", {})[
             event.metadata.pattern.pattern
         ]
-        kafka_topic = Template(template).substitute(**event.payload)
-        LOGGER.info(f"Sending message {event.payload} with Kafka topic {kafka_topic}")
+        kafka_topic = Template(template).substitute(**payload)
+        LOGGER.info(f"Sending message {payload} with Kafka topic {kafka_topic}")
         # Produce message
         await producer.send_and_wait(
             kafka_topic,
-            str.encode(json.dumps(event.payload)),
+            str.encode(json.dumps(payload)),
             key=profile.settings.get("wallet.id"),
         )
     except Exception:
