@@ -6,14 +6,14 @@ authors = ["Daniel Bluhm <dbluhm@pm.me>"]
 license = "Apache-2.0"
 
 [tool.poetry.dependencies]
-python = "^3.6.9"
+python = "^3.7"
 pytest = "^6.2.4"
 pytest-asyncio = "^0.15.1"
 pytest-cov = "^2.12.1"
 asynctest = "0.13.0"
 acapy-client = {git="https://github.com/indicio-tech/acapy-client.git", branch="acapy/main"}
-aries-staticagent = "^0.8.0"
 aiokafka = "^0.7.1"
+echo-agent = {git = "https://github.com/indicio-tech/echo-agent.git", rev = "4cfaf5f7c88bcc3953fdb0b43885c028413a09dc", extras = ["client"]}
 
 [tool.poetry.dev-dependencies]
 black = "^21.6b0"

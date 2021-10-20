@@ -2,12 +2,11 @@
 
 import asyncio
 import hashlib
-import os
+from os import getenv
 from typing import Iterator, Optional
 
 from aiokafka.consumer.consumer import AIOKafkaConsumer
 from aiokafka.producer.producer import AIOKafkaProducer
-from aries_staticagent import StaticConnection, Target
 import pytest
 
 from acapy_client import Client
@@ -18,6 +17,7 @@ from acapy_client.models import (
     ConnectionStaticResult,
 )
 from acapy_client.models.conn_record import ConnRecord
+from echo_agent import EchoClient
 
 
 @pytest.fixture(scope="session")
@@ -32,19 +32,24 @@ def event_loop():
 @pytest.fixture(scope="session")
 def host():
     """Hostname of agent under test."""
-    return os.environ.get("AGENT_HOST", "localhost")
+    return getenv("AGENT_HOST", "localhost")
 
 
 @pytest.fixture(scope="session")
 def port():
     """Port of agent under test."""
-    return os.environ.get("AGENT_PORT", 3000)
+    return getenv("AGENT_PORT", 3000)
 
 
 @pytest.fixture(scope="session")
 def backchannel_port():
     """Port of agent under test backchannel."""
-    return os.environ.get("AGENT_BACKCHANNEL_PORT", 3001)
+    return getenv("AGENT_BACKCHANNEL_PORT", 3001)
+
+
+@pytest.fixture(scope="session")
+def echo_endpoint():
+    return getenv("ECHO_ENDPOINT", "http://localhost:4000")
 
 
 @pytest.fixture(scope="session")
@@ -70,7 +75,7 @@ def agent_endpoint(host, port):
 
 @pytest.fixture(scope="session")
 def agent_connection(
-    suite_seed, agent_seed, backchannel
+    suite_seed, agent_seed, backchannel, echo_endpoint
 ) -> Iterator[ConnectionStaticResult]:
     """Yield agent's representation of this connection."""
 
@@ -81,7 +86,7 @@ def agent_connection(
             {
                 "my_seed": agent_seed,
                 "their_seed": suite_seed,
-                "their_endpoint": "http://example.com",
+                "their_endpoint": echo_endpoint,
                 "their_label": "test-runner",
             }
         ),
@@ -118,15 +123,29 @@ def connection_id(conn_record: ConnRecord):
 
 
 @pytest.fixture(scope="session")
-def connection(agent_connection: ConnectionStaticResult, suite_seed: str):
+def echo_agent(echo_endpoint: str):
+    yield EchoClient(base_url=echo_endpoint)
+
+
+@pytest.fixture
+async def echo(echo_agent: EchoClient):
+    async with echo_agent as client:
+        yield client
+
+
+@pytest.fixture(scope="session")
+async def connection(
+    agent_connection: ConnectionStaticResult, echo_agent: EchoClient, suite_seed: str
+):
     """Yield static connection to agent under test."""
     # Create and yield static connection
-    yield StaticConnection.from_seed(
-        seed=suite_seed.encode("ascii"),
-        target=Target(
-            endpoint=agent_connection.my_endpoint, their_vk=agent_connection.my_verkey
-        ),
-    )
+    async with echo_agent as echo:
+        conn = await echo.new_connection(
+            seed=suite_seed,
+            endpoint=agent_connection.my_endpoint,
+            their_vk=agent_connection.my_verkey,
+        )
+    yield conn
 
 
 @pytest.fixture
