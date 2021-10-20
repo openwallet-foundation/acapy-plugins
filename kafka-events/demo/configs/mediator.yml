@@ -5,21 +5,19 @@ admin: [0.0.0.0, 3001]
 admin-insecure-mode: true
 
 # Load toolbox plugin
-# plugin:
-  # - kafka_queue
-
-# Transport (Temporary)
-inbound-transport:
-  - [http, 0.0.0.0, 3000]
-outbound-transport: http
+plugin:
+  - kafka_queue
 
 # Default endpoint, should be overriden by command or env
 endpoint: http://localhost:3000
 
 # Transport (Plugin)
-# inbound-transport:
-#   - [kafka_queue.inbound, kafka, 0]
-# outbound-queue: kafka_queue.outbound.KafkaOutboundQueue
+inbound-transport:
+  - [http, 0.0.0.0, 3000]
+outbound-queue: kafka_queue.outbound.KafkaOutboundQueue
+plugin-config-value:
+  - "kafka_queue.outbound-topic=acapy-inbound-message"
+  - "kafka_queue.producer.bootstrap_servers=kafka"
 
 # Ledger
 no-ledger: true
