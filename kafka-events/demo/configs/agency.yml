@@ -6,7 +6,8 @@ admin-insecure-mode: true
 
 # Load toolbox plugin
 plugin:
-  - kafka_queue
+  - kafka_queue.events
+plugin-config: ./configs/agency-kafka.yml
 
 # Default endpoint, should be overriden by command or env
 endpoint: http://localhost:3000

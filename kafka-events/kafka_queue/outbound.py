@@ -1,6 +1,7 @@
 """Basic in memory queue."""
 import base64
 import json
+from kafka_queue.config import OutboundConfig
 import logging
 from typing import List, Optional, Union
 
@@ -55,7 +56,7 @@ class KafkaOutboundQueue(BaseOutboundQueue):
     def __init__(self, settings: Settings):
         """Initialize base queue type."""
         super().__init__(settings)
-        self.config = get_config(settings).outbound
+        self.config = get_config(settings).outbound or OutboundConfig.default()
         LOGGER.info(
             f"Setting up kafka outbound queue with configuration: {self.config}"
         )

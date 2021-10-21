@@ -10,7 +10,7 @@ from aries_cloudagent.core.event_bus import EventBus, EventWithMetadata
 from aries_cloudagent.core.profile import Profile
 from aries_cloudagent.config.injection_context import InjectionContext
 
-from .. import get_config
+from ..config import get_config, EventsConfig
 
 
 LOGGER = logging.getLogger(__name__)
@@ -19,6 +19,9 @@ LOGGER = logging.getLogger(__name__)
 async def setup(context: InjectionContext):
     """Setup the plugin."""
     config = get_config(context.settings).events
+    if not config:
+        config = EventsConfig.default()
+
     bus = context.inject(EventBus)
     if not bus:
         raise ValueError("EventBus missing in context")
@@ -33,7 +36,8 @@ async def handle_event(profile: Profile, event: EventWithMetadata):
 
     LOGGER.info("Handling Kafka producer event: %s", event)
     event.payload["wallet_id"] = profile.settings.get("wallet.id", "base")
-    config = get_config(profile.settings).events
+    config = get_config(profile.settings).events or EventsConfig.default()
+
     try:
         template = config.topic_maps[event.metadata.pattern.pattern]
         kafka_topic = Template(template).substitute(**event.payload)

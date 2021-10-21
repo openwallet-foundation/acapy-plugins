@@ -10,7 +10,7 @@ from aries_cloudagent.messaging.error import MessageParseError
 from aries_cloudagent.transport.error import WireFormatParseError
 from aries_cloudagent.transport.inbound.base import BaseInboundTransport
 
-from . import get_config
+from .config import get_config, InboundConfig
 
 
 LOGGER = logging.getLogger(__name__)
@@ -32,7 +32,10 @@ class KafkaInboundTransport(BaseInboundTransport):
         super().__init__("kafka", create_session, **kwargs)
         self.host = host
         self.port = port
-        config = get_config(self.root_profile.context.settings).inbound
+        config = (
+            get_config(self.root_profile.context.settings).inbound
+            or InboundConfig.default()
+        )
         self.consumer = AIOKafkaConsumer(
             *config.topics, bootstrap_servers=self.host, group_id=config.group_id
         )
