@@ -13,6 +13,7 @@ from aries_cloudagent.transport.outbound.queue.base import (
 
 from . import get_config
 
+
 LOGGER = logging.getLogger(__name__)
 
 
@@ -54,7 +55,7 @@ class KafkaOutboundQueue(BaseOutboundQueue):
     def __init__(self, settings: Settings):
         """Initialize base queue type."""
         super().__init__(settings)
-        self.config = get_config(settings)
+        self.config = get_config(settings).outbound
         LOGGER.info(
             f"Setting up kafka outbound queue with configuration: {self.config}"
         )
@@ -63,7 +64,7 @@ class KafkaOutboundQueue(BaseOutboundQueue):
     async def start(self):
         """Start the queue."""
         LOGGER.info("  - Starting kafka outbound queue producer")
-        self.producer = AIOKafkaProducer(**self.config.get("producer", {}))
+        self.producer = AIOKafkaProducer(**self.config.producer.dict())
         await self.producer.start()
 
     async def stop(self):
@@ -98,7 +99,7 @@ class KafkaOutboundQueue(BaseOutboundQueue):
                 }
             ),
         )
-        topic = self.config.get("outbound-topic", self.DEFAULT_OUTBOUND_TOPIC)
+        topic = self.config.topic
         partition_key = ",".join(_recipients_from_packed_message(payload)).encode()
 
         try:

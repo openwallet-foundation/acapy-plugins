@@ -132,9 +132,9 @@ uvloop = ["uvloop"]
 
 [package.source]
 type = "git"
-url = "https://github.com/hyperledger/aries-cloudagent-python"
-reference = "main"
-resolved_reference = "615c311154f8b8a0e2f65934339d73c842317367"
+url = "https://github.com/sicpa-dlab/aries-cloudagent-python"
+reference = "dff70e9c392edb919ed325414bf8d4cb9c77c9e0"
+resolved_reference = "dff70e9c392edb919ed325414bf8d4cb9c77c9e0"
 
 [[package]]
 name = "async-timeout"
@@ -1047,7 +1047,7 @@ testing = ["pytest (>=4.6)", "pytest-checkdocs (>=2.4)", "pytest-flake8", "pytes
 [metadata]
 lock-version = "1.1"
 python-versions = "^3.6.9"
-content-hash = "c389d94172ba30fbbc3009fc6737737797c7c59b217a41c084cc6d60175b5d5b"
+content-hash = "e8022d5de46a39b789514ea0f85cf29820c850337f9579d748b3510127bb07cb"
 
 [metadata.files]
 aiohttp = [

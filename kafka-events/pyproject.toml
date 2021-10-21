@@ -9,6 +9,7 @@ python = "^3.6.9"
 aries-cloudagent = {git = "https://github.com/sicpa-dlab/aries-cloudagent-python", rev = "dff70e9c392edb919ed325414bf8d4cb9c77c9e0"}
 ecdsa = "^0.16.1"
 aiokafka = "^0.7.1"
+pydantic = "^1.8.2"
 
 [tool.poetry.dev-dependencies]
 black = "^21.4b2"
