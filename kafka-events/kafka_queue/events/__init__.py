@@ -4,6 +4,7 @@ import json
 import logging
 import re
 from string import Template
+from typing import Optional, cast
 
 from aiokafka import AIOKafkaProducer
 from aries_cloudagent.core.event_bus import EventBus, EventWithMetadata
@@ -47,8 +48,9 @@ async def handle_event(profile: Profile, event: EventWithMetadata):
     """Produce kafka events from aca-py events."""
 
     LOGGER.info("Handling Kafka producer event: %s", event)
+    wallet_id = cast(Optional[str], profile.settings.get("wallet_id"))
     payload = {
-        "wallet_id": profile.settings.get("wallet.id", "base"),
+        "wallet_id": wallet_id or "base",
         "state": event.payload.get("state"),
         "topic": event.topic,
         "category": _derive_category(event.topic),
@@ -64,7 +66,7 @@ async def handle_event(profile: Profile, event: EventWithMetadata):
             await producer.send_and_wait(
                 kafka_topic,
                 str.encode(json.dumps(payload)),
-                key=profile.settings.get("wallet.id"),
+                key=wallet_id.encode() if wallet_id else None,
             )
     except Exception:
         LOGGER.exception("Kafka producer failed to send message")
