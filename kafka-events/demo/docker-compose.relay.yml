@@ -44,9 +44,6 @@ services:
       - zookeeper
     command: zookeeper:2181 kafka:9092 DEV
 
-  #*************************************************************
-  # agency: Edison Agency.
-  #*************************************************************
   agency:
     image: acapy-kafka-queue
     build:
@@ -58,47 +55,40 @@ services:
       - kafka
       - zookeeper
       - restproxy
-    volumes:
-      - ./configs:/home/indy/configs:z
-    environment:
-      - WAIT_BEFORE_HOSTS=5
-      - WAIT_HOSTS=zookeeper:2181,kafka:9092,restproxy:8086
-      - WAIT_HOSTS_TIMEOUT=120
-      - WAIT_SLEEP_INTERVAL=1
-      - WAIT_HOST_CONNECT_TIMEOUT=60
-    command: start --arg-file ./configs/agency.yml --endpoint http://agency:3000
-
-
-  #*************************************************************
-  # mediator: Edison Mediator.
-  #*************************************************************
-  mediator-tunnel:
-    image: dbluhm/agent-tunnel
-    command: -s mediator:3000 -p 4040 -h ${AGENT_TUNNEL_HOST}
-
-  mediator:
-    image: acapy-kafka-queue
-    build:
-      context: ..
-      dockerfile: docker/Dockerfile
-    ports:
-      - 3002:3001
-    depends_on:
-      - kafka
-      - zookeeper
-      - restproxy
+      - relay-tunnel
+      - relay
     volumes:
       - ./configs:/home/indy/configs:z
       - ./acapy-endpoint.sh:/home/indy/acapy-endpoint.sh:z
     environment:
+      - TUNNEL_ENDPOINT=http://relay-tunnel:4040
       - WAIT_BEFORE_HOSTS=5
       - WAIT_HOSTS=zookeeper:2181,kafka:9092,restproxy:8086
       - WAIT_HOSTS_TIMEOUT=120
       - WAIT_SLEEP_INTERVAL=1
       - WAIT_HOST_CONNECT_TIMEOUT=60
-      - TUNNEL_ENDPOINT=http://mediator-tunnel:4040
     entrypoint: /bin/sh -c '/wait && ./acapy-endpoint.sh poetry run aca-py "$$@"' --
-    command: start --arg-file ./configs/mediator.yml
+    command: start --arg-file ./configs/agency.yml
+
+  relay-tunnel:
+    image: dbluhm/agent-tunnel
+    command: -s relay:80 -h ${TUNNEL_HOST}
+
+  relay:
+    image: http-kafka-relay
+    build:
+      context: ../http_kafka_relay
+    environment:
+      - BOOTSTRAP_SERVER=kafka
+      - INBOUND_TOPIC=acapy-inbound-message
+      - WAIT_BEFORE_HOSTS=5
+      - WAIT_HOSTS=zookeeper:2181,kafka:9092
+      - WAIT_HOSTS_TIMEOUT=120
+      - WAIT_SLEEP_INTERVAL=1
+      - WAIT_HOST_CONNECT_TIMEOUT=60
+    depends_on:
+      - kafka
+      - relay-tunnel
 
   deliverer:
     image: kafka-http-deliverer
@@ -113,25 +103,3 @@ services:
       - WAIT_HOSTS_TIMEOUT=120
       - WAIT_SLEEP_INTERVAL=1
       - WAIT_HOST_CONNECT_TIMEOUT=60
-
-  #*************************************************************
-  # setup: Setup connections between agency and mediator. In a *
-  # "Juggernaut" fashion!                                      *
-  #*************************************************************
-
-  setup:
-      container_name: juggernaut
-      build:
-        context: ./setup
-        dockerfile: Dockerfile
-      environment:
-        - WAIT_BEFORE_HOSTS=6
-        - WAIT_HOSTS=agency:3001,mediator:3001
-        - WAIT_HOSTS_TIMEOUT=120
-        - WAIT_SLEEP_INTERVAL=1
-        - WAIT_HOST_CONNECT_TIMEOUT=60
-        - AGENT_ADMIN_URL=http://agency:3001
-        - MEDIATOR_ADMIN_URL=http://mediator:3001
-      depends_on:
-        - agency
-        - mediator
