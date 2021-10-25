@@ -8,7 +8,7 @@ admin-insecure-mode: true
 plugin:
   - kafka_queue.events
 
-# Default endpoint, should be overriden by command or env
+# Default endpoint, should be overridden by command or env
 endpoint: http://localhost:3000
 
 # Transport (Plugin)

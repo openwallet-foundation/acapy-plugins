@@ -3,11 +3,9 @@ import re
 from unittest import mock
 
 from aiokafka import AIOKafkaProducer
-from aries_cloudagent.config.injection_context import InjectionContext
 from aries_cloudagent.core.profile import Profile
 from aries_cloudagent.core.in_memory import InMemoryProfile
 from aries_cloudagent.core.event_bus import (
-    Event,
     EventBus,
     EventMetadata,
     EventWithMetadata,
@@ -31,7 +29,7 @@ def producer():
 @pytest.fixture
 def profile(event_bus, producer):
     yield InMemoryProfile.test_profile(
-        {"plugin_config": {"kafka_queue": test_module.DEFAULT_CONFIG}},
+        {"plugin_config": {"kafka-queue": test_module.get_config({})}},
         {EventBus: event_bus, AIOKafkaProducer: producer},
     )
 
