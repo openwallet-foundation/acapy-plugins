@@ -25,7 +25,6 @@ class ProducerConfig(BaseModel):
         return cls(bootstrap_servers="kafka")
 
 
-
 class EventsConfig(BaseModel):
     producer: ProducerConfig
     topic_maps: Mapping[str, str]
