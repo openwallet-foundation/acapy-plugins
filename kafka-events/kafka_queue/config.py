@@ -25,6 +25,24 @@ class ProducerConfig(BaseModel):
         return cls(bootstrap_servers="kafka")
 
 
+"""
+possible webhook events are
+'^acapy::webhook::(.*)$' with subtopics of
+ - basicmessages
+ - problem_report
+ - ping
+ - actionmenu
+ - get-active-menu
+ - perform-menu-action
+ - forward
+
+ any registered webhook event has access to the `wallet_id` for
+ the kafka event being produced. the configuration takes the
+ aca-py eventbus matcher with an f-string which will build the
+ kafka event being produced.
+"""
+
+
 class EventsConfig(BaseModel):
     producer: ProducerConfig
     topic_maps: Mapping[str, str]
