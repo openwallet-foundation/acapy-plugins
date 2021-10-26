@@ -1,10 +1,8 @@
+import base64
 import json
 from json import JSONDecodeError
-import base64
 import logging
-from typing import Any, Mapping, cast
-
-from aries_cloudagent.config.settings import Settings
+from typing import cast
 
 from aiokafka import AIOKafkaConsumer
 from aiokafka.structs import ConsumerRecord
@@ -12,28 +10,10 @@ from aries_cloudagent.messaging.error import MessageParseError
 from aries_cloudagent.transport.error import WireFormatParseError
 from aries_cloudagent.transport.inbound.base import BaseInboundTransport
 
+from .config import get_config, InboundConfig
+
 
 LOGGER = logging.getLogger(__name__)
-
-DEFAULT_CONFIG = {
-    "group_id": "kafka_queue",
-    "inbound_topics": [
-        "acapy-inbound-message",
-    ],
-}
-
-
-def get_config(settings: Settings) -> Mapping[str, Any]:
-    """Retrieve consumer configuration from settings."""
-    try:
-        consumer_conf = (
-            settings["plugin_config"]["kafka_queue"]["consumer-config"]
-            or DEFAULT_CONFIG
-        )
-    except KeyError:
-        consumer_conf = DEFAULT_CONFIG
-
-    return consumer_conf
 
 
 class KafkaInboundTransport(BaseInboundTransport):
@@ -52,11 +32,12 @@ class KafkaInboundTransport(BaseInboundTransport):
         super().__init__("kafka", create_session, **kwargs)
         self.host = host
         self.port = port
-        config = get_config(self.root_profile.context.settings)
+        config = (
+            get_config(self.root_profile.context.settings).inbound
+            or InboundConfig.default()
+        )
         self.consumer = AIOKafkaConsumer(
-            *config.get("inbound_topics", []),
-            bootstrap_servers=self.host,
-            group_id=config.get("consumer_group_id")
+            *config.topics, bootstrap_servers=self.host, group_id=config.group_id
         )
 
     async def start(self):

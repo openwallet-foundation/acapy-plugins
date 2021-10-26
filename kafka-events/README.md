@@ -77,7 +77,7 @@ kafka_events:
 #    send_backoff_ms: 100 # 0'1 Seconds
 ```
 ## Plugin deployment
-Once the plugin config is filled up. It is posible to deploy the plugin inside ACA-Py.
+Once the plugin config is filled up. It is possible to deploy the plugin inside ACA-Py.
 ```shell
 $ aca-py start \
     --plugin kafka_events \
@@ -90,11 +90,11 @@ After the command line instantiation, ACA-Py will start with a Kafka consumer fo
 ### Examples
 - ACA-Py Kafka Consumer
 ```sequence
-ACAPy -> Kafka Broker: Suscribe to pattern 'acapy-inbound-.*'
+ACAPy -> Kafka Broker: Subscribe to pattern 'acapy-inbound-.*'
 
 External Software->Kafka Broker: Publish record with topic `acapy-inbound-test`
 
-Note left of Kafka Broker: Route the record to suscribers
+Note left of Kafka Broker: Route the record to subscribers
 
 Kafka Broker -> ACAPy: Send the record 
 
@@ -114,7 +114,7 @@ ACAPy -> ACAPy: Notify via EventBus the status with the topic\n 'acapy::outbound
 ```
 
 ## HTTP Requests
-With the HTTP admin manager, It is posible to stop and start the Kafka interfaces.
+With the HTTP admin manager, It is possible to stop and start the Kafka interfaces.
 
 - Stop the Kafka Consumer & Producer
 ```shell
@@ -132,6 +132,6 @@ Kafka details in KafkaEvents
 
 
 ### Authors
-Luis Gomez, [Luis-GA](https://github.com/Luis-GA)
-Adam Burdett, [burdettadam](https://github.com/burdettadam)
-Daniel Bluhm, [dbluhm](https://github.com/dbluhm)
+- Luis Gomez, [Luis-GA](https://github.com/Luis-GA)
+- Adam Burdett, [burdettadam](https://github.com/burdettadam)
+- Daniel Bluhm, [dbluhm](https://github.com/dbluhm)

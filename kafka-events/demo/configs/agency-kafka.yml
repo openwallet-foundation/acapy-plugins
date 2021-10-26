@@ -1,0 +1,25 @@
+kafka-queue:
+  # Events
+  events:
+    producer:
+      bootstrap-servers: kafka
+    topic-maps:
+      "^acapy::webhook::(.*)$": "webhook-$wallet_id"
+      "^acapy::record::connections::.*": "connections-$wallet_id"
+      "^acapy::record::issue_credential::.*": "issue-credential-v1-$wallet_id"
+      "^acapy::record::issue_credential_v2_0::.*": "issue-credential-v2-$wallet_id"
+      "^acapy::record::present_proof::.*": "present-proof-v1-$wallet_id"
+      "^acapy::record::present_proof_v2_0::.*": "present-proof-v2-$wallet_id"
+      # TODO There are likely more topics we are interested in
+
+  # Inbound Messages
+  inbound:
+    group-id: kafka_queue
+    topics:
+      - "acapy-inbound-message"
+
+  # Outbound Messages
+  outbound:
+    producer:
+      bootstrap-servers: kafka
+    topic: "acapy-outbound-message"
