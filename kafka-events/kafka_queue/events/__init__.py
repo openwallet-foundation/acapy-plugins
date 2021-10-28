@@ -48,7 +48,7 @@ async def handle_event(profile: Profile, event: EventWithMetadata):
     """Produce kafka events from aca-py events."""
 
     LOGGER.info("Handling Kafka producer event: %s", event)
-    wallet_id = cast(Optional[str], profile.settings.get("wallet_id"))
+    wallet_id = cast(Optional[str], profile.settings.get("wallet.id"))
     payload = {
         "wallet_id": wallet_id or "base",
         "state": event.payload.get("state"),
