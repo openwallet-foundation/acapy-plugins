@@ -72,6 +72,7 @@ class DelayPayload(BaseModel):
     def to_queue(self) -> bytes:
         return str.encode(self.json(), encoding="utf8")
 
+
 async def consume_http_message():
     consumer = AIOKafkaConsumer(
         OUTBOUND_TOPIC, bootstrap_servers=BOOTSTRAP_SERVER, group_id=GROUP
@@ -81,7 +82,7 @@ async def consume_http_message():
         async for msg in consumer:
             outbound = OutboundPayload.from_queue(msg)
             if outbound.endpoint_scheme in ["http", "https"]:
-                print(f'Dispatch message to {outbound.endpoint}', flush=True)
+                print(f"Dispatch message to {outbound.endpoint}", flush=True)
                 try:
                     response = await http_client.post(
                         outbound.endpoint,
@@ -90,22 +91,21 @@ async def consume_http_message():
                         timeout=10,
                     )
                 except aiohttp.ClientError as err:
-                    log_error('Delivery error:', err)
+                    log_error("Delivery error:", err)
                 else:
                     if response.status < 200 or response.status >= 300:
                         # produce delay_payload kafka event
                         async with AIOKafkaProducer({}) as producer:
                             payload = DelayPayload.to_queue(
-                                { **outbound,
-                                 "topic": msg.topic,
-                                 "retries": outbound.retries + 1
-                                } 
+                                {
+                                    **outbound,
+                                    "topic": msg.topic,
+                                    "retries": outbound.retries + 1,
+                                }
                             )
-                            await producer.send_and_wait(
-                                'delay_payload',
-                                payload
-                            )
+                            await producer.send_and_wait("delay_payload", payload)
                         log_error("Invalid response code:", response.status)
+
 
 async def retry_kafka_to_http_msg():
     consumer = AIOKafkaConsumer(
@@ -116,20 +116,19 @@ async def retry_kafka_to_http_msg():
             print(f"Processing delay_payload msg: {msg}")
             payload = DelayPayload.from_queue(msg)
             # todo: add configuration for number of retry attempts
-            if (payload.retries < 4):
+            if payload.retries < 4:
                 await asyncio.sleep(2 ** payload.retries)
                 async with AIOKafkaProducer({}) as producer:
                     payload = OutboundPayload.to_queue(
-                        { **payload,
-                            "retries": payload.retries
-                        } 
+                        {**payload, "retries": payload.retries}
                     )
-                    del payload['topic']
+                    del payload["topic"]
                     await producer.send_and_wait(
                         payload.topic,
                         payload,
                     )
             # else, we do not handle the event again.
+
 
 async def main():
     kafka_to_http_task = asyncio.create_task(consume_http_message())
