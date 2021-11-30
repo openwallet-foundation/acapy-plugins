@@ -3,6 +3,7 @@ import asyncio
 import base64
 import json
 import sys
+from multiprocessing import Pool, Queue
 from os import getenv
 from typing import Dict
 from urllib.parse import urlparse
@@ -10,7 +11,6 @@ from urllib.parse import urlparse
 import aiohttp
 from aiokafka import AIOKafkaConsumer, AIOKafkaProducer, ConsumerRecord
 from pydantic import BaseModel, PrivateAttr, validator
-
 
 DEFAULT_BOOTSTRAP_SERVER = "kafka"
 DEFAULT_OUTBOUND_TOPIC = "acapy-outbound-message"
@@ -107,27 +107,42 @@ async def consume_http_message():
                         log_error("Invalid response code:", response.status)
 
 
-async def retry_kafka_to_http_msg():
+async def delay_worker(queue: Queue):
+    while True:
+        msg = queue.get()
+        if msg is None:
+            break
+        print(f"Processing delay_payload msg: {msg}")
+        payload = DelayPayload.from_queue(msg)
+        # todo: add configuration for number of retry attempts
+        async with AIOKafkaProducer({}) as producer:
+            payload = OutboundPayload.to_queue({**payload, "retries": payload.retries})
+            del payload["topic"]
+            if payload.retries < 4:
+                await asyncio.sleep(2 ** payload.retries)
+                await producer.send_and_wait(
+                    payload.topic,
+                    payload,
+                )
+            else:
+                await producer.send_and_wait(
+                    "Failed_outbound_msg",
+                    payload,
+                )
+
+
+async def retry_kafka_to_http_msg(queue: Queue):
     consumer = AIOKafkaConsumer(
         "delay_payload", bootstrap_servers=BOOTSTRAP_SERVER, group_id=GROUP
     )
-    async with consumer:
+    delay_queue = Queue(maxsize=4)
+    async with consumer, Pool(
+        processes=4, initializer=retry_kafka_to_http_msg, initargs=(delay_queue)
+    ) as pool:
         async for msg in consumer:
-            print(f"Processing delay_payload msg: {msg}")
-            payload = DelayPayload.from_queue(msg)
-            # todo: add configuration for number of retry attempts
-            if payload.retries < 4:
-                await asyncio.sleep(2 ** payload.retries)
-                async with AIOKafkaProducer({}) as producer:
-                    payload = OutboundPayload.to_queue(
-                        {**payload, "retries": payload.retries}
-                    )
-                    del payload["topic"]
-                    await producer.send_and_wait(
-                        payload.topic,
-                        payload,
-                    )
-            # else, we do not handle the event again.
+            delay_queue.put(msg)
+        for _ in range(4):  # tell workers we're done
+            delay_queue.put(None)
 
 
 async def main():
