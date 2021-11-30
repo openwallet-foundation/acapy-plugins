@@ -108,14 +108,14 @@ async def consume_http_message():
 
 
 async def delay_worker(queue: Queue):
-    while True:
-        msg = queue.get()
-        if msg is None:
-            break
-        print(f"Processing delay_payload msg: {msg}")
-        payload = DelayPayload.from_queue(msg)
-        # todo: add configuration for number of retry attempts
-        async with AIOKafkaProducer({}) as producer:
+    async with AIOKafkaProducer({}) as producer:
+        while True:
+            msg = queue.get()
+            if msg is None:
+                break
+            print(f"Processing delay_payload msg: {msg}")
+            payload = DelayPayload.from_queue(msg)
+            # todo: add configuration for number of retry attempts
             payload = OutboundPayload.to_queue({**payload, "retries": payload.retries})
             del payload["topic"]
             if payload.retries < 4:
