@@ -15,8 +15,12 @@ from pydantic import BaseModel, PrivateAttr, validator
 DEFAULT_BOOTSTRAP_SERVER = "kafka"
 DEFAULT_OUTBOUND_TOPIC = "acapy-outbound-message"
 DEFAULT_GROUP = "kafka_queue"
+DEFAULT_QUEUE_SIZE = 5
+DEFAULT_WORKER_COUNT = 4
 OUTBOUND_TOPIC = getenv("OUTBOUND_TOPIC", DEFAULT_OUTBOUND_TOPIC)
 BOOTSTRAP_SERVER = getenv("BOOTSTRAP_SERVER", DEFAULT_BOOTSTRAP_SERVER)
+QUEUE_SIZE = getenv("DELAY_QUEUE_SIZE", DEFAULT_QUEUE_SIZE)
+WORKER_COUNT = getenv("WORKER_COUNT", DEFAULT_WORKER_COUNT)
 GROUP = getenv("GROUP", DEFAULT_GROUP)
 
 
@@ -108,7 +112,9 @@ async def consume_http_message():
 
 
 async def delay_worker(queue: Queue):
-    async with AIOKafkaProducer({}) as producer:
+    async with AIOKafkaProducer(
+        bootstrap_servers=BOOTSTRAP_SERVER, enable_idempotence=True
+    ) as producer:
         while True:
             msg = queue.get()
             if msg is None:
@@ -135,9 +141,11 @@ async def retry_kafka_to_http_msg(queue: Queue):
     consumer = AIOKafkaConsumer(
         "delay_payload", bootstrap_servers=BOOTSTRAP_SERVER, group_id=GROUP
     )
-    delay_queue = Queue(maxsize=4)
+    delay_queue = Queue(maxsize=QUEUE_SIZE)
     async with consumer, Pool(
-        processes=4, initializer=retry_kafka_to_http_msg, initargs=(delay_queue)
+        processes=WORKER_COUNT,
+        initializer=retry_kafka_to_http_msg,
+        initargs=(delay_queue),
     ) as pool:
         async for msg in consumer:
             delay_queue.put(msg)
