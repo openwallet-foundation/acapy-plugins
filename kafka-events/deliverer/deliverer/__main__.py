@@ -3,9 +3,10 @@ import asyncio
 import base64
 import json
 import sys
-from multiprocessing import Pool, Queue
+from contextlib import suppress
+from asyncio import Queue
 from os import getenv
-from typing import Dict
+from typing import Dict, List
 from urllib.parse import urlparse
 
 import aiohttp
@@ -15,12 +16,12 @@ from pydantic import BaseModel, PrivateAttr, validator
 DEFAULT_BOOTSTRAP_SERVER = "kafka"
 DEFAULT_OUTBOUND_TOPIC = "acapy-outbound-message"
 DEFAULT_GROUP = "kafka_queue"
-DEFAULT_QUEUE_SIZE = 5
-DEFAULT_WORKER_COUNT = 4
+DEFAULT_QUEUE_SIZE = "5"
+DEFAULT_WORKER_COUNT = "4"
 OUTBOUND_TOPIC = getenv("OUTBOUND_TOPIC", DEFAULT_OUTBOUND_TOPIC)
 BOOTSTRAP_SERVER = getenv("BOOTSTRAP_SERVER", DEFAULT_BOOTSTRAP_SERVER)
-QUEUE_SIZE = getenv("DELAY_QUEUE_SIZE", DEFAULT_QUEUE_SIZE)
-WORKER_COUNT = getenv("WORKER_COUNT", DEFAULT_WORKER_COUNT)
+QUEUE_SIZE = int(getenv("DELAY_QUEUE_SIZE", DEFAULT_QUEUE_SIZE))
+WORKER_COUNT = int(getenv("WORKER_COUNT", DEFAULT_WORKER_COUNT))
 GROUP = getenv("GROUP", DEFAULT_GROUP)
 
 
@@ -32,6 +33,7 @@ class OutboundPayload(BaseModel):
     headers: Dict[str, str]
     endpoint: str
     payload: bytes
+    retries: int = 0
 
     _endpoint_scheme: str = PrivateAttr()
 
@@ -64,7 +66,6 @@ class OutboundPayload(BaseModel):
 
 class DelayPayload(BaseModel):
     topic: str
-    retries: int
     outbound: OutboundPayload
 
     @classmethod
@@ -99,14 +100,14 @@ async def consume_http_message():
                 else:
                     if response.status < 200 or response.status >= 300:
                         # produce delay_payload kafka event
-                        async with AIOKafkaProducer({}) as producer:
-                            payload = DelayPayload.to_queue(
-                                {
-                                    **outbound,
-                                    "topic": msg.topic,
-                                    "retries": outbound.retries + 1,
-                                }
-                            )
+                        async with AIOKafkaProducer(
+                            bootstrap_servers=BOOTSTRAP_SERVER, enable_idempotence=True
+                        ) as producer:
+                            outbound.retries += 1
+                            payload = DelayPayload(
+                                topic=msg.topic,
+                                outbound=outbound,
+                            ).to_queue()
                             await producer.send_and_wait("delay_payload", payload)
                         log_error("Invalid response code:", response.status)
 
@@ -116,19 +117,16 @@ async def delay_worker(queue: Queue):
         bootstrap_servers=BOOTSTRAP_SERVER, enable_idempotence=True
     ) as producer:
         while True:
-            msg = queue.get()
+            msg = await queue.get()
             if msg is None:
                 break
             print(f"Processing delay_payload msg: {msg}")
             payload = DelayPayload.from_queue(msg)
-            # todo: add configuration for number of retry attempts
-            payload = OutboundPayload.to_queue({**payload, "retries": payload.retries})
-            del payload["topic"]
-            if payload.retries < 4:
-                await asyncio.sleep(2 ** payload.retries)
+            if payload.outbound.retries < 4:
+                await asyncio.sleep(2 ** payload.outbound.retries)
                 await producer.send_and_wait(
                     payload.topic,
-                    payload,
+                    payload.outbound,
                 )
             else:
                 await producer.send_and_wait(
@@ -137,25 +135,29 @@ async def delay_worker(queue: Queue):
                 )
 
 
-async def retry_kafka_to_http_msg(queue: Queue):
+async def retry_kafka_to_http_msg():
     consumer = AIOKafkaConsumer(
         "delay_payload", bootstrap_servers=BOOTSTRAP_SERVER, group_id=GROUP
     )
     delay_queue = Queue(maxsize=QUEUE_SIZE)
-    async with consumer, Pool(
-        processes=WORKER_COUNT,
-        initializer=retry_kafka_to_http_msg,
-        initargs=(delay_queue),
-    ) as pool:
+    workers: List[asyncio.Task] = []
+    for _ in range(WORKER_COUNT):
+        workers.append(asyncio.ensure_future(delay_worker(delay_queue)))
+
+    async with consumer:
         async for msg in consumer:
-            delay_queue.put(msg)
-        for _ in range(4):  # tell workers we're done
-            delay_queue.put(None)
+            await delay_queue.put(msg)
+
+    for worker in workers:
+        with suppress(asyncio.CancelledError):
+            worker.cancel()
+            await worker
 
 
 async def main():
     kafka_to_http_task = asyncio.create_task(consume_http_message())
     retry_kafka_to_http_msg_task = asyncio.create_task(retry_kafka_to_http_msg())
+    await asyncio.gather(kafka_to_http_task, retry_kafka_to_http_msg_task)
 
 
 if __name__ == "__main__":
