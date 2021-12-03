@@ -53,3 +53,13 @@ async def test_deliverer(
     await asyncio.sleep(1)
     message = await echo.get_message(connection)
     assert message["content"] == "test"
+
+@pytest.mark.asyncio
+async def test_deliverer_retry_on_failure(
+    backchannel: Client,
+    connection_id: str,
+    echo: EchoClient,
+    connection: ConnectionInfo,
+):
+    print(ConnectionInfo)
+    assert True
