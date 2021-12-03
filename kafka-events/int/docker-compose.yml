@@ -77,7 +77,7 @@ services:
     image: dbluhm/echo-agent:6c22a88
     ports:
       - "3002:3002"
-    command: uvicorn echo_agent:app --host 0.0.0.0 --port 3002 --log-level debug
+    command: --host 0.0.0.0 --port 3002 --log-level debug
 
   #*************************************************************
   # acapy-kafka_queue: aca-py that produces kafka events.      *
