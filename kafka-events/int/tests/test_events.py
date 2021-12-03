@@ -63,4 +63,4 @@ async def test_deliverer_retry_on_failure(
     connection: ConnectionInfo,
 ):
     print(ConnectionInfo)
-    assert True
+    assert False
