@@ -130,7 +130,7 @@ async def delay_worker(queue: Queue):
                 )
             else:
                 await producer.send_and_wait(
-                    "Failed_outbound_msg",
+                    "failed_outbound_message",
                     payload,
                 )
 
