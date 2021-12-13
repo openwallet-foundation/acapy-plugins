@@ -90,27 +90,28 @@ async def consume_http_message():
             if outbound.endpoint_scheme in ["http", "https"]:
                 print(f"Dispatch message to {outbound.endpoint}", flush=True)
                 try:
-                    response = await http_client.post(
+                    async with http_client.post(
                         outbound.endpoint,
                         data=outbound.payload,
                         headers=outbound.headers,
                         timeout=10,
-                    )
+                    ) as response:
+                        if response.status < 200 or response.status >= 300:
+                            # produce delay_payload kafka event
+                            async with AIOKafkaProducer(
+                                bootstrap_servers=BOOTSTRAP_SERVER, enable_idempotence=True
+                            ) as producer:
+                                outbound.retries += 1
+                                payload = DelayPayload(
+                                    topic=msg.topic,
+                                    outbound=outbound,
+                                ).to_queue()
+                                await producer.send_and_wait("delay_payload", payload)
+                            log_error("Invalid response code:", response.status)
                 except aiohttp.ClientError as err:
                     log_error("Delivery error:", err)
-                else:
-                    if response.status < 200 or response.status >= 300:
-                        # produce delay_payload kafka event
-                        async with AIOKafkaProducer(
-                            bootstrap_servers=BOOTSTRAP_SERVER, enable_idempotence=True
-                        ) as producer:
-                            outbound.retries += 1
-                            payload = DelayPayload(
-                                topic=msg.topic,
-                                outbound=outbound,
-                            ).to_queue()
-                            await producer.send_and_wait("delay_payload", payload)
-                        log_error("Invalid response code:", response.status)
+
+
 
 
 async def delay_worker(queue: Queue):
