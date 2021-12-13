@@ -8,6 +8,7 @@ from asyncio import Queue
 from os import getenv
 from typing import Dict, List
 from urllib.parse import urlparse
+import signal
 
 import aiohttp
 from aiokafka import AIOKafkaConsumer, AIOKafkaProducer, ConsumerRecord
@@ -113,11 +114,15 @@ async def consume_http_message():
 
 
 async def delay_worker(queue: Queue):
+    print("Delay worker called")
     async with AIOKafkaProducer(
         bootstrap_servers=BOOTSTRAP_SERVER, enable_idempotence=True
     ) as producer:
+        print("Producer initialized:", producer)
         while True:
+            print("delay loop")
             msg = await queue.get()
+            print("Got msg:", msg)
             if msg is None:
                 break
             print(f"Processing delay_payload msg: {msg}")
@@ -144,14 +149,17 @@ async def retry_kafka_to_http_msg():
     for _ in range(WORKER_COUNT):
         workers.append(asyncio.ensure_future(delay_worker(delay_queue)))
 
-    async with consumer:
-        async for msg in consumer:
-            await delay_queue.put(msg)
+    try:
+        async with consumer:
+            async for msg in consumer:
+                print("Consumer got message:", msg, consumer)
+                await delay_queue.put(msg)
 
-    for worker in workers:
-        with suppress(asyncio.CancelledError):
-            worker.cancel()
-            await worker
+    finally:
+        for worker in workers:
+            with suppress(asyncio.CancelledError):
+                worker.cancel()
+                await worker
 
 
 async def main():
@@ -161,4 +169,14 @@ async def main():
 
 
 if __name__ == "__main__":
-    asyncio.get_event_loop().run_until_complete(main())
+    loop = asyncio.get_event_loop()
+    main_task = asyncio.ensure_future(main())
+
+    for sig in (signal.SIGINT, signal.SIGTERM):
+        loop.add_signal_handler(sig, main_task.cancel)
+
+    try:
+        with suppress(asyncio.CancelledError):
+            loop.run_until_complete(main_task)
+    finally:
+        loop.close()
