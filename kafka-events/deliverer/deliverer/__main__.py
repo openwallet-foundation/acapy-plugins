@@ -1,16 +1,16 @@
 """Kafka consumer of outbound messages from ACA-Py."""
 import asyncio
+import signal
 import sys
-from contextlib import suppress
 from asyncio import Queue
+from contextlib import suppress
 from os import getenv
 from typing import List
-import signal
 
 import aiohttp
 from aiokafka import AIOKafkaConsumer, AIOKafkaProducer
 
-from . import OutboundPayload, DelayPayload
+from . import DelayPayload, OutboundPayload
 
 DEFAULT_BOOTSTRAP_SERVER = "kafka"
 DEFAULT_OUTBOUND_TOPIC = "acapy-outbound-message"

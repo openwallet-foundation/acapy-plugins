@@ -1,5 +1,4 @@
 import pytest
-
 from deliverer import DelayPayload, OutboundPayload
 
 
