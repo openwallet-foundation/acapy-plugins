@@ -71,5 +71,6 @@ async def test_deliverer_retry_on_failure(consumer, producer):
         # assume failure code 400, delay queue, and failure code 400 ...
         msg = await asyncio.wait_for(consumer.getone(), 30)
         assert msg
-        assert msg.retries > 2
-        assert msg.retries == 4
+        failed_outbound_msg = json.loads(msg.value.decode("utf8"))
+        assert failed_outbound_msg["retries"] > 2
+        assert failed_outbound_msg["retries"] == 4
