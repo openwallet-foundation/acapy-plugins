@@ -68,18 +68,13 @@ async def consume_http_message():
 
 
 async def delay_worker(queue: Queue):
-    print("Delay worker called")
     async with AIOKafkaProducer(
         bootstrap_servers=BOOTSTRAP_SERVER, enable_idempotence=True
     ) as producer:
-        print("Producer initialized:", producer)
         while True:
-            print("delay loop")
             msg = await queue.get()
-            print("Got msg:", msg)
             if msg is None:
                 break
-            print(f"Processing delay_payload msg: {msg}")
             payload = DelayPayload.from_bytes(msg.value)
             if payload.outbound.retries < 4:
                 await asyncio.sleep(2 ** payload.outbound.retries)
@@ -106,11 +101,9 @@ async def retry_kafka_to_http_msg():
     try:
         async with consumer:
             async for msg in consumer:
-                print("Consumer got message:", msg, consumer)
                 await delay_queue.put(msg)
 
     finally:
-        print("Cleaning up workers")
         for worker in workers:
             with suppress(asyncio.CancelledError):
                 worker.cancel()
@@ -132,7 +125,6 @@ if __name__ == "__main__":
 
     try:
         with suppress(asyncio.CancelledError):
-            print("Cleaning up main task")
             loop.run_until_complete(main_task)
     finally:
         loop.close()
