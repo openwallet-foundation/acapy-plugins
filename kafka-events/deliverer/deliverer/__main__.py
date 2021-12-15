@@ -26,7 +26,10 @@ def log_error(*args):
 
 async def consume_http_message():
     consumer = AIOKafkaConsumer(
-        OUTBOUND_TOPIC, bootstrap_servers=BOOTSTRAP_SERVER, group_id=GROUP
+        OUTBOUND_TOPIC,
+        bootstrap_servers=BOOTSTRAP_SERVER,
+        group_id=GROUP,
+        enable_auto_commit=False,
     )
 
     async with aiohttp.ClientSession(
@@ -48,6 +51,7 @@ async def consume_http_message():
                                     await producer.send_and_wait(
                                         "failed_outbound_message", msg.value
                                     )
+                                await consumer.commit()
                                 break
                             async with http_client.post(
                                 outbound.endpoint,
@@ -59,6 +63,7 @@ async def consume_http_message():
                                     await asyncio.sleep(2 ** retries)
                                     log_error("Invalid response code:", response.status)
                                 else:
+                                    await consumer.commit()
                                     break
                         except aiohttp.ClientError as err:
                             log_error("Delivery error:", err)
@@ -69,6 +74,7 @@ async def consume_http_message():
                                 await producer.send_and_wait(
                                     "failed_outbound_message", msg.value
                                 )
+                                await consumer.commit()
 
 
 async def main():
