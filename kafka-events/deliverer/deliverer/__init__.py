@@ -40,8 +40,3 @@ class OutboundPayload(KafkaQueuePayload):
     @property
     def endpoint_scheme(self):
         return self._endpoint_scheme
-
-
-class DelayPayload(KafkaQueuePayload):
-    topic: str
-    outbound: OutboundPayload
