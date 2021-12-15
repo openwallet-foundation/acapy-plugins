@@ -7,14 +7,14 @@ on:
   push:
     branches: [ main ]
   pull_request:
-    branches: [ main ]
 
 env:
-  POETRY_VERSION: 1.1.7
+  FLAKE8_VERSION: 3.9.2
+  BLACK_VERSION: 21.8b0
 
 jobs:
   format:
-    name: Formatting (with black)
+    name: Format and Lint Check
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v2
@@ -26,76 +26,23 @@ jobs:
         id: cache-env
         uses: actions/cache@v2
         with:
-            path: ${{ env.pythonLocation }}
-            key: ${{ runner.os }}-formatting-black-21.8b0
-      - name: Install black
+            path: env
+            key: ${{ runner.os }}-format-lint-${{ env.FLAKE8_VERSION }}-${{ env.BLACK_VERSION }}-${{ hashFiles('.github/workflows/code-quality-check.yml') }}
+      - name: create virtual environment
         if: steps.cache-env.outputs.cache-hit != 'true'
         run: |
-            pip install black==21.8b0
+          python -m venv env
+      - name: Install dependencies
+        if: steps.cache-env.outputs.cache-hit != 'true'
+        run: |
+            env/bin/python -m pip install black==${{ env.BLACK_VERSION }}
+            env/bin/python -m pip install flake8==${{ env.FLAKE8_VERSION }}
       - name: Black Format Check
         run: |
-            black --check .
-
-  test:
-    name: Tests
-    runs-on: ubuntu-latest
-    strategy:
-      matrix:
-        python-version: [3.6, 3.7, 3.8, 3.9]
-
-    steps:
-    - uses: actions/checkout@v2
-    - name: Set up Python ${{ matrix.python-version }}
-      uses: actions/setup-python@v2
-      with:
-        python-version: ${{ matrix.python-version }}
-    - name: Cache poetry installation
-      id: cache-poetry
-      uses: actions/cache@v2
-      with:
-          path: ~/.local
-          key: poetry-${{ runner.os }}-${{ matrix.python-version }}-${{ env.POETRY_VERSION }}-${{ hashFiles('.github/workflows/code-quality-check.yml') }}
-    - name: Install poetry
-      if: steps.cache-poetry.outputs.cache-hit != 'true'
-      run: |
-          curl -sSL https://raw.githubusercontent.com/python-poetry/poetry/master/install-poetry.py | python - --version=${{ env.POETRY_VERSION }}
-    - name: Setup poetry environment
-      id: setup-poetry-env
-      run: |
-          poetry env use $(which python)
-          echo "::set-output name=poetry-env::$(poetry env info --path)"
-    - name: Cache poetry virtual environment
-      id: cache-poetry-venv
-      uses: actions/cache@v2
-      with:
-          path: ${{ steps.setup-poetry-env.outputs.poetry-env }}
-          key: poetry-env-${{ runner.os }}-${{ matrix.python-version }}-${{ env.POETRY_VERSION }}-${{ hashFiles('poetry.lock') }}-${{ hashFiles('.github/workflows/code-quality-check.yml') }}
-    - name: Install dependencies
-      if: steps.cache-poetry-venv.outputs.cache-hit != 'true'
-      run: |
-          poetry install
-    - name: Lint with flake8
-      run: |
-        # stop the build if there are Python syntax errors or undefined names
-        poetry run flake8 . --count --select=E9,F63,F7,F82 --show-source --statistics
-        # exit-zero treats all errors as warnings. The GitHub editor is 127 chars wide
-        poetry run flake8 . --count --exit-zero --max-complexity=10 --max-line-length=127 --statistics
-    - name: Test with pytest
-      run: |
-        poetry run pytest
-  int:
-    name: Integration Tests
-    runs-on: ubuntu-latest
-    steps:
-    - uses: actions/checkout@v2
-    - name: Run integration tests
-      run: |
-        docker-compose -f int/docker-compose.yml run tests
-    - name: Print logs on failure
-      if: failure()
-      run: |
-        docker-compose -f int/docker-compose.yml logs acapy-kafka-queue
-    - name: Clean up integration tests
-      if: always()
-      run: |
-        docker-compose -f int/docker-compose.yml down
+            env/bin/python -m black --check kafka_queue http_kafka_relay deliverer tests int/tests
+      - name: Lint with flake8
+        run: |
+          # stop the build if there are Python syntax errors or undefined names
+          env/bin/python -m flake8 . --exclude=env --count --select=E9,F63,F7,F82 --show-source --statistics
+          # exit-zero treats all errors as warnings. The GitHub editor is 127 chars wide
+          env/bin/python -m flake8 . --exclude=env --count --exit-zero --max-complexity=10 --max-line-length=127 --statistics
