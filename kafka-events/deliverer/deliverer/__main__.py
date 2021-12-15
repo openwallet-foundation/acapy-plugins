@@ -16,7 +16,7 @@ DEFAULT_OUTBOUND_TOPIC = "acapy-outbound-message"
 DEFAULT_GROUP = "kafka_queue"
 OUTBOUND_TOPIC = getenv("OUTBOUND_TOPIC", DEFAULT_OUTBOUND_TOPIC)
 BOOTSTRAP_SERVER = getenv("BOOTSTRAP_SERVER", DEFAULT_BOOTSTRAP_SERVER)
-MAX_RETRIES = getenv("DELIVERER_MAX_RETRIES", 4)
+MAX_RETRIES = getenv("DELIVERER_MAX_RETRIES", 3)
 GROUP = getenv("GROUP", DEFAULT_GROUP)
 
 
@@ -39,7 +39,8 @@ async def consume_http_message():
                     print(f"Dispatch message to {outbound.endpoint}", flush=True)
                     for retries in range(MAX_RETRIES):
                         try:
-                            if retries == MAX_RETRIES:
+                            if retries == (MAX_RETRIES - 1):
+                                log_error("Failed outbound message, to many attempts.")
                                 async with AIOKafkaProducer(
                                     bootstrap_servers=BOOTSTRAP_SERVER,
                                     enable_idempotence=True,
