@@ -4,7 +4,6 @@ import signal
 import sys
 from contextlib import suppress
 from os import getenv
-from typing import List
 
 from aiohttp import ClientError, ClientSession, DummyCookieJar
 from aiokafka import AIOKafkaConsumer, AIOKafkaProducer
@@ -16,7 +15,8 @@ DEFAULT_OUTBOUND_TOPIC = "acapy-outbound-message"
 DEFAULT_GROUP = "kafka_queue"
 OUTBOUND_TOPIC = getenv("OUTBOUND_TOPIC", DEFAULT_OUTBOUND_TOPIC)
 BOOTSTRAP_SERVER = getenv("BOOTSTRAP_SERVER", DEFAULT_BOOTSTRAP_SERVER)
-MAX_RETRIES = getenv("DELIVERER_MAX_RETRIES", 3)
+MAX_RETRIES = getenv("DELIVERER_MAX_RETRIES", "3")
+MAX_RETRIES = int(MAX_RETRIES)
 GROUP = getenv("GROUP", DEFAULT_GROUP)
 
 
