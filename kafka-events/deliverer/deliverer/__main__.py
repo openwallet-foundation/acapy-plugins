@@ -42,7 +42,7 @@ async def consume_http_message():
                     print(f"Dispatch message to {outbound.endpoint}", flush=True)
                     for retries in range(MAX_RETRIES):
                         try:
-                            if retries == (MAX_RETRIES - 1):
+                            if retries > MAX_RETRIES:
                                 log_error("Failed outbound message, to many attempts.")
                                 async with AIOKafkaProducer(
                                     bootstrap_servers=BOOTSTRAP_SERVER,
