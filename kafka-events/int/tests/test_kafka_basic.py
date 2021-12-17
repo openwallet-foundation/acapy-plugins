@@ -1,7 +1,7 @@
 """Testing basic kafka stuff."""
 
-from aiokafka.structs import ConsumerRecord
 import pytest
+from aiokafka.structs import ConsumerRecord
 
 
 @pytest.mark.asyncio

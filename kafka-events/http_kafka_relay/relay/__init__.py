@@ -6,7 +6,6 @@ import os
 from typing import List, Union
 
 from aiokafka import AIOKafkaProducer
-
 from fastapi import Depends, FastAPI, Request, Response
 
 DEFAULT_BOOTSTRAP_SERVER = "kafka"
