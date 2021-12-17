@@ -6,7 +6,7 @@ authors = ["Daniel Bluhm <dbluhm@pm.me>"]
 
 [tool.poetry.dependencies]
 python = "^3.6.9"
-aries-cloudagent = {git = "https://github.com/sicpa-dlab/aries-cloudagent-python", rev = "dff70e9c392edb919ed325414bf8d4cb9c77c9e0"}
+aries-cloudagent = "^0.7.3rc0"
 ecdsa = "^0.16.1"
 aiokafka = "^0.7.1"
 pydantic = "^1.8.2"

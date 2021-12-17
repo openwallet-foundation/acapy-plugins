@@ -77,13 +77,13 @@ services:
     image: dbluhm/echo-agent:latest
     ports:
       - "3002:3002"
-    command: uvicorn echo_agent:app --host 0.0.0.0 --port 3002 --log-level debug
+    command: --host 0.0.0.0 --port 3002 --log-level debug
 
   #*************************************************************
   # acapy-kafka_queue: aca-py that produces kafka events.      *
   #*************************************************************
-  acapy-kafka-queue:
-    image: acapy-kafka-queue
+  agent:
+    image: agent
     build:
       context: ..
       dockerfile: docker/Dockerfile
@@ -116,16 +116,16 @@ services:
         dockerfile: Dockerfile.test.runner
       environment:
         - WAIT_BEFORE_HOSTS=6
-        - WAIT_HOSTS=zookeeper:2181, kafka:9092, restproxy:8086, acapy-kafka-queue:3001, echo:3002
+        - WAIT_HOSTS=zookeeper:2181, kafka:9092, restproxy:8086, agent:3001, echo:3002
         - WAIT_HOSTS_TIMEOUT=120
         - WAIT_SLEEP_INTERVAL=1
         - WAIT_HOST_CONNECT_TIMEOUT=60
-        - AGENT_HOST=acapy-kafka-queue
+        - AGENT_HOST=agent
         - AGENT_PORT=3000
         - AGENT_BACKCHANNEL_PORT=3001
         - ECHO_ENDPOINT=http://echo:3002
       depends_on:
         - zookeeper
         - kafka
-        - acapy-kafka-queue
+        - agent
         - echo

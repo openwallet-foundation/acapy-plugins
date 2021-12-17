@@ -1,12 +1,13 @@
 """Basic in memory queue."""
 import base64
 import json
+
+from aries_cloudagent.core.profile import Profile
 from kafka_queue.config import OutboundConfig
 import logging
 from typing import List, Optional, Union
 
 from aiokafka.producer.producer import AIOKafkaProducer
-from aries_cloudagent.config.settings import Settings
 from aries_cloudagent.transport.outbound.queue.base import (
     BaseOutboundQueue,
     OutboundQueueError,
@@ -53,10 +54,10 @@ class KafkaOutboundQueue(BaseOutboundQueue):
 
     DEFAULT_OUTBOUND_TOPIC = "acapy-outbound-message"
 
-    def __init__(self, settings: Settings):
+    def __init__(self, profile: Profile):
         """Initialize base queue type."""
-        super().__init__(settings)
-        self.config = get_config(settings).outbound or OutboundConfig.default()
+        super().__init__(profile)
+        self.config = get_config(profile.settings).outbound or OutboundConfig.default()
         LOGGER.info(
             f"Setting up kafka outbound queue with configuration: {self.config}"
         )
@@ -64,13 +65,13 @@ class KafkaOutboundQueue(BaseOutboundQueue):
 
     async def start(self):
         """Start the queue."""
-        LOGGER.info("  - Starting kafka outbound queue producer")
+        LOGGER.info("Starting kafka outbound queue producer")
         self.producer = AIOKafkaProducer(**self.config.producer.dict())
         await self.producer.start()
 
     async def stop(self):
         """Stop the queue."""
-        LOGGER.info("  - Stopping kafka outbound queue producer")
+        LOGGER.info("Stopping kafka outbound queue producer")
         if self.producer:
             await self.producer.stop()
 
