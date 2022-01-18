@@ -86,17 +86,10 @@ class KafkaOutboundQueue(BaseOutboundQueue):
         if not endpoint:
             raise OutboundQueueError("No endpoint provided")
 
-        if isinstance(payload, bytes):
-            content_type = "application/ssi-agent-wire"
-        else:
-            content_type = "application/json"
-            payload = payload.encode()
-
         message = str.encode(
             json.dumps(
                 {
-                    "headers": {"Content-Type": content_type},
-                    "endpoint": endpoint,
+                    "service": {"url": endpoint},
                     "payload": base64.urlsafe_b64encode(payload).decode(),
                 }
             ),
