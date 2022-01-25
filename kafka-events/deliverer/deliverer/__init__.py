@@ -1,6 +1,5 @@
 import base64
 import json
-from typing import Dict
 from urllib.parse import urlparse
 
 from pydantic import BaseModel, PrivateAttr, validator
@@ -19,9 +18,12 @@ class KafkaQueuePayload(BaseModel):
         return str.encode(self.json(), encoding="utf8")
 
 
+class Service(BaseModel):
+    url: str
+
+
 class OutboundPayload(KafkaQueuePayload):
-    headers: Dict[str, str]
-    endpoint: str
+    service: Service
     payload: bytes
     retries: int = 0
 
@@ -29,7 +31,7 @@ class OutboundPayload(KafkaQueuePayload):
 
     def __init__(self, **data):
         super().__init__(**data)
-        self._endpoint_scheme = urlparse(self.endpoint).scheme
+        self._endpoint_scheme = urlparse(self.service.url).scheme
 
     @validator("payload", pre=True)
     @classmethod
