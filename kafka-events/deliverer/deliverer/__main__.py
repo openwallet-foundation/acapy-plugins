@@ -37,9 +37,8 @@ async def _deliver_http_message(msg, outbound, producer, consumer, client):
                 await _produce_failure_and_commit(producer, consumer, msg)
                 break
             async with client.post(
-                outbound.endpoint,
+                outbound.service.url,
                 data=outbound.payload,
-                headers=outbound.headers,
                 timeout=10,
             ) as response:
                 if response.status < 200 or response.status >= 300:
@@ -69,9 +68,18 @@ async def main():
         cookie_jar=DummyCookieJar()
     ) as http_client, consumer, producer:
         async for msg in consumer:
-            outbound = OutboundPayload.from_bytes(msg.value)
+            try:
+                outbound = OutboundPayload.from_bytes(msg.value)
+            except ValueError as err:
+                print(
+                    "Received improperly formatted outbound payload: "
+                    f"{msg.value}\n{err}"
+                )
+                await consumer.commit()
+                continue
+
             if outbound.endpoint_scheme in ["http", "https"]:
-                print(f"Dispatch message to {outbound.endpoint}", flush=True)
+                print(f"Dispatch message to {outbound.service.url}", flush=True)
                 await _deliver_http_message(
                     msg, outbound, producer, consumer, http_client
                 )
