@@ -8,9 +8,9 @@ import logging
 from typing import List, Optional, Union
 
 from aiokafka.producer.producer import AIOKafkaProducer
-from aries_cloudagent.transport.outbound.queue.base import (
-    BaseOutboundQueue,
-    OutboundQueueError,
+from aries_cloudagent.transport.outbound.base import (
+    BaseOutboundTransport,
+    OutboundTransportError,
 )
 
 from . import get_config
@@ -49,15 +49,20 @@ def _recipients_from_packed_message(packed_message: bytes) -> List[str]:
     return [recip["header"]["kid"] for recip in recips_outer["recipients"]]
 
 
-class KafkaOutboundQueue(BaseOutboundQueue):
+class KafkaOutboundQueue(BaseOutboundTransport):
     """Kafka queue implementation class."""
 
     DEFAULT_OUTBOUND_TOPIC = "acapy-outbound-message"
+    schemes = ("kafka",)
+    is_external = True
 
-    def __init__(self, profile: Profile):
+    def __init__(self, root_profile: Profile):
         """Initialize base queue type."""
-        super().__init__(profile)
-        self.config = get_config(profile.settings).outbound or OutboundConfig.default()
+        super().__init__(root_profile)
+        LOGGER.error(get_config(root_profile.settings))
+        self.config = (
+            get_config(root_profile.settings).outbound or OutboundConfig.default()
+        )
         LOGGER.info(
             f"Setting up kafka outbound queue with configuration: {self.config}"
         )
@@ -75,16 +80,17 @@ class KafkaOutboundQueue(BaseOutboundQueue):
         if self.producer:
             await self.producer.stop()
 
-    async def enqueue_message(
+    async def handle_message(
         self,
+        profile: Profile,
         payload: Union[str, bytes],
         endpoint: str,
     ):
         """Prepare and send message to external queue."""
         if not self.producer:
-            raise OutboundQueueError("No producer started")
+            raise OutboundTransportError("No producer started")
         if not endpoint:
-            raise OutboundQueueError("No endpoint provided")
+            raise OutboundTransportError("No endpoint provided")
 
         message = str.encode(
             json.dumps(
