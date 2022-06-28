@@ -6,7 +6,7 @@ authors = ["Daniel Bluhm <dbluhm@pm.me>"]
 
 [tool.poetry.dependencies]
 python = "^3.6.9"
-aries-cloudagent = "^0.7.3rc0"
+aries-cloudagent = "^0.7.4rc5"
 ecdsa = "^0.16.1"
 aiokafka = "^0.7.1"
 pydantic = "^1.8.2"
