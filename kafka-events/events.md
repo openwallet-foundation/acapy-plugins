@@ -1,13 +1,8 @@
-# Aca-py Eventbus messages
+# ACA-Py Events
 
-Aca-py eventbus has several different possible events which subscribers will be notified of.
-The kafka_queue plugin provides configuration to subscribe a kafka producer to specific webhook
-events and the kafka topic to be produced. kafka webhook producers are configured with the aca-py
-event and the string template to be produced in kafka. The string templates have access to the
-`wallet_id` for additional flexibility in topic string building.
+The following is a partial enumeration of event topics emitted by ACA-Py.
 
 ## Webhook Events
-
 
 `^acapy::webhook::(.*)$` with `topic` groups matching
 

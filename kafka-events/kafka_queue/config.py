@@ -1,11 +1,16 @@
 """Kafka Queue configuration."""
 
 import logging
-from typing import Any, List, Mapping, Optional, Union
+from typing import List, Mapping, Optional, Union
+from aries_cloudagent.config.base import BaseSettings
+from aries_cloudagent.config.settings import Settings
 from pydantic import BaseModel, Extra
 
 
 LOGGER = logging.getLogger(__name__)
+
+
+PLUGIN_KEYS = {"kafka", "kafka-queue"}
 
 
 def _alias_generator(key: str) -> str:
@@ -82,14 +87,19 @@ class KafkaConfig(BaseModel):
         )
 
 
-def get_config(settings: Mapping[str, Any]) -> KafkaConfig:
+def get_config(root_settings: BaseSettings) -> KafkaConfig:
     """Retrieve producer configuration from settings."""
-    try:
-        LOGGER.debug("Constructing config from: %s", settings.get("plugin_config"))
-        config_dict = settings["plugin_config"].get("kafka-queue", {})
-        LOGGER.debug("Retrieved: %s", config_dict)
-        config = KafkaConfig(**config_dict)
-    except KeyError:
+    assert isinstance(root_settings, Settings)
+
+    settings = {}
+    for key in PLUGIN_KEYS:
+        settings = root_settings.for_plugin(key, {})
+        if settings:
+            break
+
+    if settings:
+        config = KafkaConfig(**settings)
+    else:
         LOGGER.warning("Using default configuration")
         config = KafkaConfig.default()
 
