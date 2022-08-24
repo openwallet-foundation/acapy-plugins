@@ -3,6 +3,7 @@
 import logging
 from typing import List, Mapping, Optional, Union
 from aries_cloudagent.config.base import BaseSettings
+from aries_cloudagent.config.plugin_settings import PluginSettings
 from aries_cloudagent.config.settings import Settings
 from pydantic import BaseModel, Extra
 
@@ -91,13 +92,13 @@ def get_config(root_settings: BaseSettings) -> KafkaConfig:
     """Retrieve producer configuration from settings."""
     assert isinstance(root_settings, Settings)
 
-    settings = {}
+    settings = PluginSettings()
     for key in PLUGIN_KEYS:
-        settings = root_settings.for_plugin(key, {})
-        if settings:
+        settings = PluginSettings.for_plugin(root_settings, key, None)
+        if len(settings) > 0:
             break
 
-    if settings:
+    if len(settings) > 0:
         config = KafkaConfig(**settings)
     else:
         LOGGER.warning("Using default configuration")
