@@ -2,8 +2,8 @@ kafka-queue:
   # Events
   events:
     producer:
-      bootstrap-servers: kafka
-    topic-maps:
+      bootstrap_servers: kafka
+    topic_maps:
       "^acapy::webhook::(.*)$": "webhook-$wallet_id"
       "^acapy::record::connections::.*": "connections-$wallet_id"
       "^acapy::record::issue_credential::.*": "issue-credential-v1-$wallet_id"
@@ -14,12 +14,14 @@ kafka-queue:
 
   # Inbound Messages
   inbound:
-    group-id: kafka_queue
     topics:
       - "acapy-inbound-message"
+    consumer:
+      group_id: "aca-py agent"
+
 
   # Outbound Messages
   outbound:
     producer:
-      bootstrap-servers: kafka
+      bootstrap_servers: kafka
     topic: "acapy-outbound-message"

@@ -1,20 +1,18 @@
 """Basic in memory queue."""
 import base64
 import json
-
-from aries_cloudagent.core.profile import Profile
-from kafka_queue.config import OutboundConfig
 import logging
+import ssl
 from typing import List, Optional, Union
 
 from aiokafka.producer.producer import AIOKafkaProducer
+
+from aries_cloudagent.core.profile import Profile
 from aries_cloudagent.transport.outbound.base import (
     BaseOutboundTransport,
     OutboundTransportError,
 )
-
-from . import get_config
-
+from .config import get_config, OutboundConfig
 
 LOGGER = logging.getLogger(__name__)
 
@@ -58,20 +56,28 @@ class KafkaOutboundQueue(BaseOutboundTransport):
 
     def __init__(self, root_profile: Profile):
         """Initialize base queue type."""
-        super().__init__(root_profile)
-        LOGGER.error(get_config(root_profile.settings))
+        super().__init__(root_profile=root_profile)
+        LOGGER.info(get_config(root_profile.settings))
+
         self.config = (
             get_config(root_profile.settings).outbound or OutboundConfig.default()
         )
         LOGGER.info(
             f"Setting up kafka outbound queue with configuration: {self.config}"
         )
+
         self.producer: Optional[AIOKafkaProducer] = None
 
     async def start(self):
         """Start the queue."""
         LOGGER.info("Starting kafka outbound queue producer")
-        self.producer = AIOKafkaProducer(**self.config.producer.dict())
+
+        self.producer = AIOKafkaProducer(
+            **self.config.producer.dict(),
+            ssl_context=ssl.create_default_context()
+            if self.config.producer.ssl_required
+            else None,
+        )
         await self.producer.start()
 
     async def stop(self):
@@ -85,6 +91,7 @@ class KafkaOutboundQueue(BaseOutboundTransport):
         profile: Profile,
         payload: Union[str, bytes],
         endpoint: str,
+        metadata: dict = None,
     ):
         """Prepare and send message to external queue."""
         if not self.producer:

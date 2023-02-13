@@ -1,12 +1,14 @@
 """Kafka Queue configuration."""
 
 import logging
+from abc import ABC, abstractmethod
 from typing import List, Mapping, Optional, Union
+
+from pydantic import BaseModel, Extra
+
 from aries_cloudagent.config.base import BaseSettings
 from aries_cloudagent.config.plugin_settings import PluginSettings
 from aries_cloudagent.config.settings import Settings
-from pydantic import BaseModel, Extra
-
 
 LOGGER = logging.getLogger(__name__)
 
@@ -18,7 +20,20 @@ def _alias_generator(key: str) -> str:
     return key.replace("_", "-")
 
 
-class ProducerConfig(BaseModel):
+class SecurityProtocol(ABC):
+    SSL_PROTOCOLS = ("SSL", "SASL_SSL")
+
+    @property
+    def ssl_required(self) -> bool:
+        return self.security_protocol in self.SSL_PROTOCOLS
+
+    @property
+    @abstractmethod
+    def security_protocol(self) -> str:
+        pass
+
+
+class ProducerConfig(BaseModel, SecurityProtocol):
     bootstrap_servers: Union[str, List[str]]
 
     class Config:
@@ -29,6 +44,10 @@ class ProducerConfig(BaseModel):
     @classmethod
     def default(cls):
         return cls(bootstrap_servers="kafka")
+
+    @property
+    def security_protocol(self) -> str:
+        return self.dict().get("security_protocol")
 
 
 class EventsConfig(BaseModel):
@@ -52,8 +71,25 @@ class EventsConfig(BaseModel):
         )
 
 
-class InboundConfig(BaseModel):
+class ConsumerConfig(BaseModel, SecurityProtocol):
     group_id: str
+
+    class Config:
+        extra = Extra.allow
+        alias_generator = _alias_generator
+        allow_population_by_field_name = True
+
+    @classmethod
+    def default(cls):
+        return cls(group_id="kafka_queue")
+
+    @property
+    def security_protocol(self) -> bool:
+        return self.dict().get("security_protocol")
+
+
+class InboundConfig(BaseModel):
+    consumer: ConsumerConfig
     topics: List[str]
 
     class Config:
@@ -62,7 +98,7 @@ class InboundConfig(BaseModel):
 
     @classmethod
     def default(cls):
-        return cls(group_id="kafka_queue", topics=["acapy-inbound-message"])
+        return cls(consumer=ConsumerConfig.default(), topics=["acapy-inbound-message"])
 
 
 class OutboundConfig(BaseModel):

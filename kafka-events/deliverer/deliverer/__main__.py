@@ -43,7 +43,7 @@ async def _deliver_http_message(msg, outbound, producer, consumer, client):
             ) as response:
                 if response.status < 200 or response.status >= 300:
                     log_error("Invalid response code:", response.status)
-                    await asyncio.sleep(2 ** retries)
+                    await asyncio.sleep(2**retries)
                 else:
                     await consumer.commit()
                     break
