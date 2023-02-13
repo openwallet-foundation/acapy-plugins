@@ -5,10 +5,10 @@ description = "ACA-Py Event to Kafka Bridge"
 authors = ["Daniel Bluhm <dbluhm@pm.me>"]
 
 [tool.poetry.dependencies]
-python = "^3.6.9"
-aries-cloudagent = "^0.7.4"
+python = "^3.9"
+aries-cloudagent = "^1.0.0-rc1"
 ecdsa = "^0.16.1"
-aiokafka = "^0.7.1"
+aiokafka = "^0.8.0"
 pydantic = "^1.8.2"
 
 [tool.poetry.dev-dependencies]

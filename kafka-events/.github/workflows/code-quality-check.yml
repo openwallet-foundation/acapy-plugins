@@ -10,18 +10,18 @@ on:
 
 env:
   FLAKE8_VERSION: 3.9.2
-  BLACK_VERSION: 21.8b0
+  BLACK_VERSION: 22.3.0
 
 jobs:
   format:
     name: Format and Lint Check
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v2
-      - name: Set up Python 3.6
-        uses: actions/setup-python@v2
+      - uses: actions/checkout@v3
+      - name: Set up Python 3.9
+        uses: actions/setup-python@v4
         with:
-            python-version: 3.6
+            python-version: 3.9
       - name: Cache python environment
         id: cache-env
         uses: actions/cache@v2
