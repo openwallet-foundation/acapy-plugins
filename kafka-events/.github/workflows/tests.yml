@@ -28,7 +28,7 @@ jobs:
         python-version: ${{ matrix.python-version }}
     - name: Cache poetry installation
       id: cache-poetry
-      uses: actions/cache@v2
+      uses: actions/cache@v3
       with:
           path: ~/.local
           key: poetry-${{ runner.os }}-${{ matrix.python-version }}-${{ env.POETRY_VERSION }}-${{ hashFiles('.github/workflows/tests.yml') }}
@@ -43,7 +43,7 @@ jobs:
           echo "::set-output name=poetry-env::$(poetry env info --path)"
     - name: Cache poetry virtual environment
       id: cache-poetry-venv
-      uses: actions/cache@v2
+      uses: actions/cache@v3
       with:
           path: ${{ steps.setup-poetry-env.outputs.poetry-env }}
           key: poetry-env-${{ runner.os }}-${{ matrix.python-version }}-${{ env.POETRY_VERSION }}-${{ hashFiles('poetry.lock') }}-${{ hashFiles('.github/workflows/tests.yml') }}
