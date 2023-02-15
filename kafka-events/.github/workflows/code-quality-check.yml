@@ -24,7 +24,7 @@ jobs:
             python-version: 3.9
       - name: Cache python environment
         id: cache-env
-        uses: actions/cache@v2
+        uses: actions/cache@v3
         with:
             path: env
             key: ${{ runner.os }}-format-lint-${{ env.FLAKE8_VERSION }}-${{ env.BLACK_VERSION }}-${{ hashFiles('.github/workflows/code-quality-check.yml') }}

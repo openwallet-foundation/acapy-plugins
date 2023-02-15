@@ -16,7 +16,7 @@ jobs:
         python-version: 3.9
     - name: Cache python environment
       id: cache-env
-      uses: actions/cache@v2
+      uses: actions/cache@v3
       with:
           path: ${{ env.pythonLocation }}
           key: ${{ runner.os }}-deploy-${{ hashFiles('poetry.lock') }}
@@ -28,10 +28,10 @@ jobs:
       id: setup-poetry-env
       run: |
           poetry env use $(which python)
-          echo "::set-output name=poetry-env::$(poetry env info --path)"
+          echo "poetry-env=$(poetry env info --path)" >> $GITHUB_OUTPUT
     - name: Cache poetry environment
       id: cache-poetry
-      uses: actions/cache@v2
+      uses: actions/cache@v3
       with:
           path: ${{ steps.setup-poetry-env.outputs.poetry-env }}
           key: ${{ runner.os }}-poetry-${{ hashFiles('poetry.lock') }}
