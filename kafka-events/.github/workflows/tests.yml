@@ -40,7 +40,7 @@ jobs:
       id: setup-poetry-env
       run: |
           poetry env use $(which python)
-          echo "::set-output name=poetry-env::$(poetry env info --path)"
+          echo "poetry-env=$(poetry env info --path)" >> $GITHUB_OUTPUT
     - name: Cache poetry virtual environment
       id: cache-poetry-venv
       uses: actions/cache@v3
