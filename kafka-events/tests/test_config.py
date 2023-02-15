@@ -1,9 +1,8 @@
 from aries_cloudagent.config.settings import Settings
-
-from kafka_queue.config import InboundConfig, OutboundConfig, EventsConfig
 from kafka_queue import config
+from kafka_queue.config import InboundConfig, OutboundConfig, EventsConfig
 
-DUMMY_INBOUND_CONFIG = {"group-id": "some-group-id", "topics": []}
+DUMMY_INBOUND_CONFIG = {"consumer": {"group-id": "some-group-id"}, "topics": []}
 DUMMY_OUTBOUND_CONFIG = None
 DUMMY_EVENTS_CONFIG = None
 
@@ -26,7 +25,7 @@ def test_get_config_tries_all_config_keys():
     plugin_config = config.get_config(Settings(settings))
 
     # then
-    assert plugin_config.inbound.group_id == "some-group-id"
+    assert plugin_config.inbound.consumer.group_id == "some-group-id"
 
 
 def test_get_config_falls_back_to_default():

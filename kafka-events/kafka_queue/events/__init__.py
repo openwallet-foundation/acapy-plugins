@@ -3,17 +3,17 @@
 import json
 import logging
 import re
+import ssl
 from string import Template
 from typing import Optional, cast
 
 from aiokafka import AIOKafkaProducer
+
+from aries_cloudagent.config.injection_context import InjectionContext
 from aries_cloudagent.core.event_bus import Event, EventBus, EventWithMetadata
 from aries_cloudagent.core.profile import Profile
 from aries_cloudagent.core.util import SHUTDOWN_EVENT_PATTERN, STARTUP_EVENT_PATTERN
-from aries_cloudagent.config.injection_context import InjectionContext
-
 from ..config import get_config, EventsConfig
-
 
 LOGGER = logging.getLogger(__name__)
 
@@ -42,7 +42,13 @@ WEBHOOK_RE = re.compile(r"acapy::webhook::{.*}")
 
 async def on_startup(profile: Profile, event: Event):
     config = get_config(profile.settings).events or EventsConfig.default()
-    producer = AIOKafkaProducer(**config.producer.dict())
+
+    producer = AIOKafkaProducer(
+        **config.producer.dict(),
+        ssl_context=ssl.create_default_context()
+        if config.producer.ssl_required
+        else None,
+    )
     profile.context.injector.bind_instance(AIOKafkaProducer, producer)
     await producer.start()
 
