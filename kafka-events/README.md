@@ -40,3 +40,17 @@ $ aca-py start \
     --plugin-config plugins-config.yaml \
     # ... the remainder of your startup arguments
 ```
+
+## Consuming DIDComm messages
+
+Messages produced by this plugin contain metadata in addition to the encrypted DIDComm message.
+Messages look like:
+```json
+{
+    "service": {"url": "recipient url"},
+    "metadata": {...},
+    "payload": "encryped_and_packed_didcomm_message"
+}
+```
+
+Be cautious and only send the `payload` content over the wire to the DIDComm recipient.

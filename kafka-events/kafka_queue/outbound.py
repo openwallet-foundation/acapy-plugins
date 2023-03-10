@@ -12,6 +12,8 @@ from aries_cloudagent.transport.outbound.base import (
     BaseOutboundTransport,
     OutboundTransportError,
 )
+from aries_cloudagent.transport.outbound.manager import QueuedOutboundMessage
+
 from .config import get_config, OutboundConfig
 
 LOGGER = logging.getLogger(__name__)
@@ -89,7 +91,7 @@ class KafkaOutboundQueue(BaseOutboundTransport):
     async def handle_message(
         self,
         profile: Profile,
-        payload: Union[str, bytes],
+        outbound_message: QueuedOutboundMessage,
         endpoint: str,
         metadata: dict = None,
     ):
@@ -99,24 +101,33 @@ class KafkaOutboundQueue(BaseOutboundTransport):
         if not endpoint:
             raise OutboundTransportError("No endpoint provided")
 
-        message = str.encode(
-            json.dumps(
-                {
-                    "service": {"url": endpoint},
-                    "payload": base64.urlsafe_b64encode(payload).decode(),
-                }
-            ),
+        message_dict = {
+            "service": {"url": endpoint},
+            "metadata": {
+                "wallet_id": profile.settings.get("wallet.id"),
+                "connection_id": outbound_message.message.connection_id,
+                "message": outbound_message.message.payload,
+            },
+            "payload": base64.urlsafe_b64encode(outbound_message.payload).decode(),
+        }
+        json_message = str.encode(
+            json.dumps(message_dict),
         )
+
         topic = self.config.topic
-        partition_key = ",".join(_recipients_from_packed_message(payload)).encode()
+        partition_key = ",".join(
+            _recipients_from_packed_message(outbound_message.payload)
+        ).encode()
 
         try:
             LOGGER.info(
                 "  - Producing message for kafka: (%s)[%s]: %s",
                 topic,
                 partition_key,
-                message,
+                json_message,
             )
-            return await self.producer.send_and_wait(topic, message, key=partition_key)
+            return await self.producer.send_and_wait(
+                topic, json_message, key=partition_key
+            )
         except Exception:
             LOGGER.exception("Error while pushing to kafka")
