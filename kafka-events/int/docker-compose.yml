@@ -7,6 +7,7 @@ services:
       ZOOKEEPER_TICK_TIME: 2000
     ports:
       - 22181:2181
+
   kafka:
     image: confluentinc/cp-kafka:latest
     depends_on:
@@ -20,6 +21,7 @@ services:
       KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT,PLAINTEXT_HOST:PLAINTEXT
       KAFKA_INTER_BROKER_LISTENER_NAME: PLAINTEXT
       KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+
   restproxy:
     image: confluentinc/cp-kafka-rest
     restart: always
@@ -57,6 +59,7 @@ services:
       - WAIT_SLEEP_INTERVAL=1
       - WAIT_HOST_CONNECT_TIMEOUT=60
     depends_on:
+      - zookeeper
       - kafka
 
   deliverer:
@@ -73,6 +76,9 @@ services:
       - WAIT_HOSTS_TIMEOUT=120
       - WAIT_SLEEP_INTERVAL=1
       - WAIT_HOST_CONNECT_TIMEOUT=60
+    depends_on:
+      - zookeeper
+      - kafka
 
   echo:
     image: dbluhm/echo-agent:6c22a88
@@ -96,7 +102,16 @@ services:
       - restproxy
       - relay
       - deliverer
-    command: start -it kafka_queue.inbound kafka 0 -ot kafka_queue.outbound -e http://relay:80 --no-ledger --admin 0.0.0.0 3001 --admin-insecure-mode --plugin kafka_queue.events --log-level debug
+    command: >
+      start
+      -it kafka_queue.inbound kafka 0
+      -ot kafka_queue.outbound
+      -e http://relay:80
+      --no-ledger
+      --admin 0.0.0.0 3001
+      --admin-insecure-mode
+      --plugin kafka_queue.events
+      --log-level debug
     environment:
       - WAIT_BEFORE_HOSTS=5
       - WAIT_HOSTS=zookeeper:2181,kafka:9092,restproxy:8086,relay:80
@@ -119,7 +134,7 @@ services:
         - WAIT_BEFORE_HOSTS=6
         - WAIT_HOSTS=zookeeper:2181, kafka:9092, restproxy:8086, agent:3001, echo:3002
         - WAIT_HOSTS_TIMEOUT=120
-        - WAIT_SLEEP_INTERVAL=1
+        - WAIT_SLEEP_INTERVAL=3
         - WAIT_HOST_CONNECT_TIMEOUT=60
         - AGENT_HOST=agent
         - AGENT_PORT=3000
@@ -128,5 +143,6 @@ services:
       depends_on:
         - zookeeper
         - kafka
+        - restproxy
         - agent
         - echo
