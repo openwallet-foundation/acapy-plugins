@@ -10,6 +10,7 @@ from aiokafka.producer.producer import AIOKafkaProducer
 from aries_cloudagent.core.profile import Profile
 from aries_cloudagent.transport.outbound.base import (
     BaseOutboundTransport,
+    BaseWireFormat,
     OutboundTransportError,
 )
 from aries_cloudagent.transport.outbound.manager import QueuedOutboundMessage
@@ -56,9 +57,13 @@ class KafkaOutboundQueue(BaseOutboundTransport):
     schemes = ("kafka",)
     is_external = True
 
-    def __init__(self, root_profile: Profile):
+    def __init__(
+        self,
+        wire_format: Optional[BaseWireFormat] = None,
+        root_profile: Optional[Profile] = None,
+    ):
         """Initialize base queue type."""
-        super().__init__(root_profile=root_profile)
+        super().__init__(wire_format=wire_format, root_profile=root_profile)
         LOGGER.info(get_config(root_profile.settings))
 
         self.config = (
