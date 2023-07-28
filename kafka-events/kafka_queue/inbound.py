@@ -9,7 +9,7 @@ from aiokafka import AIOKafkaConsumer
 from aiokafka.structs import ConsumerRecord
 
 from aries_cloudagent.messaging.error import MessageParseError
-from aries_cloudagent.transport.error import WireFormatParseError
+from aries_cloudagent.transport.error import WireFormatParseError, RecipientKeysError
 from aries_cloudagent.transport.inbound.base import BaseInboundTransport
 from .config import get_config, InboundConfig
 
@@ -61,10 +61,12 @@ class KafkaInboundTransport(BaseInboundTransport):
                     async with session:
                         await session.receive(cast(bytes, payload))
 
-                except (JSONDecodeError, KeyError):
+                except (JSONDecodeError, KeyError, RecipientKeysError):
                     LOGGER.exception("Received invalid inbound message record")
                 except (MessageParseError, WireFormatParseError):
                     LOGGER.exception("Failed to process message")
+                except Exception:
+                    LOGGER.exception("Unexpected error while processing message")
 
     async def stop(self):
         await self.consumer.stop()
