@@ -14,7 +14,6 @@ from aries_cloudagent.transport.outbound.base import (
     OutboundTransportError,
 )
 from aries_cloudagent.transport.outbound.manager import QueuedOutboundMessage
-
 from .config import get_config, OutboundConfig
 
 LOGGER = logging.getLogger(__name__)
@@ -64,13 +63,9 @@ class KafkaOutboundQueue(BaseOutboundTransport):
     ):
         """Initialize base queue type."""
         super().__init__(wire_format=wire_format, root_profile=root_profile)
-        LOGGER.info(get_config(root_profile.settings))
 
         self.config = (
             get_config(root_profile.settings).outbound or OutboundConfig.default()
-        )
-        LOGGER.info(
-            f"Setting up kafka outbound queue with configuration: {self.config}"
         )
 
         self.producer: Optional[AIOKafkaProducer] = None

@@ -28,9 +28,6 @@ class KafkaInboundTransport(BaseInboundTransport):
             get_config(self.root_profile.context.settings).inbound
             or InboundConfig.default()
         )
-        LOGGER.info(
-            f"Setting up kafka inbound transport with configuration: {self.config}"
-        )
 
         self.consumer = AIOKafkaConsumer(
             *self.config.topics,
