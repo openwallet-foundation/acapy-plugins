@@ -1,4 +1,4 @@
-FROM python:3.7-alpine AS base
+FROM python:3.9-alpine AS base
 WORKDIR /usr/src/app
 RUN apk update && \
   apk add \
@@ -21,7 +21,7 @@ RUN mkdir ./relay && touch ./relay/__init__.py
 RUN poetry install
 
 # Copy virtual environment into clean base
-FROM python:3.7-alpine as main
+FROM python:3.9-alpine as main
 WORKDIR /usr/src/app
 COPY --from=base /usr/src/app /usr/src/app
 ENV PATH="/usr/src/app/.venv/bin:$PATH"
