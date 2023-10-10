@@ -6,7 +6,7 @@ authors = ["Adam Burdett <burdettadam@gmail.com>"]
 readme = "README.md"
 
 [tool.poetry.dependencies]
-python = "^3.11"
+python = "^3.9"
 aiohttp = "^3.8.5"
 aries-cloudagent = { version = "0.10.3" }
 aiohttp-cors = "^0.7.0"
