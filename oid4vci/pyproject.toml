@@ -1,0 +1,18 @@
+[tool.poetry]
+name = "oid4vci"
+version = "0.1.0"
+description = "oid4vci plugin for acapy."
+authors = ["Adam Burdett <burdettadam@gmail.com>"]
+readme = "README.md"
+
+[tool.poetry.dependencies]
+python = "^3.11"
+aiohttp = "^3.8.5"
+aries-cloudagent = { version = "0.10.3" }
+aiohttp-cors = "^0.7.0"
+
+
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
