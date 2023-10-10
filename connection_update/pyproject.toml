@@ -1,5 +1,5 @@
 [tool.poetry]
-name = "basicmessage_storage"
+name = "connection_update"
 version = "0.1.0"
 description = ""
 authors = ["Jason Sherman <tools@usingtechnolo.gy>"]
@@ -51,10 +51,10 @@ line-length = 90
 "**/{tests}/*" = ["F841", "D", "E501"]
 
 [tool.pytest.ini_options]
-testpaths = "basicmessage_storage"
+testpaths = "connection_update"
 addopts = """
     --quiet --junitxml=./test-reports/junit.xml
-    --cov-config .coveragerc --cov=basicmessage_storage --cov-report term --cov-report xml
+    --cov-config .coveragerc --cov=connection_update --cov-report term --cov-report xml
 """
 markers = []
 junit_family = "xunit1"

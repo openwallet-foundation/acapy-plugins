@@ -1,5 +1,5 @@
 auto-provision: true
-label: plugins
+label: plugin-connection-update
 
 inbound-transport:
    - [http, 0.0.0.0, 9060]
@@ -25,13 +25,7 @@ auto-accept-requests: true
 auto-ping-connection: true
 auto-respond-messages: true
 
-# multitenant
-multitenant: true
-multitenant-admin: true
-jwt-secret: changeme
-
 log-level: info
 
-# plugins
 plugin:
-  - basicmessage_storage.v1_0
+  - connection_update.v1_0
