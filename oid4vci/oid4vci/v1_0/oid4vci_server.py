@@ -90,7 +90,7 @@ class Oid4vciServer(BaseAdminServer):
         @web.middleware
         async def check_token(request: web.Request, handler):
             header_admin_api_key = request.headers.get("x-api-key")
-            admin_api_key = None
+            admin_api_key = ""
             valid_key = compare_digest(
                 admin_api_key.encode(), header_admin_api_key.encode()
             )
@@ -108,7 +108,7 @@ class Oid4vciServer(BaseAdminServer):
             else:
                 raise web.HTTPUnauthorized()
 
-        middlewares.append(check_token)
+        #middlewares.append(check_token)
         # ----------
 
         @web.middleware

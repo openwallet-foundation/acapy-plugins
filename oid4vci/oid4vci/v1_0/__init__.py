@@ -23,19 +23,7 @@ async def setup(context: InjectionContext):
 
     event_bus.subscribe(STARTUP_EVENT_PATTERN, started_event_handler)
     LOGGER.info("< oid4vci plugin setup.")
-    try:
-        host = context.settings.get("oid4vci.host", "0.0.0.0")
-        port = context.settings.get("oid4vci.port", "8081")
-        oid4vci = Oid4vciServer(
-            host,
-            port,
-            context,
-            context.profile,
-        )
-        context.injector.bind_instance(Oid4vciServer, oid4vci)
-    except Exception:
-        LOGGER.exception("Unable to register admin server")
-        raise
+    
 
 
 
@@ -43,5 +31,18 @@ async def setup(context: InjectionContext):
 async def started_event_handler(profile: Profile, event: Event):
     """Event handler for Basic Messages."""
     LOGGER.info(event.payload)
+    try:
+        host = profile.context.settings.get("oid4vci.host", "0.0.0.0")
+        port = profile.context.settings.get("oid4vci.port", "8081")
+        oid4vci = Oid4vciServer(
+            host,
+            port,
+            profile.context,
+            profile,
+        )
+        profile.context.injector.bind_instance(Oid4vciServer, oid4vci)
+    except Exception:
+        LOGGER.exception("Unable to register admin server")
+        raise
     oid4vci = profile.inject(Oid4vciServer)
     await oid4vci.start()
