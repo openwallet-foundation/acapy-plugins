@@ -26,6 +26,8 @@ from marshmallow import fields
 LOGGER = logging.getLogger(__name__)
 
 
+class GetTokenSchema(OpenAPISchema):
+    """Schema for ..."""
 
 
 class AdminResetSchema(OpenAPISchema):
@@ -49,7 +51,7 @@ class AdminStatusReadinessSchema(OpenAPISchema):
 
 
 class Oid4vciServer(BaseAdminServer):
-    """Admin HTTP server class."""
+    """Oid4vci HTTP server class."""
 
     def __init__(
         self,
@@ -108,7 +110,7 @@ class Oid4vciServer(BaseAdminServer):
             else:
                 raise web.HTTPUnauthorized()
 
-        #middlewares.append(check_token)
+        # middlewares.append(check_token)
         # ----------
 
         @web.middleware
@@ -136,6 +138,12 @@ class Oid4vciServer(BaseAdminServer):
 
         app.add_routes(
             [
+                web.get("/.well-known/openid-credential-issuer", self.oid_cred_issuer),
+                # web.get("/.well-known/", self.),
+                # web.get("/.well-known/", self.),
+                web.post("/credential", self.issue_cred),
+                web.get("/credential-offer", self.get_cred_offer),
+                web.post("/token", self.get_token),
                 web.get("/", self.redirect_handler, allow_head=True),
                 web.post("/status/reset", self.status_reset_handler),
                 web.get("/status/live", self.liveliness_handler, allow_head=False),
@@ -201,6 +209,27 @@ class Oid4vciServer(BaseAdminServer):
         if self.site:
             await self.site.stop()
             self.site = None
+
+    @docs(tags=["server"], summary="Reset statistics")
+    @response_schema(GetTokenSchema(), 200, description="")
+    async def oid_cred_issuer(self, request: web.BaseRequest):
+        pass
+
+    @docs(tags=["server"], summary="Reset statistics")
+    @response_schema(GetTokenSchema(), 200, description="")
+    async def issue_cred(self, request: web.BaseRequest):
+        pass
+
+    @docs(tags=["server"], summary="Reset statistics")
+    @response_schema(GetTokenSchema(), 200, description="")
+    async def get_cred_offer(self, request: web.BaseRequest):
+        pass
+
+    @docs(tags=["server"], summary="Reset statistics")
+    @response_schema(GetTokenSchema(), 200, description="")
+    async def get_token(self, request: web.BaseRequest):
+        """Token endpoint to exchange pre_authorized codes for access tokens."""
+        pass
 
     @docs(tags=["server"], summary="Reset statistics")
     @response_schema(AdminResetSchema(), 200, description="")
