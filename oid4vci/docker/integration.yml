@@ -1,4 +1,5 @@
-label: basicmessage_storage
+auto-provision: true
+label: oid4vci
 
 # Admin
 admin: [ 0.0.0.0, 3001 ]
@@ -23,3 +24,6 @@ log-level: info
 
 auto-accept-invites: true
 auto-respond-messages: true
+
+wallet-type: askar
+wallet-storage-type: default
