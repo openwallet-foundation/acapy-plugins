@@ -2,6 +2,8 @@
 
 import logging
 from hmac import compare_digest
+import secrets
+import string
 from typing import Callable, Coroutine
 
 import aiohttp_cors
@@ -9,6 +11,7 @@ from aiohttp import web
 from aiohttp_apispec import (
     docs,
     response_schema,
+    querystring_schema,
     setup_aiohttp_apispec,
     validation_middleware,
 )
@@ -24,7 +27,6 @@ from aries_cloudagent.version import __version__
 from marshmallow import fields
 
 LOGGER = logging.getLogger(__name__)
-
 
 
 class IssueCredentialRequestSchema(OpenAPISchema):
@@ -60,6 +62,15 @@ class TokenRequestSchema(OpenAPISchema):
         required=True,
         metadata= {"description": "", "example": ""}
     )
+
+class GetCredentialOfferSchema(OpenAPISchema):
+    """Schema for GetCredential"""
+
+    credentials = fields.List(fields.Str())
+    credential_issuer = fields.Str()
+    user_pin_required = fields.Bool(required=False)
+    exchange_id = fields.Str(required=False)
+
 
 class AdminResetSchema(OpenAPISchema):
     """Schema for the reset endpoint."""
@@ -251,10 +262,42 @@ class Oid4vciServer(BaseAdminServer):
     async def issue_cred(self, request: web.BaseRequest):
         pass
 
-    @docs(tags=["server"], summary="Reset statistics")
-    @response_schema(TokenRequestSchema(), 200, description="")
+    @docs(tags=["server"], summary="Get a credential offer")
+    @querystring_schema(GetCredentialOfferSchema())
     async def get_cred_offer(self, request: web.BaseRequest):
-        pass
+        """
+        Endpoint to retrieve an OIDC4VCI compliant offer, that
+        can f.e. be used in QR-Code presented to a compliant wallet.
+        """
+        credentials = request.query["credentials"]
+        credential_issuer_url = request.query["credential_issuer"]
+        profile = request["context"].profile
+
+        # TODO: check that the credential_issuer_url is associated with an issuer DID
+        # TODO: check that the credential requested is offered by the issuer
+
+        code = "".join(
+            secrets.choice(string.ascii_uppercase + string.digits) for _ in range(code_size)
+        )
+
+        grants = {
+            "urn:ietf:params:oauth:grant-type:pre-authorized_code": {
+                "pre-authorized_code": code,
+                "user_pin_required": False,
+            }
+        }
+
+        record = CredentialOfferRecord(
+            credential_issuer_url=credential_issuer_url,
+            credentials=credentials,
+            grants=grants,
+        )
+
+        async with profile.session() as session:
+            await record.save(session, reason="Save credential offer record.")
+
+        return web.json_response(record)
+
 
     @docs(tags=["oid4vci"], summary="Reset statistics")
     @response_schema(TokenRequestSchema(), 200, description="")
