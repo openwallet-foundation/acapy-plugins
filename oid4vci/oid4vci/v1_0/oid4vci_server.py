@@ -22,6 +22,7 @@ from aries_cloudagent.admin.server import debug_middleware, ready_middleware
 from aries_cloudagent.config.injection_context import InjectionContext
 from aries_cloudagent.core.profile import Profile
 from aries_cloudagent.messaging.models.openapi import OpenAPISchema
+from aries_cloudagent.messaging.models.base_record import BaseExchangeRecord
 from aries_cloudagent.utils.stats import Collector
 from aries_cloudagent.version import __version__
 from marshmallow import fields
@@ -52,6 +53,23 @@ class TokenRequestSchema(OpenAPISchema):
         required=True,
         metadata= {"description": "The client ID for the token request.", "example": ""}
     )
+
+
+class CredentialOfferRecord(BaseExchangeRecord):
+
+    def __init__(
+        self,
+        credential_issuer,
+        credentials,
+        grants,
+    ):
+        self.credential_issuer = credential_issuer
+        self.credentials = credentials
+        self.grants = grants
+
+
+class GetTokenSchema(OpenAPISchema):
+    """Schema for ..."""
 
     grant_type = fields.Str(
         required=True,
