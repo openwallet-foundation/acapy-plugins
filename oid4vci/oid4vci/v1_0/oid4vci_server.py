@@ -1,17 +1,17 @@
 """Admin server classes."""
 
 import logging
-from hmac import compare_digest
 import secrets
 import string
-from typing import Callable, Coroutine
+from hmac import compare_digest
 
 import aiohttp_cors
 from aiohttp import web
 from aiohttp_apispec import (
     docs,
-    response_schema,
     querystring_schema,
+    request_schema,
+    response_schema,
     setup_aiohttp_apispec,
     validation_middleware,
 )
@@ -21,8 +21,8 @@ from aries_cloudagent.admin.request_context import AdminRequestContext
 from aries_cloudagent.admin.server import debug_middleware, ready_middleware
 from aries_cloudagent.config.injection_context import InjectionContext
 from aries_cloudagent.core.profile import Profile
-from aries_cloudagent.messaging.models.openapi import OpenAPISchema
 from aries_cloudagent.messaging.models.base_record import BaseExchangeRecord
+from aries_cloudagent.messaging.models.openapi import OpenAPISchema
 from aries_cloudagent.utils.stats import Collector
 from aries_cloudagent.version import __version__
 from marshmallow import fields
@@ -30,28 +30,40 @@ from marshmallow import fields
 LOGGER = logging.getLogger(__name__)
 
 
+code_size = 8  # TODO: check
+
+
+class CredentialOfferRecord(BaseExchangeRecord):
+    def __init__(
+        self,
+        credential_issuer,
+        credentials,
+        grants,
+    ):
+        self.credential_issuer = credential_issuer
+        self.credentials = credentials
+        self.grants = grants
+
+
 class IssueCredentialRequestSchema(OpenAPISchema):
     format = fields.Str(
         required=True,
-        metadata= {"description": "The client ID for the token request.", "example": ""}
+        metadata={"description": "The client ID for the token request.", "example": ""},
     )
-    types= fields.List(
-        fields.Nested(fields.Str()),
+    types = fields.List(
+        fields.Str(),
         metadata={"description": "List of connection records"},
     )
-    credentialsSubject= fields.Dict(
-        metadata={"description": ""}
-    )
-    proof= fields.Dict(
-        metadata={"description": ""}
-    )
+    credentialsSubject = fields.Dict(metadata={"description": ""})
+    proof = fields.Dict(metadata={"description": ""})
+
 
 class TokenRequestSchema(OpenAPISchema):
     """Request schema for the /token endpoint."""
 
     client_id = fields.Str(
         required=True,
-        metadata= {"description": "The client ID for the token request.", "example": ""}
+        metadata={"description": "The client ID for the token request.", "example": ""},
     )
 
 
@@ -77,9 +89,9 @@ class GetTokenSchema(OpenAPISchema):
     )
 
     pre_authorized_code = fields.Str(
-        required=True,
-        metadata= {"description": "", "example": ""}
+        required=True, metadata={"description": "", "example": ""}
     )
+
 
 class GetCredentialOfferSchema(OpenAPISchema):
     """Schema for GetCredential"""
@@ -198,11 +210,15 @@ class Oid4vciServer(BaseAdminServer):
 
         app.add_routes(
             [
-                web.get("/.well-known/openid-credential-issuer", self.oid_cred_issuer),
-                # web.get("/.well-known/", self.),
-                # web.get("/.well-known/", self.),
+                web.get(
+                    "/.well-known/openid-credential-issuer",
+                    self.oid_cred_issuer,
+                    allow_head=False,
+                ),
+                # web.get("/.well-known/", self., allow_head=False),
+                # web.get("/.well-known/", self., allow_head=False),
                 web.post("/credential", self.issue_cred),
-                web.get("/credential-offer", self.get_cred_offer),
+                web.get("/credential-offer", self.get_cred_offer, allow_head=False),
                 web.post("/token", self.get_token),
                 web.get("/", self.redirect_handler, allow_head=True),
                 web.post("/status/reset", self.status_reset_handler),
@@ -271,16 +287,16 @@ class Oid4vciServer(BaseAdminServer):
             self.site = None
 
     @docs(tags=["oid4vci"], summary="Reset statistics")
-    @response_schema(TokenRequestSchema(), 200, description="")
+    @querystring_schema(TokenRequestSchema())
     async def oid_cred_issuer(self, request: web.BaseRequest):
         pass
 
-    @docs(tags=["oid4vci"], summary="Reset statistics")
-    @response_schema(IssueCredentialRequestSchema(), 200, description="")
+    @docs(tags=["oid4vci"], summary="Issue a credential")
+    @request_schema(IssueCredentialRequestSchema())
     async def issue_cred(self, request: web.BaseRequest):
         pass
 
-    @docs(tags=["server"], summary="Get a credential offer")
+    @docs(tags=["oid4vci"], summary="Get a credential offer")
     @querystring_schema(GetCredentialOfferSchema())
     async def get_cred_offer(self, request: web.BaseRequest):
         """
@@ -295,7 +311,8 @@ class Oid4vciServer(BaseAdminServer):
         # TODO: check that the credential requested is offered by the issuer
 
         code = "".join(
-            secrets.choice(string.ascii_uppercase + string.digits) for _ in range(code_size)
+            secrets.choice(string.ascii_uppercase + string.digits)
+            for _ in range(code_size)
         )
 
         grants = {
@@ -306,7 +323,7 @@ class Oid4vciServer(BaseAdminServer):
         }
 
         record = CredentialOfferRecord(
-            credential_issuer_url=credential_issuer_url,
+            credential_issuer=credential_issuer_url,
             credentials=credentials,
             grants=grants,
         )
@@ -316,12 +333,10 @@ class Oid4vciServer(BaseAdminServer):
 
         return web.json_response(record)
 
-
-    @docs(tags=["oid4vci"], summary="Reset statistics")
-    @response_schema(TokenRequestSchema(), 200, description="")
+    @docs(tags=["oid4vci"], summary="Get credential issuance token")
+    @querystring_schema(TokenRequestSchema())
     async def get_token(self, request: web.BaseRequest):
         """Token endpoint to exchange pre_authorized codes for access tokens."""
-        
 
     @docs(tags=["server"], summary="Reset statistics")
     @response_schema(AdminResetSchema(), 200, description="")
