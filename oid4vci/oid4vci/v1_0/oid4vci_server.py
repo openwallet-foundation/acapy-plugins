@@ -22,7 +22,7 @@ from aries_cloudagent.admin.request_context import AdminRequestContext
 from aries_cloudagent.admin.server import debug_middleware, ready_middleware
 from aries_cloudagent.config.injection_context import InjectionContext
 from aries_cloudagent.core.profile import Profile
-from aries_cloudagent.messaging.models.base_record import BaseExchangeRecord
+from aries_cloudagent.messaging.models.base_record import BaseExchangeRecord, BaseRecord
 from aries_cloudagent.messaging.models.openapi import OpenAPISchema
 from aries_cloudagent.utils.stats import Collector
 from aries_cloudagent.version import __version__
@@ -93,6 +93,35 @@ class GetTokenSchema(OpenAPISchema):
     pre_authorized_code = fields.Str(
         required=True, metadata={"description": "", "example": ""}
     )
+
+
+class OID4VCICredentialDefinition(BaseRecord):
+
+    def __init__(
+        self,
+        credential_definition_id,
+        format,
+        types,
+        cryptographic_binding_methods_supported,
+        cryptographic_suites_supported,
+        display,
+        credentialSubject,
+    ):
+        self.credential_definition_id = credential_definition_id
+        self.format = format
+        self.types = types
+        self.cryptographic_binding_methods_supported = cryptographic_binding_methods_supported
+        self.cryptographic_suites_supported = cryptographic_suites_supported
+        self.display = display
+        self.credentialSubject = credentialSubject
+
+    TAG_NAMES = {
+        "credential_definition_id",
+        "types",
+    }
+
+    def web_serialize(self) -> dict:
+        return self.serialize()
 
 
 class GetCredentialOfferSchema(OpenAPISchema):
@@ -290,10 +319,35 @@ class Oid4vciServer(BaseAdminServer):
             await self.site.stop()
             self.site = None
 
-    @docs(tags=["oid4vci"], summary="Reset statistics")
+    @docs(tags=["oid4vci"], summary="Get credential issuer metadata")
     @querystring_schema(TokenRequestSchema())
     async def oid_cred_issuer(self, request: web.BaseRequest):
-        pass
+
+        profile = request["context"].profile
+        public_url = profile.context.settings.get("public_url")  # TODO: check
+
+        # Wallet query to retrieve credential definitions
+        tag_filter = {"type": {"$in": ["sd_jwt", "jwt_vc_json"]}}
+        credential_definitions = OID4VCICredentialDefinition.retrieve_by_tag_filter(tag_filter)
+
+        credential_definitions_list = []
+        for credential in credential_definitions:
+            credential_serialized: dict = credential.web_serialize()
+            # TODO: modify result
+            credential_definitions_list.append(credential_serialized)
+
+        record = {
+            "credential_issuer": f"{public_url}/issuer",
+            "credential_endpoint": f"{public_url}/credential",
+            "credentials_supported": credential_definitions_list,
+            "authorization_server":  f"{public_url}/auth-server",
+            "batch_credential_endpoint": f"{public_url}/batch_credential",
+        }
+
+        async with profile.session() as session:
+            await record.save(session, reason="Save credential issuer metadata record.")
+
+        return record
 
     @docs(tags=["oid4vci"], summary="Issue a credential")
     @request_schema(IssueCredentialRequestSchema())
