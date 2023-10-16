@@ -4,6 +4,7 @@ import logging
 import secrets
 import string
 from hmac import compare_digest
+import jwt as pyjwt
 
 import aiohttp_cors
 from aiohttp import web
@@ -25,6 +26,7 @@ from aries_cloudagent.messaging.models.base_record import BaseExchangeRecord
 from aries_cloudagent.messaging.models.openapi import OpenAPISchema
 from aries_cloudagent.utils.stats import Collector
 from aries_cloudagent.version import __version__
+from aries_cloudagent.wallet.jwt import jwt_verify
 from marshmallow import fields
 
 LOGGER = logging.getLogger(__name__)
@@ -153,37 +155,39 @@ class Oid4vciServer(BaseAdminServer):
 
         def is_unprotected_path(path: str):
             return path in [
+                # public oid4vci
+                "/.well-known/openid-credential-issuer",
+                "/token",
+                "/credential-offer",
+                # public swagger
                 "/api/doc",
                 "/api/docs/swagger.json",
-                "/favicon.ico",
+                # non protected health checks
                 "/status/live",
                 "/status/ready",
             ] or path.startswith("/static/swagger/")
 
-        # TODO: repurpose this to check oid4vci jwt tokens ----------
         @web.middleware
         async def check_token(request: web.Request, handler):
-            header_admin_api_key = request.headers.get("x-api-key")
-            admin_api_key = ""
-            valid_key = compare_digest(
-                admin_api_key.encode(), header_admin_api_key.encode()
-            )
-
-            # We have to allow OPTIONS method access to paths without a key since
-            # browsers performing CORS requests will never include the original
-            # x-api-key header from the method that triggered the preflight
-            # OPTIONS check.
-            if (
-                valid_key
-                # or is_unprotected_path(request.path) # TODO: issue credential endpoint
-                or (request.method == "OPTIONS")
-            ):
+            # get token
+            authorization_header = request.headers.get("Authorization")
+            if is_unprotected_path(request.path):
+                return await handler(request)
+            if not authorization_header:
+                raise web.HTTPUnauthorized()  # no authentication
+            scheme, cred = authorization_header.split(" ")
+            if scheme.lower() != "bearer" or ():
+                raise web.HTTPUnauthorized()  # Invalid authentication credentials
+            jwt_header = pyjwt.get_unverified_header(cred)
+            if "did:key:" not in jwt_header["kid"]:
+                raise web.HTTPUnauthorized()  # Invalid authentication credentials
+            result = await jwt_verify(self.profile, cred)
+            if result.valid:
                 return await handler(request)
             else:
-                raise web.HTTPUnauthorized()
+                raise web.HTTPUnauthorized()  # Invalid credentials
 
-        # middlewares.append(check_token)
-        # ----------
+        middlewares.append(check_token)
 
         @web.middleware
         async def setup_context(request: web.Request, handler):
