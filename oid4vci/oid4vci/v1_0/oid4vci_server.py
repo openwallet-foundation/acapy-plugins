@@ -1,8 +1,6 @@
 """Admin server classes."""
 
 import logging
-import secrets
-import string
 from hmac import compare_digest
 import jwt as pyjwt
 
@@ -30,21 +28,6 @@ from aries_cloudagent.wallet.jwt import jwt_verify
 from marshmallow import fields
 
 LOGGER = logging.getLogger(__name__)
-
-
-code_size = 8  # TODO: check
-
-
-class CredentialOfferRecord(BaseExchangeRecord):
-    def __init__(
-        self,
-        credential_issuer,
-        credentials,
-        grants,
-    ):
-        self.credential_issuer = credential_issuer
-        self.credentials = credentials
-        self.grants = grants
 
 
 class IssueCredentialRequestSchema(OpenAPISchema):
@@ -96,7 +79,6 @@ class GetTokenSchema(OpenAPISchema):
 
 
 class OID4VCICredentialDefinition(BaseRecord):
-
     def __init__(
         self,
         credential_definition_id,
@@ -110,7 +92,9 @@ class OID4VCICredentialDefinition(BaseRecord):
         self.credential_definition_id = credential_definition_id
         self.format = format
         self.types = types
-        self.cryptographic_binding_methods_supported = cryptographic_binding_methods_supported
+        self.cryptographic_binding_methods_supported = (
+            cryptographic_binding_methods_supported
+        )
         self.cryptographic_suites_supported = cryptographic_suites_supported
         self.display = display
         self.credentialSubject = credentialSubject
@@ -122,15 +106,6 @@ class OID4VCICredentialDefinition(BaseRecord):
 
     def web_serialize(self) -> dict:
         return self.serialize()
-
-
-class GetCredentialOfferSchema(OpenAPISchema):
-    """Schema for GetCredential"""
-
-    credentials = fields.List(fields.Str())
-    credential_issuer = fields.Str()
-    user_pin_required = fields.Bool(required=False)
-    exchange_id = fields.Str(required=False)
 
 
 class AdminResetSchema(OpenAPISchema):
@@ -251,7 +226,6 @@ class Oid4vciServer(BaseAdminServer):
                 # web.get("/.well-known/", self., allow_head=False),
                 # web.get("/.well-known/", self., allow_head=False),
                 web.post("/credential", self.issue_cred),
-                web.get("/credential-offer", self.get_cred_offer, allow_head=False),
                 web.post("/token", self.get_token),
                 web.get("/", self.redirect_handler, allow_head=True),
                 web.post("/status/reset", self.status_reset_handler),
@@ -322,13 +296,14 @@ class Oid4vciServer(BaseAdminServer):
     @docs(tags=["oid4vci"], summary="Get credential issuer metadata")
     @querystring_schema(TokenRequestSchema())
     async def oid_cred_issuer(self, request: web.BaseRequest):
-
         profile = request["context"].profile
         public_url = profile.context.settings.get("public_url")  # TODO: check
 
         # Wallet query to retrieve credential definitions
         tag_filter = {"type": {"$in": ["sd_jwt", "jwt_vc_json"]}}
-        credential_definitions = OID4VCICredentialDefinition.retrieve_by_tag_filter(tag_filter)
+        credential_definitions = OID4VCICredentialDefinition.retrieve_by_tag_filter(
+            tag_filter
+        )
 
         credential_definitions_list = []
         for credential in credential_definitions:
@@ -340,7 +315,7 @@ class Oid4vciServer(BaseAdminServer):
             "credential_issuer": f"{public_url}/issuer",
             "credential_endpoint": f"{public_url}/credential",
             "credentials_supported": credential_definitions_list,
-            "authorization_server":  f"{public_url}/auth-server",
+            "authorization_server": f"{public_url}/auth-server",
             "batch_credential_endpoint": f"{public_url}/batch_credential",
         }
 
@@ -353,43 +328,6 @@ class Oid4vciServer(BaseAdminServer):
     @request_schema(IssueCredentialRequestSchema())
     async def issue_cred(self, request: web.BaseRequest):
         pass
-
-    @docs(tags=["oid4vci"], summary="Get a credential offer")
-    @querystring_schema(GetCredentialOfferSchema())
-    async def get_cred_offer(self, request: web.BaseRequest):
-        """
-        Endpoint to retrieve an OIDC4VCI compliant offer, that
-        can f.e. be used in QR-Code presented to a compliant wallet.
-        """
-        credentials = request.query["credentials"]
-        credential_issuer_url = request.query["credential_issuer"]
-        profile = request["context"].profile
-
-        # TODO: check that the credential_issuer_url is associated with an issuer DID
-        # TODO: check that the credential requested is offered by the issuer
-
-        code = "".join(
-            secrets.choice(string.ascii_uppercase + string.digits)
-            for _ in range(code_size)
-        )
-
-        grants = {
-            "urn:ietf:params:oauth:grant-type:pre-authorized_code": {
-                "pre-authorized_code": code,
-                "user_pin_required": False,
-            }
-        }
-
-        record = CredentialOfferRecord(
-            credential_issuer=credential_issuer_url,
-            credentials=credentials,
-            grants=grants,
-        )
-
-        async with profile.session() as session:
-            await record.save(session, reason="Save credential offer record.")
-
-        return web.json_response(record)
 
     @docs(tags=["oid4vci"], summary="Get credential issuance token")
     @querystring_schema(TokenRequestSchema())
