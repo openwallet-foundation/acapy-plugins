@@ -1,0 +1,88 @@
+version: '3'
+
+services:
+  
+  issuer:
+    build: 
+      dockerfile: demo/Dockerfile
+      context: ..
+    ports:
+      - "3001:3001"
+    environment:
+      RUST_LOG: warn
+    command: >
+      start
+        --inbound-transport http 0.0.0.0 3000
+        --outbound-transport http
+        --endpoint http://issuer:3000
+        --admin 0.0.0.0 3001
+        --admin-insecure-mode
+        --webhook-url http://webhook-listener:8080
+        --tails-server-base-url http://tails:6543
+        --genesis-url https://raw.githubusercontent.com/Indicio-tech/indicio-network/main/genesis_files/pool_transactions_testnet_genesis
+        --wallet-type askar
+        --wallet-name issuer
+        --wallet-key insecure
+        --auto-provision
+        --log-level debug
+        --debug-webhooks
+    healthcheck:
+      test: curl -s -o /dev/null -w '%{http_code}' "http://localhost:3001/status/live" | grep "200" > /dev/null
+      start_period: 30s
+      interval: 7s
+      timeout: 5s
+      retries: 5
+    depends_on:
+      webhook-listener:
+        condition: service_started
+      tails:
+        condition: service_started
+
+  webhook-listener:
+    image: mendhak/http-https-echo:18
+    environment:
+      - HTTP_PORT=8080
+
+  tails:
+    image: ghcr.io/bcgov/tails-server:latest
+    ports:
+      - 6543:6543
+    environment:
+      - GENESIS_URL=https://raw.githubusercontent.com/Indicio-tech/indicio-network/main/genesis_files/pool_transactions_testnet_genesis
+    command: >
+      tails-server
+      --host 0.0.0.0
+      --port 6543
+      --storage-path /tmp/tails-files
+      --log-level INFO
+
+  ngrok:
+    #image: ngrok/ngrok
+    image: wernight/ngrok
+    restart: unless-stopped
+    hostname: ngrok
+    volumes:
+      - ./ngrok.yml:/home/ngrok/.ngrok2/ngrok.yml:z
+    ports:
+      - "4040:4040"
+    command: ["ngrok", "http", "oid4vci:8001"]
+    healthcheck:
+      test: /bin/bash -c "</dev/tcp/ngrok/4040"
+      interval: 3s
+      timeout: 3s
+      start_period: 5s
+      retries: 5
+  
+
+  cache:
+    image: redis:6.2-alpine
+    restart: always
+    ports:
+      - '6379:6379'
+    command: redis-server --save 20 1 --loglevel warning --requirepass eYVX7EwVmmxKPCDmwMtyKVge8oLd2t81
+    volumes: 
+      - cache:/data
+
+volumes:
+  cache:
+    driver: local
