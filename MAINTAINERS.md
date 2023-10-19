@@ -20,11 +20,19 @@ Maintainers are assigned the following scopes in this repository:
 
 <!-- Please keep this sorted alphabetically by github -->
 
-| GitHub ID       | Name          | Scope | LFID | Discord ID | Email                  | Company Affiliation |
-| --------------- | ------------- | ----- | ---- | ---------- | ---------------------- | ------------------- |
-| dbluhm          | Daniel Bluhm  | Admin |      |            | daniel@indicio.tech    | Indicio PBC         |
-| usingtechnology | Jason Sherman | Admin |      |            | tools@usingtechnolo.gy | BC Gov              |
-
+| GitHub ID       | Name             | Scope      | LFID | Discord ID | Email | Company Affiliation |
+| --------------- | ---------------- | ---------- | ---- | ---------- | ----- | ------------------- |
+| andrewwhitehead | Andrew Whitehead | Maintainer |      |            |       | BC Gov              |
+| dbluhm          | Daniel Bluhm     |            |      |            |       | Indicio PBC         |
+| dhh1128         | Daniel Hardman   | Maintainer |      |            |       | Provenant           |
+| ianco           | Ian Costanzo     |            |      |            |       | Anonymous Systems   |
+| Jsyro           | Jason Syrotuck   |            |      |            |       | BC Gov              |
+| shaangill025    | Shaanjot Gill    |            |      |            |       | BC Gov              |
+| swcurran        | Stephen Curran   | Maintainer |      |            |       | BC Gov              |
+| TelegramSam     | Sam Curren       | Maintainer |      |            |       | Indicio PBC         |
+| TimoGlastra     | Timo Glastra     |            |      |            |       | Animo Solutions     |
+| WadeBarnes      | Wade Barnes      | Maintainer |      |            |       | BC Gov              |
+| usingtechnology | Jason Sherman    |            |      |            |       | BC Gov              |
 
 ## The Duties of a Maintainer
 
@@ -45,8 +53,8 @@ Maintainers are expected to perform the following duties for this repository. Th
   give guidance and encouragement to those wanting to contribute to the product, and those wanting to become maintainers.
 - Contribute to the product via GitHub Pull Requests.
 - Monitor requests from the Hyperledger Technical Oversight Committee about the
-contents and management of Hyperledger repositories, such as branch handling,
-required files in repositories and so on.
+  contents and management of Hyperledger repositories, such as branch handling,
+  required files in repositories and so on.
 - Contribute to the Hyperledger Project's Quarterly Report.
 
 ## Becoming a Maintainer
