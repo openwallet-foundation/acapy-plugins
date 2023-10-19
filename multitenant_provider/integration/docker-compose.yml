@@ -1,0 +1,28 @@
+version: "3"
+#***************************************************************
+# integration level test agents                                *
+#***************************************************************
+
+services:
+  admin:
+    image: plugin-image
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile
+      args:
+        - install_flags=--no-interaction --with integration
+    command: start --arg-file integration.yml --label admin -e http://admin:3000 --log-level debug
+
+  tests:
+    container_name: juggernaut
+    build:
+      context: .
+      dockerfile: Dockerfile.test.runner
+    environment:
+      - WAIT_BEFORE_HOSTS=3
+      - WAIT_HOSTS=admin:3000
+      - WAIT_HOSTS_TIMEOUT=60
+      - WAIT_SLEEP_INTERVAL=1
+      - WAIT_HOST_CONNECT_TIMEOUT=30
+    depends_on:
+      - admin
