@@ -27,23 +27,14 @@ def established_connection(bob, alice):
     resp = alice.receive_invite(invite, auto_accept="true")
     yield resp["connection_id"]
 
-
-
-def test_storage(bob, alice, established_connection):
+def test_send_message(bob, alice, established_connection):
     # make sure connection is active...
     time.sleep(2)
 
-    # alice send bob a message (alice will store their sent message)
-    resp = alice.send_message(established_connection, "hello bob")
-    assert True
+    test_alias = 'test-alias'
+    update_response = alice.connections_update(established_connection, alias=test_alias)
+    get_response = alice.get_connection(established_connection)
 
-    # make sure auto-respond messages have been exchanged
-    time.sleep(2)
+    assert update_response['alias'] == test_alias
+    assert get_response['alias'] == test_alias
 
-    # bob should have 1 received
-    bob_messages = bob.retrieve_basicmessages()
-    assert len(bob_messages["results"]) == 1
-
-    # alice should have 1 sent and 1 received (auto-reponse)
-    alice_messages = alice.retrieve_basicmessages()
-    assert len(alice_messages["results"]) == 2

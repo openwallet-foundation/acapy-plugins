@@ -1,7 +1,7 @@
 // For format details, see https://aka.ms/devcontainer.json. For config options, see the
 // README at: https://github.com/devcontainers/templates/tree/main/src/python
 {
-    "name": "basicmessage_storage",
+    "name": "connection_update",
     "build": {
         "dockerfile": "Dockerfile",
         "context": "..",
@@ -18,7 +18,7 @@
             ],
             "settings": {
                 "python.testing.pytestArgs": [
-                    "./basicmessage_storage",
+                    "./connection_update",
                     "--no-cov"
                 ],
                 "python.testing.unittestEnabled": false,
