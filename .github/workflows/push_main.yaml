@@ -41,6 +41,6 @@ jobs:
           for dir in ./*/; do
             cd $dir
             poetry install --only dev
-            poetry run ruff check ./
+            poetry run ruff check .
             cd ..
           done
