@@ -1,7 +1,4 @@
-# pylint: disable=redefined-outer-name
-
 from functools import wraps
-import time
 
 import pytest
 import requests
@@ -82,7 +79,7 @@ class Agent:
     @fail_if_not_ok("Failed to retrieve basic messages")
     def retrieve_basicmessages(self, **kwargs):
         """Retrieve connections."""
-        return get( self.url, "/basicmessages", params=kwargs )
+        return get(self.url, "/basicmessages", params=kwargs)
 
     @unwrap_json_response
     @fail_if_not_ok("Failed to send basic message")

@@ -1,3 +1,4 @@
+"""Setup script for basicmessage_storage."""
 #!/usr/bin/env python
 from setuptools import setup
 
