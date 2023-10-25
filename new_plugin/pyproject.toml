@@ -1,5 +1,5 @@
 [tool.poetry]
-name = "basicmessage_storage"
+name = "new_plugin"
 version = "0.1.0"
 description = ""
 authors = []
@@ -9,10 +9,8 @@ python = "^3.9"
 aries-cloudagent = { version = "0.10.3" }
 
 [tool.poetry.dev-dependencies]
-ruff="^0.1.2"
-black="23.7.0"
-
-# testing
+ruff = "^0.1.2"
+black = "23.7.0"
 asynctest = "0.13.0"
 pytest = "~7.4.0"
 pytest-asyncio = "0.14.0"
@@ -31,7 +29,6 @@ line-length = 90
 
 [tool.ruff.lint]
 select = ["E", "F", "C", "D"]
-
 ignore = [
     # Google Python Doc Style
     "D203", "D204", "D213", "D215", "D400", "D401", "D404", "D406", "D407",
@@ -46,11 +43,11 @@ ignore = [
 "**/{tests}/*" = ["F841", "D", "E501"]
 
 [tool.pytest.ini_options]
-testpaths = "basicmessage_storage"
+testpaths = "new_plugin"
 addopts = """
     -p no:warnings
     --quiet --junitxml=./test-reports/junit.xml
-    --cov-config .coveragerc --cov=basicmessage_storage --cov-report term --cov-report xml
+    --cov-config .coveragerc --cov=new_plugin --cov-report term --cov-report xml
 """
 markers = []
 junit_family = "xunit1"

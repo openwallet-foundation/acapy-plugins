@@ -2,7 +2,7 @@
 name = "connection_update"
 version = "0.1.0"
 description = ""
-authors = ["Jason Sherman <tools@usingtechnolo.gy>"]
+authors = []
 
 [tool.poetry.dependencies]
 python = "^3.9"
@@ -16,28 +16,21 @@ black="23.7.0"
 asynctest = "0.13.0"
 pytest = "~7.4.0"
 pytest-asyncio = "0.14.0"
-pytest-cov= "2.10.1"
-pytest-ruff="^0.1.1"
-mock= "~4.0"
+pytest-cov = "2.10.1"
+pytest-ruff = "^0.1.1"
 
 [tool.poetry.group.integration.dependencies]
-# askar 
-aries-askar= { version = "~0.2.5" }
-indy-credx= { version = "~1.0.0" }
-indy-vdr= { version = "~0.3.3" }
-
-# bbs
-ursa-bbs-signatures= { version = "~1.0.1" }
-
-# indy
-python3-indy= { version = "^1.11.1" }
+aries-askar = { version = "~0.2.5" }
+indy-credx = { version = "~1.0.0" }
+indy-vdr = { version = "~0.3.3" }
+ursa-bbs-signatures = { version = "~1.0.1" }
+python3-indy = { version = "^1.11.1" }
 
 [tool.ruff]
 line-length = 90
 
 [tool.ruff.lint]
 select = ["E", "F", "C", "D"]
-
 ignore = [
     # Google Python Doc Style
     "D203", "D204", "D213", "D215", "D400", "D401", "D404", "D406", "D407",

@@ -13,7 +13,7 @@ ENV PATH="/opt/poetry/bin:$PATH"
 RUN poetry config virtualenvs.in-project true
 
 # Setup project
-RUN mkdir base_empty_plugin && touch base_empty_plugin/__init__.py
+RUN mkdir new_plugin && touch new_plugin/__init__.py
 COPY pyproject.toml poetry.lock README.md ./
 ARG install_flags='--with integration'
 RUN poetry install ${install_flags}
@@ -24,7 +24,7 @@ WORKDIR /usr/src/app
 COPY --from=base /usr/src/app/.venv /usr/src/app/.venv
 ENV PATH="/usr/src/app/.venv/bin:$PATH"
 
-COPY base_empty_plugin/ base_empty_plugin/
+COPY new_plugin/ new_plugin/
 COPY docker/*.yml ./
 
 ENTRYPOINT ["/bin/bash", "-c", "aca-py \"$@\"", "--"]

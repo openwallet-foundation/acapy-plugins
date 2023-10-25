@@ -13,46 +13,26 @@
       "args": ["start", "--arg-file=${workspaceRoot}/docker/default.yml"]
     },
     {
-      "name": "ruff - base_empty_plugin",
+      "name": "ruff - plugin_globals",
       "type": "python",
       "request": "launch",
       "module": "ruff",
       "console": "integratedTerminal",
       "sudo": true,
       "justMyCode": true,
-      "cwd": "${workspaceFolder}/base_empty_plugin",
+      "cwd": "${workspaceFolder}/plugin_globals",
       "args": ["check", "."]
     },
     {
-      "name": "ruff fix - base_empty_plugin",
+      "name": "ruff fix - plugin_globals",
       "type": "python",
       "request": "launch",
       "module": "ruff",
       "console": "integratedTerminal",
       "sudo": true,
       "justMyCode": true,
-      "cwd": "${workspaceFolder}/base_empty_plugin",
+      "cwd": "${workspaceFolder}/plugin_globals",
       "args": ["check", ".", "--fix"]
-    },
-    {
-      "name": "black (check) - base_empty_plugin",
-      "type": "python",
-      "request": "launch",
-      "module": "black",
-      "console": "integratedTerminal",
-      "justMyCode": true,
-      "cwd": "${workspaceFolder}/base_empty_plugin",
-      "args": [".", "--check"]
-    },
-    {
-      "name": "black (format) - base_empty_plugin",
-      "type": "python",
-      "request": "launch",
-      "module": "black",
-      "console": "integratedTerminal",
-      "justMyCode": true,
-      "cwd": "${workspaceFolder}/base_empty_plugin",
-      "args": ["."]
     }
   ]
 }

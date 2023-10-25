@@ -1,4 +1,4 @@
-label: base_empty_plugin
+label: new_plugin
 
 # Admin
 admin: [0.0.0.0, 3001]
@@ -14,7 +14,7 @@ endpoint:
 
 # plugins
 plugin:
-  - base_empty_plugin.base_empty_version
+  - new_plugin.v1_0
 
 #config
 genesis-url: https://indy.igrant.io/genesis

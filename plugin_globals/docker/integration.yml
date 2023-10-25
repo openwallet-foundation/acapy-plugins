@@ -1,4 +1,4 @@
-label: test_plugin
+label: plugin_globals
 
 # Admin
 admin: [0.0.0.0, 3001]
@@ -14,7 +14,7 @@ endpoint:
 
 # plugins
 plugin:
-  - test_plugin.base_empty_version
+  - plugin_globals.v1_0
 
 #config
 genesis-url: https://indy.igrant.io/genesis
