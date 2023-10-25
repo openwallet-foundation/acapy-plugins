@@ -2,7 +2,7 @@ name: Prepare
 on:
   push:
     branches:
-      - main
+      - "**"
 
 jobs:
   lint:
