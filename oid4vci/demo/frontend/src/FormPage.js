@@ -25,11 +25,13 @@ const FormPage = () => {
 
     // api call to controller, `POST /exchange/submit`
     axios
-      .post("http://localhost:3001/oid4vci/create", {
-        name: firstName,
-        lastname: lastName,
-        email,
-        credential: selectedCredential,
+      .post("http://localhost:3001/oid4vci/exchange/create", {
+        credential_subject: {
+          name: firstName,
+          lastname: lastName,
+          email,
+        },
+        credential_supported_id: selectedCredential,
       })
       .then((response) => {
         // TODO: call offer endpoint

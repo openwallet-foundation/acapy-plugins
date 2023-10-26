@@ -3,7 +3,6 @@ import logging
 from typing import Mapping
 import secrets
 import string
-from aries_cloudagent.messaging.models.base_record import BaseExchangeRecord, BaseRecord
 
 from aiohttp import web
 from aiohttp_apispec import (
@@ -17,6 +16,10 @@ from aries_cloudagent.messaging.models.openapi import OpenAPISchema
 from aries_cloudagent.protocols.basicmessage.v1_0.message_types import SPEC_URI
 from aries_cloudagent.utils.tracing import AdminAPIMessageTracingSchema
 from marshmallow import fields
+from .models import (
+    CredentialOfferRecord,
+    OID4VCICredentialExchangeRecord,
+)
 
 LOGGER = logging.getLogger(__name__)
 code_size = 8  # TODO: check
@@ -29,9 +32,11 @@ class CredExRecordListQueryStringSchema(OpenAPISchema):
         required=False,
         metadata={"description": "Thread identifier"},
     )
-    role = fields.Str(
-        required=False,
-        metadata={"description": "Role assigned in credential exchange"},
+    filter = fields.List(
+        fields.Str(
+            required=False,
+            metadata={"description": "filters"},
+        )
     )
     state = fields.Str(
         required=False,
@@ -39,43 +44,35 @@ class CredExRecordListQueryStringSchema(OpenAPISchema):
     )
 
 
-class CredStoreRequestSchema(OpenAPISchema):
-    """Request schema for sending a credential store admin message."""
-
-    credential_id = fields.Str(required=False)
-
-
-class IssueCredSchemaCore(AdminAPIMessageTracingSchema):
+class CreateCredExSchema(AdminAPIMessageTracingSchema):
     """Filter, auto-remove, comment, trace."""
 
-    filter_ = fields.Str(
+    credential_supported_id = fields.Str(
         required=True,
-        data_key="filter",
-        metadata={"description": "Credential specification criteria by format"},
-    )
-    auto_remove = fields.Bool(
-        required=False,
         metadata={
-            "description": (
-                "Whether to remove the credential exchange record on completion"
-                " (overrides --preserve-exchange-records configuration setting)"
-            )
+            "description": "Identifier used to identify credential supported record",
         },
     )
-    comment = fields.Str(
-        required=False,
-        allow_none=True,
-        metadata={"description": "Human-readable comment"},
+    credential_subject = (
+        fields.Dict(
+            required=True,
+            metadata={
+                "description": "desired claim and value in credential",
+            },
+        ),
     )
-
-    credential_preview = fields.Str(required=False)
-
-    replacement_id = fields.Str(
+    nonce = (
+        fields.Str(
+            required=False,
+        ),
+    )
+    pin = (
+        fields.Str(
+            required=False,
+        ),
+    )
+    token = fields.Str(
         required=False,
-        allow_none=True,
-        metadata={
-            "description": "Optional identifier used to manage credential replacement",
-        },
     )
 
 
@@ -88,18 +85,6 @@ class CredExIdMatchInfoSchema(OpenAPISchema):
             "description": "Credential exchange identifier",
         },
     )
-
-
-class CredentialOfferRecord(BaseExchangeRecord):
-    def __init__(
-        self,
-        credential_issuer,
-        credentials,
-        grants,
-    ):
-        self.credential_issuer = credential_issuer
-        self.credentials = credentials
-        self.grants = grants
 
 
 class GetCredentialOfferSchema(OpenAPISchema):
@@ -131,27 +116,9 @@ async def credential_exchange_list(request: web.BaseRequest):
 
 @docs(
     tags=["oid4vci"],
-    summary="Fetch a single credential exchange record",
-)
-@match_info_schema(CredExIdMatchInfoSchema())
-async def credential_exchange_retrieve(request: web.BaseRequest):
-    """Request handler for fetching single credential exchange record.
-
-    Args:
-        request: aiohttp request object
-
-    Returns:
-        The credential exchange record
-
-    """
-    pass
-
-
-@docs(
-    tags=["oid4vci"],
     summary=("Create a credential exchange record"),
 )
-@request_schema(IssueCredSchemaCore())
+@request_schema(CreateCredExSchema())
 async def credential_exchange_create(request: web.BaseRequest):
     """Request handler for creating a credential from attr values.
 
@@ -165,7 +132,26 @@ async def credential_exchange_create(request: web.BaseRequest):
         The credential exchange record
 
     """
-    pass
+    context = request["context"]
+    body = await request.json()
+    credential_supported_id = body.get("credential_supported_id")
+    credential_subject = body.get("credential_subject")
+    # TODO: retrieve cred sup record and validate subjects
+    nonce = body.get("nonce")
+    pin = body.get("pin")
+    token = body.get("token")
+
+    # create exchange record from submitted
+    record = OID4VCICredentialExchangeRecord(
+        credential_supported_id=credential_supported_id,
+        credential_subject=credential_subject,
+        nonce=nonce,
+        pin=pin,
+        token=token,
+    )
+    async with context.session() as session:
+        await record.save(session, reason="New oid4vci exchange")
+    return web.json_response({"exchange_id": record.credential_exchange_id})
 
 
 async def _create_free_offer(
@@ -180,25 +166,6 @@ async def _create_free_offer(
     trace_msg: bool = None,
 ):
     """Create a credential offer and related exchange record."""
-    pass
-
-
-@docs(
-    tags=["oid4vci"],
-    summary="Store a received credential",
-)
-@match_info_schema(CredExIdMatchInfoSchema())
-@request_schema(CredStoreRequestSchema())
-async def credential_exchange_store(request: web.BaseRequest):
-    """Request handler for storing credential.
-
-    Args:
-        request: aiohttp request object
-
-    Returns:
-        The credential exchange record
-
-    """
     pass
 
 
@@ -254,6 +221,30 @@ async def get_cred_offer(request: web.BaseRequest):
     return web.json_response(record)
 
 
+@docs(tags=["oid4vci"], summary="Get a credential offer")
+@querystring_schema(GetCredentialOfferSchema())
+async def credential_supported_create(request: web.BaseRequest):
+    pass
+
+
+@docs(
+    tags=["oid4vci"],
+    summary="Fetch all credential supported records",
+)
+@querystring_schema(CredExRecordListQueryStringSchema)
+async def credential_supported_list(request: web.BaseRequest):
+    """Request handler for searching credential supported records.
+
+    Args:
+        request: aiohttp request object
+
+    Returns:
+        The connection list response
+
+    """
+    pass
+
+
 async def register(app: web.Application):
     """Register routes."""
     # add in the message list(s) route
@@ -261,23 +252,26 @@ async def register(app: web.Application):
         [
             web.get("/oid4vci/credential-offer", get_cred_offer, allow_head=False),
             web.get(
-                "/oid4vci/records",
+                "/oid4vci/exchange/records",
                 credential_exchange_list,
                 allow_head=False,
             ),
+            web.post("/oid4vci/exchange/create", credential_exchange_create),
+            web.delete(
+                "/oid4vci/exchange/records/{cred_ex_id}",
+                credential_exchange_remove,
+            ),
+            web.post(
+                "/oid4vci/credential-supported/create", credential_supported_create
+            ),
             web.get(
-                "/oid4vci/records/{cred_ex_id}",
-                credential_exchange_retrieve,
+                "/oid4vci/credential-supported/records",
+                credential_supported_list,
                 allow_head=False,
             ),
-            web.post("/oid4vci/create", credential_exchange_create),
-            web.post(
-                "/oid4vci/records/{cred_ex_id}/store",
-                credential_exchange_store,
-            ),
             web.delete(
-                "/oid4vci/records/{cred_ex_id}",
-                credential_exchange_remove,
+                "/oid4vci/exchange-supported/records/{cred_sup_id}",
+                credential_supported_list,
             ),
         ]
     )

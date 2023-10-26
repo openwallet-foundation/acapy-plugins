@@ -1,9 +1,10 @@
+auto-provision: true
 label: oid4vci
 
 # Admin
 admin: [ 0.0.0.0, 3001 ]
-admin-insecure-mode: false
-admin-api-key: change-me
+admin-insecure-mode: true
+# admin-api-key: change-me
 
 # Transport
 inbound-transport:
@@ -21,16 +22,21 @@ plugin:
 genesis-url: https://indy.igrant.io/genesis
 
 # Multi-tenancy
-multitenant: true
-jwt-secret: insecure-jwt-secret
-multitenant-admin: true
+# multitenant: true
+# jwt-secret: insecure-jwt-secret
+# multitenant-admin: true
 
 # Wallet
 # wallet-name: default
-# wallet-type: indy
+wallet-type: askar
+wallet-storage-type: default
 # wallet-key: "insecure, for use in demo only"
 
 log-level: info
 
+# Connections
+debug-connections: true
 auto-accept-invites: true
+auto-accept-requests: true
+auto-ping-connection: true
 auto-respond-messages: true
