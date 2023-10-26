@@ -1,7 +1,6 @@
 """Admin server classes."""
 
 import logging
-from hmac import compare_digest
 import jwt as pyjwt
 
 import aiohttp_cors
@@ -20,12 +19,11 @@ from aries_cloudagent.admin.request_context import AdminRequestContext
 from aries_cloudagent.admin.server import debug_middleware, ready_middleware
 from aries_cloudagent.config.injection_context import InjectionContext
 from aries_cloudagent.core.profile import Profile
-from aries_cloudagent.messaging.models.base_record import BaseExchangeRecord, BaseRecord
 from aries_cloudagent.messaging.models.openapi import OpenAPISchema
 from aries_cloudagent.utils.stats import Collector
-from aries_cloudagent.version import __version__
 from aries_cloudagent.wallet.jwt import jwt_verify
 from marshmallow import fields
+from .models import OID4VCICredentialSupported
 
 LOGGER = logging.getLogger(__name__)
 
@@ -77,35 +75,6 @@ class GetTokenSchema(OpenAPISchema):
         required=True, metadata={"description": "", "example": ""}
     )
 
-
-class OID4VCICredentialDefinition(BaseRecord):
-    def __init__(
-        self,
-        credential_definition_id,
-        format,
-        types,
-        cryptographic_binding_methods_supported,
-        cryptographic_suites_supported,
-        display,
-        credentialSubject,
-    ):
-        self.credential_definition_id = credential_definition_id
-        self.format = format
-        self.types = types
-        self.cryptographic_binding_methods_supported = (
-            cryptographic_binding_methods_supported
-        )
-        self.cryptographic_suites_supported = cryptographic_suites_supported
-        self.display = display
-        self.credentialSubject = credentialSubject
-
-    TAG_NAMES = {
-        "credential_definition_id",
-        "types",
-    }
-
-    def web_serialize(self) -> dict:
-        return self.serialize()
 
 
 class AdminResetSchema(OpenAPISchema):
@@ -301,7 +270,7 @@ class Oid4vciServer(BaseAdminServer):
 
         # Wallet query to retrieve credential definitions
         tag_filter = {"type": {"$in": ["sd_jwt", "jwt_vc_json"]}}
-        credential_definitions = OID4VCICredentialDefinition.retrieve_by_tag_filter(
+        credential_definitions = OID4VCICredentialSupported.retrieve_by_tag_filter(
             tag_filter
         )
 

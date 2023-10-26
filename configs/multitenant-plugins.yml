@@ -35,4 +35,3 @@ log-level: info
 # plugins
 plugin:
   - basicmessage_storage.v1_0
-  - oid4vci.v1_0

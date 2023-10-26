@@ -3,9 +3,12 @@ version: '3'
 services:
   
   issuer:
-    build: 
-      dockerfile: demo/Dockerfile
-      context: ..
+    # from .. run 
+    # DOCKER_DEFAULT_PLATFORM=linux/amd64 docker build -f ./docker/Dockerfile --tag oid4vci .  
+    image: oid4vci
+    #build: 
+      #dockerfile: docker/Dockerfile
+      #context: ..
     ports:
       - "3000:3000"
       - "3001:3001"
@@ -23,6 +26,8 @@ services:
         --tails-server-base-url http://tails:6543
         --genesis-url https://raw.githubusercontent.com/Indicio-tech/indicio-network/main/genesis_files/pool_transactions_testnet_genesis
         --wallet-type askar
+        --emit-new-didcomm-prefix
+        --wallet-storage-type default
         --wallet-name issuer
         --wallet-key insecure
         --auto-provision
