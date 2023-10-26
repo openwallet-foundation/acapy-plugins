@@ -6,7 +6,7 @@ on:
 
 jobs:
   lint:
-    name: "Perform lint checking with ruff"
+    name: "Code quality checks"
     runs-on: ubuntu-latest
     steps:
       #----------------------------------------------
@@ -29,18 +29,32 @@ jobs:
           virtualenvs-in-project: true
           installer-parallel: true
       #----------------------------------------------
-      #       Install dev dependencies and lint plugins
+      #       Install dependencies
       #----------------------------------------------
-      - name: Install dev dependencies and lint plugins
-        id: install-dev-deps-and-lint
+      - name: Install dependencies
+        id: install-dependencies
         run: |
 
-          # This will navigate to each subdirectory and install the dev dependencies and perform lint checking
+          # This will navigate to each subdirectory and install the dependencies
           # If we have a directory that isn't a plugin then it will need to skip it. Currently there is none. 
 
           for dir in ./*/; do
             cd $dir
-            poetry install --only dev
+            poetry install
+            cd ..
+          done
+      #----------------------------------------------
+      #       Lint plugins
+      #----------------------------------------------
+      - name: Lint plugins
+        id: lint-plugins
+        run: |
+
+          # This will navigate to each subdirectory and perform lint checking
+          # If we have a directory that isn't a plugin then it will need to skip it. Currently there is none. 
+
+          for dir in ./*/; do
+            cd $dir
             poetry run ruff check .
             cd ..
           done
