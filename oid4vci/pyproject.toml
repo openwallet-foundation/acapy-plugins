@@ -10,6 +10,7 @@ python = "^3.9"
 aiohttp = "^3.8.5"
 aries-cloudagent = { version = "0.10.3" }
 aiohttp-cors = "^0.7.0"
+marshmallow = "^3.20.1"
 
 [tool.poetry.dev-dependencies]
 ruff="^0.0.285"

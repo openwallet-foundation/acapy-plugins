@@ -14,12 +14,10 @@ from aiohttp_apispec import (
 from aries_cloudagent.core.profile import Profile
 from aries_cloudagent.messaging.models.openapi import OpenAPISchema
 from aries_cloudagent.protocols.basicmessage.v1_0.message_types import SPEC_URI
-from aries_cloudagent.utils.tracing import AdminAPIMessageTracingSchema
 from marshmallow import fields
-from .models import (
-    CredentialOfferRecord,
-    OID4VCICredentialExchangeRecord,
-)
+from .models import CredentialOfferRecord
+from .cred_sup_record import OID4VCICredentialSupported
+from .cred_ex_record import OID4VCICredentialExchangeRecord
 
 LOGGER = logging.getLogger(__name__)
 code_size = 8  # TODO: check
@@ -44,9 +42,7 @@ class CredExRecordListQueryStringSchema(OpenAPISchema):
     )
 
 
-class CreateCredExSchema(AdminAPIMessageTracingSchema):
-    """Filter, auto-remove, comment, trace."""
-
+class CreateCredExSchema(OpenAPISchema):
     credential_supported_id = fields.Str(
         required=True,
         metadata={
@@ -73,6 +69,51 @@ class CreateCredExSchema(AdminAPIMessageTracingSchema):
     )
     token = fields.Str(
         required=False,
+    )
+
+
+class CreateCredSupSchema(OpenAPISchema):
+    credential_definition_id = fields.Str(
+        required=True, metadata={"example": "UniversityDegree_JWT"}
+    )
+    format = fields.Str(required=True, metadata={"example": "jwt_vc_json"})
+    types = fields.List(
+        fields.Str(),
+        metadata={"example": ["VerifiableCredential", "UniversityDegreeCredential"]},
+    )
+    cryptographic_binding_methods_supported = fields.List(
+        fields.Str(), metadata={"example": []}
+    )
+    cryptographic_suites_supported = fields.List(
+        fields.Str(), metadata={"example": ["ES256K"]}
+    )
+    display = fields.List(
+        fields.Dict(),
+        metadata={
+            "example": [
+                {
+                    "name": "University Credential",
+                    "locale": "en-US",
+                    "logo": {
+                        "url": "https://exampleuniversity.com/public/logo.png",
+                        "alt_text": "a square logo of a university",
+                    },
+                    "background_color": "#12107c",
+                    "text_color": "#FFFFFF",
+                }
+            ]
+        },
+    )
+    credential_subject = fields.Dict(
+        metadata={
+            "given_name": {"display": [{"name": "Given Name", "locale": "en-US"}]},
+            "family_name": {"display": [{"name": "Surname", "locale": "en-US"}]},
+            "degree": {},
+            "gpa": {"display": [{"name": "GPA"}]},
+        }
+    )
+    scope = fields.Str(
+        required=True,
     )
 
 
@@ -221,11 +262,40 @@ async def get_cred_offer(request: web.BaseRequest):
     return web.json_response(record)
 
 
-@docs(tags=["oid4vci"], summary="Get a credential offer")
-@querystring_schema(GetCredentialOfferSchema())
+@docs(tags=["oid4vci"], summary="Register a Oid4vci credential")
+@request_schema(CreateCredSupSchema())
 async def credential_supported_create(request: web.BaseRequest):
-    pass
+    context = request["context"]
+    profile = context.profile
 
+    body = await request.json()
+
+    credential_definition_id = body.get("credential_definition_id")
+    format = body.get("format")
+    types = body.get("types")
+    cryptographic_binding_methods_supported = body.get(
+        "cryptographic_binding_methods_supported"
+    )
+    cryptographic_suites_supported = body.get("cryptographic_suites_supported")
+    display = body.get("display")
+    credential_subject = body.get("credential_subject")
+    scope = body.get("scope")
+
+    record = OID4VCICredentialSupported(
+        credential_definition_id= credential_definition_id,
+        format= format,
+        types = types,
+        cryptographic_binding_methods_supported = cryptographic_binding_methods_supported,
+        cryptographic_suites_supported = cryptographic_suites_supported,
+        display = display,
+        credential_subject = credential_subject,
+        scope = scope,
+    )
+
+    async with profile.session() as session:
+        await record.save(session, reason="Save credential supported record.")
+    
+    return web.json_response(record.serialize())
 
 @docs(
     tags=["oid4vci"],
