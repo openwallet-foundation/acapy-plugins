@@ -1,3 +1,4 @@
+"""Multitenant provider plugin routes."""
 import logging
 
 from aiohttp import web
@@ -27,8 +28,7 @@ class PluginCreateWalletRequestSchema(CreateWalletRequestSchema):
 
     @validates_schema
     def validate_fields(self, data, **kwargs):
-        """
-        Validate schema fields.
+        """Validate schema fields.
 
         Args:
             data: The data to validate
@@ -51,15 +51,14 @@ class PluginCreateWalletRequestSchema(CreateWalletRequestSchema):
 @request_schema(PluginCreateWalletRequestSchema)
 @response_schema(CreateWalletResponseSchema(), 200, description="")
 async def plugin_wallet_create(request: web.BaseRequest):
-    """
-    Request handler for adding a new subwallet for handling by the agent.
+    """Request handler for adding a new subwallet for handling by the agent.
 
     Args:
         request: aiohttp request object
     """
 
-    # we are just overriding the validation (expect askar to have a wallet_name and wallet key)
-    # so use the existing create_wallet call
+    # we are just overriding the validation (expect askar to have a
+    # wallet_name and wallet key) so use the existing create_wallet call
     return await wallet_create(request)
 
 
@@ -70,8 +69,7 @@ async def plugin_wallet_create(request: web.BaseRequest):
 @request_schema(CreateWalletTokenRequestSchema)
 @response_schema(CreateWalletTokenResponseSchema(), 200, description="")
 async def plugin_wallet_create_token(request: web.BaseRequest):
-    """
-    Request handler for creating an authorization token for a specific subwallet.
+    """Request handler for creating an authorization token for a specific subwallet.
 
     Args:
         request: aiohttp request object
@@ -87,7 +85,8 @@ async def plugin_wallet_create_token(request: web.BaseRequest):
     # which do not always return true, so wallet_key wasn't getting set or passed
     # into create_auth_token.
 
-    # if there's no body or the wallet_key is not in the body, or wallet_key is blank, return an error
+    # if there's no body or the wallet_key is not in the body,
+    # or wallet_key is blank, return an error
     if not request.body_exists:
         raise web.HTTPUnauthorized(reason="Missing wallet_key")
 
@@ -106,17 +105,17 @@ async def plugin_wallet_create_token(request: web.BaseRequest):
         async with profile.session() as session:
             wallet_record = await WalletRecord.retrieve_by_id(session, wallet_id)
 
-        # this logic is weird, a managed wallet cannot pass in a key.
-        # i guess this means that a controller determines who can call this endpoint?
-        # and there is some other way of ensuring the caller is using the correct wallet_id?
+        # this logic is weird, a managed wallet cannot pass in a key. ! guess
+        # this means that a controller determines who can call this endpoint? and
+        # there is some other way of ensuring the caller is using the correct wallet_id?
         if (not wallet_record.requires_external_key) and wallet_key:
             if config.errors.on_unneeded_wallet_key:
                 raise web.HTTPBadRequest(
-                    reason=f"Wallet {wallet_id} doesn't require the wallet key to be provided"
+                    reason=f"Wallet {wallet_id} doesn't require the wallet key to be provided"  # noqa: E501
                 )
             else:
                 LOGGER.warning(
-                    f"Wallet {wallet_id} doesn't require the wallet key but one was provided"
+                    f"Wallet {wallet_id} doesn't require the wallet key but one was provided"  # noqa: E501
                 )
 
         if not config.manager.always_check_provided_wallet_key:
@@ -169,14 +168,14 @@ async def register(app: web.Application):
     # ok, just in case we get loaded before the builtin multitenant (should be impossible)
     # let's make sure we've added endpoints we expect
     if not has_wallet_create:
-        LOGGER.info(f"adding POST /multitenancy/wallet route")
+        LOGGER.info("adding POST /multitenancy/wallet route")
         app.add_routes(
             [
                 web.post("/multitenancy/wallet", plugin_wallet_create),
             ]
         )
     if not has_wallet_create_token:
-        LOGGER.info(f"adding POST /multitenancy/wallet/<wallet_id>/token route")
+        LOGGER.info("adding POST /multitenancy/wallet/<wallet_id>/token route")
         app.add_routes(
             [
                 web.post(

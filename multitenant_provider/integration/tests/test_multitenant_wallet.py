@@ -69,8 +69,7 @@ def test_creating_and_authenticating_multiple_wallets(admin):
     time.sleep(0.1)
 
     wallets = admin.get_wallets()
-    wallet_names = map(
-        lambda wallet: wallet["settings"]["wallet.name"], wallets["results"])
+    wallet_names = (wallet["settings"]["wallet.name"] for wallet in wallets["results"])
 
     assert test_wallet_one in wallet_names
     assert test_wallet_two in wallet_names

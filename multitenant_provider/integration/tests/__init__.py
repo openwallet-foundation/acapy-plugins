@@ -60,7 +60,7 @@ class Agent:
     @fail_if_not_ok("Failed to create wallet")
     def create_wallet(self, payload):
         """Create wallet."""
-        return post(self.url, path=f"/multitenancy/wallet", data=payload)
+        return post(self.url, path="/multitenancy/wallet", data=payload)
 
     @unwrap_json_response
     @fail_if_not_ok("Failed to remove wallet")

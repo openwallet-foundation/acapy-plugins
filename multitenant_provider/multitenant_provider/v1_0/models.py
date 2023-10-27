@@ -1,3 +1,4 @@
+"""Multitenant Provider Wallet Token(s) Record Model."""
 from typing import List, Optional
 
 from aries_cloudagent.core.profile import ProfileSession
@@ -71,9 +72,10 @@ class WalletTokenRecord(BaseRecord):
         wallet_id: str,
     ) -> "WalletTokenRecord":
         """Retrieve WalletTokenRecord by wallet_id.
+
         Args:
             session: the profile session to use
-            wallet_id: the wallet_id by which to filter
+            wallet_id: the wallet_id by which to filter.
         """
         tag_filter = {
             **{"wallet_id": wallet_id for _ in [""] if wallet_id},

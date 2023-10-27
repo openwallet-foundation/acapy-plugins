@@ -1,3 +1,4 @@
+"""Multitenant provider manager."""
 import logging
 from datetime import datetime, timezone
 
@@ -76,7 +77,7 @@ class MulittokenHandler:
         # check the passed in value/hash against the calculated hash.
         check_input = bcrypt.checkpw(wallet_key.encode("utf-8"), wallet_key_token)
         self.logger.debug(
-            f"bcrypt.checkpw(wallet_key.encode('utf-8'), wallet_key_token) = {check_input}"
+            f"bcrypt.checkpw(wallet_key.encode('utf-8'), wallet_key_token) = {check_input}"  # noqa E501
         )
 
         # check the passed in value against the saved hash
@@ -85,7 +86,7 @@ class MulittokenHandler:
             wallet_token_record.wallet_key_hash.encode("utf-8"),
         )
         self.logger.debug(
-            f"bcrypt.checkpw(wallet_key.encode('utf-8'), wallet_record.wallet_key_hash.encode('utf-8')) = {check_saved}"
+            f"bcrypt.checkpw(wallet_key.encode('utf-8'), wallet_record.wallet_key_hash.encode('utf-8')) = {check_saved}"  # noqa E501
         )
 
         return check_input and check_saved
@@ -256,7 +257,10 @@ class BasicMultitokenMultitenantManager(MultitenantManager):
     def __init__(self, profile: Profile):
         super().__init__(profile)
         self.logger = logging.getLogger(__class__.__name__)
-        # we need to call the default implementation of create_wallet then add our token code afterward
+        """
+            we need to call the default implementation of 
+            create_wallet then add our token code afterward
+        """
         self._super_create_wallet = super().create_wallet
 
     async def create_auth_token(
@@ -293,7 +297,10 @@ class AskarMultitokenMultitenantManager(AskarProfileMultitenantManager):
     def __init__(self, profile: Profile, multitenant_profile: AskarProfile = None):
         super().__init__(profile, multitenant_profile)
         self.logger = logging.getLogger(__class__.__name__)
-        # we need to call the default implementation of create_wallet then add our token code afterward
+        """
+            we need to call the default implementation of 
+            create_wallet then add our token code afterward
+        """
         self._super_create_wallet = super().create_wallet
 
     async def create_auth_token(

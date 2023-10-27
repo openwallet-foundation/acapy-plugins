@@ -1,3 +1,4 @@
+"""Configuration classes for multitenant_provider."""
 import logging
 from datetime import timedelta
 from typing import Any, Mapping, Optional
@@ -82,6 +83,7 @@ class MultitenantProviderConfig(BaseModel):
 
 
 def process_config_dict(config_dict: dict) -> dict:
+    """Remove any keys that are not in the config class."""
     _filter = ["manager", "errors", "token_expiry"]
     for key, value in config_dict.items():
         if key in _filter:

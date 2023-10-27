@@ -15,6 +15,7 @@ LOGGER = logging.getLogger(__name__)
 
 
 async def setup(context: InjectionContext):
+    """Setup the plugin."""
     LOGGER.info("> plugin setup...")
     protocol_registry = context.inject(ProtocolRegistry)
     assert protocol_registry
@@ -28,12 +29,16 @@ async def setup(context: InjectionContext):
 
 
 async def on_startup(profile: Profile, event: Event):
+    """Handle startup event."""
     LOGGER.info("> on_startup")
     if profile.context.settings.get("multitenant.enabled"):
         _config = get_config(profile.settings)
         profile.context.injector.bind_instance(MultitenantProviderConfig, _config)
-        # need to replace some multi tenant managers... anything that was created during start up
-        # override the default factory...
+        """
+            need to replace some multi tenant managers... 
+            anything that was created during start up
+            override the default factory...
+        """
         profile.context.injector.bind_provider(
             BaseMultitenantManager, CustomMultitenantManagerProvider(profile)
         )

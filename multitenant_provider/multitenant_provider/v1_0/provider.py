@@ -32,7 +32,7 @@ class CustomMultitenantManagerProvider(MultitenantManagerProvider):
                 self.manager_class = manager_class
             except ClassNotFoundError as err:
                 raise InjectionError(
-                    f"Error loading multitenant manager, class '{manager_class}' not found."
+                    f"Error loading multitenant manager, class '{manager_class}' not found."  # noqa: E501
                 ) from err
 
         # return our loaded manager class...

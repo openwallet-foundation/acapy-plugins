@@ -1,4 +1,3 @@
-import collections
 from typing import Optional
 import asynctest
 import bcrypt
@@ -27,10 +26,11 @@ class MockInjectMultitenantProviderConfig:
             token_expiry=TokenExpiryConfig(),
         )
 
-    inject = lambda _: MultitenantProviderConfig(
-        manager=ManagerConfig(always_check_provided_wallet_key=False),
-        token_expiry=TokenExpiryConfig(),
-    )
+    def inject(_):
+        return MultitenantProviderConfig(
+            manager=ManagerConfig(always_check_provided_wallet_key=False),
+            token_expiry=TokenExpiryConfig(),
+        )
 
 
 class MockGetProfile:
@@ -124,25 +124,25 @@ class TestMulittokenHandler(AsyncTestCase):
         result = multi_token_handler.check_wallet_key(
             wallet_token_record, wallet_key="wallet-key"
         )
-        assert result == True
+        assert result is True
         assert mock_check.call_count == 2
 
         result = multi_token_handler.check_wallet_key(
             wallet_token_record, wallet_key="wallet-key"
         )
-        assert result == False
+        assert result is False
         assert mock_check.call_count == 4
 
         result = multi_token_handler.check_wallet_key(
             wallet_token_record, wallet_key="wallet-key"
         )
-        assert result == False
+        assert result is False
         assert mock_check.call_count == 6
 
         result = multi_token_handler.check_wallet_key(
             wallet_token_record, wallet_key="wallet-key"
         )
-        assert result == False
+        assert result is False
         assert mock_check.call_count == 8
 
     @asynctest.patch.object(
@@ -178,7 +178,7 @@ class TestMulittokenHandler(AsyncTestCase):
             await multi_token_handler.create_wallet(
                 settings={"wallet.key": "wallet-key"}, key_management_mode="managed"
             )
-            assert mock_find_record.called == False
+            assert mock_find_record.called is False
 
     @asynctest.patch.object(
         MulittokenHandler,
@@ -246,24 +246,6 @@ class TestMulittokenHandler(AsyncTestCase):
         MulittokenHandler,
         "get_profile",
         side_effect=get_create_token_side_effect(always_check_key=False),
-    )
-    async def test_create_auth_token_requires_key_without_key(self, _1, _2):
-        wallet_record = MockWalletRecordRequiresKey(True)
-        multi_token_handler = MulittokenHandler(self.manager)
-        with self.assertRaises(WalletKeyMissingError):
-            await multi_token_handler.create_auth_token(wallet_record)
-
-    @asynctest.patch.object(
-        MulittokenHandler,
-        "find_or_create_wallet_token_record",
-        return_value=WalletTokenRecord(
-            wallet_id="wallet-id",
-        ),
-    )
-    @asynctest.patch.object(
-        MulittokenHandler,
-        "get_profile",
-        side_effect=get_create_token_side_effect(False),
     )
     async def test_create_auth_token_requires_key_without_key(self, _1, _2):
         wallet_record = MockWalletRecordRequiresKey(True)
