@@ -23,8 +23,7 @@ from aries_cloudagent.messaging.models.openapi import OpenAPISchema
 from aries_cloudagent.utils.stats import Collector
 from aries_cloudagent.wallet.jwt import jwt_verify
 from marshmallow import fields
-from .models import OID4VCICredentialSupported
-
+from .cred_sup_record import OID4VCICredentialSupported
 LOGGER = logging.getLogger(__name__)
 
 
