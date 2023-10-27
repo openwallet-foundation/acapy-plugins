@@ -1,3 +1,4 @@
+"""v1.0 connection update protocol routes."""
 import functools
 import logging
 
@@ -17,6 +18,7 @@ LOGGER = logging.getLogger(__name__)
 
 
 def error_handler(func):
+    """Handle connection update errors."""
     @functools.wraps(func)
     async def wrapper(request):
         try:
@@ -89,5 +91,6 @@ async def register(app: web.Application):
 
 
 def post_process_routes(app: web.Application):
+    """Post-process routes."""
     LOGGER.info("> post-process routes")
     LOGGER.info("< post-process routes")

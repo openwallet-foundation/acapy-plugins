@@ -1,3 +1,4 @@
+"""Setup file for connection_update."""
 #!/usr/bin/env python
 from setuptools import setup
 
