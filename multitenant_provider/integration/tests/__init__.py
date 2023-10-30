@@ -11,7 +11,7 @@ ADMIN = "http://admin:3001"
 def get(agent: str, path: str, token: Optional[str] = None, **kwargs):
     # """Get."""
     if token:
-        headers = {'Authorization': 'Bearer ' + token}
+        headers = {"Authorization": "Bearer " + token}
     else:
         headers = None
 
@@ -66,22 +66,26 @@ class Agent:
     @fail_if_not_ok("Failed to remove wallet")
     def remove_wallet(self, wallet_id: str, payload: dict = None):
         """Remove wallet."""
-        return post(self.url, path=f"/multitenancy/wallet/{wallet_id}/remove", data=payload)
+        return post(
+            self.url, path=f"/multitenancy/wallet/{wallet_id}/remove", data=payload
+        )
 
     @unwrap_json_response
     @fail_if_not_ok("Failed to get token")
-    def get_token(self, wallet_id: str, payload: dict = None):
+    def get_token(self, wallet_id: str, payload: dict = {}):
         """Create wallet."""
-        return post(self.url, path=f"/multitenancy/wallet/{wallet_id}/token", data=payload)
+        return post(
+            self.url, path=f"/multitenancy/wallet/{wallet_id}/token", data=payload
+        )
 
     @unwrap_json_response
     @fail_if_not_ok("Failed to get wallets")
     def get_wallets(self, **kwargs):
-        '''Get wallets.'''
+        """Get wallets."""
         return get(self.url, path="/multitenancy/wallets", **kwargs)
 
     def get_connections(self, token, **kwargs):
-        '''Get wallets.'''
+        """Get connections."""
         return get(self.url, path="/connections", token=token, **kwargs)
 
     def get(self, path: str, return_json: bool = True, fail_with: str = None, **kwargs):
