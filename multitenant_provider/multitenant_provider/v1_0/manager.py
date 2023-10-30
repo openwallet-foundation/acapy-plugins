@@ -28,16 +28,21 @@ class WalletKeyMismatchError(BaseError):
 
 
 class MulittokenHandler:
+    """Handler for token creation and validation."""
+
     def __init__(self, manager: MultitenantManager):
+        """Initialize the handler."""
         self.manager = manager
         self.logger = logging.getLogger(__class__.__name__)
 
     def get_profile(self):
+        """Get the profile from the manager."""
         return self.manager._profile
 
     async def find_or_create_wallet_token_record(
         self, wallet_id: str, wallet_key: str = None
     ):
+        """Find or create a wallet token record."""
         # first, try and find the wallet token record
         try:
             async with self.get_profile().session() as session:
@@ -69,13 +74,15 @@ class MulittokenHandler:
             return wallet_token_record
 
     def check_wallet_key(self, wallet_token_record: WalletTokenRecord, wallet_key: str):
+        """Check the wallet key against the saved hash and salt."""
         # make a hash from passed in value with saved salt...
         wallet_key_token = bcrypt.hashpw(
             wallet_key.encode("utf-8"),
             wallet_token_record.wallet_key_salt.encode("utf-8"),
         )
         # check the passed in value/hash against the calculated hash.
-        check_input = bcrypt.checkpw(wallet_key.encode("utf-8"), wallet_key_token)
+        check_input = bcrypt.checkpw(
+            wallet_key.encode("utf-8"), wallet_key_token)
         self.logger.debug(
             f"bcrypt.checkpw(wallet_key.encode('utf-8'), wallet_key_token) = {check_input}"  # noqa E501
         )
@@ -134,6 +141,7 @@ class MulittokenHandler:
     async def create_auth_token(
         self, wallet_record: WalletRecord, wallet_key: str = None
     ) -> str:
+        """Create a JWT token for the wallet."""
         self.logger.info("> create_auth_token")
         config = self.get_profile().context.inject(MultitenantProviderConfig)
         async with self.get_profile().session() as session:
@@ -145,7 +153,8 @@ class MulittokenHandler:
         iat = datetime.now(tz=timezone.utc)
         exp = iat + config.token_expiry.get_token_expiry_delta()
 
-        jwt_payload = {"wallet_id": wallet_record.wallet_id, "iat": iat, "exp": exp}
+        jwt_payload = {"wallet_id": wallet_record.wallet_id,
+                       "iat": iat, "exp": exp}
         jwt_secret = self.get_profile().settings.get("multitenant.jwt_secret")
 
         if wallet_record.requires_external_key:
@@ -185,6 +194,7 @@ class MulittokenHandler:
     async def get_profile_for_token(
         self, context: InjectionContext, token: str
     ) -> Profile:
+        """Get the profile for the token."""
         self.logger.info("> get_profile_for_token")
 
         jwt_secret = self.get_profile().context.settings.get("multitenant.jwt_secret")
@@ -254,18 +264,20 @@ class MulittokenHandler:
 
 
 class BasicMultitokenMultitenantManager(MultitenantManager):
+    """Basic multitenant manager for multitenant provider."""
+
     def __init__(self, profile: Profile):
+        """Initialize the manager."""
         super().__init__(profile)
         self.logger = logging.getLogger(__class__.__name__)
-        """
-            we need to call the default implementation of 
-            create_wallet then add our token code afterward
-        """
+        # We need to call the default implementation of
+        # create_wallet then add our token code afterward
         self._super_create_wallet = super().create_wallet
 
     async def create_auth_token(
         self, wallet_record: WalletRecord, wallet_key: str = None
     ) -> str:
+        """Create a JWT token for the wallet."""
         self.logger.info("> create_auth_token")
         handler = MulittokenHandler(self)
         token = await handler.create_auth_token(wallet_record, wallet_key)
@@ -275,6 +287,7 @@ class BasicMultitokenMultitenantManager(MultitenantManager):
     async def get_profile_for_token(
         self, context: InjectionContext, token: str
     ) -> Profile:
+        """Get the profile for the token."""
         self.logger.info("> get_profile_for_token")
         handler = MulittokenHandler(self)
         profile = await handler.get_profile_for_token(context, token)
@@ -286,6 +299,7 @@ class BasicMultitokenMultitenantManager(MultitenantManager):
         settings: dict,
         key_management_mode: str,
     ) -> WalletRecord:
+        """Create new wallet and wallet record."""
         self.logger.info("> create_wallet")
         handler = MulittokenHandler(self)
         wallet_record = await handler.create_wallet(settings, key_management_mode)
@@ -294,18 +308,20 @@ class BasicMultitokenMultitenantManager(MultitenantManager):
 
 
 class AskarMultitokenMultitenantManager(AskarProfileMultitenantManager):
+    """Askar multitenant manager for multitenant provider."""
+
     def __init__(self, profile: Profile, multitenant_profile: AskarProfile = None):
+        """Initialize the manager."""
         super().__init__(profile, multitenant_profile)
         self.logger = logging.getLogger(__class__.__name__)
-        """
-            we need to call the default implementation of 
-            create_wallet then add our token code afterward
-        """
+        # We need to call the default implementation of
+        # create_wallet then add our token code afterward
         self._super_create_wallet = super().create_wallet
 
     async def create_auth_token(
         self, wallet_record: WalletRecord, wallet_key: str = None
     ) -> str:
+        """Create a JWT token for the wallet."""
         self.logger.info("> create_auth_token")
         handler = MulittokenHandler(self)
         token = await handler.create_auth_token(wallet_record, wallet_key)
@@ -315,6 +331,7 @@ class AskarMultitokenMultitenantManager(AskarProfileMultitenantManager):
     async def get_profile_for_token(
         self, context: InjectionContext, token: str
     ) -> Profile:
+        """Get the profile for the token."""
         self.logger.info("> get_profile_for_token")
         handler = MulittokenHandler(self)
         profile = await handler.get_profile_for_token(context, token)
@@ -326,6 +343,7 @@ class AskarMultitokenMultitenantManager(AskarProfileMultitenantManager):
         settings: dict,
         key_management_mode: str,
     ) -> WalletRecord:
+        """Create new wallet and wallet record."""
         self.logger.info("> create_wallet")
         handler = MulittokenHandler(self)
         wallet_record = await handler.create_wallet(settings, key_management_mode)

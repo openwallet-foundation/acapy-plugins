@@ -47,9 +47,11 @@ class WalletTokenRecord(BaseRecord):
 
     @property
     def issued_at_claims(self):
+        """Return issued_at_claims."""
         return self._issued_at_claims
 
     def add_issued_at_claims(self, iat):
+        """Add issued_at_claims to record."""
         self._issued_at_claims.append(iat)
 
     @property

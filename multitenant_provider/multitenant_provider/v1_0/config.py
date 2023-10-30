@@ -15,15 +15,18 @@ def _alias_generator(key: str) -> str:
 
 
 class ManagerConfig(BaseModel):
+    """Configuration for the multitenant manager."""
     class_name: Optional[str]  # real world, this is a UUID
     always_check_provided_wallet_key: bool = False
 
     class Config:
+        """Inner class for configuration."""
         alias_generator = _alias_generator
         allow_population_by_field_name = True
 
     @classmethod
     def default(cls):
+        """Return default configuration."""
         # consider this for local development only...
         return cls(
             class_name="multitenant_provider.v1_0.manager.BasicMultitokenMultitenantManager",
@@ -32,30 +35,37 @@ class ManagerConfig(BaseModel):
 
 
 class ErrorsConfig(BaseModel):
+    """Configuration for error handling."""
     on_unneeded_wallet_key: bool = True
 
     class Config:
+        """Inner class for configuration."""
         alias_generator = _alias_generator
         allow_population_by_field_name = True
 
     @classmethod
     def default(cls):
+        """Return default configuration."""
         return cls(on_unneeded_wallet_key=True)
 
 
 class TokenExpiryConfig(BaseModel):
+    """Configuration for token expiry."""
     units: Optional[str] = "weeks"  # weeks, days, hours, minutes
     amount: int = 52
 
     class Config:
+        """Inner class for configuration."""
         alias_generator = _alias_generator
         allow_population_by_field_name = True
 
     @classmethod
     def default(cls):
+        """Return default configuration."""
         return cls(units="weeks", quantity=52)
 
     def get_token_expiry_delta(self) -> timedelta:
+        """Return a timedelta representing the token expiry."""
         result = timedelta(weeks=52)
         if "weeks" == self.units:
             result = timedelta(weeks=self.amount)
@@ -69,12 +79,14 @@ class TokenExpiryConfig(BaseModel):
 
 
 class MultitenantProviderConfig(BaseModel):
+    """Configuration for the multitenant provider."""
     manager: Optional[ManagerConfig]
     errors: Optional[ErrorsConfig]
     token_expiry: Optional[TokenExpiryConfig]
 
     @classmethod
     def default(cls):
+        """Return default configuration."""
         return cls(
             manager=ManagerConfig.default(),
             errors=ErrorsConfig.default(),
@@ -94,8 +106,10 @@ def process_config_dict(config_dict: dict) -> dict:
 def get_config(settings: Mapping[str, Any]) -> MultitenantProviderConfig:
     """Retrieve configuration from settings."""
     try:
-        LOGGER.debug("Constructing config from: %s", settings.get("plugin_config"))
-        plugin_config_dict = settings["plugin_config"].get("multitenant_provider", {})
+        LOGGER.debug("Constructing config from: %s",
+                     settings.get("plugin_config"))
+        plugin_config_dict = settings["plugin_config"].get(
+            "multitenant_provider", {})
         LOGGER.debug("Retrieved: %s", plugin_config_dict)
         plugin_config_dict = process_config_dict(plugin_config_dict)
         LOGGER.debug("Parsed: %s", plugin_config_dict)
@@ -109,5 +123,6 @@ def get_config(settings: Mapping[str, Any]) -> MultitenantProviderConfig:
         config = MultitenantProviderConfig.default()
 
     LOGGER.debug("Returning config: %s", config.json(indent=2))
-    LOGGER.debug("Returning config(aliases): %s", config.json(by_alias=True, indent=2))
+    LOGGER.debug("Returning config(aliases): %s",
+                 config.json(by_alias=True, indent=2))
     return config

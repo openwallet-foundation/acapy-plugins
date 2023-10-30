@@ -13,7 +13,10 @@ LOGGER = logging.getLogger(__name__)
 
 
 class CustomMultitenantManagerProvider(MultitenantManagerProvider):
+    """Profile manager for multitenancy."""
+
     def __init__(self, root_profile):
+        """Initialize the multitenant manager provider."""
         super().__init__(root_profile)
         self.manager_class = None
 
