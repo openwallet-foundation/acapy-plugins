@@ -1,0 +1,54 @@
+name: Pull Request - Integration Tests
+on:
+  pull_request:
+    types: [opened, edited, synchronize, reopened, ready_for_review]
+    branches:
+      - "**"
+
+jobs:
+  integration-tests:
+    name: "Integration Tests"
+    runs-on: ubuntu-latest
+    steps:
+      #----------------------------------------------
+      #       check-out repo and install poetry
+      #----------------------------------------------
+      - name: Check out repository
+        uses: actions/checkout@v3
+      #----------------------------------------------
+      #       Get changed files
+      #----------------------------------------------
+      - name: Get changed files
+        id: changed-files
+        uses: tj-actions/changed-files@v40
+      - name: Initialize Docker Compose
+        uses: isbang/compose-action@v1.5.1
+      #----------------------------------------------
+      #       Run integration Tests
+      #----------------------------------------------
+      - name: Run integration tests
+        id: integration-tests
+        run: |
+
+          # This will navigate to each subdirectory and perform integration tests
+          # If we have a directory that isn't a plugin then it will need to skip it. Currently there is none. 
+          declare -a changed_dirs=()
+          for dir in ./*/; do
+            current_folder=$(basename "$dir")
+            for changed_file in ${{ steps.changed-files.outputs.all_changed_files }}; do
+              if [[ $changed_file == *"$current_folder"* ]]; then
+                if ! [[ ${changed_dirs[*]} =~ $current_folder ]]; then
+                  changed_dirs+=("$current_folder")
+                fi
+              fi
+            done
+          done
+
+
+          for dir in ${changed_dirs[*]}; do
+            echo "Running integration tests for $dir"
+            cd $dir/integration
+            docker compose build
+            docker compose up --exit-code-from tests
+            cd ../..
+          done
