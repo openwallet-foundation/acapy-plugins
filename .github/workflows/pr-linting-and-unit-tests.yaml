@@ -1,0 +1,91 @@
+name: Linting and Unit Tests
+on:
+  pull_request:
+    types: [opened, edited, synchronize, reopened, ready_for_review]
+    branches:
+      - "**"
+
+jobs:
+  linting-and-unit-tests:
+    name: "Code quality and unit tests"
+    runs-on: ubuntu-latest
+    outputs:
+      changed-plugins: ${{ steps.changed-plugins.outputs.cache-hit }}
+    steps:
+      #----------------------------------------------
+      #       Check out repo
+      #----------------------------------------------
+      - name: Check out repository
+        uses: actions/checkout@v3
+      #----------------------------------------------
+      #       Install python and poetry with cache
+      #----------------------------------------------
+      - name: Install poetry
+        run: pipx install poetry
+        id: setup-poetry
+      - uses: actions/setup-python@v4
+        with:
+          python-version: "3.9"
+          cache: "poetry"
+      #----------------------------------------------
+      #       Get changed files
+      #----------------------------------------------
+      - name: Get changed files
+        id: changed-files
+        uses: tj-actions/changed-files@v40
+      #----------------------------------------------
+      #       Get changed plugins
+      #----------------------------------------------
+      - name: Get changed plugins
+        id: changed-plugins
+        run: |
+
+          # Collects all the plugin names that have changes. 
+          # If there is directory that isn't a plugin then it will need to skip it. Currently there is none.
+          declare -a changed_dirs=()
+          for dir in ./*/; do
+            current_folder=$(basename "$dir")
+            for changed_file in ${{ steps.changed-files.outputs.all_changed_files }}; do
+              if [[ $changed_file == *"$current_folder"* ]]; then
+                if ! [[ ${changed_dirs[*]} =~ $current_folder ]]; then
+                  changed_dirs+=("$current_folder")
+                fi
+              fi
+            done
+          done
+
+          echo "changed-plugins=${changed_dirs[*]}" >> $GITHUB_OUTPUT
+      #----------------------------------------------
+      #       Install dependencies
+      #----------------------------------------------
+      - name: Install dependencies
+        id: install-dependencies
+        if: steps.cached-poetry-dependencies.outputs.cache-hit != 'true'
+        run: |
+          for dir in ${{ steps.changed-plugins.outputs.changed-plugins }}; do
+            cd $dir
+            poetry install --no-interaction --no-root
+            cd ..
+          done
+      #----------------------------------------------
+      #       Lint plugins
+      #----------------------------------------------
+      - name: Lint plugins
+        id: lint-plugins
+        run: |
+          for dir in ${{ steps.changed-plugins.outputs.changed-plugins }}; do
+            cd $dir
+            poetry run ruff check .
+            cd ..
+          done
+      #----------------------------------------------
+      #       Unit tests
+      #----------------------------------------------
+      - name: Unit test plugins
+        id: unit-tests
+        run: |
+          for dir in ${{ steps.changed-plugins.outputs.changed-plugins }}; do
+            cd $dir
+            poetry run pytest
+            cd ..
+          done

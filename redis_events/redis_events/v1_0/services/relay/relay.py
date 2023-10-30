@@ -119,7 +119,7 @@ class WSRelay(Relay):
             logging.exception(f"Unexpected redis client exception: {err}")
 
     async def start(self):
-        """Construct the aiohttp application."""
+        """Construct the http application."""
         app = web.Application()
         app.add_routes([web.get("/", self.message_handler)])
         runner = web.AppRunner(app)
