@@ -1,0 +1,41 @@
+label: multitenant_provider
+
+# Admin
+admin: [0.0.0.0, 3001]
+admin-insecure-mode: true # This should be false in production
+# admin-api-key: change-me
+
+# Transport
+inbound-transport:
+  - [http, 0.0.0.0, 3000]
+outbound-transport: http
+endpoint:
+  - http://host.docker.internal:3000
+
+plugin-config-value:
+  - multitenant_provider.manager.class_name="multitenant_provider.v1_0.manager.AskarMultitokenMultitenantManager"
+  - multitenant_provider.manager.always_check_provided_wallet_key=true
+  - multitenant_provider.errors.on_unneeded_wallet_key=false
+  - multitenant_provider.token_expiry.units=minutes
+  - multitenant_provider.token_expiry.amount=1
+
+# plugins
+plugin:
+  - multitenant_provider.v1_0
+
+#config
+genesis-url: https://indy.igrant.io/genesis
+
+# Wallet
+wallet-name: test-provider-wallet
+wallet-key: test-provider-key
+
+# Multi-tenancy
+multitenant: true
+jwt-secret: insecure-jwt-secret
+multitenant-admin: true
+
+log-level: info
+
+auto-accept-invites: true
+auto-respond-messages: true
