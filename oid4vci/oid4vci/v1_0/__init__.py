@@ -1,6 +1,5 @@
 import logging
 
-from aries_cloudagent.admin.base_server import BaseAdminServer
 from aries_cloudagent.config.injection_context import InjectionContext
 from aries_cloudagent.core.event_bus import Event, EventBus
 from aries_cloudagent.core.profile import Profile
@@ -23,9 +22,6 @@ async def setup(context: InjectionContext):
 
     event_bus.subscribe(STARTUP_EVENT_PATTERN, started_event_handler)
     LOGGER.info("< oid4vci plugin setup.")
-    
-
-
 
 
 async def started_event_handler(profile: Profile, event: Event):
