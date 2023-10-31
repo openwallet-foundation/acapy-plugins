@@ -24,6 +24,7 @@ from aries_cloudagent.utils.stats import Collector
 from aries_cloudagent.wallet.jwt import jwt_verify
 from marshmallow import fields
 from .cred_sup_record import OID4VCICredentialSupported
+
 LOGGER = logging.getLogger(__name__)
 
 
@@ -49,31 +50,14 @@ class TokenRequestSchema(OpenAPISchema):
     )
 
 
-class CredentialOfferRecord(BaseExchangeRecord):
-
-    def __init__(
-        self,
-        credential_issuer,
-        credentials,
-        grants,
-    ):
-        self.credential_issuer = credential_issuer
-        self.credentials = credentials
-        self.grants = grants
-
-
 class GetTokenSchema(OpenAPISchema):
     """Schema for ..."""
 
-    grant_type = fields.Str(
-        required=True,
-        metadata= {"description": "", "example": ""}
-    )
+    grant_type = fields.Str(required=True, metadata={"description": "", "example": ""})
 
     pre_authorized_code = fields.Str(
         required=True, metadata={"description": "", "example": ""}
     )
-
 
 
 class AdminResetSchema(OpenAPISchema):
