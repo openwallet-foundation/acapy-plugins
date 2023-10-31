@@ -129,14 +129,18 @@ class Oid4vciServer(BaseAdminServer):
             authorization_header = request.headers.get("Authorization")
             if is_unprotected_path(request.path):
                 return await handler(request)
+
             if not authorization_header:
                 raise web.HTTPUnauthorized()  # no authentication
+
             scheme, cred = authorization_header.split(" ")
             if scheme.lower() != "bearer" or ():
                 raise web.HTTPUnauthorized()  # Invalid authentication credentials
+
             jwt_header = pyjwt.get_unverified_header(cred)
             if "did:key:" not in jwt_header["kid"]:
                 raise web.HTTPUnauthorized()  # Invalid authentication credentials
+
             result = await jwt_verify(self.profile, cred)
             if result.valid:
                 return await handler(request)
@@ -248,33 +252,28 @@ class Oid4vciServer(BaseAdminServer):
     @docs(tags=["oid4vci"], summary="Get credential issuer metadata")
     @querystring_schema(TokenRequestSchema())
     async def oid_cred_issuer(self, request: web.BaseRequest):
+        """Credential issuer metadata endpoint."""
         profile = request["context"].profile
         public_url = profile.context.settings.get("public_url")  # TODO: check
 
         # Wallet query to retrieve credential definitions
         tag_filter = {"type": {"$in": ["sd_jwt", "jwt_vc_json"]}}
-        credential_definitions = OID4VCICredentialSupported.retrieve_by_tag_filter(
-            tag_filter
-        )
+        async with profile.session() as session:
+            credentials_supported = await OID4VCICredentialSupported.query(
+                session, tag_filter
+            )
 
-        credential_definitions_list = []
-        for credential in credential_definitions:
-            credential_serialized: dict = credential.web_serialize()
-            # TODO: modify result
-            credential_definitions_list.append(credential_serialized)
-
-        record = {
+        metadata = {
             "credential_issuer": f"{public_url}/issuer",
             "credential_endpoint": f"{public_url}/credential",
-            "credentials_supported": credential_definitions_list,
+            "credentials_supported": [
+                cred.serialize() for cred in credentials_supported
+            ],
             "authorization_server": f"{public_url}/auth-server",
             "batch_credential_endpoint": f"{public_url}/batch_credential",
         }
 
-        async with profile.session() as session:
-            await record.save(session, reason="Save credential issuer metadata record.")
-
-        return record
+        return web.json_response(metadata)
 
     @docs(tags=["oid4vci"], summary="Issue a credential")
     @request_schema(IssueCredentialRequestSchema())
