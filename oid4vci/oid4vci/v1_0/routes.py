@@ -15,9 +15,8 @@ from aries_cloudagent.core.profile import Profile
 from aries_cloudagent.messaging.models.openapi import OpenAPISchema
 from aries_cloudagent.protocols.basicmessage.v1_0.message_types import SPEC_URI
 from marshmallow import fields
-from .models import CredentialOfferRecord
-from .cred_sup_record import OID4VCICredentialSupported
-from .cred_ex_record import OID4VCICredentialExchangeRecord
+from .models.cred_sup_record import OID4VCICredentialSupported
+from .models.cred_ex_record import OID4VCICredentialExchangeRecord
 
 LOGGER = logging.getLogger(__name__)
 code_size = 8  # TODO: check
@@ -129,7 +128,7 @@ class CredExIdMatchInfoSchema(OpenAPISchema):
 
 
 class GetCredentialOfferSchema(OpenAPISchema):
-    """Schema for GetCredential"""
+    """Schema for GetCredential."""
 
     credentials = fields.List(fields.Str())
     credential_issuer = fields.Str()
@@ -228,38 +227,28 @@ async def credential_exchange_remove(request: web.BaseRequest):
 @docs(tags=["oid4vci"], summary="Get a credential offer")
 @querystring_schema(GetCredentialOfferSchema())
 async def get_cred_offer(request: web.BaseRequest):
-    """
-    Endpoint to retrieve an OIDC4VCI compliant offer, that
+    """Endpoint to retrieve an OIDC4VCI compliant offer, that
     can f.e. be used in QR-Code presented to a compliant wallet.
     """
-    credentials = request.query["credentials"]
-    credential_issuer_url = request.query["credential_issuer"]
-    profile = request["context"].profile
+    request.query["credentials"]
+    request.query["credential_issuer"]
+    request["context"].profile
 
     # TODO: check that the credential_issuer_url is associated with an issuer DID
     # TODO: check that the credential requested is offered by the issuer
 
-    code = "".join(
+    "".join(
         secrets.choice(string.ascii_uppercase + string.digits) for _ in range(code_size)
     )
 
-    grants = {
-        "urn:ietf:params:oauth:grant-type:pre-authorized_code": {
-            "pre-authorized_code": code,
-            "user_pin_required": False,
-        }
-    }
+    # TODO:
+    # - Retrieve the exchange record
+    # - Generate code
+    # - Save the code to the exchange record
+    # - Create offer object
+    # - Return it
 
-    record = CredentialOfferRecord(
-        credential_issuer=credential_issuer_url,
-        credentials=credentials,
-        grants=grants,
-    )
-
-    async with profile.session() as session:
-        await record.save(session, reason="Save credential offer record.")
-
-    return web.json_response(record)
+    return web.json_response({})
 
 
 @docs(tags=["oid4vci"], summary="Register a Oid4vci credential")
@@ -282,20 +271,21 @@ async def credential_supported_create(request: web.BaseRequest):
     scope = body.get("scope")
 
     record = OID4VCICredentialSupported(
-        credential_definition_id= credential_definition_id,
-        format= format,
-        types = types,
-        cryptographic_binding_methods_supported = cryptographic_binding_methods_supported,
-        cryptographic_suites_supported = cryptographic_suites_supported,
-        display = display,
-        credential_subject = credential_subject,
-        scope = scope,
+        credential_definition_id=credential_definition_id,
+        format=format,
+        types=types,
+        cryptographic_binding_methods_supported=cryptographic_binding_methods_supported,
+        cryptographic_suites_supported=cryptographic_suites_supported,
+        display=display,
+        credential_subject=credential_subject,
+        scope=scope,
     )
 
     async with profile.session() as session:
         await record.save(session, reason="Save credential supported record.")
-    
+
     return web.json_response(record.serialize())
+
 
 @docs(
     tags=["oid4vci"],

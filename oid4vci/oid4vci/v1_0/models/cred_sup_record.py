@@ -7,8 +7,8 @@ class OID4VCICredentialSupported(BaseRecord):
         schema_class = "CredSupRecordSchema"
 
     RECORD_ID_NAME = "oid4vci_id"
-    RECORD_TYPE= "oid4vci"
-    EVENT_NAMESPACE= "oid4vci"
+    RECORD_TYPE = "oid4vci"
+    EVENT_NAMESPACE = "oid4vci"
     TAG_NAMES = {"credential_definition_id", "types", "scope"}
 
     def __init__(
@@ -42,7 +42,7 @@ class OID4VCICredentialSupported(BaseRecord):
 
     def web_serialize(self) -> dict:
         return self.serialize()
-    
+
     @property
     def id(self):
         return self._id

@@ -1,15 +1,20 @@
 from typing import Any, Dict, Optional
-from aries_cloudagent.messaging.models.base_record import BaseRecord, BaseRecordSchema, BaseExchangeRecord
+from aries_cloudagent.messaging.models.base_record import (
+    BaseRecordSchema,
+    BaseExchangeRecord,
+)
 from marshmallow import fields
+
 
 class OID4VCICredentialExchangeRecord(BaseExchangeRecord):
     class Meta:
         schema_class = "CredExRecordSchema"
-    
+
     RECORD_ID_NAME = "oid4vci_ex_id"
-    RECORD_TYPE= "oid4vci"
-    EVENT_NAMESPACE= "oid4vci"
+    RECORD_TYPE = "oid4vci"
+    EVENT_NAMESPACE = "oid4vci"
     TAG_NAMES = {"nonce", "pin", "token"}
+
     def __init__(
         self,
         *,
@@ -30,7 +35,7 @@ class OID4VCICredentialExchangeRecord(BaseExchangeRecord):
         self.nonce = nonce  # in offer
         self.pin = pin  # (when relevant)
         self.token = token
-    
+
     @property
     def credential_exchange_id(self) -> str:
         """Accessor for the ID associated with this exchange."""
