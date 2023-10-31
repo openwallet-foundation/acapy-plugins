@@ -29,6 +29,10 @@ aries-askar= { version = "~0.2.5" }
 indy-credx= { version = "~1.0.0" }
 indy-vdr= { version = "~0.3.3" }
 
+
+[tool.poetry.group.dev.dependencies]
+pre-commit = "^3.5.0"
+
 [tool.ruff]
 select = ["E", "F", "C", "D"]
 
