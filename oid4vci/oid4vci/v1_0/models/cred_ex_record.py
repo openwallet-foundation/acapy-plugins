@@ -22,6 +22,7 @@ class OID4VCICredentialExchangeRecord(BaseExchangeRecord):
         credential_subject: Optional[Dict[str, Any]] = None,
         nonce=None,
         pin=None,
+        code=None,
         token=None,
         **kwargs,
     ):
@@ -34,6 +35,7 @@ class OID4VCICredentialExchangeRecord(BaseExchangeRecord):
         self.credential_subject = credential_subject  # (received from submit)
         self.nonce = nonce  # in offer
         self.pin = pin  # (when relevant)
+        self.code = code
         self.token = token
 
     @property
