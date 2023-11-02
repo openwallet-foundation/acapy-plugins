@@ -7,14 +7,14 @@ class OID4VCICredentialSupported(BaseRecord):
         schema_class = "CredSupRecordSchema"
 
     RECORD_ID_NAME = "oid4vci_id"
-    RECORD_TYPE = "oid4vci"
+    RECORD_TYPE = "oid4vci_exchange"
     EVENT_NAMESPACE = "oid4vci"
-    TAG_NAMES = {"credential_definition_id", "types", "scope"}
+    TAG_NAMES = {"credential_supported_id", "types", "scope"}
 
     def __init__(
         self,
         *,
-        credential_definition_id,
+        credential_supported_id,
         format,
         types,
         cryptographic_binding_methods_supported,
@@ -29,7 +29,7 @@ class OID4VCICredentialSupported(BaseRecord):
             state="init",
             **kwargs,
         )
-        self.credential_definition_id = credential_definition_id
+        self.credential_supported_id = credential_supported_id
         self.format = format
         self.types = types
         self.cryptographic_binding_methods_supported = (
@@ -53,7 +53,7 @@ class CredSupRecordSchema(BaseRecordSchema):
     class Meta:
         model_class = OID4VCICredentialSupported
 
-    credential_definition_id = fields.Str(
+    credential_supported_id = fields.Str(
         required=True, metadata={"example": "UniversityDegree_JWT"}
     )
     format = fields.Str(required=True, metadata={"example": "jwt_vc_json"})

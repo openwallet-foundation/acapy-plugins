@@ -19,9 +19,8 @@ const QRCodePage = () => {
     axios.defaults.withCredentials = true; // Enable credentials (cookies, etc.)
     axios.defaults.headers.common['Access-Control-Allow-Origin'] = 'http://localhost:3001'; // Adjust the origin as needed
 
-    // api call to controller, `POST /exchange/submit`
     axios
-      .get(`http://localhost:3001/exchange/status/${exchange_id}`, {})
+      .get(`http://localhost:3001/oid4vci/exchange/records/${exchange_id}`, {})
       .then((response) => {
         console.log(response.data);
         if(response.data === "completed"){
