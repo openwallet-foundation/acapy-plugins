@@ -1,0 +1,25 @@
+label: redis_events
+
+# Admin
+admin: [0.0.0.0, 3001]
+admin-insecure-mode: true
+
+# Transport
+inbound-transport:
+  - [redis_events.v1_0.redis_queue.inbound, redis, 0]
+outbound-transport: redis_events.v1_0.redis_queue.outbound
+endpoint:
+  - http://relay:8071
+
+plugin:
+  - redis_events.v1_0.redis_queue.events
+  - basicmessage_storage.v1_0
+
+plugin-config: plugins-config.yml
+
+wallet-key: "test-wallet-key"
+
+no-ledger: true
+
+auto-accept-invites: true
+auto-respond-messages: true

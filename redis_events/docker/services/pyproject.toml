@@ -1,0 +1,28 @@
+[tool.poetry]
+name = "redis-inbound-outbound-services"
+version = "0.1.0"
+description = "ACA-Py Redis HTTP and WS inbound/outbound services"
+authors = ["Shaanjot Gill <gill.shaanjots@gmail.com>"]
+
+[tool.poetry.dependencies]
+python = "^3.9"
+redis = "^4.1.4"
+aiohttp = "^3.7.4"
+fastapi = "^0.68.0"
+uvicorn = "0.16.0"
+nest-asyncio = "^1.5.5"
+
+[tool.poetry.dev-dependencies]
+black = "^21.4b2"
+flake8 = "^3.9.1"
+pre-commit = "^2.12.1"
+pytest = "^6.2.3"
+pytest-cov = "^2.12.1"
+pytest-asyncio = "^0.15.1"
+pytest-mock = "^3.6.1"
+asynctest = "0.13.0"
+rope = "^0.19.0"
+
+[build-system]
+requires = ["setuptools", "poetry-core>=1.0.0"]
+build-backend = "poetry.core.masonry.api"
