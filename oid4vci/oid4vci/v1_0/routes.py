@@ -1,9 +1,7 @@
 """Basic Messages Storage API Routes."""
-import json
 import logging
 from typing import Mapping
 import secrets
-import string
 
 from aiohttp import web
 from aiohttp_apispec import (
@@ -15,9 +13,9 @@ from aiohttp_apispec import (
 from aries_cloudagent.core.profile import Profile
 from aries_cloudagent.messaging.models.openapi import OpenAPISchema
 from aries_cloudagent.protocols.basicmessage.v1_0.message_types import SPEC_URI
-from aries_cloudagent.storage.base import BaseStorage
 from aries_cloudagent.messaging.models.base import BaseModelError
 from aries_cloudagent.storage.error import StorageError, StorageNotFoundError
+from aries_cloudagent.wallet.util import bytes_to_b64
 from marshmallow import fields
 from .models.cred_sup_record import OID4VCICredentialSupported
 from .models.cred_ex_record import OID4VCICredentialExchangeRecord
@@ -76,19 +74,20 @@ class CreateCredExSchema(OpenAPISchema):
 
 
 class CreateCredSupSchema(OpenAPISchema):
-    credential_definition_id = fields.Str(
-        required=True, metadata={"example": "UniversityDegree_JWT"}
+    """Schema for CreateCredSupSchema."""
+
+    scope = fields.Str(
+        required=True, metadata={"example": "UniversityDegreeCredential"}
     )
     format = fields.Str(required=True, metadata={"example": "jwt_vc_json"})
-    types = fields.List(
-        fields.Str(),
-        metadata={"example": ["VerifiableCredential", "UniversityDegreeCredential"]},
-    )
     cryptographic_binding_methods_supported = fields.List(
         fields.Str(), metadata={"example": []}
     )
     cryptographic_suites_supported = fields.List(
         fields.Str(), metadata={"example": ["ES256K"]}
+    )
+    proof_types_supported = fields.List(
+        fields.Str(), metadata={"example": ["Ed25519Signature2018"]}
     )
     display = fields.List(
         fields.Dict(),
@@ -114,9 +113,6 @@ class CreateCredSupSchema(OpenAPISchema):
             "degree": {},
             "gpa": {"display": [{"name": "GPA"}]},
         }
-    )
-    scope = fields.Str(
-        required=True,
     )
 
 
@@ -160,7 +156,7 @@ async def credential_exchange_list(request: web.BaseRequest):
         try:
             async with context.profile.session() as session:
                 record = await OID4VCICredentialExchangeRecord.retrieve_by_id(
-                    session=session, exchange_id=exchange_id
+                    session=session, record_id=exchange_id
                 )
             # There should only be one record for a id
             results = [record.serialize()]
@@ -249,8 +245,9 @@ async def credential_exchange_remove(request: web.BaseRequest):
 @docs(tags=["oid4vci"], summary="Get a credential offer")
 @querystring_schema(GetCredentialOfferSchema())
 async def get_cred_offer(request: web.BaseRequest):
-    """Endpoint to retrieve an OIDC4VCI compliant offer, that
-    can f.e. be used in QR-Code presented to a compliant wallet.
+    """Endpoint to retrieve an OIDC4VCI compliant offer.
+
+    For example, can be used in QR-Code presented to a compliant wallet.
     """
     creds = request.query["credentials"]
     issuer_url = request.query["credential_issuer"]
@@ -260,22 +257,19 @@ async def get_cred_offer(request: web.BaseRequest):
     # TODO: check that the credential requested is offered by the issuer
 
     # Generate secure code
-    code = "".join(
-        secrets.choice(string.ascii_uppercase + string.digits) for _ in range(code_size)
-    )
+    code = bytes_to_b64(secrets.token_bytes(code_size), urlsafe=True, pad=False)
     # Retrieve the exchange record
     oid4vci_ex_id = request.query["exchange_id"]
 
     try:
         async with profile.session() as session:
-            storage = session.inject(BaseStorage)
-            record: OID4VCICredentialExchangeRecord = await storage.find_record(
-                OID4VCICredentialExchangeRecord.RECORD_TYPE,
-                {OID4VCICredentialExchangeRecord.RECORD_ID_NAME: oid4vci_ex_id},
+            record = await OID4VCICredentialExchangeRecord.retrieve_by_id(
+                session,
+                record_id=oid4vci_ex_id,
             )
         record.code = code
         # Save the code to the exchange record
-        await record.save(session,  reason="New cred offer code")
+        await record.save(session, reason="New cred offer code")
     except (StorageError, BaseModelError) as err:
         raise web.HTTPBadRequest(reason=err.roll_up) from err
     # Create offer object
@@ -297,6 +291,7 @@ async def get_cred_offer(request: web.BaseRequest):
 @docs(tags=["oid4vci"], summary="Register a Oid4vci credential")
 @request_schema(CreateCredSupSchema())
 async def credential_supported_create(request: web.BaseRequest):
+    """Request handler for creating a credential supported record."""
     context = request["context"]
     profile = context.profile
 

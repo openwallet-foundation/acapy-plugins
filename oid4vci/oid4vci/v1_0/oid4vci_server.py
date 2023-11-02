@@ -121,6 +121,7 @@ class Oid4vciServer(BaseAdminServer):
         )
         for route in app.router.routes():
             cors.add(route)
+
         # get agent label
         agent_label = self.context.settings.get("default_label")
         __version__ = 11  # TODO: get dynamically from config
