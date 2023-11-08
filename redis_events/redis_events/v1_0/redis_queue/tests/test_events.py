@@ -225,7 +225,7 @@ class TestRedisEvents(AsyncTestCase):
 
     async def test_handle_event_deliver_webhook(self):
         test_settings = deepcopy(SETTINGS)
-        test_settings["plugin_config"]["queue"]["event"] = {
+        test_settings["plugin_config"]["redis_queue"]["event"] = {
             "deliver_webhook": True
         }
         self.profile.settings["plugin_config"] = test_settings["plugin_config"]
