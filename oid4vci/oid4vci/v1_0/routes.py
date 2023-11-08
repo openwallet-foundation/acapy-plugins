@@ -17,7 +17,7 @@ from aries_cloudagent.storage.error import StorageError, StorageNotFoundError
 from aries_cloudagent.wallet.util import bytes_to_b64
 from marshmallow import fields
 from .models.cred_sup_record import OID4VCICredentialSupported
-from .models.cred_ex_record import OID4VCICredentialExchangeRecord
+from .models.cred_ex_record import OID4VCIExchangeRecord
 
 LOGGER = logging.getLogger(__name__)
 code_size = 8  # TODO: check
@@ -43,6 +43,8 @@ class CredExRecordListQueryStringSchema(OpenAPISchema):
 
 
 class CreateCredExSchema(OpenAPISchema):
+    """Schema for CreateCredExSchema."""
+
     credential_supported_id = fields.Str(
         required=True,
         metadata={
@@ -153,14 +155,14 @@ async def credential_exchange_list(request: web.BaseRequest):
     try:
         async with context.profile.session() as session:
             if exchange_id := request.query.get("id"):
-                record = await OID4VCICredentialExchangeRecord.retrieve_by_id(
+                record = await OID4VCIExchangeRecord.retrieve_by_id(
                     session, exchange_id
                 )
                 # There should only be one record for a id
                 results = [record.dump()]
             else:
                 # TODO: use filter
-                records = await OID4VCICredentialExchangeRecord.query(session=session)
+                records = await OID4VCIExchangeRecord.query(session=session)
                 results = [record.dump() for record in records]
     except (StorageError, BaseModelError, StorageNotFoundError) as err:
         raise web.HTTPBadRequest(reason=err.roll_up) from err
@@ -196,7 +198,7 @@ async def credential_exchange_create(request: web.BaseRequest):
     token = body.get("token")
 
     # create exchange record from submitted
-    record = OID4VCICredentialExchangeRecord(
+    record = OID4VCIExchangeRecord(
         credential_supported_id=credential_supported_id,
         credential_subject=credential_subject,
         nonce=nonce,
@@ -250,7 +252,7 @@ async def get_cred_offer(request: web.BaseRequest):
 
     try:
         async with profile.session() as session:
-            record = await OID4VCICredentialExchangeRecord.retrieve_by_id(
+            record = await OID4VCIExchangeRecord.retrieve_by_id(
                 session,
                 record_id=oid4vci_ex_id,
             )
