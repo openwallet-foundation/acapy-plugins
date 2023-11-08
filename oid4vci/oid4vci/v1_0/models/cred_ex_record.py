@@ -8,13 +8,13 @@ from aries_cloudagent.messaging.models.base_record import (
 from marshmallow import fields
 
 
-class OID4VCICredentialExchangeRecord(BaseExchangeRecord):
+class OID4VCIExchangeRecord(BaseExchangeRecord):
     """OID4VCI Exchange Record."""
 
     class Meta:
         """OID4VCI Exchange Record metadata."""
 
-        schema_class = "OID4VCICredExRecordSchema"
+        schema_class = "OID4VCIExchangeRecordSchema"
 
     RECORD_TYPE = "oid4vci"
     EVENT_NAMESPACE = "oid4vci"
@@ -50,14 +50,13 @@ class OID4VCICredentialExchangeRecord(BaseExchangeRecord):
         return self._id
 
 
-# TODO: add validation
-class OID4VCICredExRecordSchema(BaseRecordSchema):
+class OID4VCIExchangeRecordSchema(BaseRecordSchema):
     """OID4VCI Exchange Record Schema."""
 
     class Meta:
         """OID4VCI Exchange Record Schema metadata."""
 
-        model_class = OID4VCICredentialExchangeRecord
+        model_class = OID4VCIExchangeRecord
 
     credential_supported_id = fields.Str(
         required=True,
