@@ -1,4 +1,4 @@
-from oid4vci.v1_0.models.cred_ex_record import OID4VCIExchangeRecord
+from oid4vci.v1_0.models.exchange import OID4VCIExchangeRecord
 
 
 def test_serde():
