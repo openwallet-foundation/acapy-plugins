@@ -11,7 +11,7 @@
 
 ## Design
 
-![Inbound and Outbound](../../../docs/redis_design_final.png)
+![Inbound and Outbound](./docs/redis_design_final.png)
 <br/>
 <br/>
 Core logic for plugin uid assignment in `relay` is same as when using `outbound [is_mediator: true]`, that is, it calls the `process_payload_recip_key` function in `utils` to get the required topic [`{acapy_inbound_topic}_{recip_key}`].
@@ -20,7 +20,7 @@ Core logic for plugin uid assignment in `relay` is same as when using `outbound 
 
 ### Utils Sequence Diagram
 
-![Utils Sequence Diagram](../../../docs/redis_utils_seq.png)
+![Utils Sequence Diagram](./docs/redis_utils_seq.png)
 <br/>
 
 #### `process_payload_recip_key`
