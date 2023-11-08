@@ -45,7 +45,7 @@ class CredExRecordListQueryStringSchema(OpenAPISchema):
 class CreateCredExSchema(OpenAPISchema):
     """Schema for CreateCredExSchema."""
 
-    credential_supported_id = fields.Str(
+    supported_cred_id = fields.Str(
         required=True,
         metadata={
             "description": "Identifier used to identify credential supported record",
@@ -159,11 +159,11 @@ async def credential_exchange_list(request: web.BaseRequest):
                     session, exchange_id
                 )
                 # There should only be one record for a id
-                results = [record.dump()]
+                results = [vars(record)]
             else:
                 # TODO: use filter
                 records = await OID4VCIExchangeRecord.query(session=session)
-                results = [record.dump() for record in records]
+                results = [vars(record) for record in records]
     except (StorageError, BaseModelError, StorageNotFoundError) as err:
         raise web.HTTPBadRequest(reason=err.roll_up) from err
     return web.json_response({"results": results})
@@ -190,7 +190,7 @@ async def credential_exchange_create(request: web.BaseRequest):
     context = request["context"]
     body = await request.json()
     LOGGER.info(f"creating exchange with {body}")
-    credential_supported_id = body.get("credential_supported_id")
+    supported_cred_id = body.get("supported_cred_id")
     credential_subject = body.get("credential_subject")
     # TODO: retrieve cred sup record and validate subjects
     nonce = body.get("nonce")
@@ -199,7 +199,7 @@ async def credential_exchange_create(request: web.BaseRequest):
 
     # create exchange record from submitted
     record = OID4VCIExchangeRecord(
-        credential_supported_id=credential_supported_id,
+        supported_cred_id=supported_cred_id,
         credential_subject=credential_subject,
         nonce=nonce,
         pin=pin,
@@ -209,7 +209,7 @@ async def credential_exchange_create(request: web.BaseRequest):
 
     async with context.session() as session:
         await record.save(session, reason="New oid4vci exchange")
-    return web.json_response({"exchange_id": record.credential_exchange_id})
+    return web.json_response({"exchange_id": record.exchange_id})
 
 
 @docs(
@@ -298,7 +298,7 @@ async def credential_supported_create(request: web.BaseRequest):
     scope = body.get("scope")
 
     record = SupportedCredential(
-        credential_supported_id=credential_definition_id,
+        supported_cred_id=credential_definition_id,
         format=format,
         types=types,
         cryptographic_binding_methods_supported=cryptographic_binding_methods_supported,
