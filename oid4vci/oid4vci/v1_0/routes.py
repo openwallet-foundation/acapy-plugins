@@ -17,7 +17,7 @@ from aries_cloudagent.storage.error import StorageError, StorageNotFoundError
 from aries_cloudagent.wallet.util import bytes_to_b64
 from marshmallow import fields
 from .models.cred_sup_record import OID4VCICredentialSupported
-from .models.cred_ex_record import OID4VCIExchangeRecord
+from .models.exchange import OID4VCIExchangeRecord
 
 LOGGER = logging.getLogger(__name__)
 code_size = 8  # TODO: check
