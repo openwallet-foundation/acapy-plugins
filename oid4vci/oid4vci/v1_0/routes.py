@@ -16,7 +16,7 @@ from aries_cloudagent.messaging.models.base import BaseModelError
 from aries_cloudagent.storage.error import StorageError, StorageNotFoundError
 from aries_cloudagent.wallet.util import bytes_to_b64
 from marshmallow import fields
-from .models.cred_sup_record import SupportedCredential
+from .models.supported_cred import SupportedCredential
 from .models.exchange import OID4VCIExchangeRecord
 
 LOGGER = logging.getLogger(__name__)
