@@ -13,8 +13,13 @@ services:
       - "3000:3000"
       - "3001:3001"
       - "8081:8081"
+    volumes:
+      - ../docker/entrypoint.sh:/entrypoint.sh:ro,z
     environment:
       RUST_LOG: warn
+      TUNNEL_ENDPOINT: http://ngrok:4040
+    entrypoint: >
+      /bin/sh -c '/entrypoint.sh aca-py "$$@"' --
     command: >
       start
         --inbound-transport http 0.0.0.0 3000
@@ -45,6 +50,8 @@ services:
         condition: service_started
       tails:
         condition: service_started
+      ngrok:
+        condition: service_healthy
 
   webhook-listener:
     image: mendhak/http-https-echo:18
@@ -65,15 +72,12 @@ services:
       --log-level INFO
 
   ngrok:
-    #image: ngrok/ngrok
-    image: wernight/ngrok
+    image: ngrok/ngrok
     restart: unless-stopped
     hostname: ngrok
-    volumes:
-      - ./ngrok.yml:/home/ngrok/.ngrok2/ngrok.yml:z
     ports:
       - "4040:4040"
-    command: ["ngrok", "http", "oid4vci:8001"]
+    command: ["http", "issuer:8081"]
     healthcheck:
       test: /bin/bash -c "</dev/tcp/ngrok/4040"
       interval: 3s

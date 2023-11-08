@@ -10,14 +10,16 @@ class OID4VCICredentialExchangeRecord(BaseExchangeRecord):
     class Meta:
         schema_class = "CredExRecordSchema"
 
-    RECORD_ID_NAME = "oid4vci_ex_id"
+    RECORD_ID_NAME = "oid4vci_x_id"
     RECORD_TYPE = "oid4vci"
-    EVENT_NAMESPACE = "oid4vci"
+    RECORD_TOPIC = "oid4vci"
+    EVENT_NAMESPACE = "acapy"
     TAG_NAMES = {"nonce", "pin", "token"}
 
     def __init__(
         self,
         *,
+        oid4vci_x_id=None,
         credential_supported_id=None,
         credential_subject: Optional[Dict[str, Any]] = None,
         nonce=None,
@@ -27,7 +29,7 @@ class OID4VCICredentialExchangeRecord(BaseExchangeRecord):
         **kwargs,
     ):
         super().__init__(
-            None,
+            oid4vci_x_id,
             state="init",
             **kwargs,
         )
@@ -42,6 +44,9 @@ class OID4VCICredentialExchangeRecord(BaseExchangeRecord):
     def credential_exchange_id(self) -> str:
         """Accessor for the ID associated with this exchange."""
         return self._id
+
+    def dump(self):
+        return vars(self)
 
 
 # TODO: add validation

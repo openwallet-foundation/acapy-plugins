@@ -16,9 +16,6 @@ const FormPage = () => {
   };
 
   const handleSubmit = () => {
-    console.log(
-      `/qr-code/${firstName}/${lastName}/${email}/${selectedCredential}`
-    );
     // Set the Axios configuration for CORS and credentials
     axios.defaults.withCredentials = true; // Enable credentials (cookies, etc.)
     axios.defaults.headers.common['Access-Control-Allow-Origin'] = 'http://localhost:3001'; // Adjust the origin as needed
@@ -34,12 +31,23 @@ const FormPage = () => {
         credential_supported_id: selectedCredential,
       })
       .then((response) => {
-        // TODO: call offer endpoint
         console.log(response.data);
-        const credentialOffer = response.data.offer;
-        const {exchange_id} = response.data;
-        navigate(`/qr-code`, { state: { credentialOffer, exchange_id: exchange_id } });
-      })
+        const {exchange_id} = response.data
+          // TODO: call offer endpoint
+
+          const queryParams = {
+            credentials: [selectedCredential],
+            user_pin_required: false,
+            exchange_id: exchange_id,
+          };
+          axios.get("http://localhost:3001/oid4vci/draft-11/credential-offer", { params: queryParams })
+          .then((response) => {
+            console.log(response.data);
+            const credentialOffer = response.data;
+            const {exchange_id} = response.data;
+            navigate(`/qr-code`, { state: { credentialOffer, exchange_id: exchange_id } });
+          })
+        })
       .catch((error) => {
         console.error(error);
       });
@@ -61,15 +69,15 @@ const FormPage = () => {
           src={img2}
           width={250}
           height={150}
-          alt="Credential 2"
-          onClick={() => handleCredentialSelect("Credential 2")}
+          alt="UniversityDegreeCredential"
+          onClick={() => handleCredentialSelect("UniversityDegreeCredential")}
         />
         <img
           src={img3}
           width={250}
           height={150}
-          alt="Credential 3"
-          onClick={() => handleCredentialSelect("Credential 3")}
+          alt="UniversityDegreeCredential"
+          onClick={() => handleCredentialSelect("UniversityDegreeCredential")}
         />
       </div>
       <button onClick={handleSubmit}>Submit</button>
