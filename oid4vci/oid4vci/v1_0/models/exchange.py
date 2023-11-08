@@ -49,6 +49,21 @@ class OID4VCIExchangeRecord(BaseExchangeRecord):
         """Accessor for the ID associated with this exchange record."""
         return self._id
 
+    @property
+    def record_value(self) -> dict:
+        """Return dict representation of the exchange record for storage."""
+        return {
+            prop: getattr(self, prop)
+            for prop in (
+                "supported_cred_id",
+                "credential_subject",
+                "nonce",
+                "pin",
+                "code",
+                "token",
+            )
+        }
+
 
 class OID4VCIExchangeRecordSchema(BaseRecordSchema):
     """OID4VCI Exchange Record Schema."""
@@ -58,6 +73,10 @@ class OID4VCIExchangeRecordSchema(BaseRecordSchema):
 
         model_class = OID4VCIExchangeRecord
 
+    exchange_id = fields.Str(
+        required=False,
+        description="Exchange identifier",
+    )
     supported_cred_id = fields.Str(
         required=True,
         metadata={
