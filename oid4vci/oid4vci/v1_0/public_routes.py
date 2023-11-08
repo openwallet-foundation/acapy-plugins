@@ -19,7 +19,6 @@ from .models.cred_sup_record import OID4VCICredentialSupported
 
 LOGGER = logging.getLogger(__name__)
 OID4VCI_ENDPOINT = getenv("OID4VCI_ENDPOINT")
-assert OID4VCI_ENDPOINT
 
 
 class IssueCredentialRequestSchema(OpenAPISchema):
@@ -122,8 +121,8 @@ async def register(app: web.Application):
                 oid_cred_issuer,
                 allow_head=False,
             ),
-            # web.get("/auth-server/.well-known/oauth-authorization-server", self., allow_head=False),
-            # web.get("/auth-server/.well-known/openid-configuration", self., allow_head=False),
+            # TODO add .well-known/oauth-authorization-server
+            # TODO add .well-known/openid-configuration
             web.post("/draft-13/credential", issue_cred),
             web.post("/draft-11/credential", issue_cred),
             web.post("/draft-13/token", get_token),
