@@ -1,5 +1,6 @@
 """Supported Credential Record."""
 
+from typing import Dict, List, Optional
 from aries_cloudagent.messaging.models.base_record import BaseRecord, BaseRecordSchema
 from marshmallow import fields
 
@@ -12,32 +13,27 @@ class SupportedCredential(BaseRecord):
 
         schema_class = "SupportedCredentialSchema"
 
-    RECORD_ID_NAME = "oid4vci_cred_id"
-    RECORD_TYPE = "oid4vci_exchange"
     EVENT_NAMESPACE = "oid4vci"
-    TAG_NAMES = {"credential_supported_id", "types", "scope"}
+    RECORD_ID_NAME = "supported_cred_id"
+    RECORD_TYPE = "supported_cred"
+    TAG_NAMES = {"supported_cred_id", "types", "scope"}
 
     def __init__(
         self,
         *,
-        oid4vci_cred_id=None,
-        credential_supported_id=None,
-        format=None,
-        types=None,
-        cryptographic_binding_methods_supported=None,
-        cryptographic_suites_supported=None,
-        display=None,
-        credential_subject=None,
+        supported_cred_id: Optional[str] = None,
+        state: Optional[str] = None,
+        format: Optional[str] = None,
+        types: Optional[List[str]] = None,
+        cryptographic_binding_methods_supported: Optional[List[str]] = None,
+        cryptographic_suites_supported: Optional[List[str]] = None,
+        display: Optional[List[Dict]] = None,
+        credential_subject: Optional[Dict] = None,
         scope=None,
         **kwargs,
     ):
         """Initialize a new SupportedCredential Record."""
-        super().__init__(
-            oid4vci_cred_id,
-            state="init",
-            **kwargs,
-        )
-        self.credential_supported_id = credential_supported_id
+        super().__init__(supported_cred_id, state or "init", **kwargs)
         self.format = format
         self.types = types
         self.cryptographic_binding_methods_supported = (
@@ -53,7 +49,7 @@ class SupportedCredential(BaseRecord):
         return self.serialize()
 
     @property
-    def id(self):
+    def supported_cred_id(self):
         """Accessor for the ID associated with this record."""
         return self._id
 

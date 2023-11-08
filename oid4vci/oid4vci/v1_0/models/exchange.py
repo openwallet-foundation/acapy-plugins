@@ -27,7 +27,7 @@ class OID4VCIExchangeRecord(BaseExchangeRecord):
         *,
         exchange_id: Optional[str] = None,
         state: Optional[str] = None,
-        credential_supported_id: Optional[str] = None,
+        supported_cred_id: Optional[str] = None,
         credential_subject: Optional[Dict[str, Any]] = None,
         nonce: Optional[str] = None,
         pin: Optional[str] = None,
@@ -37,7 +37,7 @@ class OID4VCIExchangeRecord(BaseExchangeRecord):
     ):
         """Initialize a new OID4VCIExchangeRecord."""
         super().__init__(exchange_id, state or "init", **kwargs)
-        self.credential_supported_id = credential_supported_id
+        self.supported_cred_id = supported_cred_id
         self.credential_subject = credential_subject  # (received from submit)
         self.nonce = nonce  # in offer
         self.pin = pin  # (when relevant)
@@ -58,7 +58,7 @@ class OID4VCIExchangeRecordSchema(BaseRecordSchema):
 
         model_class = OID4VCIExchangeRecord
 
-    credential_supported_id = fields.Str(
+    supported_cred_id = fields.Str(
         required=True,
         metadata={
             "description": "Identifier used to identify credential supported record",
