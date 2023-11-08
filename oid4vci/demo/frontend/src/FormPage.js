@@ -28,7 +28,7 @@ const FormPage = () => {
           lastname: lastName,
           email,
         },
-        credential_supported_id: selectedCredential,
+        supported_cred_id: selectedCredential,
       })
       .then((response) => {
         console.log(response.data);
