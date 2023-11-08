@@ -6,7 +6,7 @@ class OID4VCICredentialSupported(BaseRecord):
     class Meta:
         schema_class = "CredSupRecordSchema"
 
-    RECORD_ID_NAME = "oid4vci_id"
+    RECORD_ID_NAME = "oid4vci_cred_id"
     RECORD_TYPE = "oid4vci_exchange"
     EVENT_NAMESPACE = "oid4vci"
     TAG_NAMES = {"credential_supported_id", "types", "scope"}
@@ -14,18 +14,19 @@ class OID4VCICredentialSupported(BaseRecord):
     def __init__(
         self,
         *,
-        credential_supported_id,
-        format,
-        types,
-        cryptographic_binding_methods_supported,
-        cryptographic_suites_supported,
-        display,
-        credential_subject,
-        scope,
+        oid4vci_cred_id=None,
+        credential_supported_id=None,
+        format=None,
+        types=None,
+        cryptographic_binding_methods_supported=None,
+        cryptographic_suites_supported=None,
+        display=None,
+        credential_subject=None,
+        scope=None,
         **kwargs,
     ):
         super().__init__(
-            None,
+            oid4vci_cred_id,
             state="init",
             **kwargs,
         )
@@ -53,19 +54,18 @@ class CredSupRecordSchema(BaseRecordSchema):
     class Meta:
         model_class = OID4VCICredentialSupported
 
-    credential_supported_id = fields.Str(
-        required=True, metadata={"example": "UniversityDegree_JWT"}
+    scope = fields.Str(
+        required=True, metadata={"example": "UniversityDegreeCredential"}
     )
     format = fields.Str(required=True, metadata={"example": "jwt_vc_json"})
-    types = fields.List(
-        fields.Str(),
-        metadata={"example": ["VerifiableCredential", "UniversityDegreeCredential"]},
-    )
     cryptographic_binding_methods_supported = fields.List(
         fields.Str(), metadata={"example": []}
     )
     cryptographic_suites_supported = fields.List(
         fields.Str(), metadata={"example": ["ES256K"]}
+    )
+    proof_types_supported = fields.List(
+        fields.Str(), metadata={"example": ["Ed25519Signature2018"]}
     )
     display = fields.List(
         fields.Dict(),
@@ -91,7 +91,4 @@ class CredSupRecordSchema(BaseRecordSchema):
             "degree": {},
             "gpa": {"display": [{"name": "GPA"}]},
         }
-    )
-    scope = fields.Str(
-        required=True,
     )

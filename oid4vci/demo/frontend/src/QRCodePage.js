@@ -20,10 +20,10 @@ const QRCodePage = () => {
     axios.defaults.headers.common['Access-Control-Allow-Origin'] = 'http://localhost:3001'; // Adjust the origin as needed
 
     axios
-      .get(`http://localhost:3001/oid4vci/exchange/records/${exchange_id}`, {})
+      .get(`http://localhost:3001/oid4vci/exchange/records`, {exchange_id: exchange_id})
       .then((response) => {
         console.log(response.data);
-        if(response.data === "completed"){
+        if(response.data.state === "completed"){
             navigate(`/`);
         }
       })

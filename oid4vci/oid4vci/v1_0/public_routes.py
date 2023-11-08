@@ -1,6 +1,7 @@
 """Public routes for OID4VCI."""
 
 import logging
+from os import getenv
 from typing import Optional
 from aries_cloudagent.core.profile import Profile
 import jwt as pyjwt
@@ -17,6 +18,8 @@ from marshmallow import fields
 from .models.cred_sup_record import OID4VCICredentialSupported
 
 LOGGER = logging.getLogger(__name__)
+OID4VCI_ENDPOINT = getenv("OID4VCI_ENDPOINT")
+assert OID4VCI_ENDPOINT
 
 
 class IssueCredentialRequestSchema(OpenAPISchema):
@@ -54,11 +57,11 @@ class GetTokenSchema(OpenAPISchema):
 
 
 @docs(tags=["oid4vci"], summary="Get credential issuer metadata")
-@querystring_schema(TokenRequestSchema())
+# @querystring_schema(TokenRequestSchema())
 async def oid_cred_issuer(request: web.Request):
     """Credential issuer metadata endpoint."""
     profile = request["context"].profile
-    public_url = profile.context.settings.get("public_url")  # TODO: check
+    public_url = OID4VCI_ENDPOINT  # TODO: check for flag first
 
     # Wallet query to retrieve credential definitions
     tag_filter = {"type": {"$in": ["sd_jwt", "jwt_vc_json"]}}
@@ -68,7 +71,7 @@ async def oid_cred_issuer(request: web.Request):
         )
 
     metadata = {
-        "credential_issuer": f"{public_url}/issuer",
+        "credential_issuer": f"{public_url}/",  # TODO: update path with wallet id
         "credential_endpoint": f"{public_url}/credential",
         "credentials_supported": [cred.serialize() for cred in credentials_supported],
         "authorization_server": f"{public_url}/auth-server",
@@ -119,9 +122,11 @@ async def register(app: web.Application):
                 oid_cred_issuer,
                 allow_head=False,
             ),
-            # web.get("/.well-known/", self., allow_head=False),
-            # web.get("/.well-known/", self., allow_head=False),
-            web.post("/credential", issue_cred),
-            web.post("/token", get_token),
+            # web.get("/auth-server/.well-known/oauth-authorization-server", self., allow_head=False),
+            # web.get("/auth-server/.well-known/openid-configuration", self., allow_head=False),
+            web.post("/draft-13/credential", issue_cred),
+            web.post("/draft-11/credential", issue_cred),
+            web.post("/draft-13/token", get_token),
+            web.post("/draft-11/token", get_token),
         ]
     )

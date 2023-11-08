@@ -1,6 +1,6 @@
 """Basic Messages Storage API Routes."""
 import logging
-from typing import Mapping
+from os import getenv
 import secrets
 
 from aiohttp import web
@@ -10,7 +10,6 @@ from aiohttp_apispec import (
     querystring_schema,
     request_schema,
 )
-from aries_cloudagent.core.profile import Profile
 from aries_cloudagent.messaging.models.openapi import OpenAPISchema
 from aries_cloudagent.protocols.basicmessage.v1_0.message_types import SPEC_URI
 from aries_cloudagent.messaging.models.base import BaseModelError
@@ -27,9 +26,9 @@ code_size = 8  # TODO: check
 class CredExRecordListQueryStringSchema(OpenAPISchema):
     """Parameters and validators for credential exchange record list query."""
 
-    exchange_id = fields.UUID(
+    id = fields.UUID(
         required=False,
-        metadata={"description": "exchange identifier"},
+        metadata={"description": "identifier"},
     )
     filter = fields.List(
         fields.Str(
@@ -131,7 +130,6 @@ class GetCredentialOfferSchema(OpenAPISchema):
     """Schema for GetCredential."""
 
     credentials = fields.List(fields.Str())
-    credential_issuer = fields.Str()
     user_pin_required = fields.Bool(required=False)
     exchange_id = fields.Str(required=False)
 
@@ -152,23 +150,20 @@ async def credential_exchange_list(request: web.BaseRequest):
 
     """
     context = request["context"]
-    if exchange_id := request.query.get("exchange_id"):
-        try:
-            async with context.profile.session() as session:
+    try:
+        async with context.profile.session() as session:
+            if exchange_id := request.query.get("id"):
                 record = await OID4VCICredentialExchangeRecord.retrieve_by_id(
-                    session=session, record_id=exchange_id
+                    session, exchange_id
                 )
-            # There should only be one record for a id
-            results = [record.serialize()]
-        except (StorageError, BaseModelError, StorageNotFoundError) as err:
-            raise web.HTTPBadRequest(reason=err.roll_up) from err
-    else:
-        try:
-            async with context.profile.session() as session:
+                # There should only be one record for a id
+                results = [record.dump()]
+            else:
+                # TODO: use filter
                 records = await OID4VCICredentialExchangeRecord.query(session=session)
-            results = [record.serialize() for record in records]
-        except (StorageError, BaseModelError) as err:
-            raise web.HTTPBadRequest(reason=err.roll_up) from err
+                results = [record.dump() for record in records]
+    except (StorageError, BaseModelError, StorageNotFoundError) as err:
+        raise web.HTTPBadRequest(reason=err.roll_up) from err
     return web.json_response({"results": results})
 
 
@@ -192,6 +187,7 @@ async def credential_exchange_create(request: web.BaseRequest):
     """
     context = request["context"]
     body = await request.json()
+    LOGGER.info(f"creating exchange with {body}")
     credential_supported_id = body.get("credential_supported_id")
     credential_subject = body.get("credential_subject")
     # TODO: retrieve cred sup record and validate subjects
@@ -207,24 +203,11 @@ async def credential_exchange_create(request: web.BaseRequest):
         pin=pin,
         token=token,
     )
+    LOGGER.info(f"created exchange record {record}")
+
     async with context.session() as session:
         await record.save(session, reason="New oid4vci exchange")
     return web.json_response({"exchange_id": record.credential_exchange_id})
-
-
-async def _create_free_offer(
-    profile: Profile,
-    filt_spec: Mapping = None,
-    connection_id: str = None,
-    auto_issue: bool = False,
-    auto_remove: bool = False,
-    replacement_id: str = None,
-    preview_spec: dict = None,
-    comment: str = None,
-    trace_msg: bool = None,
-):
-    """Create a credential offer and related exchange record."""
-    pass
 
 
 @docs(
@@ -249,8 +232,14 @@ async def get_cred_offer(request: web.BaseRequest):
 
     For example, can be used in QR-Code presented to a compliant wallet.
     """
-    creds = request.query["credentials"]
-    issuer_url = request.query["credential_issuer"]
+    # Access the query parameters in your view function
+    creds = request.query.get("credentials")
+    # TODO: store with input form and retrieve from record
+    issuer_url = getenv("OID4VCI_ENDPOINT")
+    # issuer_url = request.query.get('credential_issuer')
+    # user_pin_required = request.query.get('user_pin_required')
+    oid4vci_ex_id = request.query.get("exchange_id")
+
     profile = request["context"].profile
 
     # TODO: check that the credential_issuer_url is associated with an issuer DID
@@ -258,8 +247,6 @@ async def get_cred_offer(request: web.BaseRequest):
 
     # Generate secure code
     code = bytes_to_b64(secrets.token_bytes(code_size), urlsafe=True, pad=False)
-    # Retrieve the exchange record
-    oid4vci_ex_id = request.query["exchange_id"]
 
     try:
         async with profile.session() as session:
@@ -267,9 +254,9 @@ async def get_cred_offer(request: web.BaseRequest):
                 session,
                 record_id=oid4vci_ex_id,
             )
-        record.code = code
-        # Save the code to the exchange record
-        await record.save(session, reason="New cred offer code")
+            record.code = code
+            # Save the code to the exchange record
+            await record.save(session, reason="New cred offer code")
     except (StorageError, BaseModelError) as err:
         raise web.HTTPBadRequest(reason=err.roll_up) from err
     # Create offer object
@@ -340,7 +327,22 @@ async def credential_supported_list(request: web.BaseRequest):
         The connection list response
 
     """
-    pass
+    context = request["context"]
+    try:
+        async with context.profile.session() as session:
+            if exchange_id := request.query.get("id"):
+                record = await OID4VCICredentialSupported.retrieve_by_id(
+                    session, exchange_id
+                )
+                # There should only be one record for a id
+                results = [vars(record)]
+            else:
+                # TODO: use filter
+                records = await OID4VCICredentialSupported.query(session=session)
+                results = [vars(record) for record in records]
+    except (StorageError, BaseModelError, StorageNotFoundError) as err:
+        raise web.HTTPBadRequest(reason=err.roll_up) from err
+    return web.json_response({"results": results})
 
 
 async def register(app: web.Application):
@@ -348,7 +350,12 @@ async def register(app: web.Application):
     # add in the message list(s) route
     app.add_routes(
         [
-            web.get("/oid4vci/credential-offer", get_cred_offer, allow_head=False),
+            web.get(
+                "/oid4vci/draft-11/credential-offer", get_cred_offer, allow_head=False
+            ),
+            web.get(
+                "/oid4vci/draft-13/credential-offer", get_cred_offer, allow_head=False
+            ),
             web.get(
                 "/oid4vci/exchange/records",
                 credential_exchange_list,
