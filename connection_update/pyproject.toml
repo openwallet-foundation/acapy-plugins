@@ -54,6 +54,7 @@ ignore = [
 [tool.pytest.ini_options]
 testpaths = "connection_update"
 addopts = """
+    -p no:warnings
     --quiet --junitxml=./test-reports/junit.xml
     --cov-config .coveragerc --cov=connection_update --cov-report term --cov-report xml
 """
