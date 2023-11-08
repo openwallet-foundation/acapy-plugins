@@ -277,7 +277,7 @@ class BasicMultitokenMultitenantManager(MultitenantManager):
     async def create_auth_token(
         self, wallet_record: WalletRecord, wallet_key: str = None
     ) -> str:
-        """Create a JWT token for the wallet."""
+        """Create a JWT auth token for the wallet."""
         self.logger.info("> create_auth_token")
         handler = MulittokenHandler(self)
         token = await handler.create_auth_token(wallet_record, wallet_key)
