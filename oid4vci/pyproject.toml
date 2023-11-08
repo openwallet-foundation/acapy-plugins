@@ -32,6 +32,7 @@ indy-vdr= { version = "~0.3.3" }
 
 [tool.poetry.group.dev.dependencies]
 pre-commit = "^3.5.0"
+pytest-cov = "^4.1.0"
 
 [tool.ruff]
 select = ["E", "F", "C", "D"]
@@ -55,7 +56,7 @@ line-length = 90
 testpaths = "basicmessage_storage"
 addopts = """
     --quiet --junitxml=./test-reports/junit.xml
-    --cov-config .coveragerc --cov=basicmessage_storage --cov-report term --cov-report xml
+    --cov-config .coveragerc --cov=oid4vci --cov-report term
     --ruff
 """
 markers = []

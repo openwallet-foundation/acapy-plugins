@@ -1,3 +1,5 @@
+"""Exchange record for OID4VCI."""
+
 from typing import Any, Dict, Optional
 from aries_cloudagent.messaging.models.base_record import (
     BaseRecordSchema,
@@ -7,32 +9,34 @@ from marshmallow import fields
 
 
 class OID4VCICredentialExchangeRecord(BaseExchangeRecord):
-    class Meta:
-        schema_class = "CredExRecordSchema"
+    """OID4VCI Exchange Record."""
 
-    RECORD_ID_NAME = "oid4vci_x_id"
+    class Meta:
+        """OID4VCI Exchange Record metadata."""
+
+        schema_class = "OID4VCICredExRecordSchema"
+
     RECORD_TYPE = "oid4vci"
+    EVENT_NAMESPACE = "oid4vci"
     RECORD_TOPIC = "oid4vci"
-    EVENT_NAMESPACE = "acapy"
+    RECORD_ID_NAME = "exchange_id"
     TAG_NAMES = {"nonce", "pin", "token"}
 
     def __init__(
         self,
         *,
-        oid4vci_x_id=None,
-        credential_supported_id=None,
+        exchange_id: Optional[str] = None,
+        state: Optional[str] = None,
+        credential_supported_id: Optional[str] = None,
         credential_subject: Optional[Dict[str, Any]] = None,
-        nonce=None,
-        pin=None,
-        code=None,
-        token=None,
+        nonce: Optional[str] = None,
+        pin: Optional[str] = None,
+        code: Optional[str] = None,
+        token: Optional[str] = None,
         **kwargs,
     ):
-        super().__init__(
-            oid4vci_x_id,
-            state="init",
-            **kwargs,
-        )
+        """Initialize a new OID4VCIExchangeRecord."""
+        super().__init__(exchange_id, state or "init", **kwargs)
         self.credential_supported_id = credential_supported_id
         self.credential_subject = credential_subject  # (received from submit)
         self.nonce = nonce  # in offer
@@ -41,17 +45,18 @@ class OID4VCICredentialExchangeRecord(BaseExchangeRecord):
         self.token = token
 
     @property
-    def credential_exchange_id(self) -> str:
-        """Accessor for the ID associated with this exchange."""
+    def exchange_id(self) -> str:
+        """Accessor for the ID associated with this exchange record."""
         return self._id
-
-    def dump(self):
-        return vars(self)
 
 
 # TODO: add validation
-class CredExRecordSchema(BaseRecordSchema):
+class OID4VCICredExRecordSchema(BaseRecordSchema):
+    """OID4VCI Exchange Record Schema."""
+
     class Meta:
+        """OID4VCI Exchange Record Schema metadata."""
+
         model_class = OID4VCICredentialExchangeRecord
 
     credential_supported_id = fields.Str(
@@ -60,24 +65,21 @@ class CredExRecordSchema(BaseRecordSchema):
             "description": "Identifier used to identify credential supported record",
         },
     )
-    credential_subject = (
-        fields.Dict(
-            required=True,
-            metadata={
-                "description": "desired claim and value in credential",
-            },
-        ),
+    credential_subject = fields.Dict(
+        required=True,
+        metadata={
+            "description": "desired claim and value in credential",
+        },
     )
-    nonce = (
-        fields.Str(
-            required=False,
-        ),
+    nonce = fields.Str(
+        required=False,
     )
-    pin = (
-        fields.Str(
-            required=False,
-        ),
+    pin = fields.Str(
+        required=False,
     )
     token = fields.Str(
+        required=False,
+    )
+    code = fields.Str(
         required=False,
     )
