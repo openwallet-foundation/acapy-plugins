@@ -1,10 +1,16 @@
+"""Supported Credential Record."""
+
 from aries_cloudagent.messaging.models.base_record import BaseRecord, BaseRecordSchema
 from marshmallow import fields
 
 
-class OID4VCICredentialSupported(BaseRecord):
+class SupportedCredential(BaseRecord):
+    """Supported Credential Record."""
+
     class Meta:
-        schema_class = "CredSupRecordSchema"
+        """SupportedCredential metadata."""
+
+        schema_class = "SupportedCredentialSchema"
 
     RECORD_ID_NAME = "oid4vci_cred_id"
     RECORD_TYPE = "oid4vci_exchange"
@@ -25,6 +31,7 @@ class OID4VCICredentialSupported(BaseRecord):
         scope=None,
         **kwargs,
     ):
+        """Initialize a new SupportedCredential Record."""
         super().__init__(
             oid4vci_cred_id,
             state="init",
@@ -42,17 +49,22 @@ class OID4VCICredentialSupported(BaseRecord):
         self.scope = scope
 
     def web_serialize(self) -> dict:
+        """Serialize record for web."""
         return self.serialize()
 
     @property
     def id(self):
+        """Accessor for the ID associated with this record."""
         return self._id
 
 
-# TODO: add validation
-class CredSupRecordSchema(BaseRecordSchema):
+class SupportedCredentialSchema(BaseRecordSchema):
+    """Schema for SupportedCredential."""
+
     class Meta:
-        model_class = OID4VCICredentialSupported
+        """SupportedCredentialSchema metadata."""
+
+        model_class = SupportedCredential
 
     scope = fields.Str(
         required=True, metadata={"example": "UniversityDegreeCredential"}

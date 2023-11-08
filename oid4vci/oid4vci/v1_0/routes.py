@@ -16,7 +16,7 @@ from aries_cloudagent.messaging.models.base import BaseModelError
 from aries_cloudagent.storage.error import StorageError, StorageNotFoundError
 from aries_cloudagent.wallet.util import bytes_to_b64
 from marshmallow import fields
-from .models.cred_sup_record import OID4VCICredentialSupported
+from .models.cred_sup_record import SupportedCredential
 from .models.exchange import OID4VCIExchangeRecord
 
 LOGGER = logging.getLogger(__name__)
@@ -297,7 +297,7 @@ async def credential_supported_create(request: web.BaseRequest):
     credential_subject = body.get("credential_subject")
     scope = body.get("scope")
 
-    record = OID4VCICredentialSupported(
+    record = SupportedCredential(
         credential_supported_id=credential_definition_id,
         format=format,
         types=types,
@@ -333,14 +333,12 @@ async def credential_supported_list(request: web.BaseRequest):
     try:
         async with context.profile.session() as session:
             if exchange_id := request.query.get("id"):
-                record = await OID4VCICredentialSupported.retrieve_by_id(
-                    session, exchange_id
-                )
+                record = await SupportedCredential.retrieve_by_id(session, exchange_id)
                 # There should only be one record for a id
                 results = [vars(record)]
             else:
                 # TODO: use filter
-                records = await OID4VCICredentialSupported.query(session=session)
+                records = await SupportedCredential.query(session=session)
                 results = [vars(record) for record in records]
     except (StorageError, BaseModelError, StorageNotFoundError) as err:
         raise web.HTTPBadRequest(reason=err.roll_up) from err
