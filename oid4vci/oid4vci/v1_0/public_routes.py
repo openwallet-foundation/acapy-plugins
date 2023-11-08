@@ -15,7 +15,7 @@ from aiohttp_apispec import (
 from aries_cloudagent.messaging.models.openapi import OpenAPISchema
 from aries_cloudagent.wallet.jwt import jwt_verify
 from marshmallow import fields
-from .models.cred_sup_record import SupportedCredential
+from .models.supported_cred import SupportedCredential
 
 LOGGER = logging.getLogger(__name__)
 OID4VCI_ENDPOINT = getenv("OID4VCI_ENDPOINT")
