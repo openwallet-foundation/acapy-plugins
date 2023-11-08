@@ -136,3 +136,74 @@ environment:
     - STATUS_ENDPOINT_PORT=7001
     - STATUS_ENDPOINT_API_KEY=test_api_key_1
 ```
+
+#### Basic Flow Diagrams
+
+Relay:
+
+```mermaid
+  sequenceDiagram
+    box Alice
+    participant A as Alice
+    end
+    box Bob
+    participant R as Relay
+    participant IRQ as Inbound [Redis Queue]
+    participant ACA as ACA-PY Agent
+    participant ORQ as Outbound [Redis Queue]
+    participant D as Deliverer
+    end
+        A->>R: 
+        R->>IRQ: 
+        ACA->>IRQ: consume 
+        ACA->>ACA: process 
+        ACA->>ORQ: 
+        D->>ORQ: consume 
+        D->>A: 
+```
+
+Mediator:
+
+```mermaid
+  sequenceDiagram
+  box Alice
+  participant A as Alice
+  participant ACAM as ACA-PY Mediator
+  end
+  box Bob
+  participant IRQ as Inbound [Redis Queue]
+  participant ACA as ACA-PY Agent
+  participant ORQ as Outbound [Redis Queue]
+  participant D as Deliverer
+  end
+      A->>ACAM: 
+      ACAM->>IRQ: 
+      ACA->>IRQ: consume
+      ACA->>ACA: process
+      ACA->>ORQ: 
+      D->>ORQ: consume
+      D->>A: 
+```
+
+Relay - Direct Response:
+
+```mermaid
+  sequenceDiagram
+    box Alice
+    participant A as Alice
+    end
+    box Bob
+    participant R as Relay
+    participant IRQ as Inbound [Redis Queue]
+    participant ACA as ACA-PY Agent
+    participant ORQ as Outbound [Redis Queue]
+    participant D as Deliverer
+    end
+        A->>R: 
+        R->>IRQ: 
+        ACA->>IRQ: consume 
+        ACA->>ACA: process 
+        ACA->>IRQ: inbound response 
+        R->>IRQ: consume 
+        R->>A: 
+```
