@@ -1,0 +1,28 @@
+{
+  "name": "afj-json-rpc",
+  "version": "0.1.0",
+  "description": "JSON-RPC interface to AFJ",
+  "main": "index.ts",
+  "scripts": {
+    "build": "tsc",
+    "start": "node dist/app.js",
+    "format": "prettier --write ."
+  },
+  "author": "Daniel Bluhm <dbluhm@pm.me>",
+  "license": "Apache-2.0",
+  "devDependencies": {
+    "prettier": "^3.0.3",
+    "ts-node": "^10.9.1",
+    "typescript": "^5.2.2"
+  },
+  "dependencies": {
+    "@aries-framework/askar": "^0.4.2",
+    "@aries-framework/core": "^0.4.2",
+    "@aries-framework/node": "^0.4.2",
+    "@hyperledger/aries-askar-nodejs": "^0.1.1",
+    "json-rpc-2.0": "^1.7.0"
+  },
+  "overrides": {
+    "ref-napi": "npm:@2060.io/ref-napi"
+  }
+}
