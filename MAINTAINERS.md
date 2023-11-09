@@ -26,6 +26,7 @@ Maintainers are assigned the following scopes in this repository:
 | dbluhm          | Daniel Bluhm     |            |      |            |       | Indicio PBC         |
 | dhh1128         | Daniel Hardman   | Maintainer |      |            |       | Provenant           |
 | ianco           | Ian Costanzo     |            |      |            |       | Anonymous Systems   |
+| jamshale        | Jamie Hale       | Maintainer |      |            |       | BC Gov              |
 | Jsyro           | Jason Syrotuck   |            |      |            |       | BC Gov              |
 | shaangill025    | Shaanjot Gill    |            |      |            |       | BC Gov              |
 | swcurran        | Stephen Curran   | Maintainer |      |            |       | BC Gov              |
