@@ -1,17 +1,23 @@
 import asyncio
-from pathlib import Path
+from os import getenv
 
-from .jsonrpc import JsonRpcClient, UnixSocketTransport
+from .jsonrpc import JsonRpcClient, TCPSocketTransport
+
+AFJ_HOST = getenv("AFJ_HOST", "localhost")
+AFJ_PORT = int(getenv("AFJ_PORT", "3000"))
 
 
 async def main():
     """Connect to AFJ."""
-    transport = UnixSocketTransport(
-        str(Path(__file__).parent.parent / "afj/agent.sock")
-    )
+    transport = TCPSocketTransport(AFJ_HOST, AFJ_PORT)
     client = JsonRpcClient(transport)
     async with transport, client:
-        result = await client.send_request("initialize")
+        result = await client.request(
+            "initialize",
+            endpoint="http://localhost:3001",
+            host="0.0.0.0",
+            port=3001,
+        )
         print(result)
 
 

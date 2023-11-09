@@ -10,11 +10,12 @@ import {
 import { agentDependencies, HttpInboundTransport } from '@aries-framework/node';
 import { AskarModule } from '@aries-framework/askar';
 import { ariesAskar } from '@hyperledger/aries-askar-nodejs';
-import { SocketServer } from './server';
+import { TCPSocketServer } from './server';
 
 let agent: Agent | null;
-const server = new SocketServer({
-  socketPath: process.env.SOCKET_PATH || '/tmp/agent.sock',
+const server = new TCPSocketServer({
+  host: process.env.AFJ_HOST || '0.0.0.0',
+  port: parseInt(process.env.AFJ_PORT || '3000'),
 })
 
 const rpc = new JSONRPCServerAndClient(
