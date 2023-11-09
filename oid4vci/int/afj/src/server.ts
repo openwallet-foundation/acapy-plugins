@@ -1,6 +1,17 @@
 import { createServer, Server, Socket } from 'net';
 
+/**
+ * A handler function that processes string data.
+ * @callback Handler
+ * @param {string} data - The data string to process.
+ * @returns {Promise<void>} A promise that resolves when the processing is complete.
+ */
 type Handler = (data: string) => Promise<void>;
+
+/**
+ * Defines the interface for transport layer implementations.
+ * @interface
+ */
 export interface Transport {
   start(): void;
   stop(): Promise<void>;
@@ -9,16 +20,34 @@ export interface Transport {
   send(data: string): void;
 }
 
+/**
+ * Buffers incoming data and processes it to extract messages based on a header format.
+ * @class
+ */
 class MessageBuffer {
   private buffer: Buffer = Buffer.alloc(0);
   private headerSize: number | null = null;
+
+  /**
+   * Callback for when a complete message is available.
+   * @public
+   */
   public onMessage?: (message: string) => void = undefined;
 
+  /**
+   * Appends incoming data to the buffer and processes it.
+   * @param {Buffer} data - The incoming data buffer.
+   * @public
+   */
   public append(data: Buffer): void {
     this.buffer = Buffer.concat([this.buffer, data]);
     this.processBuffer();
   }
 
+  /**
+   * Processes the buffer to extract messages.
+   * @private
+   */
   private processBuffer(): void {
     while (true) {
       if (this.headerSize === null) {
@@ -57,10 +86,11 @@ class MessageBuffer {
   }
 }
 
-interface ServerConfig {
-  socketPath: string;
-}
-
+/**
+ * An abstract base class for socket server transports that implement the Transport interface.
+ * @class
+ * @abstract
+ */
 export abstract class BaseSocketServer implements Transport {
   protected server: Server;
   protected handlers: Handler[] = [];
@@ -96,8 +126,17 @@ export abstract class BaseSocketServer implements Transport {
     });
   }
 
+  /**
+   * Abstract method to start the server. Must be implemented by subclasses.
+   * @abstract
+   */
   public abstract start(): void;
 
+  /**
+   * Stops the server and all associated connections.
+   * @returns {Promise<void>} A promise that resolves when the server is stopped.
+   * @public
+   */
   public stop(): Promise<void> {
     this.server.close(() => {
       console.log('Closed out remaining connections.');
@@ -110,14 +149,29 @@ export abstract class BaseSocketServer implements Transport {
     return Promise.reject('Server did not stop in time');
   }
 
+  /**
+   * Registers a data handler.
+   * @param {Handler} handler - The handler function to register.
+   * @public
+   */
   public ondata(handler: Handler): void {
     this.handlers.push(handler);
   }
 
+  /**
+   * Registers a close handler.
+   * @param {() => void} handler - The handler function to call when the server closes.
+   * @public
+   */
   public onclose(handler: () => void): void {
     this.closeHandlers.push(handler);
   }
 
+  /**
+   * Sends data to all connected sockets.
+   * @param {string} data - The data string to send.
+   * @public
+   */
   public send(data: string): void {
     const buffer = Buffer.from(data);
     const header = `length: ${buffer.length}\n`;
@@ -130,10 +184,19 @@ export abstract class BaseSocketServer implements Transport {
   }
 }
 
+/**
+ * Configuration for creating a Unix socket server.
+ * @property {string} socketPath - The file system path to the Unix socket.
+ */
 interface UnixServerConfig {
   socketPath: string;
 }
 
+/**
+ * Server implementation for Unix socket transport.
+ * @class
+ * @extends BaseSocketServer
+ */
 export class UnixSocketServer extends BaseSocketServer {
   private config: UnixServerConfig;
 
@@ -149,11 +212,21 @@ export class UnixSocketServer extends BaseSocketServer {
   }
 }
 
+/**
+ * Configuration for creating a TCP server.
+ * @property {string} host - The hostname or IP address.
+ * @property {number} port - The port number.
+ */
 interface TCPServerConfig {
   host: string;
   port: number;
 }
 
+/**
+ * Server implementation for TCP socket transport.
+ * @class
+ * @extends BaseSocketServer
+ */
 export class TCPSocketServer extends BaseSocketServer {
   private config: TCPServerConfig;
 
