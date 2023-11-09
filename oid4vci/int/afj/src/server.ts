@@ -94,11 +94,13 @@ export abstract class BaseSocketServer {
   public stop(): void {
     this.server.close(() => {
       console.log('Closed out remaining connections.');
+      process.exit(0);
     });
 
     setTimeout(() => {
       console.error('Could not close connections in time, forcefully shutting down');
     }, 10000);
+    process.exit(1);
   }
 
   public ondata(handler: Handler): void {
