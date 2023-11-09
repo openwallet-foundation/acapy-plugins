@@ -1,7 +1,7 @@
 [tool.poetry]
-name = "afj-wrapper"
+name = "runner"
 version = "0.1.0"
-description = "Wrapper around AFJ using JSON-RPC to communicate over a socket"
+description = "Test runner with wrapper around AFJ using JSON-RPC"
 authors = ["Daniel Bluhm <dbluhm@pm.me>"]
 license = "Apache-2.0"
 readme = "README.md"
