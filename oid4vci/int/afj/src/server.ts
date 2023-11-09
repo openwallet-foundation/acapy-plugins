@@ -1,5 +1,14 @@
 import { createServer, Server, Socket } from 'net';
 
+type Handler = (data: string) => Promise<void>;
+export interface Transport {
+  start(): void;
+  stop(): Promise<void>;
+  ondata(handler: Handler): void;
+  onclose(handler: () => void): void;
+  send(data: string): void;
+}
+
 class MessageBuffer {
   private buffer: Buffer = Buffer.alloc(0);
   private headerSize: number | null = null;
@@ -52,9 +61,7 @@ interface ServerConfig {
   socketPath: string;
 }
 
-type Handler = (data: string) => Promise<void>;
-
-export abstract class BaseSocketServer {
+export abstract class BaseSocketServer implements Transport {
   protected server: Server;
   protected handlers: Handler[] = [];
   protected closeHandlers: (() => void)[] = [];
@@ -64,11 +71,11 @@ export abstract class BaseSocketServer {
     this.server = createServer(socket => {
       const messageBuffer = new MessageBuffer();
 
-      messageBuffer.onMessage = (message) => {
+      messageBuffer.onMessage = message => {
         for (const handler of this.handlers) {
           handler(message).then();
         }
-      }
+      };
 
       socket.on('data', data => {
         messageBuffer.append(data);
@@ -81,7 +88,7 @@ export abstract class BaseSocketServer {
         }
       });
 
-      socket.on('error', (err) => {
+      socket.on('error', err => {
         console.error('Socket error:', err);
       });
 
@@ -91,16 +98,16 @@ export abstract class BaseSocketServer {
 
   public abstract start(): void;
 
-  public stop(): void {
+  public stop(): Promise<void> {
     this.server.close(() => {
       console.log('Closed out remaining connections.');
-      process.exit(0);
+      return Promise.resolve();
     });
 
     setTimeout(() => {
       console.error('Could not close connections in time, forcefully shutting down');
     }, 10000);
-    process.exit(1);
+    return Promise.reject('Server did not stop in time');
   }
 
   public ondata(handler: Handler): void {
@@ -141,7 +148,6 @@ export class UnixSocketServer extends BaseSocketServer {
     });
   }
 }
-
 
 interface TCPServerConfig {
   host: string;
