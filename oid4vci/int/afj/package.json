@@ -19,6 +19,7 @@
     "@aries-framework/askar": "^0.4.2",
     "@aries-framework/core": "^0.4.2",
     "@aries-framework/node": "^0.4.2",
+    "@aries-framework/openid4vc-client": "^0.4.2",
     "@hyperledger/aries-askar-nodejs": "^0.1.1",
     "json-rpc-2.0": "^1.7.0"
   },

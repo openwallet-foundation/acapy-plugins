@@ -1,0 +1,67 @@
+version: "3"
+services:
+  afj:
+    image: afj-test
+    build:
+      context: ./afj
+    environment:
+      AFJ_HOST: 0.0.0.0
+      AFJ_PORT: 3000
+    ports:
+      - 3002:3000
+    healthcheck:
+      test: nc -z 0.0.0.0 3000
+      start_period: 3s
+      interval: 3s
+      timeout: 5s
+      retries: 3
+
+  issuer:
+    image: oid4vci
+    build: 
+      dockerfile: docker/Dockerfile
+      context: ..
+    ports:
+      - "3000:3000"
+      - "3001:3001"
+      - "8081:8081"
+    volumes:
+      - ../docker/entrypoint.sh:/entrypoint.sh:ro,z
+    environment:
+      RUST_LOG: warn
+    command: >
+      start
+        --inbound-transport http 0.0.0.0 3000
+        --outbound-transport http
+        --endpoint http://issuer:3000
+        --admin 0.0.0.0 3001
+        --admin-insecure-mode
+        --no-ledger
+        --wallet-type askar
+        --emit-new-didcomm-prefix
+        --wallet-name issuer
+        --wallet-key insecure
+        --auto-provision
+        --log-level debug
+        --debug-webhooks
+        --plugin oid4vci.v1_0
+    healthcheck:
+      test: curl -s -o /dev/null -w '%{http_code}' "http://localhost:3001/status/live" | grep "200" > /dev/null
+      start_period: 30s
+      interval: 7s
+      timeout: 5s
+      retries: 5
+
+  runner:
+    image: oid4vci-test-runner
+    build:
+      context: ./runner
+    environment:
+      AFJ_HOST: afj
+      AFJ_PORT: 3000
+      ISSUER_ENDPOINT: http://issuer:8081
+    depends_on:
+      afj:
+        condition: service_healthy
+      issuer:
+        condition: service_healthy

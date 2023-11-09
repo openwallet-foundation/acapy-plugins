@@ -25,6 +25,8 @@ FROM node:18 AS release
 # Set the working directory for the release stage
 WORKDIR /usr/src/app
 
+RUN apt-get update && apt-get install ncat -y && apt-get clean
+
 # Copy package.json and package-lock.json for the production installation
 COPY package*.json ./
 
