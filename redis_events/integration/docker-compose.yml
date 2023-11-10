@@ -215,5 +215,9 @@ services:
 
 networks:
   acapy_default:
-    external: true
-    name: acapy_default
+    driver: bridge
+    ipam:
+      driver: default
+      config:
+        - subnet: 172.28.0.0/24
+          gateway: 172.28.0.1

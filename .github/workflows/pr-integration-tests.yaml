@@ -62,6 +62,6 @@ jobs:
             echo "Running integration tests for $dir"
             cd $dir/integration
             docker compose build
-            docker compose up --exit-code-from tests
+            docker compose run tests
             cd ../..
           done
