@@ -4,6 +4,9 @@ on:
     types: [opened, edited, synchronize, reopened, ready_for_review]
     branches:
       - "**"
+  push:
+    branches:
+      - main
 
 jobs:
   integration-tests:
