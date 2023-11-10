@@ -57,6 +57,7 @@ line-length = 90
 [tool.pytest.ini_options]
 testpaths = "multitenant_provider"
 addopts = """
+    -p no:warnings
     --quiet --junitxml=./test-reports/junit.xml
     --cov-config .coveragerc --cov=multitenant_provider --cov-report term --cov-report xml
 """

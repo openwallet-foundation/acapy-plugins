@@ -5,3 +5,4 @@ test-reports/
 .coverage
 coverage.xml
 settings.json
+.env

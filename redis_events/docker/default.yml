@@ -1,0 +1,23 @@
+label: Aries Cloud Agent + Redis Events
+
+# Admin
+admin: [0.0.0.0, 3001]
+admin-insecure-mode: true
+
+# Transport
+inbound-transport:
+  - [redis_events.v1_0.redis_queue.inbound, redis, 0]
+outbound-transport: redis_events.v1_0.redis_queue.outbound
+endpoint:
+  - http://relay:8071
+
+# Plugins
+plugin:
+  - redis_events.v1_0.redis_queue.events
+plugin-config: plugins-config.yml
+
+# Ledger
+no-ledger: true
+
+auto-accept-invites: true
+auto-respond-messages: true

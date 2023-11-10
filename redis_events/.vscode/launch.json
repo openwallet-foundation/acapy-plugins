@@ -1,0 +1,58 @@
+{
+  // Use IntelliSense to learn about possible attributes.
+  // Hover to view descriptions of existing attributes.
+  // For more information, visit: https://go.microsoft.com/fwlink/?linkid=830387
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "name": "Run/Debug Plugin",
+      "type": "python",
+      "request": "launch",
+      "module": "aries_cloudagent",
+      "justMyCode": false,
+      "args": ["start", "--arg-file=${workspaceRoot}/docker/default.yml"]
+    },
+    {
+      "name": "ruff - redis_events",
+      "type": "python",
+      "request": "launch",
+      "module": "ruff",
+      "console": "integratedTerminal",
+      "sudo": true,
+      "justMyCode": true,
+      "cwd": "${workspaceFolder}/redis_events",
+      "args": ["check", "."]
+    },
+    {
+      "name": "ruff fix - redis_events",
+      "type": "python",
+      "request": "launch",
+      "module": "ruff",
+      "console": "integratedTerminal",
+      "sudo": true,
+      "justMyCode": true,
+      "cwd": "${workspaceFolder}/redis_events",
+      "args": ["check", ".", "--fix"]
+    },
+    {
+      "name": "black (check) - redis_events",
+      "type": "python",
+      "request": "launch",
+      "module": "black",
+      "console": "integratedTerminal",
+      "justMyCode": true,
+      "cwd": "${workspaceFolder}/redis_events",
+      "args": [".", "--check"]
+    },
+    {
+      "name": "black (format) - redis_events",
+      "type": "python",
+      "request": "launch",
+      "module": "black",
+      "console": "integratedTerminal",
+      "justMyCode": true,
+      "cwd": "${workspaceFolder}/redis_events",
+      "args": ["."]
+    }
+  ]
+}
