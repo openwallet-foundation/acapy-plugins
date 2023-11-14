@@ -82,7 +82,7 @@ class CreateCredSupSchema(OpenAPISchema):
     )
     format = fields.Str(required=True, metadata={"example": "jwt_vc_json"})
     cryptographic_binding_methods_supported = fields.List(
-        fields.Str(), metadata={"example": []}
+        fields.Str(), metadata={"example": ["did"]}
     )
     cryptographic_suites_supported = fields.List(
         fields.Str(), metadata={"example": ["ES256K"]}
@@ -266,9 +266,15 @@ async def get_cred_offer(request: web.BaseRequest):
         "credential_issuer": issuer_url,
         "credentials": [cred],
         "grants": {
+            # "authorization_code": {
+            #    "issuer_state": 'previously-created-state',
+            #    "authorization_server": ""
+            # },
             "urn:ietf:params:oauth:grant-type:pre-authorized_code": {
                 "pre-authorized_code": code,
                 "user_pin_required": False,  # TODO: put as a parameter
+                # "interval": 30,
+                # "authorization_server": ""
             }
         },
     }

@@ -27,10 +27,10 @@ class SupportedCredential(BaseRecord):
         scope=None,
         cryptographic_binding_methods_supported: Optional[List[str]] = None,
         cryptographic_suites_supported: Optional[List[str]] = None,
-        proof_types_supported: Optional[List[str]] = None,
+        proof_types_supported: Optional[List[str]] = [],
         display: Optional[List[Dict]] = None,
         credential_subject: Optional[Dict] = None,  # v11
-        credential_definition: Optional[Dict] = None,  # v13
+        # credential_definition: Optional[Dict] = {},  # v13
         **kwargs,
     ):
         """Initialize a new SupportedCredential Record."""
@@ -44,7 +44,7 @@ class SupportedCredential(BaseRecord):
         self.proof_types_supported = proof_types_supported
         self.display = display
         self.credential_subject = credential_subject
-        self.credential_definition = credential_definition
+        # self.credential_definition = credential_definition
 
     def web_serialize(self) -> dict:
         """Serialize record for web."""
@@ -67,7 +67,7 @@ class SupportedCredential(BaseRecord):
                 "cryptographic_suites_supported",
                 "display",
                 "credential_subject",
-                "credential_definition",
+                # "credential_definition",
             )
         }
 
@@ -118,7 +118,7 @@ class SupportedCredentialSchema(BaseRecordSchema):
             "gpa": {"display": [{"name": "GPA"}]},
         }
     )
-    credential_definition = fields.Dict(
+    """credential_definition = fields.Dict(
         metadata={
             "type": ["VerifiableCredential", "UniversityDegreeCredential"],
             "credentialSubject": {
@@ -128,4 +128,4 @@ class SupportedCredentialSchema(BaseRecordSchema):
                 "gpa": {"display": [{"name": "GPA"}]},
             },
         },
-    )
+    )"""
