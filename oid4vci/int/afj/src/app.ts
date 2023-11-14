@@ -12,12 +12,11 @@ import {
 import { agentDependencies } from '@aries-framework/node';
 import { AskarModule } from '@aries-framework/askar';
 import { ariesAskar } from '@hyperledger/aries-askar-nodejs';
-import { TCPSocketServer } from './server';
 import {
   OpenId4VcClientApi,
   OpenId4VcClientModule,
 } from '@aries-framework/openid4vc-client';
-import { JsonRpcApiProxy } from './proxy';
+import { TCPSocketServer, JsonRpcApiProxy } from 'json-rpc-api-proxy';
 
 let agent: Agent | null;
 const server = new TCPSocketServer({
