@@ -235,7 +235,7 @@ async def get_cred_offer(request: web.BaseRequest):
     For example, can be used in QR-Code presented to a compliant wallet.
     """
     # Access the query parameters in your view function
-    creds = request.query.get("credentials")
+    cred = request.query.get("credentials")  # TODO: lists is not working
     # TODO: store with input form and retrieve from record
     issuer_url = getenv("OID4VCI_ENDPOINT")
     # issuer_url = request.query.get('credential_issuer')
@@ -264,7 +264,7 @@ async def get_cred_offer(request: web.BaseRequest):
     # Create offer object
     offer = {
         "credential_issuer": issuer_url,
-        "credentials": creds,
+        "credentials": [cred],
         "grants": {
             "urn:ietf:params:oauth:grant-type:pre-authorized_code": {
                 "pre-authorized_code": code,
@@ -287,8 +287,7 @@ async def credential_supported_create(request: web.BaseRequest):
     body = await request.json()
 
     credential_definition_id = body.get("credential_definition_id")
-    format = body.get("format")
-    types = body.get("types")
+    _format = body.get("format")
     cryptographic_binding_methods_supported = body.get(
         "cryptographic_binding_methods_supported"
     )
@@ -299,13 +298,12 @@ async def credential_supported_create(request: web.BaseRequest):
 
     record = SupportedCredential(
         supported_cred_id=credential_definition_id,
-        format=format,
-        types=types,
+        format=_format,
+        scope=scope,
         cryptographic_binding_methods_supported=cryptographic_binding_methods_supported,
         cryptographic_suites_supported=cryptographic_suites_supported,
         display=display,
         credential_subject=credential_subject,
-        scope=scope,
     )
 
     async with profile.session() as session:

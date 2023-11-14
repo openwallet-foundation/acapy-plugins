@@ -18,7 +18,8 @@ const FormPage = () => {
   const handleSubmit = () => {
     // Set the Axios configuration for CORS and credentials
     axios.defaults.withCredentials = true; // Enable credentials (cookies, etc.)
-    axios.defaults.headers.common['Access-Control-Allow-Origin'] = 'http://localhost:3001'; // Adjust the origin as needed
+    axios.defaults.headers.common["Access-Control-Allow-Origin"] =
+      "http://localhost:3001"; // Adjust the origin as needed
 
     // api call to controller, `POST /exchange/submit`
     axios
@@ -32,22 +33,31 @@ const FormPage = () => {
       })
       .then((response) => {
         console.log(response.data);
-        const {exchange_id} = response.data
-          // TODO: call offer endpoint
+        const { exchange_id } = response.data;
+        // TODO: call offer endpoint
 
-          const queryParams = {
-            credentials: [selectedCredential],
-            user_pin_required: false,
-            exchange_id: exchange_id,
-          };
-          axios.get("http://localhost:3001/oid4vci/draft-11/credential-offer", { params: queryParams })
+        const queryParams = {
+          credentials: selectedCredential,
+          user_pin_required: false,
+          exchange_id: exchange_id,
+        };
+        console.log("get offer params:");
+        console.log(queryParams);
+        axios
+          .get("http://localhost:3001/oid4vci/draft-11/credential-offer", {
+            params: queryParams,
+            headers: {
+              accept: "application/json",
+            },
+          })
           .then((response) => {
             console.log(response.data);
             const credentialOffer = response.data;
-            const {exchange_id} = response.data;
-            navigate(`/qr-code`, { state: { credentialOffer, exchange_id: exchange_id } });
-          })
-        })
+            navigate(`/qr-code`, {
+              state: { credentialOffer, exchange_id: exchange_id },
+            });
+          });
+      })
       .catch((error) => {
         console.error(error);
       });

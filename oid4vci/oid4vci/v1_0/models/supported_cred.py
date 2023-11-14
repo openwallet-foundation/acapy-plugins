@@ -16,7 +16,7 @@ class SupportedCredential(BaseRecord):
     EVENT_NAMESPACE = "oid4vci"
     RECORD_ID_NAME = "supported_cred_id"
     RECORD_TYPE = "supported_cred"
-    TAG_NAMES = {"supported_cred_id", "types", "scope"}
+    TAG_NAMES = {"scope"}
 
     def __init__(
         self,
@@ -24,25 +24,27 @@ class SupportedCredential(BaseRecord):
         supported_cred_id: Optional[str] = None,
         state: Optional[str] = None,
         format: Optional[str] = None,
-        types: Optional[List[str]] = None,
+        scope=None,
         cryptographic_binding_methods_supported: Optional[List[str]] = None,
         cryptographic_suites_supported: Optional[List[str]] = None,
+        proof_types_supported: Optional[List[str]] = None,
         display: Optional[List[Dict]] = None,
-        credential_subject: Optional[Dict] = None,
-        scope=None,
+        credential_subject: Optional[Dict] = None,  # v11
+        credential_definition: Optional[Dict] = None,  # v13
         **kwargs,
     ):
         """Initialize a new SupportedCredential Record."""
         super().__init__(supported_cred_id, state or "init", **kwargs)
         self.format = format
-        self.types = types
+        self.scope = scope
         self.cryptographic_binding_methods_supported = (
             cryptographic_binding_methods_supported
         )
         self.cryptographic_suites_supported = cryptographic_suites_supported
+        self.proof_types_supported = proof_types_supported
         self.display = display
         self.credential_subject = credential_subject
-        self.scope = scope
+        self.credential_definition = credential_definition
 
     def web_serialize(self) -> dict:
         """Serialize record for web."""
@@ -53,6 +55,22 @@ class SupportedCredential(BaseRecord):
         """Accessor for the ID associated with this record."""
         return self._id
 
+    @property
+    def record_value(self) -> dict:
+        """Return dict representation of the exchange record for storage."""
+        return {
+            prop: getattr(self, prop)
+            for prop in (
+                "format",
+                "scope",
+                "cryptographic_binding_methods_supported",
+                "cryptographic_suites_supported",
+                "display",
+                "credential_subject",
+                "credential_definition",
+            )
+        }
+
 
 class SupportedCredentialSchema(BaseRecordSchema):
     """Schema for SupportedCredential."""
@@ -62,10 +80,10 @@ class SupportedCredentialSchema(BaseRecordSchema):
 
         model_class = SupportedCredential
 
+    format = fields.Str(required=True, metadata={"example": "jwt_vc_json"})
     scope = fields.Str(
         required=True, metadata={"example": "UniversityDegreeCredential"}
     )
-    format = fields.Str(required=True, metadata={"example": "jwt_vc_json"})
     cryptographic_binding_methods_supported = fields.List(
         fields.Str(), metadata={"example": []}
     )
@@ -99,4 +117,15 @@ class SupportedCredentialSchema(BaseRecordSchema):
             "degree": {},
             "gpa": {"display": [{"name": "GPA"}]},
         }
+    )
+    credential_definition = fields.Dict(
+        metadata={
+            "type": ["VerifiableCredential", "UniversityDegreeCredential"],
+            "credentialSubject": {
+                "given_name": {"display": [{"name": "Given Name", "locale": "en-US"}]},
+                "family_name": {"display": [{"name": "Surname", "locale": "en-US"}]},
+                "degree": {},
+                "gpa": {"display": [{"name": "GPA"}]},
+            },
+        },
     )
