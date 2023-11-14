@@ -21,7 +21,7 @@
     "@aries-framework/node": "^0.4.2",
     "@aries-framework/openid4vc-client": "^0.4.2",
     "@hyperledger/aries-askar-nodejs": "^0.1.1",
-    "json-rpc-2.0": "^1.7.0"
+    "json-rpc-api-proxy": "github:Indicio-tech/json-rpc-api-proxy#cced6a17455c4d3e249604b10acd7530e04466d7"
   },
   "overrides": {
     "ref-napi": "npm:@2060.io/ref-napi"
