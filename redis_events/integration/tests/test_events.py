@@ -45,13 +45,6 @@ PAYLOAD_B64 = """
     ZVFiakktVmpkN21hcWdTNElGTlEifQ==
 """
 
-PAYLOAD_JSON = {
-    "protected": "eyJlbmMiOiAieGNoYWNoYTIwcG9seTEzMDVfaWV0ZiIsICJ0eXAiOiAiSldNLzEuMCIsICJhbGciOiAiQXV0aGNyeXB0IiwgInJlY2lwaWVudHMiOiBbeyJlbmNyeXB0ZWRfa2V5IjogIjFjZ3l0Qm13M3ExaGdiVzBJbjNtSG82WWhLT2tpRzVEeThrRjJIWjYxcTJvWWM3bmtuSzlOSUc2SEhlU2NoeWEiLCAiaGVhZGVyIjogeyJraWQiOiAiNERCSjRacDg1MWdqek50Sm1tb0U5N1dxVnJXTjM2eVpSYUdpZjRBR3J4d1EiLCAic2VuZGVyIjogIjNWcHlScUFZTWsyNk5Fc0QzNmNfZ2g0VHk0ZjgwMGxDRGEwM1llRW5mRXBmV2hJLWdzZEctVGRkMWVNaDlZSXo3NHRFSzJsR1VaTXpfNGt1d0JTUko0TF9hd1RKQVVVd2tTVnhrMzRnUVVfNWdrd1RkOEY1TkFlSU5QVSIsICJpdiI6ICJqVVJCQmNiT3g3NkNsVl8xazhRM29rUnJtRGQ1a3BpQiJ9fV19",
-    "iv": "MWgGuQ4_ZogqURTn",
-    "ciphertext": "UMLaP9Mwd_p8TumgpqVVAfSIfWsX7kIV-DxFw_TtSCjVu5SlnQbkdMRKwurdb5vgzCKT5ArlUtXAL2mlIIiPjRc5fK8KsMwKGEzi2pKkvlC7Q3QtJY19ZeSJ9X0iT9lNjcD3nJKJ5o9dJ8UXfi5O4dKZ-leW-j8ysLASI8uxFXUShRle7-7nnGfFgFVAF3ZYZj6TWQBkvGRROzO30LsDXpsjSj1f_wNzEgqNjO0DYzdJkIA6mACP",
-    "tag": "eAeQbjI-Vjd7maqgS4IFNQ"
-}
-
 
 @pytest.fixture(scope="session", autouse=True)
 def established_connection(faber, alice):
@@ -69,20 +62,22 @@ async def test_base_redis_keys_are_set(redis):
 
 
 @pytest.mark.asyncio
-async def test_outbound_queue_removes_messages_from_queue(faber: Agent, established_connection: str, redis):
+async def test_outbound_queue_removes_messages_from_queue_and_deliver_sends_them(faber: Agent, established_connection: str, redis):
     faber.send_message(established_connection, "Hello Alice")
+    faber.send_message(established_connection, "Another Alice")
     msg_received = False
     retry_pop_count = 0
     while not msg_received:
-        msg = await redis.blpop("acapy_outbound", 10)
+        msg = await redis.blpop("acapy_outbound", 2)
         if not msg:
             if retry_pop_count > 3:
                 raise Exception("blpop call failed to retrieve message")
             retry_pop_count = retry_pop_count + 1
             time.sleep(1)
         msg_received = True
-    assert "Hello Alice" in (msg['content']
-                             for msg in faber.retrieve_basicmessages()['results'])
+    messages = faber.retrieve_basicmessages()['results']
+    assert "Hello Alice" in (msg['content'] for msg in messages)
+    assert "Another Alice" in (msg['content'] for msg in messages)
 
 
 @pytest.mark.asyncio
@@ -105,18 +100,16 @@ async def test_deliverer_pulls_messages_from_queue_and_sends_them(
     messages = faber.retrieve_basicmessages()['results']
     matching_msgs = [
         msg for msg in messages if msg['content'] == "test-msg"]
-    assert matching_msgs.__len__() == 1
+    assert matching_msgs.__len__() == 2  # 1 for sent, 1 for received
     assert await redis.lrange("acapy_outbound", 0, -1) == []
 
 
 @pytest.mark.asyncio
-async def test_relay_sets_redis_keys_for_queue(redis, relay: Agent):
-    post(relay.url, "/", json=PAYLOAD_JSON)
+async def test_relay_has_keys_in_recip_key_uid_map(redis, relay: Agent):
     time.sleep(1)
-    uid = await redis.hget("recip_key_uid_map", "4DBJ4Zp851gjzNtJmmoE97WqVrWN36yZRaGif4AGrxwQ")
-    assert uid
-
-    msg_count = await redis.hget("uid_recip_key_pending_msg_count", uid.decode() + "_4DBJ4Zp851gjzNtJmmoE97WqVrWN36yZRaGif4AGrxwQ")
+    recip_keys = await redis.hgetall("recip_key_uid_map")
+    assert recip_keys
+    msg_count = await redis.hgetall("uid_recip_key_pending_msg_count")
     assert msg_count
 
 

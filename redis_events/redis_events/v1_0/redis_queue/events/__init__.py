@@ -22,6 +22,7 @@ LOGGER = logging.getLogger(__name__)
 
 async def setup(context: InjectionContext):
     """Setup the plugin."""
+    LOGGER.info("> plugin setup...")
     config = get_config(context.settings).event or EventConfig.default()
 
     bus = context.inject(EventBus)
@@ -34,6 +35,7 @@ async def setup(context: InjectionContext):
 
     bus.subscribe(STARTUP_EVENT_PATTERN, on_startup)
     bus.subscribe(SHUTDOWN_EVENT_PATTERN, on_shutdown)
+    LOGGER.info("< plugin setup.")
 
 
 RECORD_RE = re.compile(r"acapy::record::([^:]*)(?:::(.*))?")
