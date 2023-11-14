@@ -63,16 +63,16 @@ async def oid_cred_issuer(request: web.Request):
     public_url = OID4VCI_ENDPOINT  # TODO: check for flag first
 
     # Wallet query to retrieve credential definitions
-    tag_filter = {"type": {"$in": ["sd_jwt", "jwt_vc_json"]}}
+    tag_filter = {}  # {"type": {"$in": ["sd_jwt", "jwt_vc_json"]}}
     async with profile.session() as session:
         credentials_supported = await SupportedCredential.query(session, tag_filter)
 
     metadata = {
         "credential_issuer": f"{public_url}/",  # TODO: update path with wallet id
         "credential_endpoint": f"{public_url}/credential",
-        "credentials_supported": [cred.serialize() for cred in credentials_supported],
-        "authorization_server": f"{public_url}/auth-server",
-        "batch_credential_endpoint": f"{public_url}/batch_credential",
+        "credentials_supported": [vars(cred) for cred in credentials_supported],
+        # "authorization_server": f"{public_url}/auth-server",
+        # "batch_credential_endpoint": f"{public_url}/batch_credential",
     }
 
     return web.json_response(metadata)
