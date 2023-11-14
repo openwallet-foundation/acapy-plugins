@@ -4,7 +4,6 @@ import json
 
 import logging
 
-from aries_cloudagent.transport.wire_format import BaseWireFormat
 from aries_cloudagent.core.profile import Profile
 from aries_cloudagent.transport.outbound.base import (
     BaseOutboundTransport,

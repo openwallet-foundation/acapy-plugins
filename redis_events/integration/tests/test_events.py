@@ -4,7 +4,7 @@ import time
 
 import pytest
 
-from . import FABER, ALICE, RELAY, Agent, post
+from . import FABER, ALICE, RELAY, Agent
 
 
 @pytest.fixture(scope="session")
