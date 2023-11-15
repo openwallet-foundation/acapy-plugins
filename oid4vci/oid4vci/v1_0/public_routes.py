@@ -6,6 +6,7 @@ from typing import Optional
 from aries_cloudagent.core.profile import Profile, ProfileSession
 from aries_cloudagent.wallet.error import WalletNotFoundError
 import jwt as pyjwt
+from secrets import token_urlsafe
 
 from aiohttp import web
 from aiohttp_apispec import (
@@ -94,7 +95,7 @@ async def check_token(profile: Profile, auth_header: Optional[str] = None):
         raise web.HTTPUnauthorized()  # no authentication
 
     scheme, cred = auth_header.split(" ")
-    if scheme.lower() != "bearer" or ():
+    if scheme.lower() != "bearer":
         raise web.HTTPUnauthorized()  # Invalid authentication credentials
 
     jwt_header = pyjwt.get_unverified_header(cred)
@@ -136,11 +137,11 @@ async def get_token(request: web.Request):
     sup_cred_record = None
     try:
         async with context.profile.session() as session:
-            filter = {
+            _filter = {
                 "code": pre_authorized_code,
                 # "user_pin": user_pin
             }
-            records = await OID4VCIExchangeRecord.query(session, filter)
+            records = await OID4VCIExchangeRecord.query(session, _filter)
             ex_record: OID4VCIExchangeRecord = records[0]
             if not ex_record or not ex_record.code:  # TODO: check pin
                 return {}  # TODO: report failure?
@@ -151,39 +152,45 @@ async def get_token(request: web.Request):
                         session, ex_record.supported_cred_id
                     )
                 )
+            signing_did = await create_did(session)
     except (StorageError, BaseModelError, StorageNotFoundError) as err:
         raise web.HTTPBadRequest(reason=err.roll_up) from err
 
     scopes = sup_cred_record.scope
-    # TODO: get valid parameters from exchange record, exchange record should have a
-    # registration information along with credential claims.
     payload = {
-        "scope": f"openid profile email {scopes}",
-        "name": "John",
-        "preferred_username": "Terry",
-        "given_name": "Berry",
-        "email": "ted@example.com",
+        "scope": scopes,
     }
     async with context.profile.session() as session:
         signing_did = await create_did(session)
 
-    try:
-        await jwt_sign(
-            context.profile,
-            headers,
-            payload,
-            signing_did,
+        try:
+            _jwt = await jwt_sign(
+                context.profile,
+                headers={},
+                payload=payload,
+                did=signing_did,
+            )
+        except ValueError as err:
+            raise web.HTTPBadRequest(reason="Bad did or verification method") from err
+        except WalletNotFoundError as err:
+            raise web.HTTPNotFound(reason=err.roll_up) from err
+        except WalletError as err:
+            raise web.HTTPBadRequest(reason=err.roll_up) from err
+        # update record with nonce and jwt
+        ex_record.token = _jwt
+        ex_record.nonce = token_urlsafe(16)
+        await ex_record.save(
+            session,
+            reason="Created new token",
         )
-    except ValueError as err:
-        raise web.HTTPBadRequest(reason="Bad did or verification method") from err
-    except WalletNotFoundError as err:
-        raise web.HTTPNotFound(reason=err.roll_up) from err
-    except WalletError as err:
-        raise web.HTTPBadRequest(reason=err.roll_up) from err
 
-    token_urlsafe(16)
-    # redis_conn.set(nonce, exchange_id)  # TODO: storing exchange_id is a smell
-    # redis_conn.set(jwt, exchange_id)  # TODO: think of a better data structure
+    return {
+        "access_token": ex_record.token,
+        "token_type": "Bearer",
+        "expires_in": "300",
+        "c_nonce": ex_record.nonce,
+        "c_nonce_expires_in": "86400",  # TODO: enforce this
+    }
 
 
 async def register(app: web.Application):
