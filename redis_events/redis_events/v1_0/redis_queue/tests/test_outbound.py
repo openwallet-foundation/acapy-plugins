@@ -1,22 +1,22 @@
 import base64
 import datetime
-import redis
-import time
 import json
+import time
 
-from aries_cloudagent.core.in_memory import InMemoryProfile
-from aries_cloudagent.transport.wire_format import BaseWireFormat
-from aries_cloudagent.transport.outbound.base import (
-    QueuedOutboundMessage,
-    OutboundMessage,
-    ConnectionTarget,
-)
+import redis
 from aiohttp.test_utils import unused_port
-from asynctest import TestCase as AsyncTestCase, mock as async_mock, PropertyMock
+from aries_cloudagent.core.in_memory import InMemoryProfile
+from aries_cloudagent.transport.outbound.base import (ConnectionTarget,
+                                                      OutboundMessage,
+                                                      QueuedOutboundMessage)
+from aries_cloudagent.transport.wire_format import BaseWireFormat
+from asynctest import PropertyMock
+from asynctest import TestCase as AsyncTestCase
+from asynctest import mock as async_mock
 
+from .. import config as test_config
 from .. import outbound as test_outbound
 from .. import utils as test_util
-from .. import config as test_config
 from ..outbound import RedisOutboundQueue
 
 SETTINGS = {
@@ -340,9 +340,7 @@ class TestRedisOutbound(AsyncTestCase):
             async_mock.MagicMock(),
         )
         wire_format = BaseWireFormat()
-        redis_outbound_inst = RedisOutboundQueue(
-            root_profile=self.profile, wire_format=wire_format
-        )
+        redis_outbound_inst = RedisOutboundQueue(self.profile)
         q_out_msg = QueuedOutboundMessage(
             profile=self.profile,
             message=OutboundMessage(payload="test-message"),
@@ -391,9 +389,8 @@ class TestRedisOutbound(AsyncTestCase):
                 )
             ),
         ):
-            wire_format = BaseWireFormat()
             redis_outbound_inst = RedisOutboundQueue(
-                root_profile=self.profile, wire_format=wire_format
+                root_profile=self.profile
             )
             q_out_msg = QueuedOutboundMessage(
                 profile=self.profile,
@@ -438,9 +435,8 @@ class TestRedisOutbound(AsyncTestCase):
                 )
             ),
         ):
-            wire_format = BaseWireFormat()
             redis_outbound_inst = RedisOutboundQueue(
-                root_profile=self.profile, wire_format=wire_format
+                root_profile=self.profile
             )
             q_out_msg = QueuedOutboundMessage(
                 profile=self.profile,

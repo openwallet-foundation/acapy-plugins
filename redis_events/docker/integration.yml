@@ -21,5 +21,8 @@ wallet-key: "test-wallet-key"
 
 no-ledger: true
 
+debug-connections: true
 auto-accept-invites: true
 auto-respond-messages: true
+
+log-level: info
