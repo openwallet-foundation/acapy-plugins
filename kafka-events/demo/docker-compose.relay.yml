@@ -1,0 +1,105 @@
+version: '3'
+services:
+  zookeeper:
+    image: confluentinc/cp-zookeeper:latest
+    environment:
+      ZOOKEEPER_CLIENT_PORT: 2181
+      ZOOKEEPER_TICK_TIME: 2000
+    ports:
+      - 22181:2181
+
+  kafka:
+    image: confluentinc/cp-kafka:latest
+    depends_on:
+      - zookeeper
+    ports:
+      - 29092:9092
+    environment:
+      KAFKA_BROKER_ID: 1
+      KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:9092,PLAINTEXT_HOST://localhost:29092
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT,PLAINTEXT_HOST:PLAINTEXT
+      KAFKA_INTER_BROKER_LISTENER_NAME: PLAINTEXT
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+
+  restproxy:
+    image: confluentinc/cp-kafka-rest
+    restart: always
+    depends_on:
+      - zookeeper
+      - kafka
+    hostname: restproxy
+    container_name: restproxy
+    environment:
+      KAFKA_REST_HOST_NAME: restproxy
+      KAFKA_REST_BOOTSTRAP_SERVERS: kafka:9092
+      KAFKA_REST_LISTENERS: http://0.0.0.0:8086
+
+  kafka-visuals:
+    image: kbhargava/kafka-visuals
+    ports:
+      - 8080:8080
+    depends_on:
+      - kafka
+      - zookeeper
+    command: zookeeper:2181 kafka:9092 DEV
+
+  agency:
+    image: acapy-kafka-queue
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile
+    ports:
+      - 3001:3001
+    depends_on:
+      - kafka
+      - zookeeper
+      - restproxy
+      - relay-tunnel
+      - relay
+    volumes:
+      - ./configs:/home/indy/configs:z
+      - ./acapy-endpoint.sh:/home/indy/acapy-endpoint.sh:z
+    environment:
+      - TUNNEL_ENDPOINT=http://relay-tunnel:4040
+      - WAIT_BEFORE_HOSTS=5
+      - WAIT_HOSTS=zookeeper:2181,kafka:9092,restproxy:8086
+      - WAIT_HOSTS_TIMEOUT=120
+      - WAIT_SLEEP_INTERVAL=1
+      - WAIT_HOST_CONNECT_TIMEOUT=60
+    entrypoint: /bin/sh -c '/wait && ./acapy-endpoint.sh poetry run aca-py "$$@"' --
+    command: start --arg-file ./configs/agency.yml
+
+  relay-tunnel:
+    image: dbluhm/agent-tunnel
+    command: -s relay:80 -h ${TUNNEL_HOST}
+
+  relay:
+    image: http-kafka-relay
+    build:
+      context: ../http_kafka_relay
+    environment:
+      - BOOTSTRAP_SERVER=kafka
+      - INBOUND_TOPIC=acapy-inbound-message
+      - WAIT_BEFORE_HOSTS=5
+      - WAIT_HOSTS=zookeeper:2181,kafka:9092
+      - WAIT_HOSTS_TIMEOUT=120
+      - WAIT_SLEEP_INTERVAL=1
+      - WAIT_HOST_CONNECT_TIMEOUT=60
+    depends_on:
+      - kafka
+      - relay-tunnel
+
+  deliverer:
+    image: kafka-http-deliverer
+    build:
+      context: ../deliverer
+    environment:
+      - BOOTSTRAP_SERVER=kafka
+      - OUTBOUND_TOPIC=acapy-outbound-message
+      - GROUP=kafka_queue
+      - WAIT_BEFORE_HOSTS=5
+      - WAIT_HOSTS=zookeeper:2181,kafka:9092
+      - WAIT_HOSTS_TIMEOUT=120
+      - WAIT_SLEEP_INTERVAL=1
+      - WAIT_HOST_CONNECT_TIMEOUT=60

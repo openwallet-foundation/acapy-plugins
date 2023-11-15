@@ -1,0 +1,18 @@
+[tool.poetry]
+name = "Mediator Setup Service"
+version = "0.1.0"
+description = "Automated setup of mediator and ACA-Py instance"
+authors = ["Daniel Bluhm <dbluhm@pm.me>"]
+license = "Apache-2.0"
+
+[tool.poetry.dependencies]
+python = "^3.7"
+acapy-client = {git = "https://github.com/Indicio-tech/acapy-client.git", rev = "0.7.1"}
+httpx = "^0.19.0"
+
+[tool.poetry.dev-dependencies]
+black = "^21.9b0"
+
+[build-system]
+requires = ["poetry-core>=1.0.0"]
+build-backend = "poetry.core.masonry.api"

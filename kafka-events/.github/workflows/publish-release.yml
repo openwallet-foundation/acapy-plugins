@@ -1,0 +1,55 @@
+name: Publish to PyPI
+
+on:
+  release:
+    types: [created]
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v3
+    - name: Set up Python 3.9
+      uses: actions/setup-python@v4
+      with:
+        python-version: 3.9
+    - name: Cache python environment
+      id: cache-env
+      uses: actions/cache@v3
+      with:
+          path: ${{ env.pythonLocation }}
+          key: ${{ runner.os }}-deploy-${{ hashFiles('poetry.lock') }}
+    - name: Install poetry
+      if: steps.cache-env.outputs.cache-hit != 'true'
+      run: |
+          pip install poetry==1.3.2
+    - name: Setup poetry environment
+      id: setup-poetry-env
+      run: |
+          poetry env use $(which python)
+          echo "poetry-env=$(poetry env info --path)" >> $GITHUB_OUTPUT
+    - name: Cache poetry environment
+      id: cache-poetry
+      uses: actions/cache@v3
+      with:
+          path: ${{ steps.setup-poetry-env.outputs.poetry-env }}
+          key: ${{ runner.os }}-poetry-${{ hashFiles('poetry.lock') }}
+    - name: Install dependencies
+      if: steps.cache-poetry.outputs.cache-hit != 'true'
+      run: |
+          poetry install
+    - name: Sanity check (run tests)
+      run: |
+        poetry run pytest
+    - name: Build package
+      run: |
+          poetry build
+    - name: Publish package
+      env:
+          POETRY_HTTP_BASIC_INTERNAL_PYPI_USERNAME: ${{secrets.PYPI_PUBLISHER_USER}}
+          POETRY_HTTP_BASIC_INTERNAL_PYPI_PASSWORD: ${{secrets.PYPI_PUBLISHER_PASSWORD}}
+
+      run: |
+          poetry config repositories.internal-pypi ${{secrets.PYPI_URL}}
+          poetry publish -r internal-pypi
