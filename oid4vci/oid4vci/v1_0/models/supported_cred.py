@@ -57,10 +57,10 @@ class SupportedCredential(BaseRecord):
         self.display = display
         self.format_data = format_data
 
-    @property
-    def supported_cred_id(self):
-        """Accessor for the ID associated with this record."""
-        return self._id
+    # @property
+    # def supported_cred_id(self):
+    #    """Accessor for the ID associated with this record."""
+    #    return self._id
 
     @property
     def record_value(self) -> dict:
@@ -110,6 +110,10 @@ class SupportedCredentialSchema(BaseRecordSchema):
 
         model_class = SupportedCredential
 
+    supported_cred_id = fields.Str(
+        required=False,
+        description="supported credential identifier",
+    )
     format = fields.Str(required=True, metadata={"example": "jwt_vc_json"})
     identifier = fields.Str(
         data_key="id", required=True, metadata={"example": "UniversityDegreeCredential"}

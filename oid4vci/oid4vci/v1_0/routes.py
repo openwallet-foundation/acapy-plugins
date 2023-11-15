@@ -286,12 +286,12 @@ async def credential_supported_create(request: web.Request):
     profile = context.profile
 
     body: Dict[str, Any] = await request.json()
-
+    LOGGER.info(f"body: {body}")
     known = {
         k: body.pop(k)
         for k in (
             "format",
-            "id",
+            # "id",
             "cryptographic_binding_methods_supported",
             "cryptographic_suites_supported",
             "display",
@@ -299,6 +299,8 @@ async def credential_supported_create(request: web.Request):
         if k in body
     }
     format_specific = body
+    LOGGER.info(f"format_data: {format_specific}")
+    LOGGER.info(f"known: {known}")
 
     record = SupportedCredential(
         **known,
