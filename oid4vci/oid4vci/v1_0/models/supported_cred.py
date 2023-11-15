@@ -16,39 +16,46 @@ class SupportedCredential(BaseRecord):
     EVENT_NAMESPACE = "oid4vci"
     RECORD_ID_NAME = "supported_cred_id"
     RECORD_TYPE = "supported_cred"
-    TAG_NAMES = {"scope"}
+    TAG_NAMES = {"identifier", "format"}
 
     def __init__(
         self,
         *,
         supported_cred_id: Optional[str] = None,
-        state: Optional[str] = None,
         format: Optional[str] = None,
-        scope=None,
+        identifier: Optional[str] = None,
         cryptographic_binding_methods_supported: Optional[List[str]] = None,
         cryptographic_suites_supported: Optional[List[str]] = None,
-        proof_types_supported: Optional[List[str]] = [],
         display: Optional[List[Dict]] = None,
-        credential_subject: Optional[Dict] = None,  # v11
-        # credential_definition: Optional[Dict] = {},  # v13
+        format_data: Optional[Dict] = None,
         **kwargs,
     ):
-        """Initialize a new SupportedCredential Record."""
-        super().__init__(supported_cred_id, state or "init", **kwargs)
+        """Initialize a new SupportedCredential Record.
+
+        Args:
+            supported_cred_id (Optional[str]): Record identifier. This is
+                purely a record identifier; it does NOT correspond to anything in
+                the spec.
+            format (Optional[str]): Format identifier of the credential. e.g. jwt_vc_json
+            identifier (Optional[str]): Identifier of the supported credential
+                metadata. This is the `id` from the spec (NOT a record identifier).
+            cryptographic_binding_methods_supported (Optional[List[str]]): A
+                list of supported cryptographic binding methods.
+            cryptographic_suites_supported (Optional[List[str]]): A list of
+                supported cryptographic suites.
+            display (Optional[List[Dict]]): Display characteristics of the credential.
+            format_data (Optional[Dict]): Format sepcific attributes; e.g.
+                credentialSubject for jwt_vc_json
+        """
+        super().__init__(supported_cred_id, **kwargs)
         self.format = format
-        self.scope = scope
+        self.identifier = identifier
         self.cryptographic_binding_methods_supported = (
             cryptographic_binding_methods_supported
         )
         self.cryptographic_suites_supported = cryptographic_suites_supported
-        self.proof_types_supported = proof_types_supported
         self.display = display
-        self.credential_subject = credential_subject
-        # self.credential_definition = credential_definition
-
-    def web_serialize(self) -> dict:
-        """Serialize record for web."""
-        return self.serialize()
+        self.format_data = format_data
 
     @property
     def supported_cred_id(self):
@@ -62,14 +69,37 @@ class SupportedCredential(BaseRecord):
             prop: getattr(self, prop)
             for prop in (
                 "format",
-                "scope",
+                "identifier",
                 "cryptographic_binding_methods_supported",
                 "cryptographic_suites_supported",
                 "display",
-                "credential_subject",
-                # "credential_definition",
+                "format_data",
             )
         }
+
+    def to_issuer_metadata(self) -> dict:
+        """Return a representation of this record as issuer metadata.
+
+        To arrive at the structure defined by the specification, it must be
+        derived from this record (the record itself is not exactly aligned with
+        the spec).
+        """
+        issuer_metadata = {
+            prop: getattr(self, prop)
+            for prop in (
+                "format",
+                "identifier",
+                "cryptographic_binding_methods_supported",
+                "cryptographic_suites_supported",
+                "display",
+            )
+        }
+        # Flatten the format specific metadata into the object
+        issuer_metadata = {
+            **issuer_metadata,
+            **(self.format_data if self.format_data else {}),
+        }
+        return issuer_metadata
 
 
 class SupportedCredentialSchema(BaseRecordSchema):
@@ -81,17 +111,14 @@ class SupportedCredentialSchema(BaseRecordSchema):
         model_class = SupportedCredential
 
     format = fields.Str(required=True, metadata={"example": "jwt_vc_json"})
-    scope = fields.Str(
-        required=True, metadata={"example": "UniversityDegreeCredential"}
+    identifier = fields.Str(
+        data_key="id", required=True, metadata={"example": "UniversityDegreeCredential"}
     )
     cryptographic_binding_methods_supported = fields.List(
         fields.Str(), metadata={"example": []}
     )
     cryptographic_suites_supported = fields.List(
         fields.Str(), metadata={"example": ["ES256K"]}
-    )
-    proof_types_supported = fields.List(
-        fields.Str(), metadata={"example": ["Ed25519Signature2018"]}
     )
     display = fields.List(
         fields.Dict(),
@@ -110,22 +137,18 @@ class SupportedCredentialSchema(BaseRecordSchema):
             ]
         },
     )
-    credential_subject = fields.Dict(
+    format_data = fields.Dict(
+        required=False,
         metadata={
-            "given_name": {"display": [{"name": "Given Name", "locale": "en-US"}]},
-            "family_name": {"display": [{"name": "Surname", "locale": "en-US"}]},
-            "degree": {},
-            "gpa": {"display": [{"name": "GPA"}]},
-        }
-    )
-    """credential_definition = fields.Dict(
-        metadata={
-            "type": ["VerifiableCredential", "UniversityDegreeCredential"],
-            "credentialSubject": {
-                "given_name": {"display": [{"name": "Given Name", "locale": "en-US"}]},
-                "family_name": {"display": [{"name": "Surname", "locale": "en-US"}]},
-                "degree": {},
-                "gpa": {"display": [{"name": "GPA"}]},
-            },
+            "example": {
+                "credentialSubject": {
+                    "given_name": {
+                        "display": [{"name": "Given Name", "locale": "en-US"}]
+                    },
+                    "last_name": {"display": [{"name": "Surname", "locale": "en-US"}]},
+                    "degree": {},
+                    "gpa": {"display": [{"name": "GPA"}]},
+                }
+            }
         },
-    )"""
+    )

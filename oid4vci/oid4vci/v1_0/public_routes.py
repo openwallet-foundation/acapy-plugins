@@ -3,7 +3,8 @@
 import logging
 from os import getenv
 from typing import Optional
-from aries_cloudagent.core.profile import Profile
+from aries_cloudagent.core.profile import Profile, ProfileSession
+from aries_cloudagent.wallet.error import WalletNotFoundError
 import jwt as pyjwt
 
 from aiohttp import web
@@ -15,9 +16,12 @@ from aiohttp_apispec import (
 from aries_cloudagent.storage.error import StorageError, StorageNotFoundError
 from aries_cloudagent.messaging.models.base import BaseModelError
 from aries_cloudagent.messaging.models.openapi import OpenAPISchema
-from aries_cloudagent.wallet.jwt import jwt_verify
+from aries_cloudagent.wallet.jwt import jwt_sign, jwt_verify
+from aries_cloudagent.wallet.base import BaseWallet, WalletError
+from aries_cloudagent.wallet.did_method import KEY
+from aries_cloudagent.wallet.key_type import ED25519
 from marshmallow import fields
-from oid4vci.oid4vci.v1_0.models.exchange import OID4VCIExchangeRecord
+from oid4vci.v1_0.models.exchange import OID4VCIExchangeRecord
 from .models.supported_cred import SupportedCredential
 
 LOGGER = logging.getLogger(__name__)
@@ -74,7 +78,9 @@ async def oid_cred_issuer(request: web.Request):
     metadata = {
         "credential_issuer": f"{public_url}/",  # TODO: update path with wallet id
         "credential_endpoint": f"{public_url}/credential",
-        "credentials_supported": [vars(cred) for cred in credentials_supported],
+        "credentials_supported": [
+            supported.to_issuer_metadata() for supported in credentials_supported
+        ],
         # "authorization_server": f"{public_url}/auth-server",
         # "batch_credential_endpoint": f"{public_url}/batch_credential",
     }
@@ -108,13 +114,12 @@ async def issue_cred(request: web.Request):
     await check_token(profile, request.headers.get("Authorization"))
 
 
-async def create_did(session):
-    did_methods = session.inject(DIDMethods)
-    method = did_methods.from_method("key")
+async def create_did(session: ProfileSession):
+    """Create a new DID."""
     key_type = ED25519
-    wallet = session.inject_or(BaseWallet)
+    wallet = session.inject(BaseWallet)
     try:
-        return await wallet.create_local_did(method=method, key_type=key_type)
+        return await wallet.create_local_did(method=KEY, key_type=key_type)
     except WalletError as err:
         raise web.HTTPBadRequest(reason=err.roll_up) from err
 
@@ -123,7 +128,7 @@ async def create_did(session):
 @querystring_schema(GetTokenSchema())
 async def get_token(request: web.Request):
     """Token endpoint to exchange pre_authorized codes for access tokens."""
-    grant_type = request.query.get("grant_type")
+    request.query.get("grant_type")
     pre_authorized_code = request.query.get("pre_authorized_code")
     # user_pin = request.query.get("user_pin")
     context = request["context"]
@@ -150,7 +155,6 @@ async def get_token(request: web.Request):
         raise web.HTTPBadRequest(reason=err.roll_up) from err
 
     scopes = sup_cred_record.scope
-    exchange_id = ex_record.exchange_id
     # TODO: get valid parameters from exchange record, exchange record should have a
     # registration information along with credential claims.
     payload = {
@@ -160,9 +164,11 @@ async def get_token(request: web.Request):
         "given_name": "Berry",
         "email": "ted@example.com",
     }
-    signing_did = await create_did()
+    async with context.profile.session() as session:
+        signing_did = await create_did(session)
+
     try:
-        jws = await jwt_sign(
+        await jwt_sign(
             context.profile,
             headers,
             payload,
@@ -175,7 +181,7 @@ async def get_token(request: web.Request):
     except WalletError as err:
         raise web.HTTPBadRequest(reason=err.roll_up) from err
 
-    nonce = token_urlsafe(16)
+    token_urlsafe(16)
     # redis_conn.set(nonce, exchange_id)  # TODO: storing exchange_id is a smell
     # redis_conn.set(jwt, exchange_id)  # TODO: think of a better data structure
 
