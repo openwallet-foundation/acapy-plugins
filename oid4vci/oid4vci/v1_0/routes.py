@@ -2,6 +2,7 @@
 import logging
 from os import getenv
 import secrets
+from typing import Any, Dict
 
 from aiohttp import web
 from aiohttp_apispec import (
@@ -15,7 +16,7 @@ from aries_cloudagent.protocols.basicmessage.v1_0.message_types import SPEC_URI
 from aries_cloudagent.messaging.models.base import BaseModelError
 from aries_cloudagent.storage.error import StorageError, StorageNotFoundError
 from aries_cloudagent.wallet.util import bytes_to_b64
-from marshmallow import fields
+from marshmallow import INCLUDE, fields
 from .models.supported_cred import SupportedCredential
 from .models.exchange import OID4VCIExchangeRecord
 
@@ -77,18 +78,20 @@ class CreateCredExSchema(OpenAPISchema):
 class CreateCredSupSchema(OpenAPISchema):
     """Schema for CreateCredSupSchema."""
 
-    scope = fields.Str(
-        required=True, metadata={"example": "UniversityDegreeCredential"}
-    )
+    class Meta:
+        """CreateCredSupSchema metadata."""
+
+        unknown = INCLUDE
+
     format = fields.Str(required=True, metadata={"example": "jwt_vc_json"})
+    identifier = fields.Str(
+        data_key="id", required=True, metadata={"example": "UniversityDegreeCredential"}
+    )
     cryptographic_binding_methods_supported = fields.List(
         fields.Str(), metadata={"example": ["did"]}
     )
     cryptographic_suites_supported = fields.List(
         fields.Str(), metadata={"example": ["ES256K"]}
-    )
-    proof_types_supported = fields.List(
-        fields.Str(), metadata={"example": ["Ed25519Signature2018"]}
     )
     display = fields.List(
         fields.Dict(),
@@ -106,14 +109,6 @@ class CreateCredSupSchema(OpenAPISchema):
                 }
             ]
         },
-    )
-    credential_subject = fields.Dict(
-        metadata={
-            "given_name": {"display": [{"name": "Given Name", "locale": "en-US"}]},
-            "family_name": {"display": [{"name": "Surname", "locale": "en-US"}]},
-            "degree": {},
-            "gpa": {"display": [{"name": "GPA"}]},
-        }
     )
 
 
@@ -159,11 +154,11 @@ async def credential_exchange_list(request: web.BaseRequest):
                     session, exchange_id
                 )
                 # There should only be one record for a id
-                results = [vars(record)]
+                results = [record.serialize()]
             else:
                 # TODO: use filter
                 records = await OID4VCIExchangeRecord.query(session=session)
-                results = [vars(record) for record in records]
+                results = [record.serialize() for record in records]
     except (StorageError, BaseModelError, StorageNotFoundError) as err:
         raise web.HTTPBadRequest(reason=err.roll_up) from err
     return web.json_response({"results": results})
@@ -285,31 +280,29 @@ async def get_cred_offer(request: web.BaseRequest):
 
 @docs(tags=["oid4vci"], summary="Register a Oid4vci credential")
 @request_schema(CreateCredSupSchema())
-async def credential_supported_create(request: web.BaseRequest):
+async def credential_supported_create(request: web.Request):
     """Request handler for creating a credential supported record."""
     context = request["context"]
     profile = context.profile
 
-    body = await request.json()
+    body: Dict[str, Any] = await request.json()
 
-    credential_definition_id = body.get("credential_definition_id")
-    _format = body.get("format")
-    cryptographic_binding_methods_supported = body.get(
-        "cryptographic_binding_methods_supported"
-    )
-    cryptographic_suites_supported = body.get("cryptographic_suites_supported")
-    display = body.get("display")
-    credential_subject = body.get("credential_subject")
-    scope = body.get("scope")
+    known = {
+        k: body.pop(k)
+        for k in (
+            "format",
+            "id",
+            "cryptographic_binding_methods_supported",
+            "cryptographic_suites_supported",
+            "display",
+        )
+        if k in body
+    }
+    format_specific = body
 
     record = SupportedCredential(
-        supported_cred_id=credential_definition_id,
-        format=_format,
-        scope=scope,
-        cryptographic_binding_methods_supported=cryptographic_binding_methods_supported,
-        cryptographic_suites_supported=cryptographic_suites_supported,
-        display=display,
-        credential_subject=credential_subject,
+        **known,
+        format_data=format_specific,
     )
 
     async with profile.session() as session:
@@ -339,11 +332,11 @@ async def credential_supported_list(request: web.BaseRequest):
             if exchange_id := request.query.get("id"):
                 record = await SupportedCredential.retrieve_by_id(session, exchange_id)
                 # There should only be one record for a id
-                results = [vars(record)]
+                results = [record.serialize()]
             else:
                 # TODO: use filter
                 records = await SupportedCredential.query(session=session)
-                results = [vars(record) for record in records]
+                results = [record.serialize() for record in records]
     except (StorageError, BaseModelError, StorageNotFoundError) as err:
         raise web.HTTPBadRequest(reason=err.roll_up) from err
     return web.json_response({"results": results})
