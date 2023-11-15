@@ -20,7 +20,7 @@ class OID4VCIExchangeRecord(BaseExchangeRecord):
     EVENT_NAMESPACE = "oid4vci"
     RECORD_TOPIC = "oid4vci"
     RECORD_ID_NAME = "exchange_id"
-    TAG_NAMES = {"nonce", "pin", "token"}
+    TAG_NAMES = {"nonce", "pin", "token", "code"}
 
     def __init__(
         self,

@@ -12,9 +12,12 @@ from aiohttp_apispec import (
     querystring_schema,
     request_schema,
 )
+from aries_cloudagent.storage.error import StorageError, StorageNotFoundError
+from aries_cloudagent.messaging.models.base import BaseModelError
 from aries_cloudagent.messaging.models.openapi import OpenAPISchema
 from aries_cloudagent.wallet.jwt import jwt_verify
 from marshmallow import fields
+from oid4vci.oid4vci.v1_0.models.exchange import OID4VCIExchangeRecord
 from .models.supported_cred import SupportedCredential
 
 LOGGER = logging.getLogger(__name__)
@@ -53,6 +56,7 @@ class GetTokenSchema(OpenAPISchema):
     pre_authorized_code = fields.Str(
         required=True, metadata={"description": "", "example": ""}
     )
+    user_pin = fields.Str(required=False)
 
 
 @docs(tags=["oid4vci"], summary="Get credential issuer metadata")
@@ -104,10 +108,76 @@ async def issue_cred(request: web.Request):
     await check_token(profile, request.headers.get("Authorization"))
 
 
+async def create_did(session):
+    did_methods = session.inject(DIDMethods)
+    method = did_methods.from_method("key")
+    key_type = ED25519
+    wallet = session.inject_or(BaseWallet)
+    try:
+        return await wallet.create_local_did(method=method, key_type=key_type)
+    except WalletError as err:
+        raise web.HTTPBadRequest(reason=err.roll_up) from err
+
+
 @docs(tags=["oid4vci"], summary="Get credential issuance token")
-@querystring_schema(TokenRequestSchema())
+@querystring_schema(GetTokenSchema())
 async def get_token(request: web.Request):
     """Token endpoint to exchange pre_authorized codes for access tokens."""
+    grant_type = request.query.get("grant_type")
+    pre_authorized_code = request.query.get("pre_authorized_code")
+    # user_pin = request.query.get("user_pin")
+    context = request["context"]
+    ex_record = None
+    sup_cred_record = None
+    try:
+        async with context.profile.session() as session:
+            filter = {
+                "code": pre_authorized_code,
+                # "user_pin": user_pin
+            }
+            records = await OID4VCIExchangeRecord.query(session, filter)
+            ex_record: OID4VCIExchangeRecord = records[0]
+            if not ex_record or not ex_record.code:  # TODO: check pin
+                return {}  # TODO: report failure?
+
+            if ex_record.supported_cred_id:
+                sup_cred_record: SupportedCredential = (
+                    await SupportedCredential.retrieve_by_id(
+                        session, ex_record.supported_cred_id
+                    )
+                )
+    except (StorageError, BaseModelError, StorageNotFoundError) as err:
+        raise web.HTTPBadRequest(reason=err.roll_up) from err
+
+    scopes = sup_cred_record.scope
+    exchange_id = ex_record.exchange_id
+    # TODO: get valid parameters from exchange record, exchange record should have a
+    # registration information along with credential claims.
+    payload = {
+        "scope": f"openid profile email {scopes}",
+        "name": "John",
+        "preferred_username": "Terry",
+        "given_name": "Berry",
+        "email": "ted@example.com",
+    }
+    signing_did = await create_did()
+    try:
+        jws = await jwt_sign(
+            context.profile,
+            headers,
+            payload,
+            signing_did,
+        )
+    except ValueError as err:
+        raise web.HTTPBadRequest(reason="Bad did or verification method") from err
+    except WalletNotFoundError as err:
+        raise web.HTTPNotFound(reason=err.roll_up) from err
+    except WalletError as err:
+        raise web.HTTPBadRequest(reason=err.roll_up) from err
+
+    nonce = token_urlsafe(16)
+    # redis_conn.set(nonce, exchange_id)  # TODO: storing exchange_id is a smell
+    # redis_conn.set(jwt, exchange_id)  # TODO: think of a better data structure
 
 
 async def register(app: web.Application):
