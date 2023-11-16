@@ -126,7 +126,6 @@ class CredExIdMatchInfoSchema(OpenAPISchema):
 class GetCredentialOfferSchema(OpenAPISchema):
     """Schema for GetCredential."""
 
-    credentials = fields.List(fields.Str())
     user_pin_required = fields.Bool(required=False)
     exchange_id = fields.Str(required=False)
 
@@ -229,25 +228,22 @@ async def get_cred_offer(request: web.BaseRequest):
 
     For example, can be used in QR-Code presented to a compliant wallet.
     """
-    # Access the query parameters in your view function
-    cred = request.query.get("credentials")  # TODO: lists is not working
-    # TODO: store with input form and retrieve from record
     issuer_url = getenv("OID4VCI_ENDPOINT")
-    # issuer_url = request.query.get('credential_issuer')
-    # user_pin_required = request.query.get('user_pin_required')
+    user_pin_required = getenv("OID4VCI_USER_PIN_REQUIRED", False)
     oid4vci_ex_id = request.query.get("exchange_id")
 
     profile = request["context"].profile
 
     # TODO: check that the credential_issuer_url is associated with an issuer DID
-    # TODO: check that the credential requested is offered by the issuer
+    # TODO: check that the credential requested,
+    # TODO:(this check should be done in exchange record creation) is offered by the issuer
 
     # Generate secure code
     code = bytes_to_b64(secrets.token_bytes(code_size), urlsafe=True, pad=False)
 
     try:
         async with profile.session() as session:
-            record = await OID4VCIExchangeRecord.retrieve_by_id(
+            record: OID4VCIExchangeRecord = await OID4VCIExchangeRecord.retrieve_by_id(
                 session,
                 record_id=oid4vci_ex_id,
             )
@@ -259,7 +255,7 @@ async def get_cred_offer(request: web.BaseRequest):
     # Create offer object
     offer = {
         "credential_issuer": issuer_url,
-        "credentials": [cred],
+        "credentials": [record.supported_cred_id],
         "grants": {
             # "authorization_code": {
             #    "issuer_state": 'previously-created-state',
@@ -267,7 +263,7 @@ async def get_cred_offer(request: web.BaseRequest):
             # },
             "urn:ietf:params:oauth:grant-type:pre-authorized_code": {
                 "pre-authorized_code": code,
-                "user_pin_required": False,  # TODO: put as a parameter
+                "user_pin_required": user_pin_required,
                 # "interval": 30,
                 # "authorization_server": ""
             }
