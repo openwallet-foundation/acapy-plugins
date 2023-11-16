@@ -57,10 +57,10 @@ class SupportedCredential(BaseRecord):
         self.display = display
         self.format_data = format_data
 
-    # @property
-    # def supported_cred_id(self):
-    #    """Accessor for the ID associated with this record."""
-    #    return self._id
+    @property
+    def supported_cred_id(self):
+        """Accessor for the ID associated with this record."""
+        return self._id
 
     @property
     def record_value(self) -> dict:
@@ -88,7 +88,7 @@ class SupportedCredential(BaseRecord):
             prop: getattr(self, prop)
             for prop in (
                 "format",
-                # "identifier",
+                "identifier",
                 "cryptographic_binding_methods_supported",
                 "cryptographic_suites_supported",
                 "display",
@@ -99,7 +99,7 @@ class SupportedCredential(BaseRecord):
             **issuer_metadata,
             **(self.format_data or {}),
         }
-        return {self.identifier: issuer_metadata}
+        return issuer_metadata
 
 
 class SupportedCredentialSchema(BaseRecordSchema):
@@ -116,7 +116,7 @@ class SupportedCredentialSchema(BaseRecordSchema):
     )
     format = fields.Str(required=True, metadata={"example": "jwt_vc_json"})
     identifier = fields.Str(
-        data_key="id", required=True, metadata={"example": "UniversityDegreeCredential"}
+        required=True, metadata={"example": "UniversityDegreeCredential"}
     )
     cryptographic_binding_methods_supported = fields.List(
         fields.Str(), metadata={"example": []}
