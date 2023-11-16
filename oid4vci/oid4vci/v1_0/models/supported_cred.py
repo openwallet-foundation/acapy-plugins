@@ -88,7 +88,7 @@ class SupportedCredential(BaseRecord):
             prop: getattr(self, prop)
             for prop in (
                 "format",
-                "identifier",
+                # "identifier",
                 "cryptographic_binding_methods_supported",
                 "cryptographic_suites_supported",
                 "display",
@@ -97,9 +97,9 @@ class SupportedCredential(BaseRecord):
         # Flatten the format specific metadata into the object
         issuer_metadata = {
             **issuer_metadata,
-            **(self.format_data if self.format_data else {}),
+            **(self.format_data or {}),
         }
-        return issuer_metadata
+        return {self.identifier: issuer_metadata}
 
 
 class SupportedCredentialSchema(BaseRecordSchema):
