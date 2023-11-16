@@ -236,7 +236,8 @@ async def get_cred_offer(request: web.BaseRequest):
 
     # TODO: check that the credential_issuer_url is associated with an issuer DID
     # TODO: check that the credential requested,
-    # TODO:(this check should be done in exchange record creation) is offered by the issuer
+    # TODO:(this check should be done in exchange record creation) is offered
+    # by the issuer
 
     # Generate secure code
     code = bytes_to_b64(secrets.token_bytes(code_size), urlsafe=True, pad=False)
@@ -287,7 +288,7 @@ async def credential_supported_create(request: web.Request):
         k: body.pop(k)
         for k in (
             "format",
-            # "id",
+            "identifier",
             "cryptographic_binding_methods_supported",
             "cryptographic_suites_supported",
             "display",
