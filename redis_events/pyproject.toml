@@ -5,12 +5,12 @@ description = "ACA-PY persisted events using Redis"
 authors = ["Shaanjot Gill <gill.shaanjots@gmail.com>"]
 
 [tool.poetry.dependencies]
-aries-cloudagent = { version = "0.10.3" }
-python = "^3.9"
 aiohttp = "^3.7.4"
+aries-cloudagent = { version = "0.10.3" }
 fastapi = "^0.68.0"
 nest-asyncio = "^1.5.5"
 pydantic = "^1.8.2"
+python = "^3.9"
 redis = "^4.1.4"
 uvicorn = "0.16.0"
 
@@ -18,14 +18,14 @@ uvicorn = "0.16.0"
 asynctest = "0.13.0"
 black = "23.7.0"
 mock= "~4.0"
+pre-commit = "^2.12.1"
 pytest = "~7.4.0"
 pytest-asyncio = "0.14.0"
-pytest-cov= "2.10.1"
-pytest-ruff="^0.1.1"
-ruff = "^0.1.2"
-pre-commit = "^2.12.1"
+pytest-cov = "2.10.1"
 pytest-mock = "^3.6.1"
+pytest-ruff = "^0.1.1"
 rope = "^0.19.0"
+ruff = "^0.1.2"
 
 [tool.poetry.group.integration.dependencies]
 aries-askar = { version = "~0.2.5" }
@@ -40,26 +40,12 @@ line-length = 90
 [tool.ruff.lint]
 select = ["E", "F", "C", "D"]
 
-ignore = [
-    # Google Python Doc Style
-    "D203", "D204", "D213", "D215", "D400", "D401", "D404", "D406", "D407",
-    "D408", "D409", "D413",
-    "D202", # Allow blank line after docstring
-    "D104", # Don't require docstring in public package
-    # Things that we should fix, but are too much work right now
-    "D417", "C901",
-]
-
-
-[tool.ruff.per-file-ignores]
-"**/{tests}/*" = ["F841", "D", "E501"]
-
 [tool.pytest.ini_options]
-testpaths = "redis_events"
+testpaths = "plugin_globals"
 addopts = """
     -p no:warnings
     --quiet --junitxml=./test-reports/junit.xml
-    --cov-config .coveragerc --cov=redis_events --cov-report term --cov-report xml
+    --cov-config .coveragerc --cov=plugin_globals --cov-report term --cov-report xml
 """
 markers = []
 junit_family = "xunit1"
@@ -88,4 +74,4 @@ output = "test-reports/coverage.xml"
 
 [build-system]
 requires = ["setuptools", "poetry-core>=1.2"]
-build-backend = "poetry.core.masonry.api"
+

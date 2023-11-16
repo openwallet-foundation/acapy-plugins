@@ -1,6 +1,8 @@
-from fileinput import FileInput
 import os
+from re import M
 import shutil
+
+from bases import get
 
 
 class PluginInfo:
@@ -9,18 +11,45 @@ class PluginInfo:
         name: str,
         version: str,
         description: str,
-        dependencies: list = [],
-        dev_dependencies: list = []
     ):
         self.name = name
         self.version = version
         self.description = description
-        self.dependencies = dependencies
-        self.dev_dependencies = dev_dependencies
+
+
+class MangagedPoetrySections:
+    META = '[tool.poetry]'
+    DEPS = '[tool.poetry.dependencies]'
+    INT_DEPS = '[tool.poetry.dev-dependencies]'
+    DEV_DEPS = '[tool.poetry.group.integration.dependencies]'
+    RUFF = '[tool.ruff]'
+    RUFF_LINT = '[tool.ruff.lint]'
+    RUFF_FILES = '[tool.ruff.lint.ignore]'
+    PYTEST = '[tool.pytest.ini_options]'
+    COVERAGE = '[tool.coverage.run]'
+    COVERAGE_REPORT = '[tool.coverage.report]'
+    COVERAGE_XML = '[tool.coverage.xml]'
+    BUILD = '[build-system]'
+
+
+class Sections:
+    def __init__(self):
+        self.meta = []
+        self.deps = []
+        self.dev_deps = []
+        self.int_deps = []
+        self.ruff = []
+        self.ruff_lint = []
+        self.ruff_files = []
+        self.pytest = []
+        self.coverage = []
+        self.coverage_report = []
+        self.coverage_xml = []
+        self.build = []
+        self.extra = []
 
 
 def replace_plugin_tag(path: str, info: PluginInfo):
-    print("**********************")
     with open(path, 'r') as file:
         filedata = file.read()
     print(filedata)
@@ -29,69 +58,8 @@ def replace_plugin_tag(path: str, info: PluginInfo):
         file.write(filedata)
 
 
-# def print_deps(common_deps: list, plugin_deps: list):
-#     common_dep_names = []
-#     for dep in common_deps:
-#         common_dep_names.append(dep.split('=')[0].strip())
-#         print(dep, end='\n')
-#     for dep in plugin_deps:
-#         if dep.split('=')[0].strip() not in common_dep_names:
-#             print(dep, end='\n')
-
-
 def is_blank_line(line: str) -> bool:
     return len(line.strip()) == 0
-
-
-def update_common_dependencies(path: str, info: PluginInfo):
-    replace_plugin_tag(path, info)
-    # deps = extract_common_dependencies(path)
-    # dep_section = False
-    # dev_dep_section = False
-    with FileInput(path, inplace=True) as file:
-        for line in file:
-            if line.startswith('version'):
-                print(f'version = "{info.version}"', end='\n')
-            elif line.startswith('description'):
-                print(f'description = "{info.description}"', end='\n')
-            # elif line.startswith('authors'):
-            #     print(f'authors = {info.authors}', end='\n')
-            # elif dep_section:
-            #     if is_blank_line(line):
-            #         print_deps(
-            #             common_deps=deps['dependencies'], plugin_deps=info.dependencies)
-            #         dep_section = False
-            #         print(line, end='')
-            #     else:
-            #         print("", end='')
-            # elif dev_dep_section:
-            #     if is_blank_line(line):
-            #         print_deps(
-            #             common_deps=deps['dev_dependencies'], plugin_deps=info.dev_dependencies)
-            #         dev_dep_section = False
-            #         print(line, end='')
-            #     else:
-            #         print("", end='')
-            # elif line.startswith('[tool.poetry.dependencies]'):
-            #     print(line, end='')
-            #     dep_section = True
-            # elif line.startswith('[tool.poetry.dev-dependencies]'):
-            #     print(line, end='')
-            #     dev_dep_section = True
-            # else:
-            #     print(line, end='')
-
-
-def replace_meta_data(path: str, info: PluginInfo):
-    replace_plugin_tag(path, info)
-    # with FileInput(path, inplace=True) as file:
-    #     for line in file:
-    #         if line.startswith('version'):
-    #             print(f'version = "{info.version}"', end='\n')
-    #         elif line.startswith('description'):
-    #             print(f'description = "{info.description}"', end='\n')
-    #         # elif line.startswith('authors'):
-    #         #     print(f'authors = {info.authors}', end='\n')
 
 
 def copy_all_common_files_for_new_plugin(info: PluginInfo):
@@ -122,10 +90,8 @@ def copy_all_common_files_for_new_plugin(info: PluginInfo):
     replace_plugin_tag(
         f'./{info.name}/docker/integration.yml', info)
     # write_plugin_specific_deps(info)
-    replace_meta_data(
-        f'./{info.name}/integration/pyproject.toml', info)
-    replace_meta_data(
-        f'./{info.name}/pyproject.toml', info)
+    replace_plugin_tag(f'./{info.name}/integration/pyproject.toml', info)
+    replace_plugin_tag(f'./{info.name}/pyproject.toml', info)
 
 
 def copy_common_files_for_all_plugins(info: PluginInfo):
@@ -171,73 +137,169 @@ def process_meta_data_from_file(filedata: list, i: int, key: str) -> str:
     return i, extracted_str.replace(f'{key} = ', '').strip('"')
 
 
-def extract_common_dependencies(path: str):
-    dependencies = []
-    dev_dependencies = []
-    with open(path, 'r') as file:
-        filedata = file.read()
+def combine_dependenices(plugin_dependencies, global_dependencies):
+    for p_dep in plugin_dependencies:
+        if (p_dep.split('=')[0].strip() not in [g_dep.split('=')[0].strip() for g_dep in global_dependencies]):
+            global_dependencies.append(p_dep)
+    global_dependencies.sort()
+
+
+def get_section(i: int, filedata: list, arr: list) -> int:
+    j = i
+    while j < len(filedata) - 1 and not is_blank_line(filedata[j]):
+        arr.append(filedata[j])
+        j += 1
+    return j - i
+
+
+def extract_common_sections(filedata: str, sections: Sections):
     filedata = filedata.split('\n')
     for i in range(len(filedata)):
         line = filedata[i]
-        if line.startswith('[tool.poetry.dependencies]'):
-            i = process_deps_from_file(filedata, deps=dependencies, i=i)
-        if line.startswith('[tool.poetry.dev-dependencies]'):
-            i = process_deps_from_file(filedata, deps=dev_dependencies, i=i)
-    return {
-        'dependencies': dependencies,
-        'dev_dependencies': dev_dependencies
-    }
+        if line == MangagedPoetrySections.META:
+            i += get_section(i + 1, filedata, sections.meta)
+        elif line == MangagedPoetrySections.DEPS:
+            i += get_section(i + 1, filedata, sections.deps)
+        elif line == MangagedPoetrySections.DEV_DEPS:
+            i += get_section(i + 1, filedata, sections.dev_deps)
+        elif line == MangagedPoetrySections.INT_DEPS:
+            i += get_section(i + 1, filedata, sections.int_deps)
+        elif line == MangagedPoetrySections.RUFF:
+            i += get_section(i + 1, filedata, sections.ruff)
+        elif line == MangagedPoetrySections.RUFF_LINT:
+            i += get_section(i + 1, filedata, sections.ruff_lint)
+        elif line == MangagedPoetrySections.RUFF_FILES:
+            i += get_section(i + 1, filedata, sections.ruff_files)
+        elif line == MangagedPoetrySections.PYTEST:
+            i += get_section(i + 1, filedata, sections.pytest)
+        elif line == MangagedPoetrySections.COVERAGE:
+            i += get_section(i + 1, filedata, sections.coverage)
+        elif line == MangagedPoetrySections.COVERAGE_REPORT:
+            i += get_section(i + 1, filedata, sections.coverage_report)
+        elif line == MangagedPoetrySections.COVERAGE_XML:
+            i += get_section(i + 1, filedata, sections.coverage_xml)
+        elif line == MangagedPoetrySections.BUILD:
+            i += get_section(i + 1, filedata, sections.build)
+        else:
+            sections.extra.append(line)
 
 
-def replace_global_dependencies(name: str):
-    global_dependencies = []
-    global_dev_dependencies = []
-    global_integration_deps = []
-    plugin_dependencies = []
-    plugin_dev_dependencies = []
-    plugin_integration_deps = []
-    with open(f'./plugin_globals/pyproject.toml', 'r') as file:
+def get_section_output(i: int, content: list, output: list, section: list) -> int:
+    j = i
+    output.append(content[j])
+    while (j < len(content) - 1 and not is_blank_line(content[j])):
+        j += 1
+    while (len(section) > 0):
+        output.append(section.pop(0) + '\n')
+    output.append('\n')
+    return j - i
+
+
+def replace_global_sections(name: str):
+    global_sections = Sections()
+    plugin_sections = Sections()
+
+    # Parent pyproject.toml
+    with open('./plugin_globals/pyproject.toml', 'r') as file:
         filedata = file.read()
-    filedata = filedata.split('\n')
-    for i in range(len(filedata)):
-        line = filedata[i]
-        if line == '[tool.poetry.dependencies]':
-            while not is_blank_line(line):
-                i += 1
-                line = filedata[i]
-                global_dependencies.append(line)
-        if line == '[tool.poetry.dev-dependencies]':
-            while not is_blank_line(line):
-                i += 1
-                line = filedata[i]
-                global_dev_dependencies.append(line)
-        if line == '[tool.poetry.group.integration.dependencies]':
-            while not is_blank_line(line):
-                i += 1
-                line = filedata[i]
-                global_integration_deps.append(line)
+        extract_common_sections(filedata, global_sections)
 
     with open(f'./{name}/pyproject.toml', 'r') as file:
         filedata = file.read()
-    filedata = filedata.split('\n')
-    for i in range(len(filedata)):
-        line = filedata[i]
-        if line == '[tool.poetry.dependencies]':
-            while not is_blank_line(line):
+        extract_common_sections(filedata, plugin_sections)
+        combine_dependenices(plugin_sections.deps, global_sections.deps)
+        combine_dependenices(plugin_sections.dev_deps,
+                             global_sections.dev_deps)
+        combine_dependenices(plugin_sections.int_deps,
+                             global_sections.int_deps)
+
+    with open('./plugin_globals/pyproject.toml', 'r') as in_file:
+        content = in_file.readlines()
+
+    output = []
+    with open(f'./{name}/pyproject.toml', 'w') as out_file:
+        i = 0
+        while i < len(content):
+            if content[i].startswith(MangagedPoetrySections.META):
+                output.append(MangagedPoetrySections.META + '\n')
+                [output.append(line + '\n') for line in plugin_sections.meta]
+                output.append('\n')
                 i += 1
-                line = filedata[i]
-                plugin_dependencies.append(line)
-        if line == '[tool.poetry.dev-dependencies]':
-            while not is_blank_line(line):
+            if content[i].startswith(MangagedPoetrySections.DEPS):
+                i += get_section_output(i, content,
+                                        output, global_sections.deps)
+            if content[i].startswith(MangagedPoetrySections.DEV_DEPS):
+                i += get_section_output(i, content,
+                                        output, global_sections.dev_deps)
+            if content[i].startswith(MangagedPoetrySections.INT_DEPS):
+                i += get_section_output(i, content,
+                                        output, global_sections.int_deps)
+            if content[i].startswith(MangagedPoetrySections.RUFF):
+                i += get_section_output(i, content,
+                                        output, global_sections.ruff)
+            if content[i].startswith(MangagedPoetrySections.RUFF_LINT):
+                i += get_section_output(i, content,
+                                        output, global_sections.ruff_lint)
+            if content[i].startswith(MangagedPoetrySections.RUFF_FILES):
+                i += get_section_output(i, content,
+                                        output, global_sections.ruff_files)
+            if content[i].startswith(MangagedPoetrySections.PYTEST):
+                i += get_section_output(i, content,
+                                        output, global_sections.pytest)
+            if content[i].startswith(MangagedPoetrySections.COVERAGE):
+                i += get_section_output(i, content,
+                                        output, global_sections.coverage)
+            if content[i].startswith(MangagedPoetrySections.COVERAGE_REPORT):
+                i += get_section_output(i, content, output,
+                                        global_sections.coverage_report)
+            if content[i].startswith(MangagedPoetrySections.COVERAGE_XML):
+                i += get_section_output(i, content,
+                                        output, global_sections.coverage_xml)
+            if content[i].startswith(MangagedPoetrySections.BUILD):
+                i += get_section_output(i, content,
+                                        output, global_sections.build)
+            else:
                 i += 1
-                line = filedata[i]
-                plugin_dev_dependencies.append(line)
-        if line == '[tool.poetry.group.integration.dependencies]':
-            while not is_blank_line(line):
+        out_file.writelines(output)
+
+    # Integration pyproject.toml
+    global_sections = Sections()
+    plugin_sections = Sections()
+    with open('./plugin_globals/integration/pyproject.toml', 'r') as file:
+        filedata = file.read()
+    extract_common_sections(filedata, global_sections)
+
+    with open(f'./{name}/integration/pyproject.toml', 'r') as file:
+        filedata = file.read()
+
+    extract_common_sections(filedata, plugin_sections)
+    combine_dependenices(plugin_sections.deps, global_sections.deps)
+    combine_dependenices(plugin_sections.dev_deps, global_sections.dev_deps)
+
+    with open('./plugin_globals/integration/pyproject.toml', 'r') as in_file:
+        content = in_file.readlines()
+
+    output = []
+    with open(f'./{name}/integration/pyproject.toml', 'w') as out_file:
+        i = 0
+        while i < len(content):
+            if content[i].startswith(MangagedPoetrySections.META):
+                output.append(MangagedPoetrySections.META + '\n')
                 i += 1
-                line = filedata[i]
-                plugin_integration_deps.append(line)
-    print(global_dependencies, plugin_dependencies)
+                [output.append(line + '\n') for line in plugin_sections.meta]
+                output.append('\n')
+            if content[i].startswith(MangagedPoetrySections.DEPS):
+                i += get_section_output(i, content,
+                                        output, global_sections.deps)
+            if content[i].startswith(MangagedPoetrySections.DEV_DEPS):
+                i += get_section_output(i, content,
+                                        output, global_sections.dev_deps)
+            if content[i].startswith(MangagedPoetrySections.BUILD):
+                i += get_section_output(i, content,
+                                        output, global_sections.build)
+            else:
+                i += 1
+        out_file.writelines(output)
 
 
 def is_plugin_dir(plugin_name: str) -> bool:
@@ -255,7 +317,7 @@ if response == "":
 msg = """
     What would you like to do? 
     (1) Create a new plugin
-    (2) Update all plugin common dependencies 
+    (2) Update all plugin common poetry sections 
     (3) Update all plugin common files 
     (4) Exit \n\nInput:  """
 selection = input(msg)
@@ -281,12 +343,12 @@ if selection == "1":
 
 elif selection == "2":
     # Update all plugin common dependencies
-    msg = """Updating all plugin common dependencies: This will take the common dependencies from the plugin_globals and combine them with the dependencies from the plugins plugin-specific.deps file. Add them to the plugins pyproject.toml file and install and update the lock file \n"""
+    msg = """Updating all plugin common poetry sections: This will take the global sections from the plugin_globals and combine them with the plugin specific sections, and install and update the lock file \n"""
     print(msg)
     for plugin_name in os.listdir('./'):
         if is_plugin_dir(plugin_name):
             print(f'Updating {plugin_name}\n')
-            plugin_info = replace_global_dependencies(plugin_name)
+            replace_global_sections(plugin_name)
             os.system(
                 f'cd {plugin_name} && rm poetry.lock && poetry install')
 

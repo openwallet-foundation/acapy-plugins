@@ -1,19 +1,23 @@
 [tool.poetry]
-name = "connection_update-tests"
-version = "0.0.1"
+name = "redis_events-tests"
+version = "0.1.0"
 description = ""
 authors = []
 
 [tool.poetry.dependencies]
+aiohttp = "^3.7.4"
+aries-cloudagent = { version = "0.10.3" }
 asynctest = "^0.13.0"
+fastapi = "^0.68.0"
+nest-asyncio = "^1.5.5"
+pydantic = "^1.8.2"
 pytest = "^7.4.0"
 pytest-asyncio = "^0.21.0"
 python = "^3.9"
 redis = "^4.1.4"
 requests = "^2.31.0"
-
-[tool.poetry.dev-dependencies]
+uvicorn = "0.16.0"
 
 [build-system]
 requires = ["poetry-core>=1.0.0"]
-build-backend = "poetry.core.masonry.api"
+
