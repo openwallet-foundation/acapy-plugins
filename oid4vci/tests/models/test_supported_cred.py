@@ -31,3 +31,12 @@ async def test_save(profile: Profile, record: SupportedCredential):
             session, record.supported_cred_id
         )
         assert loaded == record
+
+
+def test_to_issuer_metadata(record: SupportedCredential):
+    assert record.to_issuer_metadata() == {
+        "format": "jwt_vc_json",
+        "id": "MyCredential",
+        "cryptographic_suites_supported": ["EdDSA"],
+        "credentialSubject": {"name": "alice"},
+    }

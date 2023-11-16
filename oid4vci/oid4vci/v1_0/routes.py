@@ -284,17 +284,18 @@ async def credential_supported_create(request: web.Request):
 
     body: Dict[str, Any] = await request.json()
     LOGGER.info(f"body: {body}")
+    print(body)
     known = {
         k: body.pop(k)
         for k in (
             "format",
-            "identifier",
             "cryptographic_binding_methods_supported",
             "cryptographic_suites_supported",
             "display",
         )
         if k in body
     }
+    known["identifier"] = body.pop("id")
     format_specific = body
     LOGGER.info(f"format_data: {format_specific}")
     LOGGER.info(f"known: {known}")

@@ -85,15 +85,18 @@ class SupportedCredential(BaseRecord):
         the spec).
         """
         issuer_metadata = {
-            prop: getattr(self, prop)
+            prop: value
             for prop in (
                 "format",
-                "identifier",
                 "cryptographic_binding_methods_supported",
                 "cryptographic_suites_supported",
                 "display",
             )
+            if (value := getattr(self, prop)) is not None
         }
+
+        issuer_metadata["id"] = self.identifier
+
         # Flatten the format specific metadata into the object
         issuer_metadata = {
             **issuer_metadata,
