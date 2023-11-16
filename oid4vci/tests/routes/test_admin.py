@@ -20,7 +20,7 @@ async def test_credential_supported_create(
             "type": ["VerifiableCredential", "MyCredential"],
             "cryptographic_binding_methods_supported": ["proof"],
             "cryptographic_suites_supported": ["ES256"],
-            "display": {"some nonsense": "here"},
+            "display": [{"some nonsense": "here"}],
         }
     )
 
