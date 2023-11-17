@@ -193,6 +193,18 @@ async def get_token(request: web.Request):
     }
 
 
+@docs(tags=["oid4vci"], summary="")
+async def oauth(request: web.Request):
+    """"""
+    return web.json_response({})
+
+
+@docs(tags=["oid4vci"], summary="")
+async def config(request: web.Request):
+    """"""
+    return web.json_response({})
+
+
 async def register(app: web.Application):
     """Register routes."""
     app.add_routes(
@@ -202,11 +214,11 @@ async def register(app: web.Application):
                 oid_cred_issuer,
                 allow_head=False,
             ),
-            # TODO add .well-known/oauth-authorization-server
-            # TODO add .well-known/openid-configuration
+            # web.get("/.well-known/oauth-authorization-server", oauth, allow_head=False),
+            # web.get("/.well-known/openid-configuration", config, allow_head=False),
             web.post("/draft-13/credential", issue_cred),
             web.post("/draft-11/credential", issue_cred),
-            web.post("/draft-13/token", get_token),
-            web.post("/draft-11/token", get_token),
+            web.post("/token", get_token),
+            # web.post("/draft-11/token", get_token),
         ]
     )
