@@ -101,7 +101,7 @@ class CreateCredSupSchema(OpenAPISchema):
                     "name": "University Credential",
                     "locale": "en-US",
                     "logo": {
-                        "url": "https://exampleuniversity.com/public/logo.png",
+                        "url": "https://w3c-ccg.github.io/vc-ed/plugfest-1-2022/images/JFF_LogoLockup.png",
                         "alt_text": "a square logo of a university",
                     },
                     "background_color": "#12107c",
