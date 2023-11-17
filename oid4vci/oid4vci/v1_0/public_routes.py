@@ -11,7 +11,7 @@ from secrets import token_urlsafe
 from aiohttp import web
 from aiohttp_apispec import (
     docs,
-    querystring_schema,
+    form_schema,
     request_schema,
 )
 from aries_cloudagent.storage.error import StorageError, StorageNotFoundError
@@ -59,7 +59,9 @@ class GetTokenSchema(OpenAPISchema):
     grant_type = fields.Str(required=True, metadata={"description": "", "example": ""})
 
     pre_authorized_code = fields.Str(
-        required=True, metadata={"description": "", "example": ""}
+        data_key="pre-authorized_code",
+        required=True,
+        metadata={"description": "", "example": ""},
     )
     user_pin = fields.Str(required=False)
 
@@ -126,11 +128,14 @@ async def create_did(session: ProfileSession):
 
 
 @docs(tags=["oid4vci"], summary="Get credential issuance token")
-@querystring_schema(GetTokenSchema())
+@form_schema(GetTokenSchema())
 async def get_token(request: web.Request):
     """Token endpoint to exchange pre_authorized codes for access tokens."""
-    request.query.get("grant_type")
-    pre_authorized_code = request.query.get("pre_authorized_code")
+    LOGGER.info(f"request: {request.get('form')}")
+    request["form"].get("grant_type", "")
+    pre_authorized_code = request["form"].get("pre_authorized_code")
+    if not pre_authorized_code:
+        raise web.HTTPBadRequest()
     # user_pin = request.query.get("user_pin")
     context = request["context"]
     ex_record = None
@@ -146,17 +151,18 @@ async def get_token(request: web.Request):
             if not ex_record or not ex_record.code:  # TODO: check pin
                 return {}  # TODO: report failure?
 
-            if ex_record.supported_cred_id:
-                sup_cred_record: SupportedCredential = (
-                    await SupportedCredential.retrieve_by_id(
-                        session, ex_record.supported_cred_id
-                    )
-                )
+            # if ex_record.supported_cred_id:
+            #    sup_cred_record: SupportedCredential = (
+            #        await SupportedCredential.query(
+            #            session, {"identifier": ex_record.supported_cred_id}
+            #        )
+            #    )[0]
             signing_did = await create_did(session)
     except (StorageError, BaseModelError, StorageNotFoundError) as err:
         raise web.HTTPBadRequest(reason=err.roll_up) from err
-
-    scopes = sup_cred_record.scope
+    # LOGGER.info(f"supported credential report: {sup_cred_record}")
+    # scopes = sup_cred_record.scope
+    scopes = ex_record.supported_cred_id
     payload = {
         "scope": scopes,
     }
@@ -168,7 +174,7 @@ async def get_token(request: web.Request):
                 context.profile,
                 headers={},
                 payload=payload,
-                did=signing_did,
+                did=signing_did.did,
             )
         except ValueError as err:
             raise web.HTTPBadRequest(reason="Bad did or verification method") from err
@@ -184,13 +190,15 @@ async def get_token(request: web.Request):
             reason="Created new token",
         )
 
-    return {
-        "access_token": ex_record.token,
-        "token_type": "Bearer",
-        "expires_in": "300",
-        "c_nonce": ex_record.nonce,
-        "c_nonce_expires_in": "86400",  # TODO: enforce this
-    }
+    return web.json_response(
+        {
+            "access_token": ex_record.token,
+            "token_type": "Bearer",
+            "expires_in": "300",
+            "c_nonce": ex_record.nonce,
+            "c_nonce_expires_in": "86400",  # TODO: enforce this
+        }
+    )
 
 
 @docs(tags=["oid4vci"], summary="")
