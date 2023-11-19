@@ -10,6 +10,7 @@ from aiohttp_apispec import (
     match_info_schema,
     querystring_schema,
     request_schema,
+    response_schema,
 )
 from aries_cloudagent.messaging.models.openapi import OpenAPISchema
 from aries_cloudagent.protocols.basicmessage.v1_0.message_types import SPEC_URI
@@ -18,7 +19,7 @@ from aries_cloudagent.storage.error import StorageError, StorageNotFoundError
 from aries_cloudagent.wallet.util import bytes_to_b64
 from marshmallow import INCLUDE, fields
 from .models.supported_cred import SupportedCredential
-from .models.exchange import OID4VCIExchangeRecord
+from .models.exchange import OID4VCIExchangeRecord, OID4VCIExchangeRecordSchema
 
 LOGGER = logging.getLogger(__name__)
 code_size = 8  # TODO: check
@@ -168,6 +169,7 @@ async def credential_exchange_list(request: web.BaseRequest):
     summary=("Create a credential exchange record"),
 )
 @request_schema(CreateCredExSchema())
+@response_schema(OID4VCIExchangeRecordSchema())
 async def credential_exchange_create(request: web.BaseRequest):
     """Request handler for creating a credential from attr values.
 
@@ -203,7 +205,8 @@ async def credential_exchange_create(request: web.BaseRequest):
 
     async with context.session() as session:
         await record.save(session, reason="New oid4vci exchange")
-    return web.json_response({"exchange_id": record.exchange_id})
+
+    return web.json_response(record.serialize())
 
 
 @docs(
