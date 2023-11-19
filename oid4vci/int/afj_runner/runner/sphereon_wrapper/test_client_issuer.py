@@ -1,33 +1,21 @@
 import pytest
 import asyncio
-from cryptography.hazmat.primitives import serialization
 from cryptography.hazmat.primitives.asymmetric import ec
 from cryptography.hazmat.backends import default_backend
-from jose import JWTError
-from jose.constants import ALGORITHMS
-from jose.backends import RSAKey
 from ssi import ExpressBuilder
 from oid4vci import (
     VcIssuerBuilder,
     OID4VCIServer,
-    AccessTokenResponse,
-    CredentialOfferSession,
     CredentialSupportedBuilderV1_11,
     OpenId4VCIClient,
 )
 from oid4vci_common import (
-    Alg,
     IssuerCredentialSubjectDisplay,
-    CredentialSupported,
-    Jwt,
-    JWTHeader,
-    JWTPayload,
     OpenId4VCIVersion,
 )
 from oid4vci_issuer import MemoryStates
 from did_resolver import DIDDocument
 from did_key.driver import driver as didKeyDriver
-from did_key.key import KeyObject
 import jose
 
 

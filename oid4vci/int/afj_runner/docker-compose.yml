@@ -1,5 +1,21 @@
 version: "3"
 services:
+  afj:
+    image: afj-test
+    build:
+      context: ./afj
+    environment:
+      AFJ_HOST: 0.0.0.0
+      AFJ_PORT: 3000
+    ports:
+      - 3002:3000
+    healthcheck:
+      test: nc -z 0.0.0.0 3000
+      start_period: 3s
+      interval: 3s
+      timeout: 5s
+      retries: 3
+
   issuer:
     image: oid4vci
     build: 
@@ -13,7 +29,6 @@ services:
       - ../docker/entrypoint.sh:/entrypoint.sh:ro,z
     environment:
       RUST_LOG: warn
-      OID4VCI_ENDPOINT: "http://issuer:8081"
     command: >
       start
         --inbound-transport http 0.0.0.0 3000
@@ -37,15 +52,16 @@ services:
       timeout: 5s
       retries: 5
 
-  tests:
+  runner:
     image: oid4vci-test-runner
     build:
-      context: .
-    volumes:
-      - ./oid4vci_client:/usr/src/app/oid4vci_client:z
-      - ./tests:/usr/src/app/tests:z
+      context: ./runner
     environment:
-      ISSUER_ADMIN_ENDPOINT: http://issuer:3001
+      AFJ_HOST: afj
+      AFJ_PORT: 3000
+      ISSUER_ENDPOINT: http://issuer:8081
     depends_on:
+      afj:
+        condition: service_healthy
       issuer:
         condition: service_healthy

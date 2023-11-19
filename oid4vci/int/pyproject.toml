@@ -1,0 +1,25 @@
+[tool.poetry]
+name = "oid4vci-client"
+version = "0.1.0"
+description = "Minimal OpenID4VCI Client"
+authors = ["Daniel Bluhm <dbluhm@pm.me>"]
+license = "Apache-2.0"
+readme = "README.md"
+
+[tool.poetry.dependencies]
+python = "^3.9"
+aries-askar = "^0.3.0"
+did-peer-4 = "^0.1.4"
+aiohttp = "^3.9.0"
+
+
+[tool.poetry.group.dev.dependencies]
+black = "^23.11.0"
+ruff = "^0.1.6"
+controller = {git = "https://github.com/indicio-tech/acapy-minimal-example.git"}
+pytest = "^7.4.3"
+pytest-asyncio = "^0.21.1"
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
