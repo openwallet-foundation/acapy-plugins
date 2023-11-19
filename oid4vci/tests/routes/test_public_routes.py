@@ -38,3 +38,8 @@ async def test_issuer_metadata(context: AdminRequestContext, req: web.Request):
                 ],
             }
         )
+
+
+@pytest.mark.asyncio
+async def test_get_token(context: AdminRequestContext, req: web.Request):
+    """Test token issuance endpoint."""
