@@ -12,10 +12,7 @@ import {
 import { agentDependencies } from '@aries-framework/node';
 import { AskarModule } from '@aries-framework/askar';
 import { ariesAskar } from '@hyperledger/aries-askar-nodejs';
-import {
-  OpenId4VcClientApi,
-  OpenId4VcClientModule,
-} from '@aries-framework/openid4vc-client';
+import { OpenId4VcHolderModule, OpenIdCredentialFormatProfile } from '../openid4vc-holder';
 import { TCPSocketServer, JsonRpcApiProxy } from 'json-rpc-api-proxy';
 
 let agent: Agent | null;
@@ -50,7 +47,7 @@ proxy.rpc.addMethod('initialize', async (): Promise<{}> => {
       askar: new AskarModule({
         ariesAskar,
       }),
-      openId4VcClient: new OpenId4VcClientModule(),
+      openId4VcHolder: new OpenId4VcHolderModule(),
     },
   });
 
@@ -59,8 +56,8 @@ proxy.rpc.addMethod('initialize', async (): Promise<{}> => {
 });
 
 proxy.rpc.addMethod(
-  'requestCredentialUsingPreAuthorized',
-  async ({ issuerUri }: { issuerUri: string }): Promise<Record<string, unknown>> => {
+  'receiveCredentialOffer',
+  async ({ offer }: { offer: string }): Promise<Record<string, unknown>> => {
     if (!agent) {
       throw new Error('Agent not initialized');
     }
@@ -80,14 +77,20 @@ proxy.rpc.addMethod(
     ]);
     if (!verificationMethod) throw new Error('No verification method found');
 
-    const openId4VcClient = agent.dependencyManager.resolve(OpenId4VcClientApi);
+    const resolvedCredentialOffer = await agent.modules.openId4VcHolder.resolveCredentialOffer(offer);
+    const selectedCredentialsForRequest = resolvedCredentialOffer.credentialsToRequest.filter((credential: any) => {
+      return credential.format === OpenIdCredentialFormatProfile.JwtVcJson && credential.types.includes('UniversityDegreeCredential')
+    })
     const w3cCredentialRecords =
-      await openId4VcClient.requestCredentialUsingPreAuthorizedCode({
-        issuerUri,
-        verifyCredentialStatus: false,
-        allowedProofOfPossessionSignatureAlgorithms: [JwaSignatureAlgorithm.EdDSA],
-        proofOfPossessionVerificationMethodResolver: () => verificationMethod,
-      });
+      await agent.modules.openId4VcHolder.acceptCredentialOfferUsingPreAuthorizedCode(
+        resolvedCredentialOffer,
+        {
+          credentialsToRequest: selectedCredentialsForRequest,
+          verifyCredentialStatus: false,
+          allowedProofOfPossessionSignatureAlgorithms: [JwaSignatureAlgorithm.EdDSA],
+          proofOfPossessionVerificationMethodResolver: () => verificationMethod,
+        }
+    );
     return w3cCredentialRecords[0].toJSON();
   }
 );
