@@ -1,14 +1,14 @@
 version: '3'
 
 services:
-  
+
   issuer:
-    # from .. run 
-    # DOCKER_DEFAULT_PLATFORM=linux/amd64 docker build -f ./docker/Dockerfile --tag oid4vci .  
+    # from .. run
+    # DOCKER_DEFAULT_PLATFORM=linux/amd64 docker build -f ./docker/Dockerfile --tag oid4vci .
     image: oid4vci
-    #build: 
-      #dockerfile: docker/Dockerfile
-      #context: ..
+    build:
+      dockerfile: docker/Dockerfile
+      context: ..
     ports:
       - "3000:3000"
       - "3001:3001"
@@ -28,7 +28,6 @@ services:
         --admin 0.0.0.0 3001
         --admin-insecure-mode
         --webhook-url http://webhook-listener:8080
-        --tails-server-base-url http://tails:6543
         --genesis-url https://raw.githubusercontent.com/Indicio-tech/indicio-network/main/genesis_files/pool_transactions_testnet_genesis
         --wallet-type askar
         --emit-new-didcomm-prefix
@@ -48,8 +47,6 @@ services:
     depends_on:
       webhook-listener:
         condition: service_started
-      tails:
-        condition: service_started
       ngrok:
         condition: service_healthy
 
@@ -57,19 +54,6 @@ services:
     image: mendhak/http-https-echo:18
     environment:
       - HTTP_PORT=8080
-
-  tails:
-    image: ghcr.io/bcgov/tails-server:latest
-    ports:
-      - 6543:6543
-    environment:
-      - GENESIS_URL=https://raw.githubusercontent.com/Indicio-tech/indicio-network/main/genesis_files/pool_transactions_testnet_genesis
-    command: >
-      tails-server
-      --host 0.0.0.0
-      --port 6543
-      --storage-path /tmp/tails-files
-      --log-level INFO
 
   ngrok:
     image: ngrok/ngrok
@@ -84,7 +68,7 @@ services:
       timeout: 3s
       start_period: 5s
       retries: 5
-  
+
   react-app:
     build:
       dockerfile: frontend/Dockerfile
@@ -103,7 +87,7 @@ services:
     ports:
       - '6379:6379'
     command: redis-server --save 20 1 --loglevel warning --requirepass eYVX7EwVmmxKPCDmwMtyKVge8oLd2t81
-    volumes: 
+    volumes:
       - cache:/data
 
 volumes:

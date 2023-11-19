@@ -26,22 +26,8 @@ liveliness_check () {
 liveliness_check "${TUNNEL_ENDPOINT}"
 
 # Capture the JSON response from the endpoint
-RESPONSE=$(curl --silent "${TUNNEL_ENDPOINT}/api/tunnels/command_line")
+OID4VCI_ENDPOINT=$(curl --silent "${TUNNEL_ENDPOINT}/api/tunnels/command_line" | python -c "import sys, json; print(json.load(sys.stdin)['public_url'])")
 # Print the response for debugging purposes
 # echo "JSON Response: $RESPONSE"
-
-if [[ $RESPONSE == *"\"public_url\""* ]]; then
-
-  # Extract the public URL
-  public_url=$(echo "$RESPONSE" | jq -r '.public_url')
-  echo "public_url: $public_url"
-
-  # Set it as an environment variable
-  export OID4VCI_ENDPOINT="$public_url"
-
-  # Execute the provided command (arguments)
-  exec "$@"
-else
-  echo "Failed to retrieve public URL from ngrok"
-  exit 1
-fi
+export OID4VCI_ENDPOINT=${OID4VCI_ENDPOINT}
+exec "$@"
