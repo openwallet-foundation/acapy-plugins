@@ -12,12 +12,23 @@ from aiohttp_apispec import (
     request_schema,
     response_schema,
 )
+from aries_cloudagent.admin.request_context import AdminRequestContext
 from aries_cloudagent.messaging.models.openapi import OpenAPISchema
+from aries_cloudagent.messaging.valid import (
+    GENERIC_DID_EXAMPLE,
+    GENERIC_DID_VALIDATE,
+    Uri,
+)
 from aries_cloudagent.protocols.basicmessage.v1_0.message_types import SPEC_URI
 from aries_cloudagent.messaging.models.base import BaseModelError
 from aries_cloudagent.storage.error import StorageError, StorageNotFoundError
+from aries_cloudagent.wallet.default_verification_key_strategy import (
+    BaseVerificationKeyStrategy,
+)
+from aries_cloudagent.wallet.jwt import nym_to_did
 from aries_cloudagent.wallet.util import bytes_to_b64
-from marshmallow import INCLUDE, fields
+from marshmallow import fields
+from pydid import DIDUrl
 from .models.supported_cred import SupportedCredential
 from .models.exchange import OID4VCIExchangeRecord, OID4VCIExchangeRecordSchema
 
@@ -47,6 +58,23 @@ class CredExRecordListQueryStringSchema(OpenAPISchema):
 class CreateCredExSchema(OpenAPISchema):
     """Schema for CreateCredExSchema."""
 
+    did = fields.Str(
+        required=False,
+        validate=GENERIC_DID_VALIDATE,
+        metadata={"description": "DID of interest", "example": GENERIC_DID_EXAMPLE},
+    )
+    verification_method = fields.Str(
+        data_key="verificationMethod",
+        required=False,
+        validate=Uri(),
+        metadata={
+            "description": "Information used for proof verification",
+            "example": (
+                "did:key:z6Mkgg342Ycpuk263R9d8Aq6MUaxPn1DDeHyGo38EefXmgDL#z6Mkgg34"
+                "2Ycpuk263R9d8Aq6MUaxPn1DDeHyGo38EefXmgDL"
+            ),
+        },
+    )
     supported_cred_id = fields.Str(
         required=True,
         metadata={
@@ -79,11 +107,6 @@ class CreateCredExSchema(OpenAPISchema):
 class CreateCredSupSchema(OpenAPISchema):
     """Schema for CreateCredSupSchema."""
 
-    class Meta:
-        """CreateCredSupSchema metadata."""
-
-        unknown = INCLUDE
-
     format = fields.Str(required=True, metadata={"example": "jwt_vc_json"})
     identifier = fields.Str(
         data_key="id", required=True, metadata={"example": "UniversityDegreeCredential"}
@@ -109,6 +132,43 @@ class CreateCredSupSchema(OpenAPISchema):
                     "text_color": "#FFFFFF",
                 }
             ]
+        },
+    )
+    format_data = fields.Dict(
+        required=False,
+        metadata={
+            "description": (
+                "Data specific to the credential format to be included in issuer "
+                "metadata."
+            ),
+            "example": {
+                "credentialSubject": {
+                    "given_name": {
+                        "display": [{"name": "Given Name", "locale": "en-US"}]
+                    },
+                    "last_name": {"display": [{"name": "Surname", "locale": "en-US"}]},
+                    "degree": {},
+                    "gpa": {"display": [{"name": "GPA"}]},
+                },
+                "types": ["VerifiableCredential", "UniversityDegreeCredential"],
+            },
+        },
+    )
+    vc_additional_data = fields.Dict(
+        required=False,
+        metadata={
+            "description": (
+                "Additional data to be included in each credential of this type. "
+                "This is for data that is not specific to the subject but required "
+                "by the credential format and is included in every credential."
+            ),
+            "example": {
+                "@context": [
+                    "https://www.w3.org/2018/credentials/v1",
+                    "https://www.w3.org/2018/credentials/examples/v1",
+                ],
+                "type": ["VerifiableCredential", "UniversityDegreeCredential"],
+            },
         },
     )
 
@@ -183,7 +243,7 @@ async def credential_exchange_create(request: web.BaseRequest):
         The credential exchange record
 
     """
-    context = request["context"]
+    context: AdminRequestContext = request["context"]
     body = await request.json()
     LOGGER.info(f"creating exchange with {body}")
     supported_cred_id = body.get("supported_cred_id")
@@ -193,10 +253,32 @@ async def credential_exchange_create(request: web.BaseRequest):
     pin = body.get("pin")
     token = body.get("token")
 
+    did = body.get("did")
+    verification_method = body.get("verification_method")
+
+    if verification_method is None:
+        if did is None:
+            raise ValueError("did or verificationMethod required.")
+
+        did = nym_to_did(did)
+
+        verkey_strat = context.inject(BaseVerificationKeyStrategy)
+        verification_method = await verkey_strat.get_verification_method_id_for_did(
+            did, context.profile
+        )
+        if not verification_method:
+            raise ValueError("Could not determine verification method from DID")
+    else:
+        # We look up keys by did for now
+        did = DIDUrl.parse(verification_method).did
+        if not did:
+            raise ValueError("DID URL must be absolute")
+
     # create exchange record from submitted
     record = OID4VCIExchangeRecord(
         supported_cred_id=supported_cred_id,
         credential_subject=credential_subject,
+        verification_method=verification_method,
         nonce=nonce,
         pin=pin,
         token=token,
@@ -287,25 +369,10 @@ async def credential_supported_create(request: web.Request):
 
     body: Dict[str, Any] = await request.json()
     LOGGER.info(f"body: {body}")
-    print(body)
-    known = {
-        k: body.pop(k)
-        for k in (
-            "format",
-            "cryptographic_binding_methods_supported",
-            "cryptographic_suites_supported",
-            "display",
-        )
-        if k in body
-    }
-    known["identifier"] = body.pop("id")
-    format_specific = body
-    LOGGER.info(f"format_data: {format_specific}")
-    LOGGER.info(f"known: {known}")
+    body["identifier"] = body.pop("id")
 
     record = SupportedCredential(
-        **known,
-        format_data=format_specific,
+        **body,
     )
 
     async with profile.session() as session:

@@ -5,6 +5,7 @@ from aries_cloudagent.messaging.models.base_record import (
     BaseRecordSchema,
     BaseExchangeRecord,
 )
+from aries_cloudagent.messaging.valid import Uri
 from marshmallow import fields
 
 
@@ -29,6 +30,7 @@ class OID4VCIExchangeRecord(BaseExchangeRecord):
         state: Optional[str] = None,
         supported_cred_id: Optional[str] = None,
         credential_subject: Optional[Dict[str, Any]] = None,
+        verification_method: Optional[str] = None,
         nonce: Optional[str] = None,
         pin: Optional[str] = None,
         code: Optional[str] = None,
@@ -39,6 +41,7 @@ class OID4VCIExchangeRecord(BaseExchangeRecord):
         super().__init__(exchange_id, state or "init", **kwargs)
         self.supported_cred_id = supported_cred_id
         self.credential_subject = credential_subject  # (received from submit)
+        self.verification_method = verification_method
         self.nonce = nonce  # in offer
         self.pin = pin  # (when relevant)
         self.code = code
@@ -57,6 +60,7 @@ class OID4VCIExchangeRecord(BaseExchangeRecord):
             for prop in (
                 "supported_cred_id",
                 "credential_subject",
+                "verification_method",
                 "nonce",
                 "pin",
                 "code",
@@ -87,6 +91,18 @@ class OID4VCIExchangeRecordSchema(BaseRecordSchema):
         required=True,
         metadata={
             "description": "desired claim and value in credential",
+        },
+    )
+    verification_method = fields.Str(
+        data_key="verificationMethod",
+        required=True,
+        validate=Uri(),
+        metadata={
+            "description": "Information used to identify the issuer keys",
+            "example": (
+                "did:key:z6Mkgg342Ycpuk263R9d8Aq6MUaxPn1DDeHyGo38EefXmgDL#z6Mkgg34"
+                "2Ycpuk263R9d8Aq6MUaxPn1DDeHyGo38EefXmgDL"
+            ),
         },
     )
     nonce = fields.Str(

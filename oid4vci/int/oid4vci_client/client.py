@@ -121,7 +121,7 @@ class OpenID4VCIClient:
         )
 
     async def request_credential(
-        self, offer: CredentialOffer, token: TokenParams
+        self, offer: CredentialOffer, metadata: IssuerMetadata, token: TokenParams
     ) -> dict:
         """Request a credential."""
         if not offer.pre_authorized_code:
@@ -136,10 +136,14 @@ class OpenID4VCIClient:
         }
         async with ClientSession() as session:
             async with session.post(
-                offer.credential_issuer,
+                metadata.credential_endpoint,
                 headers={"Authorization": f"Bearer {token.access_token}"},
                 json=request,
             ) as resp:
+                if resp.status != 200:
+                    raise ValueError(
+                        f"Error requesting credential: {await resp.text()}"
+                    )
                 credential = await resp.json()
 
         return credential
@@ -154,5 +158,5 @@ class OpenID4VCIClient:
         offer = CredentialOffer.from_dict(offer_in)
         metadata = await self.get_issuer_metadata(offer.credential_issuer)
         token = await self.request_token(offer, metadata)
-        response = await self.request_credential(offer, token)
+        response = await self.request_credential(offer, metadata, token)
         return response
