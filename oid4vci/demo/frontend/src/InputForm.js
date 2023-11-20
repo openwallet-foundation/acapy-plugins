@@ -7,6 +7,7 @@ const InputForm = () => {
   const [firstName, setFirstName] = useState('');
   const [lastName, setLastName] = useState('');
   const [email, setEmail] = useState('');
+  const [did, setDid] = useState('');
 
   const handleFirstNameChange = (e) => {
     setFirstName(e.target.value);
@@ -20,8 +21,12 @@ const InputForm = () => {
     setEmail(e.target.value);
   };
 
+  const handleDidChange = (e) => {
+    setDid(e.target.value);
+  };
+
   const handleShareClick = () => {
-    navigate(`/credentials`,{ state: {firstName:firstName, lastName:lastName, email:email}});
+    navigate(`/credentials`,{ state: {firstName:firstName, lastName:lastName, email:email, did:did}});
     
   };
 
@@ -55,6 +60,15 @@ const InputForm = () => {
               id="email"
               value={email}
               onChange={handleEmailChange}
+            />
+          </div>
+          <div>
+            <label htmlFor="did">Did:</label>
+            <input
+              type="did"
+              id="did"
+              value={did}
+              onChange={handleDidChange}
             />
           </div>
         <button type="button" onClick={handleShareClick}>
