@@ -28,7 +28,8 @@ class SupportedCredential(BaseRecord):
         cryptographic_suites_supported: Optional[List[str]] = None,
         display: Optional[List[Dict]] = None,
         format_data: Optional[Dict] = None,
-        vc_additional_data: Optional[Dict] = None**kwargs,
+        vc_additional_data: Optional[Dict] = None,
+        **kwargs,
     ):
         """Initialize a new SupportedCredential Record.
 

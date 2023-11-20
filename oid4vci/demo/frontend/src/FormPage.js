@@ -9,7 +9,7 @@ const FormPage = () => {
   const navigate = useNavigate();
   const [selectedCredential, setSelectedCredential] = useState("");
   const { state } = useLocation();
-  const { firstName, lastName, email } = state;
+  const { firstName, lastName, email, did } = state;
 
   const handleCredentialSelect = (credential) => {
     setSelectedCredential(credential);
@@ -20,6 +20,7 @@ const FormPage = () => {
     axios.defaults.withCredentials = true; // Enable credentials (cookies, etc.)
     axios.defaults.headers.common["Access-Control-Allow-Origin"] =
       "http://localhost:3001"; // Adjust the origin as needed
+    console.log(firstName, lastName, email, did);
 
     // api call to controller, `POST /exchange/submit`
     axios
@@ -29,6 +30,7 @@ const FormPage = () => {
           lastname: lastName,
           email,
         },
+        did: did,
         supported_cred_id: selectedCredential,
       })
       .then((response) => {
