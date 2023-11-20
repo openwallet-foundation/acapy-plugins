@@ -1,11 +1,13 @@
 """Public routes for OID4VCI."""
 
+import datetime
 import logging
 from os import getenv
 from typing import Optional
+import uuid
 from aries_cloudagent.core.profile import Profile, ProfileSession
 from aries_cloudagent.wallet.error import WalletNotFoundError
-import jwt as pyjwt
+import jwt as JWT
 from secrets import token_urlsafe
 
 from aiohttp import web
@@ -38,9 +40,9 @@ class IssueCredentialRequestSchema(OpenAPISchema):
     )
     types = fields.List(
         fields.Str(),
-        metadata={"description": "List of connection records"},
+        metadata={"description": ""},
     )
-    credentialsSubject = fields.Dict(metadata={"description": ""})
+    # credentials_subject = fields.Dict(data_key="credentialsSubject", metadata={"description": ""})
     proof = fields.Dict(metadata={"description": ""})
 
 
@@ -100,7 +102,7 @@ async def check_token(profile: Profile, auth_header: Optional[str] = None):
     if scheme.lower() != "bearer":
         raise web.HTTPUnauthorized()  # Invalid authentication credentials
 
-    jwt_header = pyjwt.get_unverified_header(cred)
+    jwt_header = JWT.get_unverified_header(cred)
     if "did:key:" not in jwt_header["kid"]:
         raise web.HTTPUnauthorized()  # Invalid authentication credentials
 
@@ -109,12 +111,106 @@ async def check_token(profile: Profile, auth_header: Optional[str] = None):
         raise web.HTTPUnauthorized()  # Invalid credentials
 
 
+def filter_subjects(types, subjects, claims):  # -> dict[Any, Any]:
+    "filters subjects only to supported ones"
+    attributes = set()
+    for _type in types:
+        attributes.update(claims[_type])
+    return {key: value for (key, value) in subjects.items() if key in attributes}
+
+
 @docs(tags=["oid4vci"], summary="Issue a credential")
 @request_schema(IssueCredentialRequestSchema())
 async def issue_cred(request: web.Request):
-    """Credential issuance endpoint."""
+    """
+    The Credential Endpoint issues a Credential as approved by the End-User
+    upon presentation of a valid Access Token .
+    """
     profile = request["context"].profile
     await check_token(profile, request.headers.get("Authorization"))
+    # TODO: check scope???
+    context = request["context"]
+    json = request.json()
+    LOGGER.info(f"request: {json}")
+    types = json.get("types")
+    proof = json.get("proof")
+    credentials_subject = json.get("credentials_subject")
+    # TODO: verify types???
+    _scheme, token_jwt = request.headers.get("Authorization").split(" ")
+    ex_record = None
+    sup_cred_record = None
+    signing_did = None
+    try:
+        async with context.profile.session() as session:
+            _filter = {
+                "token": token_jwt,
+            }
+            records = await OID4VCIExchangeRecord.query(session, _filter)
+            ex_record: OID4VCIExchangeRecord = records[0]
+            if not ex_record:
+                return web.json_response({})  # TODO: report failure?
+
+            if ex_record.supported_cred_id:
+                sup_cred_record: SupportedCredential = (
+                    await SupportedCredential.query(
+                        session, {"identifier": ex_record.supported_cred_id}
+                    )
+                )[0]
+            signing_did = await create_did(session)
+    except (StorageError, BaseModelError, StorageNotFoundError) as err:
+        raise web.HTTPBadRequest(reason=err.roll_up) from err
+
+    current_time = datetime.datetime.now(datetime.timezone.utc)
+    current_time_unix_timestamp = int(current_time.timestamp())
+    formatted_time = current_time.strftime("%Y-%m-%dT%H:%M:%SZ")
+
+    body = {
+        # "format": "jwt_vc_json",
+        # "types": cred_req.types,
+        "vc": {
+            "@context": [
+                "https://www.w3.org/2018/credentials/v1",
+                "https://www.w3.org/2018/credentials/examples/v1",
+            ],
+            "type": [
+                "VerifiableCredential",
+                "UniversityDegreeCredential",
+            ],  # TODO; actually get this from controller
+            # TODO: should be did of the issuer
+            "issuer": signing_did,
+            # TODO: verify issuer url used earlier is in the did doc.
+            "issuanceDate": formatted_time,
+            "credentialSubject": ex_record.credential_subject,
+        },
+        "iss": signing_did,
+        "nbf": current_time_unix_timestamp,
+    }
+    random_uuid = str(uuid.uuid4())
+    body["vc"]["id"] = random_uuid
+    body["jti"] = random_uuid
+    if proof:
+        # TODO: proof jwt verify using issuer
+        try:
+            header = JWT.get_unverified_header(proof.jwt)
+            kid = header.get("kid")
+            decoded_payload = JWT.decode(proof.jwt, options={"verify_signature": False})
+            nonce = decoded_payload.get("nonce")  # TODO: why is this not c_nonce?
+            if not ex_record.nonce == nonce:
+                raise HTTPException(
+                    status_code=HTTP_403_FORBIDDEN,
+                    detail="Invalid proof: wrong nonce.",
+                )
+            body["vc"]["credentialSubject"]["id"] = kid
+            body["sub"] = kid
+            # cleanup
+            # TODO: cleanup token
+        except JWT.DecodeError:
+            print("Error decoding JWT. Invalid token or format.")
+    jwt = await acapy_jwt(signing_did, headers={}, payload=body)
+    return {
+        "format": "jwt_vc_json",
+        "credential": jwt,
+    }
 
 
 async def create_did(session: ProfileSession):
@@ -149,7 +245,7 @@ async def get_token(request: web.Request):
             records = await OID4VCIExchangeRecord.query(session, _filter)
             ex_record: OID4VCIExchangeRecord = records[0]
             if not ex_record or not ex_record.code:  # TODO: check pin
-                return {}  # TODO: report failure?
+                return web.json_response({})  # TODO: report failure?
 
             # if ex_record.supported_cred_id:
             #    sup_cred_record: SupportedCredential = (
