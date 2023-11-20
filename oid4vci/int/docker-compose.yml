@@ -11,6 +11,7 @@ services:
       - "8081:8081"
     volumes:
       - ../docker/entrypoint.sh:/entrypoint.sh:ro,z
+      - ../oid4vci:/usr/src/app/oid4vci:z
     environment:
       RUST_LOG: warn
       OID4VCI_ENDPOINT: "http://issuer:8081"

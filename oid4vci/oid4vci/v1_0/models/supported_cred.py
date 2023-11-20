@@ -28,7 +28,7 @@ class SupportedCredential(BaseRecord):
         cryptographic_suites_supported: Optional[List[str]] = None,
         display: Optional[List[Dict]] = None,
         format_data: Optional[Dict] = None,
-        **kwargs,
+        vc_additional_data: Optional[Dict] = None**kwargs,
     ):
         """Initialize a new SupportedCredential Record.
 
@@ -56,6 +56,7 @@ class SupportedCredential(BaseRecord):
         self.cryptographic_suites_supported = cryptographic_suites_supported
         self.display = display
         self.format_data = format_data
+        self.vc_additional_data = vc_additional_data
 
     @property
     def supported_cred_id(self):
@@ -74,6 +75,7 @@ class SupportedCredential(BaseRecord):
                 "cryptographic_suites_supported",
                 "display",
                 "format_data",
+                "vc_additional_data",
             )
         }
 
@@ -156,6 +158,18 @@ class SupportedCredentialSchema(BaseRecordSchema):
                     "degree": {},
                     "gpa": {"display": [{"name": "GPA"}]},
                 }
+            }
+        },
+    )
+    vc_additional_data = fields.Dict(
+        required=False,
+        metadata={
+            "example": {
+                "@context": [
+                    "https://www.w3.org/2018/credentials/v1",
+                    "https://www.w3.org/2018/credentials/examples/v1",
+                ],
+                "type": ["VerifiableCredential", "UniversityDegreeCredential"],
             }
         },
     )

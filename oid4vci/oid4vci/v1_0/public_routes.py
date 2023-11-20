@@ -16,10 +16,11 @@ from aiohttp_apispec import (
     form_schema,
     request_schema,
 )
+from aries_cloudagent.admin.request_context import AdminRequestContext
 from aries_cloudagent.storage.error import StorageError, StorageNotFoundError
 from aries_cloudagent.messaging.models.base import BaseModelError
 from aries_cloudagent.messaging.models.openapi import OpenAPISchema
-from aries_cloudagent.wallet.jwt import jwt_sign, jwt_verify
+from aries_cloudagent.wallet.jwt import JWTVerifyResult, jwt_sign, jwt_verify
 from aries_cloudagent.wallet.base import BaseWallet, WalletError
 from aries_cloudagent.wallet.did_method import KEY
 from aries_cloudagent.wallet.key_type import ED25519
@@ -81,7 +82,7 @@ async def oid_cred_issuer(request: web.Request):
 
     metadata = {
         "credential_issuer": f"{public_url}/",  # TODO: update path with wallet id
-        "credential_endpoint": f"{public_url}/credential",
+        "credential_endpoint": f"{public_url}/draft-11/credential",
         "credentials_supported": [
             supported.to_issuer_metadata() for supported in credentials_supported
         ],
@@ -92,7 +93,9 @@ async def oid_cred_issuer(request: web.Request):
     return web.json_response(metadata)
 
 
-async def check_token(profile: Profile, auth_header: Optional[str] = None):
+async def check_token(
+    profile: Profile, auth_header: Optional[str] = None
+) -> JWTVerifyResult:
     """Validate the OID4VCI token."""
     if not auth_header:
         raise web.HTTPUnauthorized()  # no authentication
@@ -109,9 +112,11 @@ async def check_token(profile: Profile, auth_header: Optional[str] = None):
     if not result.valid:
         raise web.HTTPUnauthorized()  # Invalid credentials
 
+    return result
+
 
 def filter_subjects(types, subjects, claims):  # -> dict[Any, Any]:
-    "filters subjects only to supported ones"
+    """Filters subjects only to supported ones."""
     attributes = set()
     for _type in types:
         attributes.update(claims[_type])
@@ -121,85 +126,84 @@ def filter_subjects(types, subjects, claims):  # -> dict[Any, Any]:
 @docs(tags=["oid4vci"], summary="Issue a credential")
 @request_schema(IssueCredentialRequestSchema())
 async def issue_cred(request: web.Request):
+    """The Credential Endpoint issues a Credential.
+
+    As validated upon presentation of a valid Access Token .
     """
-    The Credential Endpoint issues a Credential as approved by the End-User
-    upon presentation of a valid Access Token .
-    """
-    profile = request["context"].profile
-    await check_token(profile, request.headers.get("Authorization"))
+    context: AdminRequestContext = request["context"]
+    token_result = await check_token(
+        context.profile, request.headers.get("Authorization")
+    )
+    exchange_id = token_result.payload["id"]
+
     # TODO: check scope???
     context = request["context"]
-    json = request.json()
-    LOGGER.info(f"request: {json}")
-    types = json.get("types")
-    proof = json.get("proof")
-    # TODO: verify types???
-    _scheme, token_jwt = request.headers.get("Authorization").split(" ")
-    ex_record = None
-    signing_did = None
+    body = await request.json()
+    LOGGER.info(f"request: {body}")
     try:
         async with context.profile.session() as session:
-            _filter = {
-                "token": token_jwt,
-            }
-            records = await OID4VCIExchangeRecord.query(session, _filter)
-            ex_record: OID4VCIExchangeRecord = records[0]
-            if not ex_record:
-                return web.json_response({})  # TODO: report failure?
-
-            signing_did = await create_did(session)
+            ex_record = await OID4VCIExchangeRecord.retrieve_by_id(session, exchange_id)
+            assert ex_record.supported_cred_id
+            supported = await SupportedCredential.retrieve_by_id(
+                session, ex_record.supported_cred_id
+            )
     except (StorageError, BaseModelError, StorageNotFoundError) as err:
         raise web.HTTPBadRequest(reason=err.roll_up) from err
+
+    if supported.format_data and supported.format_data.get("types") != body.get(
+        "types"
+    ):
+        raise web.HTTPBadRequest(reason="Requested types does not match offer.")
+    if supported.format != body.get("format"):
+        raise web.HTTPBadRequest(reason="Requested format does not match offer.")
+    if supported.format != "jwt_vc_json":
+        raise web.HTTPUnprocessableEntity(reason="Only jwt_vc_json is supported.")
 
     current_time = datetime.datetime.now(datetime.timezone.utc)
     current_time_unix_timestamp = int(current_time.timestamp())
     formatted_time = current_time.strftime("%Y-%m-%dT%H:%M:%SZ")
 
-    body = {
-        # "format": "jwt_vc_json",
-        # "types": cred_req.types,
-        "vc": {
-            "@context": [
-                "https://www.w3.org/2018/credentials/v1",
-                "https://www.w3.org/2018/credentials/examples/v1",
-            ],
-            "type": [
-                "VerifiableCredential",
-                "UniversityDegreeCredential",
-            ],
-            # TODO: should be did of the issuer
-            "issuer": signing_did,
-            # TODO: verify issuer url used earlier is in the did doc.
-            "issuanceDate": formatted_time,
-            "credentialSubject": ex_record.credential_subject,
-        },
-        "iss": signing_did,
-        "nbf": current_time_unix_timestamp,
-    }
-    random_uuid = str(uuid.uuid4())
-    body["vc"]["id"] = random_uuid
-    body["jti"] = random_uuid
-    if proof:
-        # TODO: proof jwt verify using issuer
+    cred_id = str(uuid.uuid4())
+    kid = None
+    if proof := body.get("proof"):
         try:
             header = JWT.get_unverified_header(proof.jwt)
             kid = header.get("kid")
             decoded_payload = JWT.decode(
                 proof.jwt, options={"verify_signature": False}
-            )  # TODO: verity proof
+            )  # TODO: verify proof
             nonce = decoded_payload.get("nonce")  # TODO: why is this not c_nonce?
             if ex_record.nonce != nonce:
                 raise web.HTTPBadRequest(
                     reason="Invalid proof: wrong nonce.",
                 )
-            body["vc"]["credentialSubject"]["id"] = kid
-            body["sub"] = kid
             # cleanup
             # TODO: cleanup exchange record, possible replay attack
         except JWT.DecodeError:
             print("Error decoding JWT. Invalid token or format.")
 
-    jws = await jwt_sign(context.profile, {}, body, signing_did)
+    payload = {
+        # "format": "jwt_vc_json",
+        # "types": cred_req.types,
+        "vc": {
+            **(supported.vc_additional_data or {}),
+            "id": cred_id,
+            "issuer": ex_record.verification_method,
+            "issuanceDate": formatted_time,
+            "credentialSubject": {
+                **(ex_record.credential_subject or {}),
+                "id": kid,  # TODO This might be None!
+            },
+        },
+        "iss": ex_record.verification_method,
+        "nbf": current_time_unix_timestamp,
+        "jti": cred_id,
+        "sub": kid,  # TODO This might be None!
+    }
+
+    jws = await jwt_sign(
+        context.profile, {}, payload, verification_method=ex_record.verification_method
+    )
     return web.json_response(
         {
             "format": "jwt_vc_json",
@@ -230,7 +234,6 @@ async def get_token(request: web.Request):
     # user_pin = request.query.get("user_pin")
     context = request["context"]
     ex_record = None
-    sup_cred_record = None
     try:
         async with context.profile.session() as session:
             _filter = {
@@ -253,9 +256,9 @@ async def get_token(request: web.Request):
         raise web.HTTPBadRequest(reason=err.roll_up) from err
     # LOGGER.info(f"supported credential report: {sup_cred_record}")
     # scopes = sup_cred_record.scope
-    scopes = ex_record.supported_cred_id
     payload = {
-        "scope": scopes,
+        "scope": ex_record.supported_cred_id,
+        "id": ex_record.exchange_id,
     }
     async with context.profile.session() as session:
         signing_did = await create_did(session)
