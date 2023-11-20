@@ -42,7 +42,6 @@ class IssueCredentialRequestSchema(OpenAPISchema):
         fields.Str(),
         metadata={"description": ""},
     )
-    # credentials_subject = fields.Dict(data_key="credentialsSubject", metadata={"description": ""})
     proof = fields.Dict(metadata={"description": ""})
 
 
@@ -134,11 +133,9 @@ async def issue_cred(request: web.Request):
     LOGGER.info(f"request: {json}")
     types = json.get("types")
     proof = json.get("proof")
-    credentials_subject = json.get("credentials_subject")
     # TODO: verify types???
     _scheme, token_jwt = request.headers.get("Authorization").split(" ")
     ex_record = None
-    sup_cred_record = None
     signing_did = None
     try:
         async with context.profile.session() as session:
@@ -150,12 +147,6 @@ async def issue_cred(request: web.Request):
             if not ex_record:
                 return web.json_response({})  # TODO: report failure?
 
-            if ex_record.supported_cred_id:
-                sup_cred_record: SupportedCredential = (
-                    await SupportedCredential.query(
-                        session, {"identifier": ex_record.supported_cred_id}
-                    )
-                )[0]
             signing_did = await create_did(session)
     except (StorageError, BaseModelError, StorageNotFoundError) as err:
         raise web.HTTPBadRequest(reason=err.roll_up) from err
@@ -175,7 +166,7 @@ async def issue_cred(request: web.Request):
             "type": [
                 "VerifiableCredential",
                 "UniversityDegreeCredential",
-            ],  # TODO; actually get this from controller
+            ],
             # TODO: should be did of the issuer
             "issuer": signing_did,
             # TODO: verify issuer url used earlier is in the did doc.
@@ -193,24 +184,28 @@ async def issue_cred(request: web.Request):
         try:
             header = JWT.get_unverified_header(proof.jwt)
             kid = header.get("kid")
-            decoded_payload = JWT.decode(proof.jwt, options={"verify_signature": False})
+            decoded_payload = JWT.decode(
+                proof.jwt, options={"verify_signature": False}
+            )  # TODO: verity proof
             nonce = decoded_payload.get("nonce")  # TODO: why is this not c_nonce?
-            if not ex_record.nonce == nonce:
-                raise HTTPException(
-                    status_code=HTTP_403_FORBIDDEN,
-                    detail="Invalid proof: wrong nonce.",
+            if ex_record.nonce != nonce:
+                raise web.HTTPBadRequest(
+                    reason="Invalid proof: wrong nonce.",
                 )
             body["vc"]["credentialSubject"]["id"] = kid
             body["sub"] = kid
             # cleanup
-            # TODO: cleanup token
+            # TODO: cleanup exchange record, possible replay attack
         except JWT.DecodeError:
             print("Error decoding JWT. Invalid token or format.")
-    jwt = await acapy_jwt(signing_did, headers={}, payload=body)
-    return {
-        "format": "jwt_vc_json",
-        "credential": jwt,
-    }
+
+    jws = await jwt_sign(context.profile, {}, body, signing_did)
+    return web.json_response(
+        {
+            "format": "jwt_vc_json",
+            "credential": jws,
+        }
+    )
 
 
 async def create_did(session: ProfileSession):
