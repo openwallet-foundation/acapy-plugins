@@ -144,6 +144,8 @@ async def issue_cred(request: web.Request):
         async with context.profile.session() as session:
             ex_record = await OID4VCIExchangeRecord.retrieve_by_id(session, exchange_id)
             assert ex_record.supported_cred_id
+            LOGGER.info(f"record: {ex_record}")
+            LOGGER.info(f"supported_cred_id: {ex_record.supported_cred_id}")
             supported = await SupportedCredential.retrieve_by_id(
                 session, ex_record.supported_cred_id
             )

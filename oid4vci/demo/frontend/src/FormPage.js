@@ -9,7 +9,7 @@ const FormPage = () => {
   const navigate = useNavigate();
   const [selectedCredential, setSelectedCredential] = useState("");
   const { state } = useLocation();
-  const { firstName, lastName, email, did } = state;
+  const { firstName, lastName, email, did, credential } = state;
 
   const handleCredentialSelect = (credential) => {
     setSelectedCredential(credential);
@@ -31,7 +31,7 @@ const FormPage = () => {
           email,
         },
         did: did,
-        supported_cred_id: selectedCredential,
+        supported_cred_id: credential,
       })
       .then((response) => {
         console.log(response.data);
