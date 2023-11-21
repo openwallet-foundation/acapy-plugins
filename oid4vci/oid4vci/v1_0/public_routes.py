@@ -144,18 +144,17 @@ async def issue_cred(request: web.Request):
         async with context.profile.session() as session:
             ex_record = await OID4VCIExchangeRecord.retrieve_by_id(session, exchange_id)
             assert ex_record.supported_cred_id
-            LOGGER.info(f"record: {ex_record}")
+            LOGGER.info(f"ex record: {ex_record}")
             LOGGER.info(f"supported_cred_id: {ex_record.supported_cred_id}")
             supported = await SupportedCredential.retrieve_by_id(
                 session, ex_record.supported_cred_id
             )
+            LOGGER.info(f"sup record: {supported}")
     except (StorageError, BaseModelError, StorageNotFoundError) as err:
         raise web.HTTPBadRequest(reason=err.roll_up) from err
-
-    if supported.format_data and supported.format_data.get("types") != body.get(
-        "types"
-    ):
-        raise web.HTTPBadRequest(reason="Requested types does not match offer.")
+    # TODO: improve types checking
+    # if supported.format_data and body.get("types")[0] in supported.format_data.get("types"):
+    #    raise web.HTTPBadRequest(reason="Requested types does not match offer.")
     if supported.format != body.get("format"):
         raise web.HTTPBadRequest(reason="Requested format does not match offer.")
     if supported.format != "jwt_vc_json":
@@ -168,11 +167,12 @@ async def issue_cred(request: web.Request):
     cred_id = str(uuid.uuid4())
     kid = None
     if proof := body.get("proof"):
+        LOGGER.info(f"proof: {proof}")
         try:
-            header = JWT.get_unverified_header(proof.jwt)
+            header = JWT.get_unverified_header(proof["jwt"])
             kid = header.get("kid")
             decoded_payload = JWT.decode(
-                proof.jwt, options={"verify_signature": False}
+                proof["jwt"], options={"verify_signature": False}
             )  # TODO: verify proof
             nonce = decoded_payload.get("nonce")  # TODO: why is this not c_nonce?
             if ex_record.nonce != nonce:
