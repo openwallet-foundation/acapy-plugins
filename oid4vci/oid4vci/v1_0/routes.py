@@ -336,12 +336,16 @@ async def get_cred_offer(request: web.BaseRequest):
             record.code = code
             # Save the code to the exchange record
             await record.save(session, reason="New cred offer code")
+            sup_record = await SupportedCredential.retrieve_by_id(
+                session, record.supported_cred_id
+            )
+
     except (StorageError, BaseModelError) as err:
         raise web.HTTPBadRequest(reason=err.roll_up) from err
     # Create offer object
     offer = {
         "credential_issuer": issuer_url,
-        "credentials": [record.supported_cred_id],
+        "credentials": [sup_record.identifier],
         "grants": {
             # "authorization_code": {
             #    "issuer_state": 'previously-created-state',
