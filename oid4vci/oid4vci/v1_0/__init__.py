@@ -9,7 +9,8 @@ from aries_cloudagent.core.profile import Profile
 from aries_cloudagent.protocols.endorse_transaction.v1_0.routes import (
     STARTUP_EVENT_PATTERN,
 )
-from oid4vci.v1_0.oid4vci_server import Oid4vciServer
+from .oid4vci_server import Oid4vciServer
+from .config import Config
 
 LOGGER = logging.getLogger(__name__)
 
@@ -29,14 +30,10 @@ async def started_event_handler(profile: Profile, event: Event):
     """Event handler for Basic Messages."""
     LOGGER.info(event.payload)
     try:
-        # -o oid4vci.host=0.0.0.0 -o oid4vci.port=8081
-        plugin_settings = profile.context.settings.for_plugin("oid4vci")
-        host = plugin_settings.get("host") or OID4VCI_HOST
-        port = plugin_settings.get("port") or OID4VCI_PORT
-
+        config = Config(profile.context)
         oid4vci = Oid4vciServer(
-            host,
-            port,
+            config.host,
+            config.port,
             profile.context,
             profile,
         )

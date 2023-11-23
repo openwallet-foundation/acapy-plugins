@@ -2,7 +2,6 @@
 
 import datetime
 import logging
-from os import getenv
 from typing import Optional
 import uuid
 from aries_cloudagent.core.profile import Profile, ProfileSession
@@ -25,11 +24,12 @@ from aries_cloudagent.wallet.base import BaseWallet, WalletError
 from aries_cloudagent.wallet.did_method import KEY
 from aries_cloudagent.wallet.key_type import ED25519
 from marshmallow import fields
-from oid4vci.v1_0.models.exchange import OID4VCIExchangeRecord
+
+from .models.exchange import OID4VCIExchangeRecord
 from .models.supported_cred import SupportedCredential
+from .config import Config
 
 LOGGER = logging.getLogger(__name__)
-OID4VCI_ENDPOINT = getenv("OID4VCI_ENDPOINT")
 
 
 class IssueCredentialRequestSchema(OpenAPISchema):
@@ -73,7 +73,8 @@ class GetTokenSchema(OpenAPISchema):
 async def oid_cred_issuer(request: web.Request):
     """Credential issuer metadata endpoint."""
     profile = request["context"].profile
-    public_url = OID4VCI_ENDPOINT  # TODO: check for flag first
+    config = Config(profile.context)
+    public_url = config.endpoint
 
     # Wallet query to retrieve credential definitions
     tag_filter = {}  # {"type": {"$in": ["sd_jwt", "jwt_vc_json"]}}
