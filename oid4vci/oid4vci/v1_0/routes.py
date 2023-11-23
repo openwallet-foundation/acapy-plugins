@@ -421,22 +421,17 @@ async def register(app: web.Application):
     # add in the message list(s) route
     app.add_routes(
         [
-            web.get(
-                "/oid4vci/draft-11/credential-offer", get_cred_offer, allow_head=False
-            ),
-            web.get(
-                "/oid4vci/draft-13/credential-offer", get_cred_offer, allow_head=False
-            ),
+            web.get("/oid4vci/credential-offer", get_cred_offer, allow_head=False),
             web.get(
                 "/oid4vci/exchange/records",
                 credential_exchange_list,
                 allow_head=False,
             ),
             web.post("/oid4vci/exchange/create", credential_exchange_create),
-            web.delete(
-                "/oid4vci/exchange/records/{cred_ex_id}",
-                credential_exchange_remove,
-            ),
+            # web.delete(
+            #    "/oid4vci/exchange/records/{cred_ex_id}",
+            #    credential_exchange_remove,
+            # ),
             web.post(
                 "/oid4vci/credential-supported/create", credential_supported_create
             ),
@@ -445,10 +440,10 @@ async def register(app: web.Application):
                 credential_supported_list,
                 allow_head=False,
             ),
-            web.delete(
-                "/oid4vci/exchange-supported/records/{cred_sup_id}",
-                credential_supported_list,
-            ),
+            # web.delete(
+            #    "/oid4vci/exchange-supported/records/{cred_sup_id}",
+            #    credential_supported_remove,
+            # ),
         ]
     )
 

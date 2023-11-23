@@ -82,7 +82,7 @@ async def oid_cred_issuer(request: web.Request):
 
     metadata = {
         "credential_issuer": f"{public_url}/",  # TODO: update path with wallet id
-        "credential_endpoint": f"{public_url}/draft-11/credential",
+        "credential_endpoint": f"{public_url}/credential",
         "credentials_supported": [
             supported.to_issuer_metadata() for supported in credentials_supported
         ],
@@ -153,8 +153,10 @@ async def issue_cred(request: web.Request):
     except (StorageError, BaseModelError, StorageNotFoundError) as err:
         raise web.HTTPBadRequest(reason=err.roll_up) from err
     # TODO: improve types checking
-    # if supported.format_data and body.get("types")[0] in supported.format_data.get("types"):
-    #    raise web.HTTPBadRequest(reason="Requested types does not match offer.")
+    # if supported.format_data and body.get("types")[0] in supported.format_data.get(
+    #     "types"
+    # ):
+    #     raise web.HTTPBadRequest(reason="Requested types does not match offer.")
     if supported.format != body.get("format"):
         raise web.HTTPBadRequest(reason="Requested format does not match offer.")
     if supported.format != "jwt_vc_json":
@@ -297,18 +299,6 @@ async def get_token(request: web.Request):
     )
 
 
-@docs(tags=["oid4vci"], summary="")
-async def oauth(request: web.Request):
-    """"""
-    return web.json_response({})
-
-
-@docs(tags=["oid4vci"], summary="")
-async def config(request: web.Request):
-    """"""
-    return web.json_response({})
-
-
 async def register(app: web.Application):
     """Register routes."""
     app.add_routes(
@@ -318,11 +308,7 @@ async def register(app: web.Application):
                 oid_cred_issuer,
                 allow_head=False,
             ),
-            # web.get("/.well-known/oauth-authorization-server", oauth, allow_head=False),
-            # web.get("/.well-known/openid-configuration", config, allow_head=False),
-            web.post("/draft-13/credential", issue_cred),
-            web.post("/draft-11/credential", issue_cred),
+            web.post("/credential", issue_cred),
             web.post("/token", get_token),
-            # web.post("/draft-11/token", get_token),
         ]
     )
