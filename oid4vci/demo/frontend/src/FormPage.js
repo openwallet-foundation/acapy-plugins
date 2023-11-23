@@ -46,7 +46,7 @@ const FormPage = () => {
         console.log("get offer params:");
         console.log(queryParams);
         axios
-          .get("http://localhost:3001/oid4vci/draft-11/credential-offer", {
+          .get("http://localhost:3001/oid4vci/credential-offer", {
             params: queryParams,
             headers: {
               accept: "application/json",

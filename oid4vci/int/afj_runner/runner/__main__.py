@@ -38,7 +38,7 @@ async def main():
             },
         )
         offer = await controller.get(
-            "/oid4vci/draft-11/credential-offer",
+            "/oid4vci/credential-offer",
             params={"exchange_id": exchange["exchange_id"]},
         )
         offer_uri = "openid-credential-offer://" + urlencode(offer)
