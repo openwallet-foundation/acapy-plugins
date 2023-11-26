@@ -2,32 +2,28 @@
 
 import datetime
 import logging
+from secrets import token_urlsafe
 from typing import Optional
 import uuid
-from aries_cloudagent.core.profile import Profile, ProfileSession
-from aries_cloudagent.wallet.error import WalletNotFoundError
-import jwt as JWT
-from secrets import token_urlsafe
 
 from aiohttp import web
-from aiohttp_apispec import (
-    docs,
-    form_schema,
-    request_schema,
-)
+from aiohttp_apispec import docs, form_schema, request_schema
 from aries_cloudagent.admin.request_context import AdminRequestContext
-from aries_cloudagent.storage.error import StorageError, StorageNotFoundError
+from aries_cloudagent.core.profile import Profile, ProfileSession
 from aries_cloudagent.messaging.models.base import BaseModelError
 from aries_cloudagent.messaging.models.openapi import OpenAPISchema
-from aries_cloudagent.wallet.jwt import JWTVerifyResult, jwt_sign, jwt_verify
+from aries_cloudagent.storage.error import StorageError, StorageNotFoundError
 from aries_cloudagent.wallet.base import BaseWallet, WalletError
 from aries_cloudagent.wallet.did_method import KEY
+from aries_cloudagent.wallet.error import WalletNotFoundError
+from aries_cloudagent.wallet.jwt import JWTVerifyResult, jwt_sign, jwt_verify
 from aries_cloudagent.wallet.key_type import ED25519
+import jwt
 from marshmallow import fields
 
+from .config import Config
 from .models.exchange import OID4VCIExchangeRecord
 from .models.supported_cred import SupportedCredential
-from .config import Config
 
 LOGGER = logging.getLogger(__name__)
 
@@ -105,7 +101,7 @@ async def check_token(
     if scheme.lower() != "bearer":
         raise web.HTTPUnauthorized()  # Invalid authentication credentials
 
-    jwt_header = JWT.get_unverified_header(cred)
+    jwt_header = jwt.get_unverified_header(cred)
     if "did:key:" not in jwt_header["kid"]:
         raise web.HTTPUnauthorized()  # Invalid authentication credentials
 
@@ -172,9 +168,9 @@ async def issue_cred(request: web.Request):
     if proof := body.get("proof"):
         LOGGER.info(f"proof: {proof}")
         try:
-            header = JWT.get_unverified_header(proof["jwt"])
+            header = jwt.get_unverified_header(proof["jwt"])
             kid = header.get("kid")
-            decoded_payload = JWT.decode(
+            decoded_payload = jwt.decode(
                 proof["jwt"], options={"verify_signature": False}
             )  # TODO: verify proof
             nonce = decoded_payload.get("nonce")  # TODO: why is this not c_nonce?
@@ -184,7 +180,7 @@ async def issue_cred(request: web.Request):
                 )
             # cleanup
             # TODO: cleanup exchange record, possible replay attack
-        except JWT.DecodeError:
+        except jwt.DecodeError:
             print("Error decoding JWT. Invalid token or format.")
 
     payload = {
