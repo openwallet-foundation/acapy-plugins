@@ -1,59 +1,40 @@
 """Retrieve configuration values."""
 
-from typing import Any, Optional, overload
+from dataclasses import dataclass
+from os import getenv
 from aries_cloudagent.core.profile import InjectionContext
 
-MISSING = object()
 
-
+@dataclass
 class Config:
-    """Configuration for OID4VCI.
+    """Configuration for OID4VCI Plugin."""
 
-    Expected configuration options:
-    host: The host to listen on.
-        -o oid4vci.host=...
-        OID4VCI_HOST=...
-    port: The port to listen on.
-        -o oid4vci.port=...
-        OID4VCI_PORT=...
-    endpoint: The endpoint to listen on.
-        -o oid4vci.endpoint=...
-        OID4VCI_ENDPOINT=...
-    """
+    host: str
+    port: int
+    endpoint: str
 
-    def __init__(self, context: InjectionContext):
-        """Initialize the configuration."""
-        self.context = context
-        self.plugin_settings = context.settings.for_plugin("oid4vci")
+    @classmethod
+    def from_context(cls, context: InjectionContext) -> "Config":
+        """Retrieve configuration from context."""
+        plugin_settings = context.settings.for_plugin("oid4vci")
+        host = plugin_settings.get("host") or getenv("OID4VCI_HOST")
+        port = int(plugin_settings.get("port") or getenv("OID4VCI_PORT", "0"))
+        endpoint = plugin_settings.get("endpoint") or getenv("OID4VCI_ENDPOINT")
 
-    @overload
-    def get_plugin_setting_or_env(self, setting: str, var: str) -> Optional[Any]:
-        ...
+        if not host:
+            raise ValueError(
+                "No host specified for OID4VCI server; use either oid4vci.host "
+                "plugin config value or environment variable OID4VCI_HOST"
+            )
+        if not port:
+            raise ValueError(
+                "No port specified for OID4VCI server; use either oid4vci.port "
+                "plugin config value or environment variable OID4VCI_PORT"
+            )
+        if not endpoint:
+            raise ValueError(
+                "No endpoint specified for OID4VCI server; use either oid4vci.endpoint "
+                "plugin config value or environment variable OID4VCI_ENDPOINT"
+            )
 
-    @overload
-    def get_plugin_setting_or_env(self, setting: str, var: str, default: Any) -> Any:
-        ...
-
-    def get_plugin_setting_or_env(self, setting: str, var: str, default: Any = MISSING):
-        """Get a plugin setting or environment variable."""
-        value = self.plugin_settings.get(setting) or self.context.settings.get(
-            var, default
-        )
-        if value is MISSING:
-            return None
-        return value
-
-    @property
-    def host(self) -> str:
-        """Get the host."""
-        return self.get_plugin_setting_or_env("host", "OID4VCI_HOST", "0.0.0.0")
-
-    @property
-    def port(self) -> int:
-        """Get the port."""
-        return int(self.get_plugin_setting_or_env("port", "OID4VCI_PORT", "8081"))
-
-    @property
-    def endpoint(self) -> str:
-        """Get the endpoint."""
-        return self.get_plugin_setting_or_env("endpoint", "OID4VCI_ENDPOINT", "oid4vci")
+        return cls(host, port, endpoint)

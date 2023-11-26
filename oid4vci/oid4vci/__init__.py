@@ -1,34 +1,29 @@
 """OID4VCI plugin."""
 
 import logging
-from os import getenv
 
 from aries_cloudagent.config.injection_context import InjectionContext
 from aries_cloudagent.core.event_bus import Event, EventBus
 from aries_cloudagent.core.profile import Profile
-from aries_cloudagent.core.util import STARTUP_EVENT_PATTERN
-from .oid4vci_server import Oid4vciServer
+from aries_cloudagent.core.util import SHUTDOWN_EVENT_PATTERN, STARTUP_EVENT_PATTERN
+
 from .config import Config
+from .oid4vci_server import Oid4vciServer
 
 LOGGER = logging.getLogger(__name__)
-
-OID4VCI_HOST = getenv("OID4VCI_HOST", default="0.0.0.0")
-OID4VCI_PORT = int(getenv("OID4VCI_PORT", default="8081"))
 
 
 async def setup(context: InjectionContext):
     """Setup the plugin."""
-    LOGGER.info("> oid4vci plugin setup...")
     event_bus = context.inject(EventBus)
-    event_bus.subscribe(STARTUP_EVENT_PATTERN, started_event_handler)
-    LOGGER.info("< oid4vci plugin setup.")
+    event_bus.subscribe(STARTUP_EVENT_PATTERN, startup)
+    event_bus.subscribe(SHUTDOWN_EVENT_PATTERN, shutdown)
 
 
-async def started_event_handler(profile: Profile, event: Event):
-    """Event handler for Basic Messages."""
-    LOGGER.info(event.payload)
+async def startup(profile: Profile, event: Event):
+    """Startup event handler; start the OpenID4VCI server."""
     try:
-        config = Config(profile.context)
+        config = Config.from_context(profile.context)
         oid4vci = Oid4vciServer(
             config.host,
             config.port,
@@ -42,3 +37,9 @@ async def started_event_handler(profile: Profile, event: Event):
 
     oid4vci = profile.inject(Oid4vciServer)
     await oid4vci.start()
+
+
+async def shutdown(context: InjectionContext):
+    """Teardown the plugin."""
+    oid4vci = context.inject(Oid4vciServer)
+    await oid4vci.stop()

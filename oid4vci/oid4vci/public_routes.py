@@ -73,7 +73,7 @@ class GetTokenSchema(OpenAPISchema):
 async def oid_cred_issuer(request: web.Request):
     """Credential issuer metadata endpoint."""
     profile = request["context"].profile
-    config = Config(profile.context)
+    config = Config.from_context(profile.context)
     public_url = config.endpoint
 
     # Wallet query to retrieve credential definitions
