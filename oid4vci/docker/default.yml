@@ -16,7 +16,7 @@ endpoint:
 
 # plugins
 plugin:
-  - oid4vci.v1_0
+  - oid4vci
 
 #config
 genesis-url: https://indy.igrant.io/genesis

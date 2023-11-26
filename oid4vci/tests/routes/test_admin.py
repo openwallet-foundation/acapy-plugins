@@ -1,10 +1,10 @@
 from aiohttp import web
 from unittest.mock import AsyncMock
 from aries_cloudagent.admin.request_context import AdminRequestContext
-from oid4vci.v1_0 import routes as test_module
+from oid4vci import routes as test_module
 import pytest
 
-from oid4vci.v1_0.models.supported_cred import SupportedCredential
+from oid4vci.models.supported_cred import SupportedCredential
 
 
 @pytest.mark.asyncio
