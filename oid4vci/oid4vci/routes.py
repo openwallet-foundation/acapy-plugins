@@ -35,10 +35,10 @@ SPEC_URI = (
     "https://openid.net/specs/openid-4-verifiable-credential-issuance-1_0-11.html"
 )
 LOGGER = logging.getLogger(__name__)
-code_size = 8  # TODO: check
+CODE_BYTES = 8  # TODO: check
 
 
-class CredExRecordListQueryStringSchema(OpenAPISchema):
+class ExchangeRecordQuerySchema(OpenAPISchema):
     """Parameters and validators for credential exchange record list query."""
 
     id = fields.UUID(
@@ -57,8 +57,52 @@ class CredExRecordListQueryStringSchema(OpenAPISchema):
     )
 
 
-class CreateCredExSchema(OpenAPISchema):
-    """Schema for CreateCredExSchema."""
+class ExchangeRecordIDMatchSchema(OpenAPISchema):
+    """Path parameters and validators for request taking credential exchange id."""
+
+    exchange_id = fields.Str(
+        required=True,
+        metadata={
+            "description": "Credential exchange identifier",
+        },
+    )
+
+
+@docs(
+    tags=["oid4vci"],
+    summary="Fetch all credential exchange records",
+)
+@querystring_schema(ExchangeRecordQuerySchema)
+async def credential_exchange_list(request: web.BaseRequest):
+    """Request handler for searching credential exchange records.
+
+    Args:
+        request: aiohttp request object
+
+    Returns:
+        The connection list response
+
+    """
+    context = request["context"]
+    try:
+        async with context.profile.session() as session:
+            if exchange_id := request.query.get("id"):
+                record = await OID4VCIExchangeRecord.retrieve_by_id(
+                    session, exchange_id
+                )
+                # There should only be one record for a id
+                results = [record.serialize()]
+            else:
+                # TODO: use filter
+                records = await OID4VCIExchangeRecord.query(session=session)
+                results = [record.serialize() for record in records]
+    except (StorageError, BaseModelError, StorageNotFoundError) as err:
+        raise web.HTTPBadRequest(reason=err.roll_up) from err
+    return web.json_response({"results": results})
+
+
+class ExchangeRecordCreateRequestSchema(OpenAPISchema):
+    """Schema for ExchangeRecordCreateRequestSchema."""
 
     did = fields.Str(
         required=False,
@@ -106,8 +150,155 @@ class CreateCredExSchema(OpenAPISchema):
     )
 
 
-class CreateCredSupSchema(OpenAPISchema):
-    """Schema for CreateCredSupSchema."""
+@docs(
+    tags=["oid4vci"],
+    summary=("Create a credential exchange record"),
+)
+@request_schema(ExchangeRecordCreateRequestSchema())
+@response_schema(OID4VCIExchangeRecordSchema())
+async def credential_exchange_create(request: web.BaseRequest):
+    """Request handler for creating a credential from attr values.
+
+    The internal credential record will be created without the credential
+    being sent to any connection.
+
+    Args:
+        request: aiohttp request object
+
+    Returns:
+        The credential exchange record
+
+    """
+    context: AdminRequestContext = request["context"]
+    body = await request.json()
+    LOGGER.info(f"creating exchange with {body}")
+    supported_cred_id = body.get("supported_cred_id")
+    credential_subject = body.get("credential_subject")
+    # TODO: retrieve cred sup record and validate subjects
+    nonce = body.get("nonce")
+    pin = body.get("pin")
+    token = body.get("token")
+
+    did = body.get("did")
+    verification_method = body.get("verification_method")
+
+    if verification_method is None:
+        if did is None:
+            raise ValueError("did or verificationMethod required.")
+
+        did = nym_to_did(did)
+
+        verkey_strat = context.inject(BaseVerificationKeyStrategy)
+        verification_method = await verkey_strat.get_verification_method_id_for_did(
+            did, context.profile
+        )
+        if not verification_method:
+            raise ValueError("Could not determine verification method from DID")
+    else:
+        # We look up keys by did for now
+        did = DIDUrl.parse(verification_method).did
+        if not did:
+            raise ValueError("DID URL must be absolute")
+
+    # create exchange record from submitted
+    record = OID4VCIExchangeRecord(
+        supported_cred_id=supported_cred_id,
+        credential_subject=credential_subject,
+        verification_method=verification_method,
+        nonce=nonce,
+        pin=pin,
+        token=token,
+    )
+    LOGGER.info(f"created exchange record {record}")
+
+    async with context.session() as session:
+        await record.save(session, reason="New oid4vci exchange")
+
+    return web.json_response(record.serialize())
+
+
+@docs(
+    tags=["oid4vci"],
+    summary="Remove an existing credential exchange record",
+)
+@match_info_schema(ExchangeRecordIDMatchSchema())
+async def credential_exchange_remove(request: web.BaseRequest):
+    """Request handler for removing a credential exchange record.
+
+    Args:
+        request: aiohttp request object
+
+    """
+    pass
+
+
+class CredOfferQuerySchema(OpenAPISchema):
+    """Schema for GetCredential."""
+
+    user_pin_required = fields.Bool(required=False)
+    exchange_id = fields.Str(required=False)
+
+
+@docs(tags=["oid4vci"], summary="Get a credential offer")
+@querystring_schema(CredOfferQuerySchema())
+async def get_cred_offer(request: web.BaseRequest):
+    """Endpoint to retrieve an OIDC4VCI compliant offer.
+
+    For example, can be used in QR-Code presented to a compliant wallet.
+    """
+    issuer_url = getenv("OID4VCI_ENDPOINT")
+    user_pin_required = getenv("OID4VCI_USER_PIN_REQUIRED", False)
+    oid4vci_ex_id = request.query.get("exchange_id")
+
+    profile = request["context"].profile
+
+    # TODO: check that the credential_issuer_url is associated with an issuer DID
+    # TODO: check that the credential requested,
+    # TODO:(this check should be done in exchange record creation) is offered
+    # by the issuer
+
+    # Generate secure code
+    code = bytes_to_b64(secrets.token_bytes(CODE_BYTES), urlsafe=True, pad=False)
+
+    try:
+        async with profile.session() as session:
+            record: OID4VCIExchangeRecord = await OID4VCIExchangeRecord.retrieve_by_id(
+                session,
+                record_id=oid4vci_ex_id,
+            )
+            record.code = code
+            # Save the code to the exchange record
+            await record.save(session, reason="New cred offer code")
+            sup_record = await SupportedCredential.retrieve_by_id(
+                session, record.supported_cred_id
+            )
+
+    except (StorageError, BaseModelError) as err:
+        raise web.HTTPBadRequest(reason=err.roll_up) from err
+    # Create offer object
+    offer = {
+        "credential_issuer": issuer_url,
+        "credentials": [sup_record.identifier],
+        "grants": {
+            # "authorization_code": {
+            #    "issuer_state": 'previously-created-state',
+            #    "authorization_server": ""
+            # },
+            "urn:ietf:params:oauth:grant-type:pre-authorized_code": {
+                "pre-authorized_code": code,
+                "user_pin_required": user_pin_required,
+                # "interval": 30,
+                # "authorization_server": ""
+            }
+        },
+    }
+    # Return it
+
+    return web.json_response(offer)
+
+
+class SupportedCredCreateRequestSchema(OpenAPISchema):
+    """Schema for SupportedCredCreateRequestSchema."""
 
     format = fields.Str(required=True, metadata={"example": "jwt_vc_json"})
     identifier = fields.Str(
@@ -175,199 +366,8 @@ class CreateCredSupSchema(OpenAPISchema):
     )
 
 
-class CredExIdMatchInfoSchema(OpenAPISchema):
-    """Path parameters and validators for request taking credential exchange id."""
-
-    cred_ex_id = fields.Str(
-        required=True,
-        metadata={
-            "description": "Credential exchange identifier",
-        },
-    )
-
-
-class GetCredentialOfferSchema(OpenAPISchema):
-    """Schema for GetCredential."""
-
-    user_pin_required = fields.Bool(required=False)
-    exchange_id = fields.Str(required=False)
-
-
-@docs(
-    tags=["oid4vci"],
-    summary="Fetch all credential exchange records",
-)
-@querystring_schema(CredExRecordListQueryStringSchema)
-async def credential_exchange_list(request: web.BaseRequest):
-    """Request handler for searching credential exchange records.
-
-    Args:
-        request: aiohttp request object
-
-    Returns:
-        The connection list response
-
-    """
-    context = request["context"]
-    try:
-        async with context.profile.session() as session:
-            if exchange_id := request.query.get("id"):
-                record = await OID4VCIExchangeRecord.retrieve_by_id(
-                    session, exchange_id
-                )
-                # There should only be one record for a id
-                results = [record.serialize()]
-            else:
-                # TODO: use filter
-                records = await OID4VCIExchangeRecord.query(session=session)
-                results = [record.serialize() for record in records]
-    except (StorageError, BaseModelError, StorageNotFoundError) as err:
-        raise web.HTTPBadRequest(reason=err.roll_up) from err
-    return web.json_response({"results": results})
-
-
-@docs(
-    tags=["oid4vci"],
-    summary=("Create a credential exchange record"),
-)
-@request_schema(CreateCredExSchema())
-@response_schema(OID4VCIExchangeRecordSchema())
-async def credential_exchange_create(request: web.BaseRequest):
-    """Request handler for creating a credential from attr values.
-
-    The internal credential record will be created without the credential
-    being sent to any connection.
-
-    Args:
-        request: aiohttp request object
-
-    Returns:
-        The credential exchange record
-
-    """
-    context: AdminRequestContext = request["context"]
-    body = await request.json()
-    LOGGER.info(f"creating exchange with {body}")
-    supported_cred_id = body.get("supported_cred_id")
-    credential_subject = body.get("credential_subject")
-    # TODO: retrieve cred sup record and validate subjects
-    nonce = body.get("nonce")
-    pin = body.get("pin")
-    token = body.get("token")
-
-    did = body.get("did")
-    verification_method = body.get("verification_method")
-
-    if verification_method is None:
-        if did is None:
-            raise ValueError("did or verificationMethod required.")
-
-        did = nym_to_did(did)
-
-        verkey_strat = context.inject(BaseVerificationKeyStrategy)
-        verification_method = await verkey_strat.get_verification_method_id_for_did(
-            did, context.profile
-        )
-        if not verification_method:
-            raise ValueError("Could not determine verification method from DID")
-    else:
-        # We look up keys by did for now
-        did = DIDUrl.parse(verification_method).did
-        if not did:
-            raise ValueError("DID URL must be absolute")
-
-    # create exchange record from submitted
-    record = OID4VCIExchangeRecord(
-        supported_cred_id=supported_cred_id,
-        credential_subject=credential_subject,
-        verification_method=verification_method,
-        nonce=nonce,
-        pin=pin,
-        token=token,
-    )
-    LOGGER.info(f"created exchange record {record}")
-
-    async with context.session() as session:
-        await record.save(session, reason="New oid4vci exchange")
-
-    return web.json_response(record.serialize())
-
-
-@docs(
-    tags=["oid4vci"],
-    summary="Remove an existing credential exchange record",
-)
-@match_info_schema(CredExIdMatchInfoSchema())
-async def credential_exchange_remove(request: web.BaseRequest):
-    """Request handler for removing a credential exchange record.
-
-    Args:
-        request: aiohttp request object
-
-    """
-    pass
-
-
-@docs(tags=["oid4vci"], summary="Get a credential offer")
-@querystring_schema(GetCredentialOfferSchema())
-async def get_cred_offer(request: web.BaseRequest):
-    """Endpoint to retrieve an OIDC4VCI compliant offer.
-
-    For example, can be used in QR-Code presented to a compliant wallet.
-    """
-    issuer_url = getenv("OID4VCI_ENDPOINT")
-    user_pin_required = getenv("OID4VCI_USER_PIN_REQUIRED", False)
-    oid4vci_ex_id = request.query.get("exchange_id")
-
-    profile = request["context"].profile
-
-    # TODO: check that the credential_issuer_url is associated with an issuer DID
-    # TODO: check that the credential requested,
-    # TODO:(this check should be done in exchange record creation) is offered
-    # by the issuer
-
-    # Generate secure code
-    code = bytes_to_b64(secrets.token_bytes(code_size), urlsafe=True, pad=False)
-
-    try:
-        async with profile.session() as session:
-            record: OID4VCIExchangeRecord = await OID4VCIExchangeRecord.retrieve_by_id(
-                session,
-                record_id=oid4vci_ex_id,
-            )
-            record.code = code
-            # Save the code to the exchange record
-            await record.save(session, reason="New cred offer code")
-            sup_record = await SupportedCredential.retrieve_by_id(
-                session, record.supported_cred_id
-            )
-
-    except (StorageError, BaseModelError) as err:
-        raise web.HTTPBadRequest(reason=err.roll_up) from err
-    # Create offer object
-    offer = {
-        "credential_issuer": issuer_url,
-        "credentials": [sup_record.identifier],
-        "grants": {
-            # "authorization_code": {
-            #    "issuer_state": 'previously-created-state',
-            #    "authorization_server": ""
-            # },
-            "urn:ietf:params:oauth:grant-type:pre-authorized_code": {
-                "pre-authorized_code": code,
-                "user_pin_required": user_pin_required,
-                # "interval": 30,
-                # "authorization_server": ""
-            }
-        },
-    }
-    # Return it
-
-    return web.json_response(offer)
-
-
 @docs(tags=["oid4vci"], summary="Register a Oid4vci credential")
-@request_schema(CreateCredSupSchema())
+@request_schema(SupportedCredCreateRequestSchema())
 async def credential_supported_create(request: web.Request):
     """Request handler for creating a credential supported record."""
     context = request["context"]
@@ -391,7 +391,7 @@ async def credential_supported_create(request: web.Request):
     tags=["oid4vci"],
     summary="Fetch all credential supported records",
 )
-@querystring_schema(CredExRecordListQueryStringSchema)
+@querystring_schema(ExchangeRecordQuerySchema)
 async def credential_supported_list(request: web.BaseRequest):
     """Request handler for searching credential supported records.
 
@@ -431,7 +431,7 @@ async def register(app: web.Application):
             ),
             web.post("/oid4vci/exchange/create", credential_exchange_create),
             # web.delete(
-            #    "/oid4vci/exchange/records/{cred_ex_id}",
+            #    "/oid4vci/exchange/records/{exchange_id}",
             #    credential_exchange_remove,
             # ),
             web.post(
