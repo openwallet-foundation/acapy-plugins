@@ -5,6 +5,17 @@ from os import getenv
 from aries_cloudagent.core.profile import InjectionContext
 
 
+class ConfigError(ValueError):
+    """Base class for configuration errors."""
+
+    def __init__(self, var: str, env: str):
+        """Initialize a ConfigError."""
+        super().__init__(
+            f"Invalid {var} specified for OID4VCI server; use either "
+            f"oid4vci.{var} plugin config value or environment variable {env}"
+        )
+
+
 @dataclass
 class Config:
     """Configuration for OID4VCI Plugin."""
@@ -22,19 +33,10 @@ class Config:
         endpoint = plugin_settings.get("endpoint") or getenv("OID4VCI_ENDPOINT")
 
         if not host:
-            raise ValueError(
-                "No host specified for OID4VCI server; use either oid4vci.host "
-                "plugin config value or environment variable OID4VCI_HOST"
-            )
+            raise ConfigError("host", "OID4VCI_HOST")
         if not port:
-            raise ValueError(
-                "No port specified for OID4VCI server; use either oid4vci.port "
-                "plugin config value or environment variable OID4VCI_PORT"
-            )
+            raise ConfigError("port", "OID4VCI_PORT")
         if not endpoint:
-            raise ValueError(
-                "No endpoint specified for OID4VCI server; use either oid4vci.endpoint "
-                "plugin config value or environment variable OID4VCI_ENDPOINT"
-            )
+            raise ConfigError("endpoint", "OID4VCI_ENDPOINT")
 
         return cls(host, port, endpoint)
