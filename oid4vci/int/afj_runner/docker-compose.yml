@@ -44,7 +44,7 @@ services:
         --auto-provision
         --log-level debug
         --debug-webhooks
-        --plugin oid4vci.v1_0
+        --plugin oid4vci
     healthcheck:
       test: curl -s -o /dev/null -w '%{http_code}' "http://localhost:3001/status/live" | grep "200" > /dev/null
       start_period: 30s

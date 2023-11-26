@@ -1,7 +1,7 @@
 from aries_cloudagent.core.profile import Profile
 import pytest
 
-from oid4vci.v1_0.models.supported_cred import SupportedCredential
+from oid4vci.models.supported_cred import SupportedCredential
 
 
 @pytest.fixture

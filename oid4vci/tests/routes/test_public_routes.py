@@ -4,7 +4,7 @@ from aiohttp import web
 from aries_cloudagent.admin.request_context import AdminRequestContext
 import pytest
 
-from oid4vci.v1_0 import public_routes as test_module
+from oid4vci import public_routes as test_module
 
 
 @pytest.mark.asyncio

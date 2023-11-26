@@ -19,7 +19,6 @@ from aries_cloudagent.messaging.valid import (
     GENERIC_DID_VALIDATE,
     Uri,
 )
-from aries_cloudagent.protocols.basicmessage.v1_0.message_types import SPEC_URI
 from aries_cloudagent.messaging.models.base import BaseModelError
 from aries_cloudagent.storage.error import StorageError, StorageNotFoundError
 from aries_cloudagent.wallet.default_verification_key_strategy import (
@@ -32,6 +31,9 @@ from pydid import DIDUrl
 from .models.supported_cred import SupportedCredential
 from .models.exchange import OID4VCIExchangeRecord, OID4VCIExchangeRecordSchema
 
+SPEC_URI = (
+    "https://openid.net/specs/openid-4-verifiable-credential-issuance-1_0-11.html"
+)
 LOGGER = logging.getLogger(__name__)
 code_size = 8  # TODO: check
 
