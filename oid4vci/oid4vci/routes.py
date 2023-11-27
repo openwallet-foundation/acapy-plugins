@@ -13,13 +13,13 @@ from aiohttp_apispec import (
     response_schema,
 )
 from aries_cloudagent.admin.request_context import AdminRequestContext
+from aries_cloudagent.messaging.models.base import BaseModelError
 from aries_cloudagent.messaging.models.openapi import OpenAPISchema
 from aries_cloudagent.messaging.valid import (
     GENERIC_DID_EXAMPLE,
     GENERIC_DID_VALIDATE,
     Uri,
 )
-from aries_cloudagent.messaging.models.base import BaseModelError
 from aries_cloudagent.storage.error import StorageError, StorageNotFoundError
 from aries_cloudagent.wallet.default_verification_key_strategy import (
     BaseVerificationKeyStrategy,
@@ -27,44 +27,44 @@ from aries_cloudagent.wallet.default_verification_key_strategy import (
 from aries_cloudagent.wallet.jwt import nym_to_did
 from aries_cloudagent.wallet.util import bytes_to_b64
 from marshmallow import fields
+from marshmallow.validate import OneOf
 from pydid import DIDUrl
-from .models.supported_cred import SupportedCredential
+
 from .models.exchange import OID4VCIExchangeRecord, OID4VCIExchangeRecordSchema
+from .models.supported_cred import SupportedCredential
 
 SPEC_URI = (
     "https://openid.net/specs/openid-4-verifiable-credential-issuance-1_0-11.html"
 )
 LOGGER = logging.getLogger(__name__)
-CODE_BYTES = 8  # TODO: check
+CODE_BYTES = 16
 
 
 class ExchangeRecordQuerySchema(OpenAPISchema):
     """Parameters and validators for credential exchange record list query."""
 
-    id = fields.UUID(
+    exchange_id = fields.UUID(
         required=False,
-        metadata={"description": "identifier"},
+        metadata={"description": "Filter by exchange record identifier."},
     )
-    filter = fields.List(
-        fields.Str(
-            required=False,
-            metadata={"description": "filters"},
-        )
+    supported_cred_id = fields.Str(
+        required=False,
+        metadata={"description": "Filter by supported credential identifier."},
     )
     state = fields.Str(
         required=False,
-        metadata={"description": "Credential exchange state"},
+        validate=OneOf(OID4VCIExchangeRecord.STATES),
+        metadata={"description": "Filter by exchange record state."},
     )
 
 
-class ExchangeRecordIDMatchSchema(OpenAPISchema):
-    """Path parameters and validators for request taking credential exchange id."""
+class ExchangeRecordListSchema(OpenAPISchema):
+    """Result schema for an credential exchange record query."""
 
-    exchange_id = fields.Str(
-        required=True,
-        metadata={
-            "description": "Credential exchange identifier",
-        },
+    results = fields.Nested(
+        OID4VCIExchangeRecordSchema(),
+        many=True,
+        metadata={"description": "Exchange records"},
     )
 
 
@@ -72,15 +72,16 @@ class ExchangeRecordIDMatchSchema(OpenAPISchema):
     tags=["oid4vci"],
     summary="Fetch all credential exchange records",
 )
-@querystring_schema(ExchangeRecordQuerySchema)
-async def credential_exchange_list(request: web.BaseRequest):
-    """Request handler for searching credential exchange records.
+@querystring_schema(ExchangeRecordQuerySchema())
+@response_schema(ExchangeRecordListSchema(), 200)
+async def list_exchange_records(request: web.BaseRequest):
+    """Request handler for searching exchange records.
 
     Args:
         request: aiohttp request object
 
     Returns:
-        The connection list response
+        The exchange record list
 
     """
     context = request["context"]
@@ -90,11 +91,16 @@ async def credential_exchange_list(request: web.BaseRequest):
                 record = await OID4VCIExchangeRecord.retrieve_by_id(
                     session, exchange_id
                 )
-                # There should only be one record for a id
                 results = [record.serialize()]
             else:
-                # TODO: use filter
-                records = await OID4VCIExchangeRecord.query(session=session)
+                filter_ = {
+                    attr: value
+                    for attr in ("supported_cred_id", "state")
+                    if (value := request.query.get(attr))
+                }
+                records = await OID4VCIExchangeRecord.query(
+                    session=session, tag_filter=filter_
+                )
                 results = [record.serialize() for record in records]
     except (StorageError, BaseModelError, StorageNotFoundError) as err:
         raise web.HTTPBadRequest(reason=err.roll_up) from err
@@ -110,7 +116,6 @@ class ExchangeRecordCreateRequestSchema(OpenAPISchema):
         metadata={"description": "DID of interest", "example": GENERIC_DID_EXAMPLE},
     )
     verification_method = fields.Str(
-        data_key="verificationMethod",
         required=False,
         validate=Uri(),
         metadata={
@@ -215,6 +220,17 @@ async def credential_exchange_create(request: web.BaseRequest):
         await record.save(session, reason="New oid4vci exchange")
 
     return web.json_response(record.serialize())
+
+
+class ExchangeRecordIDMatchSchema(OpenAPISchema):
+    """Path parameters and validators for request taking credential exchange id."""
+
+    exchange_id = fields.Str(
+        required=True,
+        metadata={
+            "description": "Credential exchange identifier",
+        },
+    )
 
 
 @docs(
@@ -420,13 +436,12 @@ async def credential_supported_list(request: web.BaseRequest):
 
 async def register(app: web.Application):
     """Register routes."""
-    # add in the message list(s) route
     app.add_routes(
         [
             web.get("/oid4vci/credential-offer", get_cred_offer, allow_head=False),
             web.get(
                 "/oid4vci/exchange/records",
-                credential_exchange_list,
+                list_exchange_records,
                 allow_head=False,
             ),
             web.post("/oid4vci/exchange/create", credential_exchange_create),

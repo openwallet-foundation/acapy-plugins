@@ -21,7 +21,11 @@ class OID4VCIExchangeRecord(BaseExchangeRecord):
     EVENT_NAMESPACE = "oid4vci"
     RECORD_TOPIC = "oid4vci"
     RECORD_ID_NAME = "exchange_id"
-    TAG_NAMES = {"nonce", "pin", "token", "code"}
+    STATE_CREATED = "created"
+    STATE_OFFER_CREATED = "offer"
+    STATE_ISSUED = "issued"
+    STATES = (STATE_CREATED, STATE_OFFER_CREATED, STATE_ISSUED)
+    TAG_NAMES = {"state", "supported_cred_id", "code"}
 
     def __init__(
         self,
@@ -94,7 +98,6 @@ class OID4VCIExchangeRecordSchema(BaseRecordSchema):
         },
     )
     verification_method = fields.Str(
-        data_key="verificationMethod",
         required=True,
         validate=Uri(),
         metadata={
