@@ -256,11 +256,11 @@ async def issue_cred(request: web.Request):
         try:
             header = jwt.get_unverified_header(proof["jwt"])
             kid = header.get("kid")
+            # TODO verify proof
             decoded_payload = jwt.decode(
                 proof["jwt"], options={"verify_signature": False}
-            )  # TODO: verify proof
-            nonce = decoded_payload.get("nonce")  # TODO: why is this not c_nonce?
-            if ex_record.nonce != nonce:
+            )
+            if ex_record.nonce != decoded_payload.get("nonce"):
                 raise web.HTTPBadRequest(
                     reason="Invalid proof: wrong nonce.",
                 )
@@ -270,8 +270,6 @@ async def issue_cred(request: web.Request):
             print("Error decoding JWT. Invalid token or format.")
 
     payload = {
-        # "format": "jwt_vc_json",
-        # "types": cred_req.types,
         "vc": {
             **(supported.vc_additional_data or {}),
             "id": cred_id,
