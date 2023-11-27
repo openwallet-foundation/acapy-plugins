@@ -2,7 +2,8 @@
 
 from dataclasses import dataclass
 from os import getenv
-from aries_cloudagent.core.profile import InjectionContext
+from aries_cloudagent.config.base import BaseSettings
+from aries_cloudagent.config.settings import Settings
 
 
 class ConfigError(ValueError):
@@ -25,9 +26,10 @@ class Config:
     endpoint: str
 
     @classmethod
-    def from_context(cls, context: InjectionContext) -> "Config":
+    def from_settings(cls, settings: BaseSettings) -> "Config":
         """Retrieve configuration from context."""
-        plugin_settings = context.settings.for_plugin("oid4vci")
+        assert isinstance(settings, Settings)
+        plugin_settings = settings.for_plugin("oid4vci")
         host = plugin_settings.get("host") or getenv("OID4VCI_HOST")
         port = int(plugin_settings.get("port") or getenv("OID4VCI_PORT", "0"))
         endpoint = plugin_settings.get("endpoint") or getenv("OID4VCI_ENDPOINT")
