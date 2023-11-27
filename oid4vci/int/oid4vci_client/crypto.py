@@ -7,7 +7,7 @@ import json
 import time
 from typing import Generic, TypeVar, Union
 
-from aries_askar import Key
+from aries_askar import Key, KeyAlg
 
 K = TypeVar("K")
 
@@ -51,10 +51,17 @@ class AskarCryptoService(OID4VCICryptoService[AskarKey]):
 
     async def proof_of_possession(self, key: AskarKey, issuer: str, nonce: str):
         """Return proof of possession over key."""
+        if key.key.algorithm == KeyAlg.ED25519:
+            alg = "EdDSA"
+        elif key.key.algorithm == KeyAlg.K256:
+            alg = "ES256K"
+        else:
+            raise ValueError(f"Unknown key type: {key.key.algorithm}")
+
         headers = self.b64url(
             {
-                "alg": "EdDSA",
-                "typ": "JWT",
+                "alg": alg,
+                "typ": "openid4vci-proof+jwt",
                 "kid": key.kid,
             }
         )

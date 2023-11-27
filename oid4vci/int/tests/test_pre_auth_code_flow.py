@@ -26,9 +26,8 @@ def client():
     yield client
 
 
-@pytest.mark.asyncio
-async def test_pre_auth_code_flow(controller: Controller, client: OpenID4VCIClient):
-    """Connect to AFJ."""
+@pytest_asyncio.fixture
+async def issuer_did(controller: Controller):
     result = await controller.post(
         "/wallet/did/create",
         json={
@@ -39,6 +38,12 @@ async def test_pre_auth_code_flow(controller: Controller, client: OpenID4VCIClie
     )
     assert result.result
     did = result.result.did
+    yield did
+
+
+@pytest_asyncio.fixture
+async def supported_cred_id(controller: Controller, issuer_did: str):
+    """Create a supported credential."""
     supported = await controller.post(
         "/oid4vci/credential-supported/create",
         json={
@@ -58,12 +63,18 @@ async def test_pre_auth_code_flow(controller: Controller, client: OpenID4VCIClie
             },
         },
     )
+    yield supported["supported_cred_id"]
+
+
+@pytest_asyncio.fixture
+async def offer(controller: Controller, issuer_did: str, supported_cred_id: str):
+    """Create a credential offer."""
     exchange = await controller.post(
         "/oid4vci/exchange/create",
         json={
-            "supported_cred_id": supported["supported_cred_id"],
+            "supported_cred_id": supported_cred_id,
             "credential_subject": {"name": "alice"},
-            "did": did,
+            "did": issuer_did,
         },
     )
     offer = await controller.get(
@@ -73,6 +84,18 @@ async def test_pre_auth_code_flow(controller: Controller, client: OpenID4VCIClie
     offer_uri = "openid-credential-offer://" + urlencode(
         {"credential_offer": json.dumps(offer)}
     )
-    response = await client.receive_offer(offer_uri)
-    print(response)
-    assert False
+    yield offer_uri
+
+
+@pytest.mark.asyncio
+async def test_pre_auth_code_flow_ed25519(client: OpenID4VCIClient, offer: str):
+    """Connect to AFJ."""
+    did = client.generate_did("ed25519")
+    response = await client.receive_offer(offer, did)
+
+
+@pytest.mark.asyncio
+async def test_pre_auth_code_flow_secp256k1(client: OpenID4VCIClient, offer: str):
+    """Connect to AFJ."""
+    did = client.generate_did("secp256k1")
+    response = await client.receive_offer(offer, did)
