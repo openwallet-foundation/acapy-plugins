@@ -23,7 +23,7 @@ async def setup(context: InjectionContext):
 async def startup(profile: Profile, event: Event):
     """Startup event handler; start the OpenID4VCI server."""
     try:
-        config = Config.from_context(profile.context)
+        config = Config.from_settings(profile.settings)
         oid4vci = Oid4vciServer(
             config.host,
             config.port,
