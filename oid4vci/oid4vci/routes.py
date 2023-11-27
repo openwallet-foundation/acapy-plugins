@@ -29,7 +29,7 @@ from marshmallow import fields
 from marshmallow.validate import OneOf
 
 from .models.exchange import OID4VCIExchangeRecord, OID4VCIExchangeRecordSchema
-from .models.supported_cred import SupportedCredential
+from .models.supported_cred import SupportedCredential, SupportedCredentialSchema
 from .config import Config
 
 SPEC_URI = (
@@ -241,8 +241,38 @@ class CredOfferQuerySchema(OpenAPISchema):
     exchange_id = fields.Str(required=False)
 
 
+class CredOfferGrantSchema(OpenAPISchema):
+    """Schema for GetCredential."""
+
+    pre_authorized_code = fields.Str(required=True)
+    user_pin_required = fields.Bool(required=False)
+
+
+class CredOfferSchema(OpenAPISchema):
+    """Credential Offer Schema."""
+
+    credential_issuer = fields.Str(
+        required=True,
+        metadata={
+            "description": "The URL of the credential issuer.",
+            "example": "https://example.com",
+        },
+    )
+    credentials = fields.List(
+        fields.Str(
+            required=True,
+            metadata={
+                "description": "The credential type identifier.",
+                "example": "UniversityDegreeCredential",
+            },
+        )
+    )
+    grants = fields.Nested(CredOfferGrantSchema(), required=True)
+
+
 @docs(tags=["oid4vci"], summary="Get a credential offer")
 @querystring_schema(CredOfferQuerySchema())
+@response_schema(CredOfferSchema(), 200)
 async def get_cred_offer(request: web.BaseRequest):
     """Endpoint to retrieve an OpenID4VCI compliant offer.
 
@@ -354,7 +384,8 @@ class SupportedCredCreateRequestSchema(OpenAPISchema):
 
 @docs(tags=["oid4vci"], summary="Register a Oid4vci credential")
 @request_schema(SupportedCredCreateRequestSchema())
-async def credential_supported_create(request: web.Request):
+@response_schema(SupportedCredentialSchema())
+async def supported_credential_create(request: web.Request):
     """Request handler for creating a credential supported record."""
     context = request["context"]
     profile = context.profile
@@ -373,12 +404,36 @@ async def credential_supported_create(request: web.Request):
     return web.json_response(record.serialize())
 
 
+class SupportedCredentialQuerySchema(OpenAPISchema):
+    """Query filters for credential supported record list query."""
+
+    supported_cred_id = fields.Str(
+        required=False,
+        metadata={"description": "Filter by credential supported identifier."},
+    )
+    format = fields.Str(
+        required=False,
+        metadata={"description": "Filter by credential format."},
+    )
+
+
+class SupportedCredentialListSchema(OpenAPISchema):
+    """Result schema for an credential supported record query."""
+
+    results = fields.Nested(
+        SupportedCredentialSchema(),
+        many=True,
+        metadata={"description": "Credential supported records"},
+    )
+
+
 @docs(
     tags=["oid4vci"],
     summary="Fetch all credential supported records",
 )
-@querystring_schema(ExchangeRecordQuerySchema)
-async def credential_supported_list(request: web.BaseRequest):
+@querystring_schema(SupportedCredentialQuerySchema())
+@response_schema(SupportedCredentialListSchema(), 200)
+async def supported_credential_list(request: web.BaseRequest):
     """Request handler for searching credential supported records.
 
     Args:
@@ -391,17 +446,61 @@ async def credential_supported_list(request: web.BaseRequest):
     context = request["context"]
     try:
         async with context.profile.session() as session:
-            if exchange_id := request.query.get("id"):
+            if exchange_id := request.query.get("supported_cred_id"):
                 record = await SupportedCredential.retrieve_by_id(session, exchange_id)
-                # There should only be one record for a id
                 results = [record.serialize()]
             else:
-                # TODO: use filter
-                records = await SupportedCredential.query(session=session)
+                filter_ = {
+                    attr: value
+                    # TODO filter by binding methods, suites?
+                    for attr in ("format",)
+                    if (value := request.query.get(attr))
+                }
+                records = await SupportedCredential.query(
+                    session=session, tag_filter=filter_
+                )
                 results = [record.serialize() for record in records]
     except (StorageError, BaseModelError, StorageNotFoundError) as err:
         raise web.HTTPBadRequest(reason=err.roll_up) from err
+
     return web.json_response({"results": results})
+
+
+class SupportedCredentialMatchSchema(OpenAPISchema):
+    """Match info for request taking credential supported id."""
+
+    supported_cred_id = fields.Str(
+        required=True,
+        metadata={
+            "description": "Credential supported identifier",
+        },
+    )
+
+
+@docs(
+    tags=["oid4vci"],
+    summary="Remove an existing credential supported record",
+)
+@match_info_schema(SupportedCredentialMatchSchema())
+@response_schema(SupportedCredentialSchema())
+async def supported_credential_remove(request: web.Request):
+    """Request handler for removing an credential supported record."""
+
+    context: AdminRequestContext = request["context"]
+    supported_cred_id = request.match_info["supported_cred_id"]
+
+    try:
+        async with context.session() as session:
+            record = await SupportedCredential.retrieve_by_id(
+                session, supported_cred_id
+            )
+            await record.delete_record(session)
+    except StorageNotFoundError as err:
+        raise web.HTTPNotFound(reason=err.roll_up) from err
+    except (StorageError, BaseModelError) as err:
+        raise web.HTTPBadRequest(reason=err.roll_up) from err
+
+    return web.json_response(record.serialize())
 
 
 async def register(app: web.Application):
@@ -417,17 +516,17 @@ async def register(app: web.Application):
             web.post("/oid4vci/exchange/create", exchange_create),
             web.delete("/oid4vci/exchange/records/{exchange_id}", exchange_delete),
             web.post(
-                "/oid4vci/credential-supported/create", credential_supported_create
+                "/oid4vci/credential-supported/create", supported_credential_create
             ),
             web.get(
                 "/oid4vci/credential-supported/records",
-                credential_supported_list,
+                supported_credential_list,
                 allow_head=False,
             ),
-            # web.delete(
-            #    "/oid4vci/exchange-supported/records/{cred_sup_id}",
-            #    credential_supported_remove,
-            # ),
+            web.delete(
+                "/oid4vci/exchange-supported/records/{cred_sup_id}",
+                supported_credential_remove,
+            ),
         ]
     )
 
