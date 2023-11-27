@@ -1,25 +1,33 @@
 """Public routes for OID4VCI."""
 
+from dataclasses import dataclass
 import datetime
 import logging
 from secrets import token_urlsafe
-from typing import Optional
+from typing import Any, Dict, Mapping, Optional
 import uuid
 
 from aiohttp import web
 from aiohttp_apispec import docs, form_schema, request_schema, response_schema
 from aries_cloudagent.admin.request_context import AdminRequestContext
-from aries_cloudagent.core.profile import Profile, ProfileSession
+from aries_cloudagent.core.profile import Profile
 from aries_cloudagent.messaging.models.base import BaseModelError
 from aries_cloudagent.messaging.models.openapi import OpenAPISchema
+from aries_cloudagent.resolver.did_resolver import DIDResolver
 from aries_cloudagent.storage.error import StorageError, StorageNotFoundError
-from aries_cloudagent.wallet.base import BaseWallet, WalletError
-from aries_cloudagent.wallet.did_method import KEY
+from aries_cloudagent.wallet.base import WalletError
 from aries_cloudagent.wallet.error import WalletNotFoundError
-from aries_cloudagent.wallet.jwt import JWTVerifyResult, jwt_sign, jwt_verify
-from aries_cloudagent.wallet.key_type import ED25519
+from aries_cloudagent.wallet.jwt import (
+    JWTVerifyResult,
+    b64_to_dict,
+    jwt_sign,
+    jwt_verify,
+)
+from aries_cloudagent.wallet.util import b58_to_bytes, b64_to_bytes
+from aries_askar import Key, KeyAlg
 import jwt
 from marshmallow import fields
+from pydid import DIDUrl
 
 from .config import Config
 from .models.exchange import OID4VCIExchangeRecord
@@ -184,12 +192,78 @@ async def check_token(
     return result
 
 
-def filter_subjects(types, subjects, claims):  # -> dict[Any, Any]:
-    """Filters subjects only to supported ones."""
-    attributes = set()
-    for _type in types:
-        attributes.update(claims[_type])
-    return {key: value for (key, value) in subjects.items() if key in attributes}
+async def key_material_for_kid(profile: Profile, kid: str):
+    """Resolve key material for a kid."""
+    try:
+        DIDUrl(kid)
+    except ValueError:
+        raise web.HTTPBadRequest(reason="Invalid kid; DID URL expected")
+
+    resolver = profile.inject(DIDResolver)
+    vm = await resolver.dereference_verification_method(profile, kid)
+    if vm.type == "JsonWebKey2020" and vm.public_key_jwk:
+        return Key.from_jwk(vm.public_key_jwk)
+    if vm.type == "Ed25519VerificationKey2018" and vm.public_key_base58:
+        key_bytes = b58_to_bytes(vm.public_key_base58)
+        return Key.from_public_bytes(KeyAlg.ED25519, key_bytes)
+    if vm.type == "Ed25519VerificationKey2020" and vm.public_key_multibase:
+        key_bytes = b58_to_bytes(vm.public_key_multibase[1:])
+        if len(key_bytes) == 32:
+            pass
+        elif len(key_bytes) == 34:
+            # Trim off the multicodec header, if present
+            key_bytes = key_bytes[2:]
+        return Key.from_public_bytes(KeyAlg.ED25519, key_bytes)
+
+    raise web.HTTPBadRequest(reason="Unsupported verification method type")
+
+
+@dataclass
+class PopResult:
+    """Result from proof of posession."""
+
+    headers: Mapping[str, Any]
+    payload: Mapping[str, Any]
+    verified: bool
+    holder_kid: Optional[str]
+    holder_jwk: Optional[Dict[str, Any]]
+
+
+async def handle_proof_of_posession(
+    profile: Profile, proof: Dict[str, Any], nonce: str
+):
+    """Handle proof of posession."""
+    LOGGER.info(f"proof: {proof}")
+    encoded_headers, encoded_payload, encoded_signiture = proof["jwt"].split(".", 3)
+    headers = b64_to_dict(encoded_headers)
+
+    if "kid" in headers:
+        key = await key_material_for_kid(profile, headers["kid"])
+    elif "jwk" in headers:
+        key = Key.from_jwk(headers["jwk"])
+    elif "x5c" in headers:
+        raise web.HTTPBadRequest(reason="x5c not supported")
+    else:
+        raise web.HTTPBadRequest(reason="No key material in proof")
+
+    payload = b64_to_dict(encoded_payload)
+
+    if nonce != payload.get("nonce"):
+        raise web.HTTPBadRequest(
+            reason="Invalid proof: wrong nonce.",
+        )
+
+    decoded_signature = b64_to_bytes(encoded_signiture)
+    verified = key.verify_signature(
+        f"{encoded_headers}.{encoded_payload}".encode(), decoded_signature
+    )
+    return PopResult(
+        headers,
+        payload,
+        verified,
+        holder_kid=headers.get("kid"),
+        holder_jwk=headers.get("jwk"),
+    )
 
 
 class IssueCredentialRequestSchema(OpenAPISchema):
@@ -218,56 +292,48 @@ async def issue_cred(request: web.Request):
         context.profile, request.headers.get("Authorization")
     )
     exchange_id = token_result.payload["id"]
-
-    # TODO: check scope???
-    context = request["context"]
     body = await request.json()
     LOGGER.info(f"request: {body}")
     try:
         async with context.profile.session() as session:
             ex_record = await OID4VCIExchangeRecord.retrieve_by_id(session, exchange_id)
-            assert ex_record.supported_cred_id
-            LOGGER.info(f"ex record: {ex_record}")
-            LOGGER.info(f"supported_cred_id: {ex_record.supported_cred_id}")
             supported = await SupportedCredential.retrieve_by_id(
                 session, ex_record.supported_cred_id
             )
-            LOGGER.info(f"sup record: {supported}")
     except (StorageError, BaseModelError, StorageNotFoundError) as err:
         raise web.HTTPBadRequest(reason=err.roll_up) from err
-    # TODO: improve types checking
-    # if supported.format_data and body.get("types")[0] in supported.format_data.get(
-    #     "types"
-    # ):
-    #     raise web.HTTPBadRequest(reason="Requested types does not match offer.")
-    if supported.format != body.get("format"):
-        raise web.HTTPBadRequest(reason="Requested format does not match offer.")
+
     if supported.format != "jwt_vc_json":
         raise web.HTTPUnprocessableEntity(reason="Only jwt_vc_json is supported.")
+    if supported.format_data is None:
+        LOGGER.error("No format_data for supported credential of format jwt_vc_json")
+        raise web.HTTPInternalServerError()
+
+    if supported.format != body.get("format"):
+        raise web.HTTPBadRequest(reason="Requested format does not match offer.")
+    if body.get("types") != supported.format_data.get("types"):
+        raise web.HTTPBadRequest(reason="Requested types does not match offer.")
 
     current_time = datetime.datetime.now(datetime.timezone.utc)
     current_time_unix_timestamp = int(current_time.timestamp())
     formatted_time = current_time.strftime("%Y-%m-%dT%H:%M:%SZ")
 
     cred_id = str(uuid.uuid4())
-    kid = None
-    if proof := body.get("proof"):
-        LOGGER.info(f"proof: {proof}")
-        try:
-            header = jwt.get_unverified_header(proof["jwt"])
-            kid = header.get("kid")
-            # TODO verify proof
-            decoded_payload = jwt.decode(
-                proof["jwt"], options={"verify_signature": False}
-            )
-            if ex_record.nonce != decoded_payload.get("nonce"):
-                raise web.HTTPBadRequest(
-                    reason="Invalid proof: wrong nonce.",
-                )
-            # cleanup
-            # TODO: cleanup exchange record, possible replay attack
-        except jwt.DecodeError:
-            print("Error decoding JWT. Invalid token or format.")
+    if "proof" not in body:
+        raise web.HTTPBadRequest(reason="proof is required for jwt_vc_json")
+    if ex_record.nonce is None:
+        raise web.HTTPBadRequest(
+            reason="Invalid exchange; no offer created for this request"
+        )
+
+    pop = await handle_proof_of_posession(
+        context.profile, body["proof"], ex_record.nonce
+    )
+    if not pop.verified:
+        raise web.HTTPBadRequest(reason="Invalid proof")
+
+    if not pop.holder_kid:
+        raise web.HTTPBadRequest(reason="No kid in proof; required for jwt_vc_json")
 
     payload = {
         "vc": {
@@ -277,34 +343,32 @@ async def issue_cred(request: web.Request):
             "issuanceDate": formatted_time,
             "credentialSubject": {
                 **(ex_record.credential_subject or {}),
-                "id": kid,  # TODO This might be None!
+                "id": pop.holder_kid,
             },
         },
         "iss": ex_record.verification_method,
         "nbf": current_time_unix_timestamp,
         "jti": cred_id,
-        "sub": kid,  # TODO This might be None!
+        "sub": pop.holder_kid,
     }
 
     jws = await jwt_sign(
         context.profile, {}, payload, verification_method=ex_record.verification_method
     )
+
+    async with context.session() as session:
+        ex_record.state = OID4VCIExchangeRecord.STATE_ISSUED
+        # Cause webhook to be emitted
+        await ex_record.save(session, reason="Credential issued")
+        # Exchange is completed, delete record
+        await ex_record.delete_record(session)
+
     return web.json_response(
         {
             "format": "jwt_vc_json",
             "credential": jws,
         }
     )
-
-
-async def create_did(session: ProfileSession):
-    """Create a new DID."""
-    key_type = ED25519
-    wallet = session.inject(BaseWallet)
-    try:
-        return await wallet.create_local_did(method=KEY, key_type=key_type)
-    except WalletError as err:
-        raise web.HTTPBadRequest(reason=err.roll_up) from err
 
 
 async def register(app: web.Application):
@@ -316,6 +380,8 @@ async def register(app: web.Application):
                 credential_issuer_metadata,
                 allow_head=False,
             ),
+            # TODO Add .well-known/did-configuration.json
+            # Spec: https://identity.foundation/.well-known/resources/did-configuration/
             web.post("/token", token),
             web.post("/credential", issue_cred),
         ]
