@@ -255,7 +255,7 @@ async def handle_proof_of_posession(
             reason="Invalid proof: wrong nonce.",
         )
 
-    decoded_signature = b64_to_bytes(encoded_signiture)
+    decoded_signature = b64_to_bytes(encoded_signiture, urlsafe=True)
     verified = key.verify_signature(
         f"{encoded_headers}.{encoded_payload}".encode(), decoded_signature
     )
