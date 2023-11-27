@@ -62,7 +62,7 @@ async def test_pre_auth_code_flow(controller: Controller, client: OpenID4VCIClie
         "/oid4vci/exchange/create",
         json={
             "supported_cred_id": supported["supported_cred_id"],
-            "credential_ubject": {"name": "alice"},
+            "credential_subject": {"name": "alice"},
             "did": did,
         },
     )

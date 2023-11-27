@@ -14,6 +14,8 @@ services:
       - ../oid4vci:/usr/src/app/oid4vci:z
     environment:
       RUST_LOG: warn
+      OID4VCI_HOST: 0.0.0.0
+      OID4VCI_PORT: 8081
       OID4VCI_ENDPOINT: "http://issuer:8081"
     command: >
       start

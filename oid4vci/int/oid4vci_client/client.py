@@ -129,7 +129,7 @@ class OpenID4VCIClient:
 
         request = {
             "format": "jwt_vc_json",
-            "types": ["VerifiableCredential"] + offer.credentials,
+            "types": offer.credentials,
             "proof": await crypto.proof_of_possession(
                 self.key, offer.credential_issuer, token.nonce
             ),

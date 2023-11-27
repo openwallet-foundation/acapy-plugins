@@ -4,7 +4,7 @@ from dataclasses import dataclass
 import datetime
 import logging
 from secrets import token_urlsafe
-from typing import Any, Dict, Mapping, Optional
+from typing import Any, Dict, List, Mapping, Optional
 import uuid
 
 from aiohttp import web
@@ -133,7 +133,9 @@ async def token(request: web.Request):
 
     payload = {
         "id": record.exchange_id,
-        "exp": datetime.datetime.utcnow() + datetime.timedelta(seconds=EXPIRES_IN),
+        "exp": (
+            datetime.datetime.utcnow() + datetime.timedelta(seconds=EXPIRES_IN)
+        ).timestamp(),
     }
     async with context.profile.session() as session:
         try:
@@ -186,7 +188,7 @@ async def check_token(
     if not result.valid:
         raise web.HTTPUnauthorized()  # Invalid credentials
 
-    if result.payload["exp"] < datetime.datetime.utcnow():
+    if result.payload["exp"] < datetime.datetime.utcnow().timestamp():
         raise web.HTTPUnauthorized()  # Token expired
 
     return result
@@ -266,6 +268,15 @@ async def handle_proof_of_posession(
     )
 
 
+def types_are_subset(request: Optional[List[str]], supported: Optional[List[str]]):
+    """Compare types."""
+    if request is None:
+        return False
+    if supported is None:
+        return False
+    return set(request).issubset(set(supported))
+
+
 class IssueCredentialRequestSchema(OpenAPISchema):
     """Request schema for the /credential endpoint."""
 
@@ -311,7 +322,7 @@ async def issue_cred(request: web.Request):
 
     if supported.format != body.get("format"):
         raise web.HTTPBadRequest(reason="Requested format does not match offer.")
-    if body.get("types") != supported.format_data.get("types"):
+    if not types_are_subset(body.get("types"), supported.format_data.get("types")):
         raise web.HTTPBadRequest(reason="Requested types does not match offer.")
 
     current_time = datetime.datetime.now(datetime.timezone.utc)
