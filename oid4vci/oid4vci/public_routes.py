@@ -235,9 +235,13 @@ async def handle_proof_of_posession(
     profile: Profile, proof: Dict[str, Any], nonce: str
 ):
     """Handle proof of posession."""
+    breakpoint()
     LOGGER.info(f"proof: {proof}")
     encoded_headers, encoded_payload, encoded_signiture = proof["jwt"].split(".", 3)
     headers = b64_to_dict(encoded_headers)
+
+    if headers.get("typ") != "openid4vci-proof+jwt":
+        raise web.HTTPBadRequest(reason="Invalid proof: wrong typ.")
 
     if "kid" in headers:
         key = await key_material_for_kid(profile, headers["kid"])
@@ -257,7 +261,9 @@ async def handle_proof_of_posession(
 
     decoded_signature = b64_to_bytes(encoded_signiture, urlsafe=True)
     verified = key.verify_signature(
-        f"{encoded_headers}.{encoded_payload}".encode(), decoded_signature
+        f"{encoded_headers}.{encoded_payload}".encode(),
+        decoded_signature,
+        sig_type=headers.get("alg"),
     )
     return PopResult(
         headers,

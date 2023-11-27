@@ -3,7 +3,7 @@
 
 from dataclasses import dataclass
 import json
-from typing import List, Optional, Union
+from typing import Dict, List, Literal, Optional, Union
 from urllib.parse import parse_qsl, urlparse
 
 from aiohttp import ClientSession
@@ -77,10 +77,13 @@ class OpenID4VCIClient:
 
     def __init__(self, key: Optional[AskarKey] = None):
         """Initialize the client."""
-        if not key:
-            did, key = generate()
+        self.did_to_key: Dict[str, AskarKey] = {}
 
-        self.key = key
+    def generate_did(self, key_type: Literal["ed25519", "secp256k1"]) -> str:
+        """Generate a DID."""
+        did, key = generate(key_type)
+        self.did_to_key[did] = key
+        return did
 
     async def get_issuer_metadata(self, issuer_url: str):
         """Get the issuer metadata."""
@@ -121,17 +124,25 @@ class OpenID4VCIClient:
         )
 
     async def request_credential(
-        self, offer: CredentialOffer, metadata: IssuerMetadata, token: TokenParams
+        self,
+        holder_did: str,
+        offer: CredentialOffer,
+        metadata: IssuerMetadata,
+        token: TokenParams,
     ) -> dict:
         """Request a credential."""
         if not offer.pre_authorized_code:
             raise ValueError("No pre-authorized code in offer")
 
+        key = self.did_to_key.get(holder_did)
+        if not key:
+            raise ValueError(f"No key for DID {holder_did}")
+
         request = {
             "format": "jwt_vc_json",
             "types": offer.credentials,
             "proof": await crypto.proof_of_possession(
-                self.key, offer.credential_issuer, token.nonce
+                key, offer.credential_issuer, token.nonce
             ),
         }
         async with ClientSession() as session:
@@ -148,7 +159,7 @@ class OpenID4VCIClient:
 
         return credential
 
-    async def receive_offer(self, offer_in: Union[str, dict]):
+    async def receive_offer(self, offer_in: Union[str, dict], holder_did: str):
         """Receive an offer."""
         if isinstance(offer_in, str):
             parsed = dict(parse_qsl(urlparse(offer_in).netloc))
@@ -158,5 +169,5 @@ class OpenID4VCIClient:
         offer = CredentialOffer.from_dict(offer_in)
         metadata = await self.get_issuer_metadata(offer.credential_issuer)
         token = await self.request_token(offer, metadata)
-        response = await self.request_credential(offer, metadata, token)
+        response = await self.request_credential(holder_did, offer, metadata, token)
         return response
