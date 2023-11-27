@@ -24,7 +24,6 @@ from aries_cloudagent.wallet.default_verification_key_strategy import (
     BaseVerificationKeyStrategy,
 )
 from aries_cloudagent.wallet.jwt import nym_to_did
-from aries_cloudagent.wallet.util import bytes_to_b64
 from marshmallow import fields
 from marshmallow.validate import OneOf
 
@@ -282,7 +281,7 @@ async def get_cred_offer(request: web.BaseRequest):
     config = Config.from_settings(context.settings)
     exchange_id = request.query["exchange_id"]
 
-    code = bytes_to_b64(secrets.token_bytes(CODE_BYTES), urlsafe=True, pad=False)
+    code = secrets.token_urlsafe(CODE_BYTES)
 
     try:
         async with context.session() as session:

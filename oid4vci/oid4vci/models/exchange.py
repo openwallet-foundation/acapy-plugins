@@ -1,6 +1,7 @@
 """Exchange record for OID4VCI."""
 
 from typing import Any, Dict, Optional
+from aries_cloudagent.core.profile import ProfileSession
 from aries_cloudagent.messaging.models.base_record import (
     BaseRecordSchema,
     BaseExchangeRecord,
@@ -71,6 +72,11 @@ class OID4VCIExchangeRecord(BaseExchangeRecord):
                 "token",
             )
         }
+
+    @classmethod
+    async def retrieve_by_code(cls, session: ProfileSession, code: str):
+        """Retrieve an exchange record by code."""
+        return await cls.retrieve_by_tag_filter(session, {"code": code})
 
 
 class OID4VCIExchangeRecordSchema(BaseRecordSchema):
