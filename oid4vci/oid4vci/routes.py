@@ -291,9 +291,8 @@ async def get_cred_offer(request: web.BaseRequest):
             )
 
             record.code = code
-            await record.save(
-                session, reason="Credential offer pre-authorized code created"
-            )
+            record.state = OID4VCIExchangeRecord.STATE_OFFER_CREATED
+            await record.save(session, reason="Credential offer created")
     except (StorageError, BaseModelError) as err:
         raise web.HTTPBadRequest(reason=err.roll_up) from err
 
