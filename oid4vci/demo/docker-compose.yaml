@@ -18,6 +18,8 @@ services:
     environment:
       RUST_LOG: warn
       TUNNEL_ENDPOINT: http://ngrok:4040
+      OID4VCI_HOST: 0.0.0.0
+      OID4VCI_PORT: 8081
     entrypoint: >
       /bin/sh -c '/entrypoint.sh aca-py "$$@"' --
     command: >
