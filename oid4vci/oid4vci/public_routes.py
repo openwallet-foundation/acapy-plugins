@@ -7,7 +7,7 @@ from typing import Optional
 import uuid
 
 from aiohttp import web
-from aiohttp_apispec import docs, form_schema, request_schema
+from aiohttp_apispec import docs, form_schema, request_schema, response_schema
 from aries_cloudagent.admin.request_context import AdminRequestContext
 from aries_cloudagent.core.profile import Profile, ProfileSession
 from aries_cloudagent.messaging.models.base import BaseModelError
@@ -26,29 +26,59 @@ from .models.exchange import OID4VCIExchangeRecord
 from .models.supported_cred import SupportedCredential
 
 LOGGER = logging.getLogger(__name__)
+PRE_AUTHORIZED_CODE_GRANT_TYPE = "urn:ietf:params:oauth:grant-type:pre-authorized_code"
+NONCE_BYTES = 16
+EXPIRES_IN = 86400
 
 
-class IssueCredentialRequestSchema(OpenAPISchema):
-    """Request schema for the /credential endpoint."""
+class CredentialIssuerMetadataSchema(OpenAPISchema):
+    """Credential issuer metadata schema."""
 
-    format = fields.Str(
+    credential_issuer = fields.Str(
         required=True,
-        metadata={"description": "The client ID for the token request.", "example": ""},
+        metadata={"description": "The credential issuer endpoint."},
     )
-    types = fields.List(
-        fields.Str(),
-        metadata={"description": ""},
-    )
-    proof = fields.Dict(metadata={"description": ""})
-
-
-class TokenRequestSchema(OpenAPISchema):
-    """Request schema for the /token endpoint."""
-
-    client_id = fields.Str(
+    credential_endpoint = fields.Str(
         required=True,
-        metadata={"description": "The client ID for the token request.", "example": ""},
+        metadata={"description": "The credential endpoint."},
     )
+    credentials_supported = fields.List(
+        fields.Dict(),
+        metadata={"description": "The supported credentials."},
+    )
+    authorization_server = fields.Str(
+        required=False,
+        metadata={
+            "description": "The authorization server endpoint. Currently ignored."
+        },
+    )
+    batch_credential_endpoint = fields.Str(
+        required=False,
+        metadata={"description": "The batch credential endpoint. Currently ignored."},
+    )
+
+
+@docs(tags=["oid4vci"], summary="Get credential issuer metadata")
+@response_schema(CredentialIssuerMetadataSchema())
+async def credential_issuer_metadata(request: web.Request):
+    """Credential issuer metadata endpoint."""
+    context: AdminRequestContext = request["context"]
+    config = Config.from_settings(context.settings)
+    public_url = config.endpoint
+
+    async with context.session() as session:
+        # TODO If there's a lot, this will be a problem
+        credentials_supported = await SupportedCredential.query(session)
+
+    metadata = {
+        "credential_issuer": f"{public_url}/",
+        "credential_endpoint": f"{public_url}/credential",
+        "credentials_supported": [
+            supported.to_issuer_metadata() for supported in credentials_supported
+        ],
+    }
+
+    return web.json_response(metadata)
 
 
 class GetTokenSchema(OpenAPISchema):
@@ -64,30 +94,69 @@ class GetTokenSchema(OpenAPISchema):
     user_pin = fields.Str(required=False)
 
 
-@docs(tags=["oid4vci"], summary="Get credential issuer metadata")
-# @querystring_schema(TokenRequestSchema())
-async def oid_cred_issuer(request: web.Request):
-    """Credential issuer metadata endpoint."""
-    profile = request["context"].profile
-    config = Config.from_settings(profile.settings)
-    public_url = config.endpoint
+@docs(tags=["oid4vci"], summary="Get credential issuance token")
+@form_schema(GetTokenSchema())
+async def token(request: web.Request):
+    """Token endpoint to exchange pre_authorized codes for access tokens."""
+    context: AdminRequestContext = request["context"]
+    form = await request.post()
+    LOGGER.debug(f"Token request: {form}")
+    if (grant_type := form.get("grant_type")) != PRE_AUTHORIZED_CODE_GRANT_TYPE:
+        raise web.HTTPBadRequest(reason=f"grant_type {grant_type} not supported")
 
-    # Wallet query to retrieve credential definitions
-    tag_filter = {}  # {"type": {"$in": ["sd_jwt", "jwt_vc_json"]}}
-    async with profile.session() as session:
-        credentials_supported = await SupportedCredential.query(session, tag_filter)
+    pre_authorized_code = form.get("pre-authorized_code")
+    if not pre_authorized_code or not isinstance(pre_authorized_code, str):
+        raise web.HTTPBadRequest(reason="pre-authorized_code is missing or invalid")
 
-    metadata = {
-        "credential_issuer": f"{public_url}/",  # TODO: update path with wallet id
-        "credential_endpoint": f"{public_url}/credential",
-        "credentials_supported": [
-            supported.to_issuer_metadata() for supported in credentials_supported
-        ],
-        # "authorization_server": f"{public_url}/auth-server",
-        # "batch_credential_endpoint": f"{public_url}/batch_credential",
+    user_pin = request.query.get("user_pin")
+    try:
+        async with context.profile.session() as session:
+            record = await OID4VCIExchangeRecord.retrieve_by_code(
+                session, pre_authorized_code
+            )
+    except (StorageError, BaseModelError, StorageNotFoundError) as err:
+        raise web.HTTPBadRequest(reason=err.roll_up) from err
+
+    if record.pin is not None:
+        if user_pin is None:
+            raise web.HTTPBadRequest(reason="user_pin is required")
+        if user_pin != record.pin:
+            raise web.HTTPBadRequest(reason="pin is invalid")
+
+    payload = {
+        "id": record.exchange_id,
+        "exp": datetime.datetime.utcnow() + datetime.timedelta(seconds=EXPIRES_IN),
     }
+    async with context.profile.session() as session:
+        try:
+            token = await jwt_sign(
+                context.profile,
+                headers={},
+                payload=payload,
+                verification_method=record.verification_method,
+            )
+        except (WalletNotFoundError, WalletError, ValueError) as err:
+            raise web.HTTPBadRequest(reason="Bad did or verification method") from err
 
-    return web.json_response(metadata)
+        record.token = token
+        record.nonce = token_urlsafe(NONCE_BYTES)
+        await record.save(
+            session,
+            reason="Created new token",
+        )
+
+    return web.json_response(
+        {
+            "access_token": record.token,
+            "token_type": "Bearer",
+            "expires_in": EXPIRES_IN,
+            "c_nonce": record.nonce,
+            # I don't think it makes sense for the two expirations to be
+            # different; coordinating a new c_nonce separate from a token
+            # refresh seems like a pain.
+            "c_nonce_expires_in": EXPIRES_IN,
+        }
+    )
 
 
 async def check_token(
@@ -109,6 +178,9 @@ async def check_token(
     if not result.valid:
         raise web.HTTPUnauthorized()  # Invalid credentials
 
+    if result.payload["exp"] < datetime.datetime.utcnow():
+        raise web.HTTPUnauthorized()  # Token expired
+
     return result
 
 
@@ -120,12 +192,26 @@ def filter_subjects(types, subjects, claims):  # -> dict[Any, Any]:
     return {key: value for (key, value) in subjects.items() if key in attributes}
 
 
+class IssueCredentialRequestSchema(OpenAPISchema):
+    """Request schema for the /credential endpoint."""
+
+    format = fields.Str(
+        required=True,
+        metadata={"description": "The client ID for the token request.", "example": ""},
+    )
+    types = fields.List(
+        fields.Str(),
+        metadata={"description": ""},
+    )
+    proof = fields.Dict(metadata={"description": ""})
+
+
 @docs(tags=["oid4vci"], summary="Issue a credential")
 @request_schema(IssueCredentialRequestSchema())
 async def issue_cred(request: web.Request):
     """The Credential Endpoint issues a Credential.
 
-    As validated upon presentation of a valid Access Token .
+    As validated upon presentation of a valid Access Token.
     """
     context: AdminRequestContext = request["context"]
     token_result = await check_token(
@@ -223,89 +309,16 @@ async def create_did(session: ProfileSession):
         raise web.HTTPBadRequest(reason=err.roll_up) from err
 
 
-@docs(tags=["oid4vci"], summary="Get credential issuance token")
-@form_schema(GetTokenSchema())
-async def get_token(request: web.Request):
-    """Token endpoint to exchange pre_authorized codes for access tokens."""
-    LOGGER.info(f"request: {request.get('form')}")
-    request["form"].get("grant_type", "")
-    pre_authorized_code = request["form"].get("pre_authorized_code")
-    if not pre_authorized_code:
-        raise web.HTTPBadRequest()
-    # user_pin = request.query.get("user_pin")
-    context = request["context"]
-    ex_record = None
-    try:
-        async with context.profile.session() as session:
-            _filter = {
-                "code": pre_authorized_code,
-                # "user_pin": user_pin
-            }
-            records = await OID4VCIExchangeRecord.query(session, _filter)
-            ex_record: OID4VCIExchangeRecord = records[0]
-            if not ex_record or not ex_record.code:  # TODO: check pin
-                return web.json_response({})  # TODO: report failure?
-
-            # if ex_record.supported_cred_id:
-            #    sup_cred_record: SupportedCredential = (
-            #        await SupportedCredential.query(
-            #            session, {"identifier": ex_record.supported_cred_id}
-            #        )
-            #    )[0]
-            signing_did = await create_did(session)
-    except (StorageError, BaseModelError, StorageNotFoundError) as err:
-        raise web.HTTPBadRequest(reason=err.roll_up) from err
-    # LOGGER.info(f"supported credential report: {sup_cred_record}")
-    # scopes = sup_cred_record.scope
-    payload = {
-        "scope": ex_record.supported_cred_id,
-        "id": ex_record.exchange_id,
-    }
-    async with context.profile.session() as session:
-        signing_did = await create_did(session)
-
-        try:
-            _jwt = await jwt_sign(
-                context.profile,
-                headers={},
-                payload=payload,
-                did=signing_did.did,
-            )
-        except ValueError as err:
-            raise web.HTTPBadRequest(reason="Bad did or verification method") from err
-        except WalletNotFoundError as err:
-            raise web.HTTPNotFound(reason=err.roll_up) from err
-        except WalletError as err:
-            raise web.HTTPBadRequest(reason=err.roll_up) from err
-        # update record with nonce and jwt
-        ex_record.token = _jwt
-        ex_record.nonce = token_urlsafe(16)
-        await ex_record.save(
-            session,
-            reason="Created new token",
-        )
-
-    return web.json_response(
-        {
-            "access_token": ex_record.token,
-            "token_type": "Bearer",
-            "expires_in": "300",
-            "c_nonce": ex_record.nonce,
-            "c_nonce_expires_in": "86400",  # TODO: enforce this
-        }
-    )
-
-
 async def register(app: web.Application):
     """Register routes."""
     app.add_routes(
         [
             web.get(
                 "/.well-known/openid-credential-issuer",
-                oid_cred_issuer,
+                credential_issuer_metadata,
                 allow_head=False,
             ),
+            web.post("/token", token),
             web.post("/credential", issue_cred),
-            web.post("/token", get_token),
         ]
     )
