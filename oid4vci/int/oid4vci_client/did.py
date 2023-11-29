@@ -1,6 +1,7 @@
 """DID Registration."""
 
 import base64
+import json
 from typing import Literal, Tuple
 
 from aries_askar import Key, KeyAlg
@@ -17,8 +18,9 @@ def generate(key_type: Literal["ed25519", "secp256k1"]) -> Tuple[str, AskarKey]:
     else:
         raise ValueError(f"Unknown key type: {key_type}")
 
-    jwk = vk.get_jwk_public()
-    encoded = base64.urlsafe_b64encode(jwk.encode()).rstrip(b"=").decode()
+    jwk = json.loads(vk.get_jwk_public())
+    jwk["use"] = "sig"
+    encoded = base64.urlsafe_b64encode(json.dumps(jwk).encode()).rstrip(b"=").decode()
     did = f"did:jwk:{encoded}"
     key = AskarKey(vk, f"{did}#0")
     return did, key

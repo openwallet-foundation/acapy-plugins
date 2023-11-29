@@ -25,7 +25,8 @@ class OID4VCIExchangeRecord(BaseExchangeRecord):
     STATE_CREATED = "created"
     STATE_OFFER_CREATED = "offer"
     STATE_ISSUED = "issued"
-    STATES = (STATE_CREATED, STATE_OFFER_CREATED, STATE_ISSUED)
+    STATE_FAILED = "failed"
+    STATES = (STATE_CREATED, STATE_OFFER_CREATED, STATE_ISSUED, STATE_FAILED)
     TAG_NAMES = {"state", "supported_cred_id", "code"}
 
     def __init__(

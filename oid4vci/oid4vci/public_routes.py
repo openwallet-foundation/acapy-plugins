@@ -235,9 +235,7 @@ async def handle_proof_of_posession(
     profile: Profile, proof: Dict[str, Any], nonce: str
 ):
     """Handle proof of posession."""
-    breakpoint()
-    LOGGER.info(f"proof: {proof}")
-    encoded_headers, encoded_payload, encoded_signiture = proof["jwt"].split(".", 3)
+    encoded_headers, encoded_payload, encoded_signature = proof["jwt"].split(".", 3)
     headers = b64_to_dict(encoded_headers)
 
     if headers.get("typ") != "openid4vci-proof+jwt":
@@ -259,7 +257,7 @@ async def handle_proof_of_posession(
             reason="Invalid proof: wrong nonce.",
         )
 
-    decoded_signature = b64_to_bytes(encoded_signiture, urlsafe=True)
+    decoded_signature = b64_to_bytes(encoded_signature, urlsafe=True)
     verified = key.verify_signature(
         f"{encoded_headers}.{encoded_payload}".encode(),
         decoded_signature,
@@ -377,8 +375,9 @@ async def issue_cred(request: web.Request):
         ex_record.state = OID4VCIExchangeRecord.STATE_ISSUED
         # Cause webhook to be emitted
         await ex_record.save(session, reason="Credential issued")
-        # Exchange is completed, delete record
-        await ex_record.delete_record(session)
+        # Exchange is completed, record can be cleaned up
+        # But we'll leave it to the controller
+        # await ex_record.delete_record(session)
 
     return web.json_response(
         {
