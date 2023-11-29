@@ -1,14 +1,16 @@
 import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from "react-router-dom";
 
 
 const InputForm = () => {
   const navigate = useNavigate();
+  const { state } = useLocation();
+  const { supportedCredId, did } = state;
+  console.log(supportedCredId)
+  console.log(did)
   const [firstName, setFirstName] = useState('');
   const [lastName, setLastName] = useState('');
   const [email, setEmail] = useState('');
-  const [did, setDid] = useState('');
-  const [credential, setCredential] = useState('');
 
   const handleFirstNameChange = (e) => {
     setFirstName(e.target.value);
@@ -22,16 +24,8 @@ const InputForm = () => {
     setEmail(e.target.value);
   };
 
-  const handleCredentialChange = (e) => {
-    setCredential(e.target.value);
-  };
-
-  const handleDidChange = (e) => {
-    setDid(e.target.value);
-  };
-
   const handleShareClick = () => {
-    navigate(`/credentials`,{ state: {firstName:firstName, lastName:lastName, email:email, did:did, credential:credential}});
+    navigate(`/credentials`,{ state: {firstName:firstName, lastName:lastName, email:email, did:did, credential:supportedCredId}});
     
   };
 
@@ -65,24 +59,6 @@ const InputForm = () => {
               id="email"
               value={email}
               onChange={handleEmailChange}
-            />
-          </div>
-          <div>
-            <label htmlFor="did">Did:</label>
-            <input
-              type="did"
-              id="did"
-              value={did}
-              onChange={handleDidChange}
-            />
-          </div>
-          <div>
-            <label htmlFor="credential">Credential:</label>
-            <input
-              type="credential"
-              id="credential"
-              value={credential}
-              onChange={handleCredentialChange}
             />
           </div>
         <button type="button" onClick={handleShareClick}>
