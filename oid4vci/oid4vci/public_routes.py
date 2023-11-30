@@ -198,8 +198,8 @@ async def key_material_for_kid(profile: Profile, kid: str):
     """Resolve key material for a kid."""
     try:
         DIDUrl(kid)
-    except ValueError:
-        raise web.HTTPBadRequest(reason="Invalid kid; DID URL expected")
+    except ValueError as exc:
+        raise web.HTTPBadRequest(reason="Invalid kid; DID URL expected") from exc
 
     resolver = profile.inject(DIDResolver)
     vm = await resolver.dereference_verification_method(profile, kid)
