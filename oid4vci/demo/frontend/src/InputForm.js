@@ -1,17 +1,23 @@
-import React, { useState } from 'react';
+import React, { useState } from "react";
 import axios from "axios";
 import { useNavigate, useLocation } from "react-router-dom";
-
 
 const InputForm = () => {
   const navigate = useNavigate();
   const { state } = useLocation();
   const { supportedCredId, did } = state;
-  console.log(supportedCredId)
-  console.log(did)
-  const [firstName, setFirstName] = useState('');
-  const [lastName, setLastName] = useState('');
-  const [email, setEmail] = useState('');
+  console.log(supportedCredId);
+  console.log(did);
+  const [firstName, setFirstName] = useState("");
+  const [lastName, setLastName] = useState("");
+  const [email, setEmail] = useState("");
+  const API_BASE_URL = "http://localhost:3001";
+
+  const exchangeCreateUrl = `${API_BASE_URL}/oid4vci/exchange/create`;
+  const credentialOfferUrl = `${API_BASE_URL}/oid4vci/credential-offer`;
+  const headers = {
+    accept: "application/json",
+  };
 
   const handleFirstNameChange = (e) => {
     setFirstName(e.target.value);
@@ -25,90 +31,76 @@ const InputForm = () => {
     setEmail(e.target.value);
   };
 
-  const getOffer = () => {
-    // Set the Axios configuration for CORS and credentials
-    axios.defaults.withCredentials = true; // Enable credentials (cookies, etc.)
-    axios.defaults.headers.common["Access-Control-Allow-Origin"] =
-      "http://localhost:3001"; // Adjust the origin as needed
-    console.log(firstName, lastName, email, did);
+  const getOffer = async () => {
+    try {
+      axios.defaults.withCredentials = true;
+      axios.defaults.headers.common["Access-Control-Allow-Origin"] =
+        API_BASE_URL;
 
-    // api call to controller, `POST /exchange/submit`
-    axios
-      .post("http://localhost:3001/oid4vci/exchange/create", {
-        credential_subject: {
-          name: firstName,
-          lastname: lastName,
-          email,
-        },
-        did: did,
+      const exchangeResponse = await axios.post(exchangeCreateUrl, {
+        credential_subject: { name: firstName, lastname: lastName, email },
+        did,
         supported_cred_id: supportedCredId,
-      })
-      .then((response) => {
-        console.log(response.data);
-        const { exchange_id } = response.data;
-        // TODO: call offer endpoint
-
-        const queryParams = {
-          user_pin_required: false,
-          exchange_id: exchange_id,
-        };
-        console.log("get offer params:");
-        console.log(queryParams);
-        axios
-          .get("http://localhost:3001/oid4vci/credential-offer", {
-            params: queryParams,
-            headers: {
-              accept: "application/json",
-            },
-          })
-          .then((response) => {
-            console.log(response.data);
-            const credentialOffer = response.data;
-            navigate(`/qr-code`, {
-              state: { credentialOffer, exchange_id: exchange_id },
-            });
-          });
-      })
-      .catch((error) => {
-        console.error(error);
       });
+
+      const exchangeId = exchangeResponse.data.exchange_id;
+
+      const queryParams = {
+        user_pin_required: false,
+        exchange_id: exchangeId,
+      };
+
+      const offerResponse = await axios.get(credentialOfferUrl, {
+        params: queryParams,
+        headers: headers,
+      });
+
+      const credentialOffer = offerResponse.data;
+
+      navigate(`/qr-code`, { state: { credentialOffer, exchangeId } });
+    } catch (error) {
+      console.error("Error during API call:", error);
+    }
+  };
+
+  const handleSubmit = (e) => {
+    e.preventDefault();
+    getOffer();
   };
 
   return (
     <div>
       <h2>Input Form</h2>
-      
-      <form>
-      <div>
-            <label htmlFor="firstName">First Name:</label>
-            <input
-              type="text"
-              id="firstName"
-              value={firstName}
-              onChange={handleFirstNameChange}
-            />
-          </div>
-          <div>
-            <label htmlFor="lastName">Last Name:</label>
-            <input
-              type="text"
-              id="lastName"
-              value={lastName}
-              onChange={handleLastNameChange}
-            />
-          </div>
-          <div>
-            <label htmlFor="email">Email:</label>
-            <input
-              type="email"
-              id="email"
-              value={email}
-              onChange={handleEmailChange}
-            />
-          </div>
-        <button type="button" onClick={getOffer}>
-          Share
-        </button>
+
+      <form onSubmit={handleSubmit}>
+        <div>
+          <label htmlFor="firstName">First Name:</label>
+          <input
+            type="text"
+            id="firstName"
+            value={firstName}
+            onChange={handleFirstNameChange}
+          />
+        </div>
+        <div>
+          <label htmlFor="lastName">Last Name:</label>
+          <input
+            type="text"
+            id="lastName"
+            value={lastName}
+            onChange={handleLastNameChange}
+          />
+        </div>
+        <div>
+          <label htmlFor="email">Email:</label>
+          <input
+            type="email"
+            id="email"
+            value={email}
+            onChange={handleEmailChange}
+          />
+        </div>
+        <button type="submit">Share</button>
       </form>
     </div>
   );
