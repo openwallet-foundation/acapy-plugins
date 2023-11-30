@@ -1,18 +1,28 @@
-import React, { useState } from "react";
+import React from "react";
 import { useNavigate } from "react-router-dom";
 
 const RegistrationPage = () => {
   const navigate = useNavigate();
-  const getFirstApiUrl = () =>
-    "http://localhost:3001/oid4vci/credential-supported/create";
 
-  const getFirstRequestOptions = () => ({
+  const API_BASE_URL = "http://localhost:3001";
+  const API_KEY = "thisistheplace";
+  const createCredentialSupportedUrl = () =>
+    `${API_BASE_URL}/oid4vci/credential-supported/create`;
+  const createDidUrl = () => `${API_BASE_URL}/wallet/did/create`;
+
+  const commonHeaders = {
+    accept: "application/json",
+    "X-API-KEY": API_KEY,
+    "Content-Type": "application/json",
+  };
+
+  const fetchApiData = async (url, options) => {
+    const response = await fetch(url, options);
+    return await response.json();
+  };
+  const createCredentialSupportedOptions = () => ({
     method: "POST",
-    headers: {
-      accept: "application/json",
-      "X-API-KEY": "thisistheplace",
-      "Content-Type": "application/json",
-    },
+    headers: commonHeaders,
     body: JSON.stringify({
       cryptographic_binding_methods_supported: ["did"],
       cryptographic_suites_supported: ["ES256K"],
@@ -69,15 +79,9 @@ const RegistrationPage = () => {
     }),
   });
 
-  const getSecondApiUrl = () => "http://localhost:3001/wallet/did/create";
-
-  const getSecondRequestOptions = () => ({
+  const createDidOptions = () => ({
     method: "POST",
-    headers: {
-      accept: "application/json",
-      "X-API-KEY": "thisistheplace",
-      "Content-Type": "application/json",
-    },
+    headers: commonHeaders,
     body: JSON.stringify({
       method: "key",
     }),
@@ -85,21 +89,16 @@ const RegistrationPage = () => {
 
   const handleRegistration = async () => {
     try {
-      const firstApiUrl = getFirstApiUrl();
-      const firstRequestOptions = getFirstRequestOptions();
+      const supportedCredentialData = await fetchApiData(
+        createCredentialSupportedUrl(),
+        createCredentialSupportedOptions()
+      );
 
-      const firstApiResponse = await fetch(firstApiUrl, firstRequestOptions);
-      const firstApiData = await firstApiResponse.json();
+      const supportedCredId = supportedCredentialData.supported_cred_id;
 
-      const supportedCredId = firstApiData.supported_cred_id;
+      const didData = await fetchApiData(createDidUrl(), createDidOptions());
 
-      const secondApiUrl = getSecondApiUrl();
-      const secondRequestOptions = getSecondRequestOptions();
-
-      const secondApiResponse = await fetch(secondApiUrl, secondRequestOptions);
-      const secondApiData = await secondApiResponse.json();
-
-      const { did } = secondApiData.result;
+      const { did } = didData.result;
 
       navigate(`/input`, { state: { did, supportedCredId } });
     } catch (error) {
@@ -110,7 +109,7 @@ const RegistrationPage = () => {
   return (
     <div>
       <h1>Registration Page</h1>
-      {/* Your registration form */}
+      {/* registration form */}
       <button onClick={handleRegistration}>Register</button>
     </div>
   );
