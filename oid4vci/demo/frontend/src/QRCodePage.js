@@ -23,7 +23,7 @@ const QRCodePage = () => {
       .get(`http://localhost:3001/oid4vci/exchange/records`, {exchange_id: exchange_id})
       .then((response) => {
         console.log(response.data);
-        if(response.data.state === "issued"){
+        if(response.data.results[0].state === "issued"){
             navigate(`/`);
         }
       })

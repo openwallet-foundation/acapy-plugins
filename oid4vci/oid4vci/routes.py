@@ -85,7 +85,7 @@ async def list_exchange_records(request: web.BaseRequest):
     context = request["context"]
     try:
         async with context.profile.session() as session:
-            if exchange_id := request.query.get("id"):
+            if exchange_id := request.query.get("exchange_id"):
                 record = await OID4VCIExchangeRecord.retrieve_by_id(
                     session, exchange_id
                 )
