@@ -1,7 +1,9 @@
 import os
 import shutil
 from typing import Optional
+from enum import Enum
 
+GLOBAL_PLUGIN_DIR = 'plugin_globals' 
 
 class PluginInfo:
     def __init__(
@@ -45,11 +47,33 @@ class Sections:
         self.coverage_xml = []
         self.build = []
 
+class NEW_PLUGIN_FOLDERS(Enum):
+    DOCKER = 'docker'
+    INTEGRATION = 'integration'
+
+class NEW_PLUGIN_FILES(Enum):
+    PYPROJECT = 'pyproject.toml'
+    README = 'README.md'
+    DEFINITION = 'definition.py'
+
+class COMMON_DEV_FOLDERS(Enum):
+    DEVCONTAINER = '.devcontainer'
+    VSCODE = '.vscode'
+
+class TAGGED_FILES(Enum):
+    DOCKER_DEFAULT = 'docker/default.yml'
+    DOCKERFILE = 'docker/Dockerfile'
+    DOCKER_INTEGRATION = 'docker/integration.yml'
+    PYPROJECT = 'pyproject.toml'
+    PYPROJECT_INTEGRATION = 'integration/pyproject.toml'
+    DEVCONTAINER = '.devcontainer/devcontainer.json'
+    VSCODE = '.vscode/launch.json'
+
 
 def replace_plugin_tag(path: str, info: PluginInfo):
     with open(path, 'r') as file:
         filedata = file.read()
-    filedata = filedata.replace('plugin_globals', info.name)
+    filedata = filedata.replace(GLOBAL_PLUGIN_DIR, info.name)
     with open(path, 'w') as file:
         file.write(filedata)
 
@@ -59,51 +83,27 @@ def is_blank_line(line: str) -> bool:
 
 
 def copy_all_common_files_for_new_plugin(info: PluginInfo) -> None:
-    shutil.copytree(
-        './plugin_globals/docker',
-        f'./{info.name}/docker'
-    )
-    shutil.copytree(
-        './plugin_globals/integration',
-        f'./{info.name}/integration'
-    )
-    shutil.copyfile(
-        './plugin_globals/pyproject.toml',
-        f'./{info.name}/pyproject.toml'
-    )
-    shutil.copyfile(
-        './plugin_globals/README.md',
-        f'./{info.name}/README.md'
-    )
-    shutil.copyfile(
-        './plugin_globals/definition.py',
-        f'./{info.name}/{info.name}/definition.py'
-    )
-    replace_plugin_tag(
-        f'./{info.name}/docker/default.yml', info)
-    replace_plugin_tag(
-        f'./{info.name}/docker/Dockerfile', info)
-    replace_plugin_tag(
-        f'./{info.name}/docker/integration.yml', info)
-    replace_plugin_tag(f'./{info.name}/integration/pyproject.toml', info)
-    replace_plugin_tag(f'./{info.name}/pyproject.toml', info)
-
+    for folder in list(NEW_PLUGIN_FOLDERS):
+        shutil.copytree(
+            f'./{GLOBAL_PLUGIN_DIR}/{folder.value}',
+            f'./{info.name}/{folder.value}'
+        )
+    for file in list(NEW_PLUGIN_FILES):
+        shutil.copyfile(
+            f'./{GLOBAL_PLUGIN_DIR}/{file.value}',
+            f'./{info.name}/{file.value}'
+        )
 
 def copy_common_files_for_all_plugins(info: PluginInfo) -> None:
-    shutil.copytree(
-        './plugin_globals/.devcontainer',
-        f'./{info.name}/.devcontainer',
-        dirs_exist_ok=True
-    )
-    shutil.copytree(
-        './plugin_globals/.vscode',
-        f'./{info.name}/.vscode',
-        dirs_exist_ok=True
-    )
-    replace_plugin_tag(
-        f'./{info.name}/.devcontainer/devcontainer.json', info)
-    replace_plugin_tag(
-        f'./{info.name}/.vscode/launch.json', info)
+    for folder in list(COMMON_DEV_FOLDERS):
+        shutil.copytree(
+            f'./{GLOBAL_PLUGIN_DIR}/{folder.value}',
+            f'./{info.name}/{folder.value}',
+            dirs_exist_ok=True
+        )
+    for file in list(TAGGED_FILES):
+        replace_plugin_tag(
+            f'./{info.name}/{file.value}', info)
 
 
 def copy_and_tag_shared_files(info: PluginInfo, new_plugin: bool = True):
@@ -112,27 +112,8 @@ def copy_and_tag_shared_files(info: PluginInfo, new_plugin: bool = True):
     copy_common_files_for_all_plugins(info)
 
 
-def process_deps_from_file(filedata: list, deps: list, i: int) -> int:
-    i += 1
-    line = filedata[i]
-    while not is_blank_line(line):
-        deps.append(line)
-        i += 1
-        line = filedata[i]
-    return i
-
-
-def process_meta_data_from_file(filedata: list, i: int, key: str) -> str:
-    extracted_str = ""
-    line = filedata[i]
-    while not is_blank_line(line):
-        extracted_str += line
-        i += 1
-        line = filedata[i]
-    return i, extracted_str.replace(f'{key} = ', '').strip('"')
-
-
 def combine_dependenices(plugin_dependencies, global_dependencies) -> None:
+    """Add the plugin dependencies to the global dependencies if they are plugin specific."""
     for p_dep in plugin_dependencies:
         if (p_dep.split('=')[0].strip() not in [g_dep.split('=')[0].strip() for g_dep in global_dependencies]):
             global_dependencies.append(p_dep)
@@ -140,6 +121,7 @@ def combine_dependenices(plugin_dependencies, global_dependencies) -> None:
 
 
 def get_section(i: int, filedata: list, arr: list) -> int:
+    """Put the section into the array and return the number of lines in the section."""
     j = i
     while j < len(filedata) - 1 and not is_blank_line(filedata[j]):
         arr.append(filedata[j])
@@ -148,6 +130,7 @@ def get_section(i: int, filedata: list, arr: list) -> int:
 
 
 def extract_common_sections(filedata: str, sections: Sections) -> None:
+    """Go through the file by line and extract the section into the sections object."""
     filedata = filedata.split('\n')
     for i in range(len(filedata)):
         line = filedata[i]
@@ -178,6 +161,16 @@ def extract_common_sections(filedata: str, sections: Sections) -> None:
 
 
 def get_section_output(i: int, content: list, output: list, section: list) -> int:
+    """
+    Get a config section based off of an empty line of length of file.
+    Args:
+        i: The current line number
+        content: The file content
+        output: The output list
+        section: The section to process
+
+    Returns: The number of lines in the section
+    """
     j = i
     output.append(content[j])
     while (j < len(content) - 1 and not is_blank_line(content[j])):
@@ -188,15 +181,16 @@ def get_section_output(i: int, content: list, output: list, section: list) -> in
     return j - i
 
 
-def get_and_combine_main_dependencies(name: str) -> (Sections, Sections):
+def get_and_combine_main_poetry_sections(name: str) -> (Sections, Sections):
+    """Get the global main sections and combine them with the plugin specific sections."""
     global_sections = Sections()
     plugin_sections = Sections()
 
-    with open('./plugin_globals/pyproject.toml', 'r') as file:
+    with open(f'./{GLOBAL_PLUGIN_DIR}/{TAGGED_FILES.PYPROJECT.value}', 'r') as file:
         filedata = file.read()
         extract_common_sections(filedata, global_sections)
 
-    with open(f'./{name}/pyproject.toml', 'r') as file:
+    with open(f'./{name}/{TAGGED_FILES.PYPROJECT.value}', 'r') as file:
         filedata = file.read()
         extract_common_sections(filedata, plugin_sections)
 
@@ -209,11 +203,12 @@ def get_and_combine_main_dependencies(name: str) -> (Sections, Sections):
 
 
 def process_main_config_sections(name: str, plugin_sections: Sections, global_sections: Sections) -> None:
-    with open('./plugin_globals/pyproject.toml', 'r') as in_file:
+    """Process the main config sections and write them to the plugins pyproject.toml file."""
+    with open(f'./{GLOBAL_PLUGIN_DIR}/{TAGGED_FILES.PYPROJECT.value}', 'r') as in_file:
         content = in_file.readlines()
 
     output = []
-    with open(f'./{name}/pyproject.toml', 'w') as out_file:
+    with open(f'./{name}/{TAGGED_FILES.PYPROJECT.value}', 'w') as out_file:
         i = 0
         while i < len(content):
             if content[i].startswith(MangagedPoetrySections.META):
@@ -257,17 +252,18 @@ def process_main_config_sections(name: str, plugin_sections: Sections, global_se
             else:
                 i += 1
         out_file.writelines(output)
-    replace_plugin_tag(f'./{name}/pyproject.toml', PluginInfo(name))
+    replace_plugin_tag(f'./{name}/{TAGGED_FILES.PYPROJECT.value}', PluginInfo(name))
 
 
-def get_and_combine_integration_dependencies(name: str) -> (Sections, Sections):
+def get_and_combine_integration_poetry_sections(name: str) -> (Sections, Sections):
+    """Get the global integration sections and combine them with the plugin specific sections."""
     global_sections = Sections()
     plugin_sections = Sections()
-    with open('./plugin_globals/integration/pyproject.toml', 'r') as file:
+    with open(f'./{GLOBAL_PLUGIN_DIR}/{TAGGED_FILES.PYPROJECT_INTEGRATION.value}', 'r') as file:
         filedata = file.read()
     extract_common_sections(filedata, global_sections)
 
-    with open(f'./{name}/integration/pyproject.toml', 'r') as file:
+    with open(f'./{name}/{TAGGED_FILES.PYPROJECT_INTEGRATION.value}', 'r') as file:
         filedata = file.read()
 
     extract_common_sections(filedata, plugin_sections)
@@ -278,11 +274,12 @@ def get_and_combine_integration_dependencies(name: str) -> (Sections, Sections):
 
 
 def process_integration_config_sections(name: str, plugin_sections: Sections, global_sections: Sections) -> None:
-    with open('./plugin_globals/integration/pyproject.toml', 'r') as in_file:
+    """Process the integration test config sections and write them to the plugins intergqtion/pyproject.toml file."""
+    with open(f'./{GLOBAL_PLUGIN_DIR}/{TAGGED_FILES.PYPROJECT_INTEGRATION.value}', 'r') as in_file:
         content = in_file.readlines()
 
     output = []
-    with open(f'./{name}/integration/pyproject.toml', 'w') as out_file:
+    with open(f'./{name}/{TAGGED_FILES.PYPROJECT_INTEGRATION.value}', 'w') as out_file:
         i = 0
         while i < len(content):
             if content[i].startswith(MangagedPoetrySections.META):
@@ -305,75 +302,77 @@ def process_integration_config_sections(name: str, plugin_sections: Sections, gl
 
 
 def replace_global_sections(name: str) -> None:
-    global_sections, plugin_sections = get_and_combine_main_dependencies(name)
+    """
+    Combine the global sections with the plugin specific sections and write them to the plugins pyproject.toml file
+    with the global dependencies overriding the plugin dependencies.
+    """
+    global_sections, plugin_sections = get_and_combine_main_poetry_sections(name)
     process_main_config_sections(name, plugin_sections, global_sections)
-    global_sections, plugin_sections = get_and_combine_integration_dependencies(
+    global_sections, plugin_sections = get_and_combine_integration_poetry_sections(
         name)
     process_integration_config_sections(name, plugin_sections, global_sections)
 
 
-def is_plugin_dir(plugin_name: str) -> bool:
+def is_plugin_directory(plugin_name: str) -> bool:
     # If there is a drirectory which is not a plugin it should be ignored here
-    return os.path.isdir(plugin_name) and plugin_name != 'plugin_globals' and not plugin_name.startswith('.')
+    return os.path.isdir(plugin_name) and plugin_name != GLOBAL_PLUGIN_DIR and not plugin_name.startswith('.')
 
 
-"""
-*
-    The main entry point for the script
-*   
-"""
-
-print("Checking poetry is available...")
-response = os.system('which poetry')
-if response == "":
-    print("Poetry is not available. Please install poetry.")
-    exit(1)
-
-options = """
-    What would you like to do? 
-    (1) Create a new plugin
-    (2) Update plugin common poetry sections 
-    (3) Update plugin common development files 
-    (4) Exit \n\nInput:  """
-selection = input(options)
-
-if selection == "1":
-    # Create a new plugin
-    msg = """Creating a new plugin: This will create a blank plugin with all the common files and folders needed to get started developing and testing."""
-    print(msg)
-    name = input(
-        "Enter the plugin name (recommended to use snake_case): ")
-    if name == "":
-        print("You must enter a plugin name")
+def main():
+    print("Checking poetry is available...")
+    response = os.system('which poetry')
+    if response == "":
+        print("Poetry is not available. Please install poetry.")
         exit(1)
-    version = str(
-        input("Enter the plugin version (default is 0.1.0): ") or "0.1.0")
-    description = input("Enter the plugin description (default is ''): ") or ""
 
-    plugin_info = PluginInfo(name, version, description)
-    os.makedirs(f'./{name}/{name}/v1_0')
-    copy_and_tag_shared_files(info=plugin_info)
+    options = """
+        What would you like to do? 
+        (1) Create a new plugin
+        (2) Update all plugin common poetry sections 
+        (3) Update all plugin common development files 
+        (4) Exit \n\nInput:  """
+    selection = input(options)
 
-    os.system(f'cd {name} && poetry install --no-root')
+    # Create a new plugin
+    if selection == "1":
+        msg = """Creating a new plugin: This will create a blank plugin with all the common files and folders needed to get started developing and testing."""
+        print(msg)
+        name = input(
+            "Enter the plugin name (recommended to use snake_case): ")
+        if name == "":
+            print("You must enter a plugin name")
+            exit(1)
+        version = str(
+            input("Enter the plugin version (default is 0.1.0): ") or "0.1.0")
+        description = input("Enter the plugin description (default is ''): ") or ""
 
-elif selection == "2":
+        plugin_info = PluginInfo(name, version, description)
+        os.makedirs(f'./{name}/{name}/v1_0')
+        copy_and_tag_shared_files(info=plugin_info)
+
+        os.system(f'cd {name} && poetry install --no-root')
+
     # Update common poetry sections
-    msg = """Updating all plugin common poetry sections: This will take the global sections from the plugin_globals and combine them with the plugin specific sections, and install and update the lock file \n"""
-    print(msg)
-    for plugin_name in os.listdir('./'):
-        if is_plugin_dir(plugin_name):
-            print(f'Updating common poetry sections in {plugin_name}\n')
-            replace_global_sections(plugin_name)
-            os.system(
-                f'cd {plugin_name} && rm poetry.lock && poetry install')
-            os.system(
-                f'cd {plugin_name}/integration && rm poetry.lock && poetry install')
-elif selection == "3":
+    elif selection == "2":
+        msg = """Updating all plugin common poetry sections: This will take the global sections from the plugin_globals and combine them with the plugin specific sections, and install and update the lock file \n"""
+        print(msg)
+        for plugin_name in os.listdir('./'):
+            if is_plugin_directory(plugin_name):
+                print(f'Updating common poetry sections in {plugin_name}\n')
+                replace_global_sections(plugin_name)
+                os.system(
+                    f'cd {plugin_name} && rm poetry.lock && poetry install')
+                os.system(
+                    f'cd {plugin_name}/integration && rm poetry.lock && poetry install')
     # Update common development files
-    msg = """Updating all plugin common development files: This will take the common development files from the plugin_globals and copy them into each plugin."""
-    print(msg)
-    for plugin_name in os.listdir('./'):
-        if is_plugin_dir(plugin_name):
-            print(f'Updating development files in {plugin_name}\n')
-            copy_and_tag_shared_files(info=PluginInfo(
-                name=plugin_name), new_plugin=False)
+    elif selection == "3":
+        msg = """Updating all plugin common development files: This will take the common development files from the plugin_globals and copy them into each plugin."""
+        print(msg)
+        for plugin_name in os.listdir('./'):
+            if is_plugin_directory(plugin_name):
+                print(f'Updating development files in {plugin_name}\n')
+                copy_and_tag_shared_files(info=PluginInfo(
+                    name=plugin_name), new_plugin=False)
+
+if __name__ == "__main__":
+    main()
