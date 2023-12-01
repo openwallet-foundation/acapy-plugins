@@ -1,0 +1,21 @@
+[tool.poetry]
+name = "http_kafka_relay"
+version = "0.1.0"
+description = "HTTP to Kafka Relay"
+authors = ["Daniel Bluhm <dbluhm@pm.me>"]
+license = "Apache-2.0"
+packages = [
+    { include = "relay" }
+]
+
+[tool.poetry.dependencies]
+python = "^3.6.9"
+fastapi = "^0.68.1"
+aiokafka = "^0.7.2"
+
+[tool.poetry.dev-dependencies]
+uvicorn = "^0.15.0"
+
+[build-system]
+requires = ["poetry-core>=1.0.0"]
+build-backend = "poetry.core.masonry.api"

@@ -1,0 +1,25 @@
+[tool.poetry]
+name = "acapy-kafka-queue-int-tests"
+version = "0.1.0"
+description = "Integration tests for ACA-Py kafka queue"
+authors = ["Daniel Bluhm <dbluhm@pm.me>"]
+license = "Apache-2.0"
+
+[tool.poetry.dependencies]
+python = "^3.7"
+pytest = "^6.2.4"
+pytest-asyncio = "^0.15.1"
+pytest-cov = "^2.12.1"
+asynctest = "0.13.0"
+acapy-client = {git="https://github.com/indicio-tech/acapy-client.git", branch="acapy/main"}
+aiokafka = "^0.7.1"
+echo-agent = {git = "https://github.com/indicio-tech/echo-agent.git", rev = "4cfaf5f7c88bcc3953fdb0b43885c028413a09dc", extras = ["client"]}
+
+[tool.poetry.dev-dependencies]
+black = "^21.6b0"
+flake8 = "^3.9.2"
+pre-commit = "^2.13.0"
+
+[build-system]
+requires = ["poetry-core>=1.0.0"]
+build-backend = "poetry.core.masonry.api"

@@ -1,0 +1,51 @@
+label: Edison Agency
+
+# Admin
+admin: [0.0.0.0, 3001]
+admin-insecure-mode: true
+
+# Load toolbox plugin
+plugin:
+  - kafka_queue.events
+plugin-config: ./configs/agency-kafka.yml
+
+# Default endpoint, should be overriden by command or env
+endpoint: http://localhost:3000
+
+# Transport (Plugin)
+inbound-transport:
+  - [kafka_queue.inbound, kafka, 0]
+outbound-queue: kafka_queue.outbound.KafkaOutboundQueue
+
+# Ledger
+no-ledger: true
+
+# Multi-tenancy
+multitenant: true
+jwt-secret: insecure-jwt-secret
+multitenant-admin: true
+
+# Connections
+debug-connections: true
+debug-credentials: true
+debug-presentations: true
+auto-accept-invites: true
+auto-accept-requests: true
+auto-ping-connection: true
+
+# Credentials and Presentations
+# preserve-exchange-records: true
+# auto-store-credential: true
+# auto-respond-credential-proposal: true
+# auto-respond-credential-offer: true
+# auto-respond-credential-request: true
+# 
+# auto-respond-presentation-proposal: true
+# auto-respond-presentation-request: true
+# auto-verify-presentation: true
+
+# Wallet
+# wallet-name: default
+# wallet-type: indy
+# wallet-key: "insecure, for use in demo only"
+# auto-provision: true
