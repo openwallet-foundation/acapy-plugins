@@ -123,7 +123,7 @@ def combine_dependenices(plugin_dependencies, global_dependencies) -> None:
 def get_section(i: int, filedata: list, arr: list) -> int:
     """Put the section into the array and return the number of lines in the section."""
     j = i
-    while j < len(filedata) - 1 and not is_blank_line(filedata[j]):
+    while j < len(filedata) and not is_blank_line(filedata[j]):
         arr.append(filedata[j])
         j += 1
     return j - i
