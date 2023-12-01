@@ -52,7 +52,6 @@ line-length = 90
 "**/{tests}/*" = ["F841", "D", "E501"]
 
 [tool.pytest.ini_options]
-testpaths = "basicmessage_storage"
 addopts = """
     tests
     --quiet --junitxml=./test-reports/junit.xml
