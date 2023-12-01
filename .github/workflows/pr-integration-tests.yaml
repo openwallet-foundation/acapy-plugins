@@ -64,6 +64,7 @@ jobs:
           for dir in ${{ steps.changed-plugins.outputs.changed-plugins }}; do
             echo "Running integration tests for $dir"
             cd $dir/integration
+            docker compose down --remove-orphans
             docker compose build
             docker compose run tests
             cd ../..

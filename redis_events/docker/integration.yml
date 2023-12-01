@@ -13,7 +13,7 @@ endpoint:
 
 plugin:
   - redis_events.v1_0.redis_queue.events
-  - basicmessage_storage.v1_0
+  # - basicmessage_storage.v1_0
 
 plugin-config: plugins-config.yml
 
