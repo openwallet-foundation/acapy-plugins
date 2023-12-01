@@ -53,4 +53,4 @@ Messages look like:
 }
 ```
 
-Be cautious and only send the `payload` content over the wire to the DIDComm recipient.
+Metadata contain, amongst other things, the plaintext version of the DIDComm message; be cautious and only send the `payload` content over the wire to the DIDComm recipient.
