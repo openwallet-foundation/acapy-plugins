@@ -25,7 +25,7 @@ const RegistrationPage = () => {
     headers: commonHeaders,
     body: JSON.stringify({
       cryptographic_binding_methods_supported: ["did"],
-      cryptographic_suites_supported: ["ES256K"],
+      cryptographic_suites_supported: ["EdDSA"],
       display: [
         {
           name: "University Credential",
@@ -108,7 +108,7 @@ const RegistrationPage = () => {
 
   return (
     <div>
-      <h1>Registration Page</h1>
+      <h1>Admin Credential Issuance Preparation</h1>
       {/* registration form */}
       <button onClick={handleRegistration}>Register</button>
     </div>
