@@ -1,7 +1,7 @@
 // For format details, see https://aka.ms/devcontainer.json. For config options, see the
 // README at: https://github.com/devcontainers/templates/tree/main/src/python
 {
-  "name": "basicmessage_storage",
+  "name": "plugin_globals",
   "build": {
     "dockerfile": "Dockerfile",
     "context": "..",
@@ -14,7 +14,7 @@
     "vscode": {
       "extensions": ["ms-python.python", "ms-python.vscode-pylance"],
       "settings": {
-        "python.testing.pytestArgs": ["./basicmessage_storage", "--no-cov"],
+        "python.testing.pytestArgs": ["./plugin_globals", "--no-cov"],
         "python.testing.unittestEnabled": false,
         "python.testing.pytestEnabled": true,
         "python.testing.pytestPath": "pytest",

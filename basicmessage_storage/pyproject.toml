@@ -5,39 +5,30 @@ description = ""
 authors = ["Jason Sherman <tools@usingtechnolo.gy>"]
 
 [tool.poetry.dependencies]
-python = "^3.9"
 aries-cloudagent = { version = "0.10.3" }
+python = "^3.9"
 
 [tool.poetry.dev-dependencies]
-ruff="^0.1.2"
-black="23.7.0"
-
-# testing
 asynctest = "0.13.0"
+black = "23.7.0"
 pytest = "~7.4.0"
 pytest-asyncio = "0.14.0"
-pytest-cov= "2.10.1"
-pytest-ruff="^0.1.1"
-mock= "~4.0"
+pytest-cov = "2.10.1"
+pytest-ruff = "^0.1.1"
+ruff = "^0.1.2"
 
 [tool.poetry.group.integration.dependencies]
-# askar 
-aries-askar= { version = "~0.2.5" }
-indy-credx= { version = "~1.0.0" }
-indy-vdr= { version = "~0.3.3" }
-
-# bbs
-ursa-bbs-signatures= { version = "~1.0.1" }
-
-# indy
-python3-indy= { version = "^1.11.1" }
+aries-askar = { version = "~0.2.5" }
+indy-credx = { version = "~1.0.0" }
+indy-vdr = { version = "~0.3.3" }
+python3-indy = { version = "^1.11.1" }
+ursa-bbs-signatures = { version = "~1.0.1" }
 
 [tool.ruff]
 line-length = 90
 
 [tool.ruff.lint]
 select = ["E", "F", "C", "D"]
-
 ignore = [
     # Google Python Doc Style
     "D203", "D204", "D213", "D215", "D400", "D401", "D404", "D406", "D407",
@@ -85,4 +76,4 @@ output = "test-reports/coverage.xml"
 
 [build-system]
 requires = ["setuptools", "poetry-core>=1.2"]
-build-backend = "poetry.core.masonry.api"
+

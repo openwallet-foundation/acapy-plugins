@@ -13,25 +13,25 @@
       "args": ["start", "--arg-file=${workspaceRoot}/docker/default.yml"]
     },
     {
-      "name": "ruff - multitenant_provider",
+      "name": "ruff - plugin_globals",
       "type": "python",
       "request": "launch",
       "module": "ruff",
       "console": "integratedTerminal",
       "sudo": true,
       "justMyCode": true,
-      "cwd": "${workspaceFolder}/multitenant_provider",
+      "cwd": "${workspaceFolder}/plugin_globals",
       "args": ["check", "."]
     },
     {
-      "name": "ruff fix - multitenant_provider",
+      "name": "ruff fix - plugin_globals",
       "type": "python",
       "request": "launch",
       "module": "ruff",
       "console": "integratedTerminal",
       "sudo": true,
       "justMyCode": true,
-      "cwd": "${workspaceFolder}/multitenant_provider",
+      "cwd": "${workspaceFolder}/plugin_globals",
       "args": ["check", ".", "--fix"]
     }
   ]

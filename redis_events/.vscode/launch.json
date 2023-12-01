@@ -33,26 +33,6 @@
       "justMyCode": true,
       "cwd": "${workspaceFolder}/redis_events",
       "args": ["check", ".", "--fix"]
-    },
-    {
-      "name": "black (check) - redis_events",
-      "type": "python",
-      "request": "launch",
-      "module": "black",
-      "console": "integratedTerminal",
-      "justMyCode": true,
-      "cwd": "${workspaceFolder}/redis_events",
-      "args": [".", "--check"]
-    },
-    {
-      "name": "black (format) - redis_events",
-      "type": "python",
-      "request": "launch",
-      "module": "black",
-      "console": "integratedTerminal",
-      "justMyCode": true,
-      "cwd": "${workspaceFolder}/redis_events",
-      "args": ["."]
     }
   ]
 }

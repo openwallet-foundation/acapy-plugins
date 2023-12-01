@@ -1,38 +1,28 @@
 [tool.poetry]
-name = "redis_events"
+name = "plugin_globals"
 version = "0.1.0"
-description = "ACA-PY persisted events using Redis"
-authors = ["Shaanjot Gill <gill.shaanjots@gmail.com>"]
+description = ""
+authors = []
 
 [tool.poetry.dependencies]
-aiohttp = "^3.7.4"
-aries-cloudagent = { version = "0.10.3" }
-fastapi = "^0.68.0"
-nest-asyncio = "^1.5.5"
-pydantic = "^1.8.2"
 python = "^3.9"
-redis = "^4.1.4"
-uvicorn = "0.16.0"
+aries-cloudagent = { version = "0.10.3" }
 
 [tool.poetry.dev-dependencies]
-asynctest = "0.13.0"
+ruff = "^0.1.2"
 black = "23.7.0"
-mock= "~4.0"
-pre-commit = "^2.12.1"
+asynctest = "0.13.0"
 pytest = "~7.4.0"
 pytest-asyncio = "0.14.0"
 pytest-cov = "2.10.1"
-pytest-mock = "^3.6.1"
 pytest-ruff = "^0.1.1"
-rope = "^0.19.0"
-ruff = "^0.1.2"
 
 [tool.poetry.group.integration.dependencies]
 aries-askar = { version = "~0.2.5" }
 indy-credx = { version = "~1.0.0" }
 indy-vdr = { version = "~0.3.3" }
-python3-indy = { version = "^1.11.1" }
 ursa-bbs-signatures = { version = "~1.0.1" }
+python3-indy = { version = "^1.11.1" }
 
 [tool.ruff]
 line-length = 90
@@ -53,11 +43,11 @@ ignore = [
 "**/{tests}/*" = ["F841", "D", "E501"]
 
 [tool.pytest.ini_options]
-testpaths = "redis_events"
+testpaths = "plugin_globals"
 addopts = """
     -p no:warnings
     --quiet --junitxml=./test-reports/junit.xml
-    --cov-config .coveragerc --cov=redis_events --cov-report term --cov-report xml
+    --cov-config .coveragerc --cov=plugin_globals --cov-report term --cov-report xml
 """
 markers = []
 junit_family = "xunit1"
@@ -86,4 +76,4 @@ output = "test-reports/coverage.xml"
 
 [build-system]
 requires = ["setuptools", "poetry-core>=1.2"]
-
+build-backend = "poetry.core.masonry.api"
