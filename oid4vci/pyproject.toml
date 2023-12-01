@@ -54,6 +54,7 @@ line-length = 90
 [tool.pytest.ini_options]
 testpaths = "basicmessage_storage"
 addopts = """
+    tests
     --quiet --junitxml=./test-reports/junit.xml
     --cov-config .coveragerc --cov=oid4vci --cov-report term
     --ruff
