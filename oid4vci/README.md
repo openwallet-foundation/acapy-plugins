@@ -53,7 +53,7 @@ In a production environment, the described processes would be more dynamic and i
     
 ## Architecture
 
-![oid4vci-component](https://hackmd.io/_uploads/Byr7J2wrT.png)
+![oid4vci-component](docs/images/oid4vci-component.png)
 
 ### Public Routes
 ACA-Py provides a pluggable mechanism for registering routes for consumption by the controller, the Admin API. This Admin Server makes it trivial to extend the controller from plugins. ACA-Py does not, however, provide a similar mechanism for publicly accessible HTTP Endpoints. Generally speaking, the only public endpoint ACA-Py provides is the DIDComm Messaging endpoint. The OpenID4VCI protocol requires endpoints that are publicly accessible to present and exchange tokens for credentials. This Plugin accomplishes this by starting a separate [aiohttp server](https://docs.aiohttp.org/en/stable/index.html) (similar to how the Admin server is separate from the DIDComm messaging server) and publishes the OpenID4VCI endpoints through this separate server.
