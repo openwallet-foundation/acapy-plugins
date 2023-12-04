@@ -6,13 +6,19 @@ authors = ["Shaanjot Gill <gill.shaanjots@gmail.com>"]
 
 [tool.poetry.dependencies]
 aiohttp = "^3.7.4"
-aries-cloudagent = { version = "0.10.3" }
 fastapi = "^0.68.0"
 nest-asyncio = "^1.5.5"
 pydantic = "^1.8.2"
 python = "^3.9"
 redis = "^4.1.4"
 uvicorn = "0.16.0"
+
+# Define ACA-Py as an optional/extra dependancy so it can be
+# explicitly installed with the plugin if desired.
+aries-cloudagent = { version = ">=0.10.3, < 1.0.0", optional = true }
+
+[tool.poetry.extras]
+aca-py = ["aries-cloudagent"]
 
 [tool.poetry.dev-dependencies]
 asynctest = "0.13.0"

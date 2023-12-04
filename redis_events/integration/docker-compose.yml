@@ -170,7 +170,7 @@ services:
       context: ..
       dockerfile: integration/Dockerfile
       args:
-        - install_flags=--no-interaction --with integration
+        - install_flags=--no-interaction --with integration --extras aca-py
     ports:
       - 3001:3001
       - 3000:3000
@@ -196,7 +196,7 @@ services:
       context: ..
       dockerfile: docker/Dockerfile
       args:
-        - install_flags=--no-interaction --with integration
+        - install_flags=--no-interaction --with integration --extras aca-py
     ports:
       - 8021:8021
       - 8020:8020
