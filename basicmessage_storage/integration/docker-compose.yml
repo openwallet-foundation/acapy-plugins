@@ -10,7 +10,7 @@ services:
       context: ..
       dockerfile: docker/Dockerfile
       args:
-        - install_flags=--no-interaction --with integration
+        - install_flags=--no-interaction --with integration --extras aca-py
     command: start --arg-file integration.yml --label bob -e http://bob:3000 --log-level debug
 
   alice:
