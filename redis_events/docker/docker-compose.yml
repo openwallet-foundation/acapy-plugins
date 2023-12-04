@@ -123,7 +123,7 @@ services:
       [
         "/bin/sh",
         "-c",
-        '/wait && python -m redis_events.v1_0.services.relay.relay "$@"',
+        '/wait && python -m redis_events.v1_0.services.relay.relay "$$@"',
         "--",
       ]
 
@@ -153,7 +153,7 @@ services:
       [
         "/bin/sh",
         "-c",
-        '/wait && python -m redis_events.v1_0.services.deliverer.deliver "$@"',
+        '/wait && python -m redis_events.v1_0.services.deliverer.deliver "$$@"',
         "--",
       ]
 

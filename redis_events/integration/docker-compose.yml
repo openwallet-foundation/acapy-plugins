@@ -127,7 +127,7 @@ services:
       [
         "/bin/sh",
         "-c",
-        '/wait && python -m redis_events.v1_0.services.relay.relay "$@"',
+        '/wait && python -m redis_events.v1_0.services.relay.relay "$$@"',
         "--",
       ]
 
@@ -157,7 +157,7 @@ services:
       [
         "/bin/sh",
         "-c",
-        '/wait && python -m redis_events.v1_0.services.deliverer.deliver "$@"',
+        '/wait && python -m redis_events.v1_0.services.deliverer.deliver "$$@"',
         "--",
       ]
     extra_hosts:
@@ -165,7 +165,7 @@ services:
       - "faber:host-gateway"
 
   faber:
-    image: plugin-image
+    image: redis-events-integration
     build:
       context: ..
       dockerfile: integration/Dockerfile
@@ -191,7 +191,7 @@ services:
       - "alice:host-gateway"
 
   alice:
-    image: plugin-image
+    image: redis-events
     build:
       context: ..
       dockerfile: docker/Dockerfile
