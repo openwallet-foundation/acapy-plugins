@@ -165,7 +165,7 @@ services:
       - "faber:host-gateway"
 
   faber:
-    image: plugin-image
+    image: redis-events-integration
     build:
       context: ..
       dockerfile: integration/Dockerfile
@@ -191,7 +191,7 @@ services:
       - "alice:host-gateway"
 
   alice:
-    image: plugin-image
+    image: redis-events
     build:
       context: ..
       dockerfile: docker/Dockerfile
