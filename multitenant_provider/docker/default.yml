@@ -23,7 +23,7 @@ plugin-config-value:
   - multitenant_provider.errors.on_unneeded_wallet_key=false
 
 #config
-genesis-url: https://indy.igrant.io/genesis
+genesis-url: http://test.bcovrin.vonx.io/genesis
 
 # Wallet
 # wallet-name: default
