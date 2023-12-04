@@ -9,7 +9,17 @@ from oid4vci.jwk_resolver import JwkResolver
 @pytest.fixture
 def context():
     """Test AdminRequestContext."""
-    yield AdminRequestContext.test_context()
+    context = AdminRequestContext.test_context()
+    context.update_settings({
+        "plugin_config": {
+            "oid4vci": {
+                "endpoint": "http://localhost:8020",
+                "host": "0.0.0.0",
+                "port": 8020,
+            }
+        }
+    })
+    yield context
 
 
 @pytest.fixture

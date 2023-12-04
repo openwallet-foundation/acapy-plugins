@@ -6,6 +6,8 @@ from oid4vci.models.exchange import OID4VCIExchangeRecord
 @pytest.fixture
 def record():
     yield OID4VCIExchangeRecord(
+        state=OID4VCIExchangeRecord.STATE_OFFER_CREATED,
+        verification_method="did:example:123#key-1",
         supported_cred_id="456",
         credential_subject={"name": "alice"},
         nonce="789",

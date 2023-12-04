@@ -22,10 +22,8 @@ async def test_issuer_metadata(context: AdminRequestContext, req: web.Request):
     async with context.session() as session:
         await supported.save(session)
 
-    with patch.object(
-        test_module, "OID4VCI_ENDPOINT", "http://localhost:8020"
-    ), patch.object(test_module, "web", autospec=True) as mock_web:
-        await test_module.oid_cred_issuer(req)
+    with patch.object(test_module, "web", autospec=True) as mock_web:
+        await test_module.credential_issuer_metadata(req)
         mock_web.json_response.assert_called_once_with(
             {
                 "credential_issuer": "http://localhost:8020/",
