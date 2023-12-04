@@ -16,15 +16,17 @@ async def test_credential_supported_create(
         return_value={
             "format": "jwt_vc_json",
             "id": "MyCredential",
-            "credentialSubject": {"name": "alice"},
-            "type": ["VerifiableCredential", "MyCredential"],
+            "format_data": {
+                "credentialSubject": {"name": "alice"},
+                "types": ["VerifiableCredential", "MyCredential"],
+            },
             "cryptographic_binding_methods_supported": ["proof"],
             "cryptographic_suites_supported": ["ES256"],
             "display": [{"some nonsense": "here"}],
         }
     )
 
-    await test_module.credential_supported_create(req)
+    await test_module.supported_credential_create(req)
 
     async with context.session() as session:
         records = await SupportedCredential.query(
@@ -38,5 +40,5 @@ async def test_credential_supported_create(
     assert record.identifier == "MyCredential"
     assert record.format_data == {
         "credentialSubject": {"name": "alice"},
-        "type": ["VerifiableCredential", "MyCredential"],
+        "types": ["VerifiableCredential", "MyCredential"],
     }
