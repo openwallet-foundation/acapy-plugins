@@ -15,7 +15,7 @@ RUN poetry config virtualenvs.in-project true
 # Setup project
 RUN mkdir multitenant_provider && touch multitenant_provider/__init__.py
 COPY pyproject.toml poetry.lock README.md ./
-ARG install_flags='--with integration'
+ARG install_flags='--with integration --extras aca-py'
 RUN poetry install ${install_flags}
 USER $user
 
