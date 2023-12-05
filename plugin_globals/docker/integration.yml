@@ -12,7 +12,7 @@ endpoint:
 plugin:
   - plugin_globals.v1_0
 
-genesis-url: https://indy.igrant.io/genesis
+genesis-url: http://test.bcovrin.vonx.io/genesis
 
 log-level: info
 

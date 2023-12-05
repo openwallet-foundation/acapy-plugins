@@ -24,7 +24,7 @@ plugin:
   - multitenant_provider.v1_0
 
 #config
-genesis-url: https://indy.igrant.io/genesis
+genesis-url: http://test.bcovrin.vonx.io/genesis
 
 # Wallet
 wallet-name: test-provider-wallet

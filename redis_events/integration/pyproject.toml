@@ -6,7 +6,7 @@ authors = []
 
 [tool.poetry.dependencies]
 aiohttp = "^3.7.4"
-aries-cloudagent = { version = "0.10.3" }
+aries-cloudagent = { version = ">=0.10.3, < 1.0.0" }
 asynctest = "^0.13.0"
 fastapi = "^0.68.0"
 nest-asyncio = "^1.5.5"

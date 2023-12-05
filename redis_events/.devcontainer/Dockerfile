@@ -1,8 +1,8 @@
 # See here for image contents: https://github.com/microsoft/vscode-dev-containers/tree/v0.134.0/containers/python-3/.devcontainer/base.Dockerfile
-ARG VARIANT="3.9"
+ARG VARIANT="3.9-bullseye"
 FROM mcr.microsoft.com/vscode/devcontainers/python:0-${VARIANT}
 
-ARG POETRY_VERSION="1.4"
+ARG POETRY_VERSION="1.4.2"
 ENV POETRY_HOME="/opt/poetry" \
     POETRY_VERSION=${POETRY_VERSION}
 
@@ -17,5 +17,5 @@ RUN curl -sSL https://install.python-poetry.org | python3 - \
 
 COPY pyproject.toml poetry.lock ./
 RUN poetry config virtualenvs.create false \
-    && poetry install --no-root --no-interaction --with integration \
+    && poetry install --no-root --no-interaction --with integration --extras "aca-py" \
     && rm -rf /root/.cache/pypoetry

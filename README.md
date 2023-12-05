@@ -13,14 +13,14 @@ IMPORTANT: docker-in-docker can be a little flaky, so if you encounter a message
 
 ## Repo Management Script
 
-A script was developed to help with maitenance of the repo called `repo_manager.py`. To run it you need a current version of poetry and python available. 
-Run `python repo_manager.py` and you will be met with 3 options. 
- - (1) Is used for starting or adding a new plugin. It will generate all the common scaffolding for a plugin which has the expected format. 
- - (2) Is used for updating and changing common poetry dependencies and configurations. It takes the poetry sections in the `pyproject.toml` files from the `plugin_globals` directory and combines them with the local plugin poetry sections. For the dependencies the common will be overridden by the globals. The other config sections will be replaced by the global configs. Then the lock files will be removed and re-installed. 
+A script was developed to help with maitenance of the repo called `repo_manager.py`. To run it you need a current version of poetry and python available.
+Run `python repo_manager.py` and you will be met with 3 options.
+ - (1) Is used for starting or adding a new plugin. It will generate all the common scaffolding for a plugin which has the expected format.
+ - (2) Is used for updating and changing common poetry dependencies and configurations. It takes the poetry sections in the `pyproject.toml` files from the `plugin_globals` directory and combines them with the local plugin poetry sections. For the dependencies the common will be overridden by the globals. The other config sections will be replaced by the global configs. Then the lock files will be removed and re-installed.
  - (3) Will take common development files like the `.devcontainer` directory from the globals and replace and tag the files. Using this you can make chages to every plugins development files from only editing them in one place.
 
- IMPORTANT: This script processes the `pyproject.toml` sections by empty lines. Please do not have unnessecary empty lines between sections. 
- 
+ IMPORTANT: This script processes the `pyproject.toml` sections by empty lines. Please do not have unnessecary empty lines between sections.
+
 ## Plugin Documentation
 
 The development team should describe what the plugin does, any limitations (ex only in multitenant mode), any known issues interacting with other plugins, etc. Full documentation including a plugin_config sample should be provided.
@@ -89,7 +89,7 @@ inbound-transport:
 outbound-transport: http
 endpoint: http://host.docker.internal:9060
 
-genesis-url: https://indy.igrant.io/genesis
+genesis-url: http://test.bcovrin.vonx.io/genesis
 
 emit-new-didcomm-prefix: true
 wallet-type: askar

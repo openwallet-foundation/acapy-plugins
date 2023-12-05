@@ -5,7 +5,7 @@ description = ""
 authors = []
 
 [tool.poetry.dependencies]
-aries-cloudagent = { version = "0.10.3" }
+aries-cloudagent = { version = ">=0.10.3, < 1.0.0" }
 asynctest = "^0.13.0"
 pytest = "^7.4.0"
 pytest-asyncio = "^0.21.0"

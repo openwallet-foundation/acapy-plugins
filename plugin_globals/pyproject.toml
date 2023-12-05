@@ -6,7 +6,13 @@ authors = []
 
 [tool.poetry.dependencies]
 python = "^3.9"
-aries-cloudagent = { version = "0.10.3" }
+
+# Define ACA-Py as an optional/extra dependancy so it can be
+# explicitly installed with the plugin if desired.
+aries-cloudagent = { version = ">=0.10.3, < 1.0.0", optional = true }
+
+[tool.poetry.extras]
+aca-py = ["aries-cloudagent"]
 
 [tool.poetry.dev-dependencies]
 ruff = "^0.1.2"

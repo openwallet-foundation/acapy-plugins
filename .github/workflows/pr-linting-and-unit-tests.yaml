@@ -43,7 +43,7 @@ jobs:
         id: changed-plugins
         run: |
 
-          # Collects all the plugin names that have changes. 
+          # Collects all the plugin names that have changes.
           # If there is directory that isn't a plugin then it will need to skip it. Currently skipping plugin_globals
           declare -a changed_dirs=()
           for dir in ./*/; do
@@ -70,7 +70,7 @@ jobs:
         run: |
           for dir in ${{ steps.changed-plugins.outputs.changed-plugins }}; do
             cd $dir
-            poetry install --no-interaction --no-root
+            poetry install --no-interaction --no-root --extras "aca-py"
             cd ..
           done
       #----------------------------------------------
