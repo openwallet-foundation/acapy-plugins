@@ -47,3 +47,29 @@ def test_storage(bob, alice, established_connection):
     # alice should have 1 sent and 1 received (auto-reponse)
     alice_messages = alice.retrieve_basicmessages()
     assert len(alice_messages["results"]) == 2
+
+def test_deletion(bob, alice, established_connection):
+    # make sure connection is active...
+    time.sleep(2)
+
+    # alice send bob a message (alice will store their sent message)
+    resp = alice.send_message(established_connection, "hello bob")
+    assert True
+
+    # make sure auto-respond messages have been exchanged
+    time.sleep(2)
+
+    # bob should have 1 received
+    bob_messages = bob.retrieve_basicmessages()
+    assert len(bob_messages["results"]) == 2
+
+    # alice should have 1 sent and 1 received (auto-reponse)
+    alice_messages = alice.retrieve_basicmessages()
+    assert len(alice_messages["results"]) == 4
+    time.sleep(2)
+
+
+    alice.delete_basicmessage(alice_messages["results"][0]["message_id"])
+    time.sleep(2)
+    alice_messages = alice.retrieve_basicmessages()
+    assert len(alice_messages["results"]) == 3
