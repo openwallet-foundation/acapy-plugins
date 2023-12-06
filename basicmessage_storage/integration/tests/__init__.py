@@ -18,6 +18,10 @@ def post(agent: str, path: str, **kwargs):
     """Post."""
     return requests.post(f"{agent}{path}", **kwargs)
 
+def delete(agent: str, path: str, **kwargs):
+    """Post."""
+    return requests.delete(f"{agent}{path}", **kwargs)
+
 
 def fail_if_not_ok(message: str):
     """Fail the current test if wrapped call fails with message."""
@@ -80,6 +84,13 @@ class Agent:
     def retrieve_basicmessages(self, **kwargs):
         """Retrieve connections."""
         return get(self.url, "/basicmessages", params=kwargs)
+    
+
+    @unwrap_json_response
+    @fail_if_not_ok("Failed to delete basic messages")
+    def delete_basicmessage(self, message_id, **kwargs):
+        """Retrieve connections."""
+        return delete(self.url, f"/basicmessages/{message_id}", params=kwargs)
 
     @unwrap_json_response
     @fail_if_not_ok("Failed to send basic message")
