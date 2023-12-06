@@ -202,7 +202,7 @@ async def delete_message(request: web.BaseRequest):
     try:
         async with profile.session() as session:
             record = await BasicMessageRecord.retrieve_by_message_id(session, message_id)
-        await record.delete_record(session)
+            await record.delete_record(session)
         
     except StorageNotFoundError as err:
         raise web.HTTPNotFound(reason=err.roll_up) from err
