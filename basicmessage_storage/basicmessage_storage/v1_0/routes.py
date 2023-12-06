@@ -188,8 +188,7 @@ async def all_messages_list(request: web.BaseRequest):
 @response_schema(DeleteResponseSchema(), 200, description="")
 @error_handler
 async def delete_message(request: web.BaseRequest):
-    """
-    Request handler for searching basic message record by id.
+    """Request handler for searching basic message record by id.
 
     Args:
         request: aiohttp request object
