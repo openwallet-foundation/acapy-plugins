@@ -193,8 +193,6 @@ async def delete_message(request: web.BaseRequest):
 
     Args:
         request: aiohttp request object
-
-
     """
     context: AdminRequestContext = request["context"]
     profile = context.profile
