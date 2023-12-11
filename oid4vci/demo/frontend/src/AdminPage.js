@@ -1,5 +1,6 @@
 import React from "react";
 import { useNavigate } from "react-router-dom";
+import "./InputForm.css"
 
 const RegistrationPage = () => {
   const navigate = useNavigate();
@@ -105,14 +106,19 @@ const RegistrationPage = () => {
       console.error("Error during registration:", error);
     }
   };
-
   return (
-    <div>
-      <h1>Admin Credential Issuance Preparation</h1>
+  <div class="container" style={{ padding: "3px" }}>
+    <div class="row">
+      <h1 class="input-h1">Admin Credential Issuance Preparation</h1>
       {/* registration form */}
-      <button onClick={handleRegistration}>Register</button>
+      <div class="input-form-group">
+        <button class="btn btn-warning btn-lg input-form-button" onClick={handleRegistration}>
+          Register
+        </button>
+      </div>
     </div>
-  );
+  </div>
+);
 };
 
 export default RegistrationPage;

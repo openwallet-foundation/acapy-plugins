@@ -12,6 +12,7 @@ RUN npm install
 
 # Copy the entire project directory into the container
 COPY frontend .
+RUN ls
 
 # Build the React app for production
 RUN npm run build

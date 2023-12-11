@@ -3,6 +3,7 @@ import axios from "axios";
 import { useLocation, useNavigate } from "react-router-dom";
 import QRCode from "qrcode.react";
 import { useInterval } from "./useInterval";
+import "./InputForm.css"
 
 const QRCodePage = () => {
   const navigate = useNavigate();
@@ -48,11 +49,26 @@ const QRCodePage = () => {
   }, [urlOffer]);
 
   return (
-    <div>
-      <h2>QR Code Page</h2>
-      <QRCode value={qrData} />
+  <div class="container" style={{ padding: "3px" }}>
+    <div class="row">
+      <div class="col-md-3"></div>
+      <div class="col-md-6 input-wrapper">
+        <h1 class="input-h1">QR Code Page</h1>
+        <hr />
+	<div class="container" style={{ padding: "3px"}}>
+	<div class="row">
+	<div class="col-md"></div>
+        <div class="col-md input-form" style={{ backgroundColor: "white", padding: "3px 5px" }}>
+          <QRCode value={qrData} />
+        </div>
+	<div class="col-md"></div>
+	</div>
+	</div>
+      </div>
+      <div class="col-md-3"></div>
     </div>
-  );
+  </div>
+);
 };
 
 export default QRCodePage;

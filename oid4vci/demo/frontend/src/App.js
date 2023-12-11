@@ -4,6 +4,7 @@ import { BrowserRouter as Router, Route, Routes } from 'react-router-dom';
 import InputForm from './InputForm';
 import RegistrationPage from './AdminPage'
 import QRCodePage from './QRCodePage';
+import "bootstrap/dist/css/bootstrap.min.css"
 
 function App() {
   return (
