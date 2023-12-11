@@ -2,8 +2,7 @@ label: basicmessage_storage
 
 # Admin
 admin: [ 0.0.0.0, 3001 ]
-admin-insecure-mode: false
-admin-api-key: change-me
+admin-insecure-mode: true
 
 # Transport
 inbound-transport:
@@ -31,6 +30,5 @@ multitenant-admin: true
 # wallet-key: "insecure, for use in demo only"
 
 log-level: info
-
 auto-accept-invites: true
 auto-respond-messages: true

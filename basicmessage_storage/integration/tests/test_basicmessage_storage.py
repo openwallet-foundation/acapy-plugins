@@ -73,3 +73,12 @@ def test_deletion(bob, alice, established_connection):
     time.sleep(2)
     alice_messages = alice.retrieve_basicmessages()
     assert len(alice_messages["results"]) == 3
+
+# def test_setting(bob, alice, established_connection):
+#     # make sure connection is active...
+#     time.sleep(2)
+
+#     # alice send bob a message (alice will store their sent message)
+#     resp = alice.get_subwallets()
+#     assert resp
+#     print(resp)

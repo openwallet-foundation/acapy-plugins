@@ -13,6 +13,9 @@ def get(agent: str, path: str, **kwargs):
     """Get."""
     return requests.get(f"{agent}{path}", **kwargs)
 
+def put(agent: str, path: str, **kwargs):
+    """Post."""
+    return requests.put(f"{agent}{path}", **kwargs)
 
 def post(agent: str, path: str, **kwargs):
     """Post."""
@@ -99,6 +102,35 @@ class Agent:
         return post(
             self.url,
             f"/connections/{connection_id}/send-message",
+            json={"content": content},
+        )
+    
+    @unwrap_json_response
+    @fail_if_not_ok("Failed to get wallet settings")
+    def get_subwallets(self):
+        """Set connection metadata."""
+        return get(
+            self.url,
+            f"/multitenancy/wallets"
+        )
+
+    @unwrap_json_response
+    @fail_if_not_ok("Failed to get wallet settings")
+    def get_subwallet_settings(self, wallet_id, content):
+        """Set connection metadata."""
+        return get(
+            self.url,
+            f"/multitenancy/wallet/{wallet_id}/",
+            json={"content": content},
+        )
+    
+    @unwrap_json_response
+    @fail_if_not_ok("Failed to set wallet settings")
+    def put_subwallet_settings(self, wallet_id, content):
+        """Set connection metadata."""
+        return put(
+            self.url,
+            f"/multitenancy/wallet/{wallet_id}/",
             json={"content": content},
         )
 
