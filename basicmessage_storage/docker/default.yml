@@ -3,6 +3,7 @@ label: basicmessage_storage
 # Admin
 admin: [ 0.0.0.0, 3001 ]
 admin-insecure-mode: true
+jwt-secret: insecure-jwt-secret
 
 # Transport
 inbound-transport:
@@ -21,14 +22,13 @@ genesis-url: http://test.bcovrin.vonx.io/genesis
 
 # Multi-tenancy
 multitenant: true
-jwt-secret: insecure-jwt-secret
 multitenant-admin: true
+multitenancy-config: '{"wallet-type":"askar-profile","wallet-name":"askar-wallet"}'
 
 # Wallet
-# wallet-name: default
-# wallet-type: indy
-# wallet-key: "insecure, for use in demo only"
-
+wallet-type: askar
 log-level: info
+auto-provision: true
+
 auto-accept-invites: true
 auto-respond-messages: true
