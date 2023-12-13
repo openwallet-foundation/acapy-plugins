@@ -16,10 +16,12 @@ def _alias_generator(key: str) -> str:
 
 class BasicMessageStorageConfig(BaseModel):
     """Configuration for the basicmessage_storage."""
+
     wallet_enabled: bool = True
 
     class Config:
         """Inner class for configuration."""
+
         alias_generator = _alias_generator
         allow_population_by_field_name = True
 
@@ -42,10 +44,10 @@ def process_config_dict(config_dict: dict) -> dict:
 def get_config(settings: Mapping[str, Any]) -> BasicMessageStorageConfig:
     """Retrieve configuration from settings."""
     try:
-        LOGGER.debug("Constructing config from: %s",
-                     settings.get("plugin_config"))
-        plugin_config_dict = settings["plugin_config"].get(
-            "basicmessage_storage", {})
+        LOGGER.debug(
+            "Constructing config from: %s", settings.get("basicmessage_storage")
+        )
+        plugin_config_dict = settings.get("basicmessage_storage", {})
         LOGGER.debug("Retrieved: %s", plugin_config_dict)
         plugin_config_dict = process_config_dict(plugin_config_dict)
         LOGGER.debug("Parsed: %s", plugin_config_dict)
@@ -59,6 +61,5 @@ def get_config(settings: Mapping[str, Any]) -> BasicMessageStorageConfig:
         config = BasicMessageStorageConfig.default()
 
     LOGGER.debug("Returning config: %s", config.json(indent=2))
-    LOGGER.debug("Returning config(aliases): %s",
-                 config.json(by_alias=True, indent=2))
+    LOGGER.debug("Returning config(aliases): %s", config.json(by_alias=True, indent=2))
     return config

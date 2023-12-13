@@ -19,7 +19,7 @@ BASIC_MESSAGE_EVENT_PATTERN = re.compile("^acapy::basicmessage::received$")
 
 async def setup(context: InjectionContext):
     """Setup the plugin."""
-    LOGGER.info("> plugin setup...")
+    LOGGER.info("< basicmessage_storage plugin setup...")
     protocol_registry = context.inject(ProtocolRegistry)
     assert protocol_registry
 
@@ -30,10 +30,13 @@ async def setup(context: InjectionContext):
     # add subwallet config
     ACAPY_LIFECYCLE_CONFIG_FLAG_ARGS_MAP[
         "basicmessage-storage"
-    ] = "basicmessage_storage.enabled"
+    ] = "basicmessage_storage"
 
     event_bus.subscribe(BASIC_MESSAGE_EVENT_PATTERN, basic_message_event_handler)
-    LOGGER.info("< plugin setup.")
+    LOGGER.info(
+        f"- basicmessage_storage: ACAPY_LIFECYCLE_CONFIG_FLAG_ARGS_MAP{ACAPY_LIFECYCLE_CONFIG_FLAG_ARGS_MAP}"
+    )
+    LOGGER.info("< basicmessage_storage plugin setup.")
 
 
 async def basic_message_event_handler(profile: Profile, event: Event):
@@ -42,12 +45,11 @@ async def basic_message_event_handler(profile: Profile, event: Event):
     # grab the received event and persist it.
     msg: BasicMessageRecord = BasicMessageRecord.deserialize(event.payload)
     msg.state = BasicMessageRecord.STATE_RECV
-    LOGGER.info(msg)
-    LOGGER.info(profile.settings)
-    LOGGER.info(get_config(profile.settings))
     if get_config(profile.settings).wallet_enabled:
         async with profile.session() as session:
             await msg.save(session, reason="New received message")
             LOGGER.info(msg)
     else:
-        LOGGER.info("basicmessage not saved, basicmessage_storage.wallet_enabled=False")
+        LOGGER.debug(
+            "basicmessage not saved, basicmessage_storage.wallet_enabled=False"
+        )
