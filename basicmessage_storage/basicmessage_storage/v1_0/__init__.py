@@ -28,14 +28,12 @@ async def setup(context: InjectionContext):
         raise ValueError("EventBus missing in context")
 
     # add subwallet config
+    # acapy should create a separate map for plugin settings
     ACAPY_LIFECYCLE_CONFIG_FLAG_ARGS_MAP[
         "basicmessage-storage"
     ] = "basicmessage_storage"
 
     event_bus.subscribe(BASIC_MESSAGE_EVENT_PATTERN, basic_message_event_handler)
-    LOGGER.info(
-        f"- basicmessage_storage: ACAPY_LIFECYCLE_CONFIG_FLAG_ARGS_MAP{ACAPY_LIFECYCLE_CONFIG_FLAG_ARGS_MAP}"
-    )
     LOGGER.info("< basicmessage_storage plugin setup.")
 
 
