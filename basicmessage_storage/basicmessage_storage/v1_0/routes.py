@@ -130,7 +130,9 @@ async def plugin_connections_send_message(request: web.BaseRequest):
     context: AdminRequestContext = request["context"]
     profile = context.profile
 
-    if get_config(profile.settings).wallet_enabled:
+    if not get_config(profile.settings).wallet_enabled:
+        LOGGER.debug("message not saved, basicmessage_storage.wallet_enabled=False")
+    else:
         try:
             async with profile.session() as session:
                 await msg.save(session, reason="New sent message")
@@ -138,10 +140,6 @@ async def plugin_connections_send_message(request: web.BaseRequest):
         except Exception as err:
             LOGGER.error(err)
             raise err
-    else:
-        LOGGER.debug(
-            "basicmessage not saved, basicmessage_storage.wallet_enabled=False"
-        )
 
     return response
 

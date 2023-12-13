@@ -6,7 +6,6 @@ from aries_cloudagent.core.event_bus import EventBus, Event
 from aries_cloudagent.core.profile import Profile
 from aries_cloudagent.core.protocol_registry import ProtocolRegistry
 from aries_cloudagent.multitenant.admin.routes import (
-    ACAPY_LIFECYCLE_CONFIG_FLAG_MAP,
     ACAPY_LIFECYCLE_CONFIG_FLAG_ARGS_MAP,
 )
 from .models import BasicMessageRecord
@@ -27,8 +26,9 @@ async def setup(context: InjectionContext):
     if not event_bus:
         raise ValueError("EventBus missing in context")
 
-    # add subwallet config
     # acapy should create a separate map for plugin settings
+    # add subwallet config, acapy will accept any child under basicmessage-storage
+    # but will get filtered with `.config.get_config`
     ACAPY_LIFECYCLE_CONFIG_FLAG_ARGS_MAP[
         "basicmessage-storage"
     ] = "basicmessage_storage"
@@ -40,14 +40,12 @@ async def setup(context: InjectionContext):
 async def basic_message_event_handler(profile: Profile, event: Event):
     """Event handler for Basic Messages."""
     LOGGER.info(event.payload)
-    # grab the received event and persist it.
+
     msg: BasicMessageRecord = BasicMessageRecord.deserialize(event.payload)
     msg.state = BasicMessageRecord.STATE_RECV
-    if get_config(profile.settings).wallet_enabled:
+    if not get_config(profile.settings).wallet_enabled:
+        LOGGER.debug("message not saved, basicmessage_storage.wallet_enabled=False")
+    else:
         async with profile.session() as session:
             await msg.save(session, reason="New received message")
             LOGGER.info(msg)
-    else:
-        LOGGER.debug(
-            "basicmessage not saved, basicmessage_storage.wallet_enabled=False"
-        )
