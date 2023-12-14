@@ -10,7 +10,6 @@ from basicmessage_storage.v1_0.models import BasicMessageRecord
 
 from .. import routes as test_module
 from ..routes import all_messages_list, plugin_connections_send_message
-from ..models import BasicMessageRecord
 
 
 class TestRoutes(AsyncTestCase):
