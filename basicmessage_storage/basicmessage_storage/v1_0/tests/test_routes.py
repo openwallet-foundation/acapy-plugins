@@ -10,6 +10,7 @@ from basicmessage_storage.v1_0.models import BasicMessageRecord
 
 from .. import routes as test_module
 from ..routes import all_messages_list, plugin_connections_send_message
+from ..models import BasicMessageRecord
 
 
 class TestRoutes(AsyncTestCase):
@@ -64,7 +65,9 @@ class TestRoutes(AsyncTestCase):
 
     @asynctest.patch.object(base_module, "ConnRecord", autospec=True)
     @asynctest.patch.object(test_module, "BasicMessageRecord", autospec=True)
-    async def test_all_messages_list_succeeds_and_sorts(self, mock_basic_message_rec_class, _):
+    async def test_all_messages_list_succeeds_and_sorts(
+        self, mock_basic_message_rec_class, _
+    ):
         mock_basic_message_rec_class.query = async_mock.CoroutineMock()
         mock_basic_message_rec_class.query.return_value = [
             BasicMessageRecord(record_id="2", created_at="2023-10-13T21:49:14Z"),
@@ -72,11 +75,11 @@ class TestRoutes(AsyncTestCase):
             BasicMessageRecord(record_id="0", created_at="2023-10-13T22:49:14Z"),
         ]
         response = await all_messages_list(self.request)
-        results = json.loads(response.body)['results']
+        results = json.loads(response.body)["results"]
 
         mock_basic_message_rec_class.query.assert_called()
-        assert results[0]['created_at'] == '2023-10-13T22:49:14Z'
-        assert results[2]['created_at'] == '2023-10-13T20:49:14Z'
+        assert results[0]["created_at"] == "2023-10-13T22:49:14Z"
+        assert results[2]["created_at"] == "2023-10-13T20:49:14Z"
 
     async def test_register(self):
         mock_app = async_mock.MagicMock()
@@ -89,3 +92,21 @@ class TestRoutes(AsyncTestCase):
         mock_app = async_mock.MagicMock(_state={"swagger_dict": {}})
         test_module.post_process_routes(mock_app)
         assert "tags" in mock_app._state["swagger_dict"]
+
+    @asynctest.patch.object(BasicMessageRecord, "save")
+    @asynctest.patch.object(base_module, "ConnRecord", autospec=True)
+    @asynctest.patch.object(test_module, "BasicMessageRecord", autospec=True)
+    async def test_basic_message_send_does_not_save_if_disabled(
+        self, mock_basic_message_rec_class, _, mock_save
+    ):
+        self.request.json = async_mock.CoroutineMock()
+        self.request.json.return_value = {"content": "content"}
+        self.request.match_info = {"conn_id": self.test_conn_id}
+
+        mock_basic_message_rec = async_mock.MagicMock(save=async_mock.CoroutineMock())
+        mock_basic_message_rec_class.deserialize.return_value = mock_basic_message_rec
+
+        with asynctest.patch.object(test_module, "get_config") as mock_config:
+            mock_config.return_value = asynctest.Mock(wallet_enabled=True)
+            await plugin_connections_send_message(self.request)
+            assert not mock_basic_message_rec.save.assert_called()

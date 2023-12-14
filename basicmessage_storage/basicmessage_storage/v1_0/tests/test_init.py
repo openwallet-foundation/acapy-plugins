@@ -1,11 +1,17 @@
 import asynctest
+import basicmessage_storage.v1_0 as test_module
+
 from aries_cloudagent.core.event_bus import Event
 from aries_cloudagent.core.in_memory import InMemoryProfile
 from asynctest import TestCase as AsyncTestCase
 from asynctest import mock as async_mock
-
+from pydantic import BaseModel
 from .. import basic_message_event_handler, setup
 from ..models import BasicMessageRecord
+
+
+class MockConfig(BaseModel):
+    wallet_enabled: bool
 
 
 class TestInit(AsyncTestCase):
@@ -42,3 +48,14 @@ class TestInit(AsyncTestCase):
         await basic_message_event_handler(self.profile, event)
 
         assert mock_save.called
+
+    @asynctest.patch.object(BasicMessageRecord, "save")
+    async def test_basic_message_event_handler_does_not_save_if_disabled(
+        self, mock_save
+    ):
+        event = Event(topic="test", payload={})
+        with asynctest.patch.object(test_module, "get_config") as mock_config:
+            mock_config.return_value = MockConfig(wallet_enabled=False)
+            await basic_message_event_handler(self.profile, event)
+
+            assert not mock_save.called

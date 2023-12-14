@@ -41,7 +41,7 @@ async def basic_message_event_handler(profile: Profile, event: Event):
     """Event handler for Basic Messages."""
     LOGGER.info(event.payload)
 
-    msg: BasicMessageRecord = BasicMessageRecord.deserialize(event.payload)
+    msg = BasicMessageRecord.deserialize(event.payload)
     msg.state = BasicMessageRecord.STATE_RECV
     if not get_config(profile.settings).wallet_enabled:
         LOGGER.debug("message not saved, basicmessage_storage.wallet_enabled=False")
