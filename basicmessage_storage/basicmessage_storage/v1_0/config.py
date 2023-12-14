@@ -1,7 +1,6 @@
 """Configuration classes for multitenant_provider."""
 import logging
-from datetime import timedelta
-from typing import Any, Mapping, Optional
+from typing import Any, Mapping
 
 from mergedeep import merge
 from pydantic import BaseModel
