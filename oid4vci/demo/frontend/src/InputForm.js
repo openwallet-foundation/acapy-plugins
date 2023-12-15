@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import axios from "axios";
 import { useNavigate, useLocation } from "react-router-dom";
+import "./InputForm.css"
 
 const InputForm = () => {
   const navigate = useNavigate();
@@ -8,9 +9,9 @@ const InputForm = () => {
   const { supportedCredId, did } = state;
   console.log(supportedCredId);
   console.log(did);
-  const [firstName, setFirstName] = useState("");
-  const [lastName, setLastName] = useState("");
-  const [email, setEmail] = useState("");
+  const [firstName, setFirstName] = useState("Sally");
+  const [lastName, setLastName] = useState("Sparrow");
+  const [email, setEmail] = useState("SallySparrow@email.com");
   const API_BASE_URL = "http://localhost:3001";
 
   const exchangeCreateUrl = `${API_BASE_URL}/oid4vci/exchange/create`;
@@ -69,39 +70,53 @@ const InputForm = () => {
   };
 
   return (
-    <div>
-      <h2>Input Form</h2>
+    <div class="container" style={{padding: "3px"}}>
+      <div class="row">
+      <div class="col-md-3"></div>
+      <div class="col-md-6 input-wrapper">
+      <h1 class="input-h1">Input Form</h1>
 
-      <form onSubmit={handleSubmit}>
-        <div>
-          <label htmlFor="firstName">First Name:</label>
+      <hr />
+
+      <div>
+      <form class="input-form" onSubmit={handleSubmit}>
+        <div class="input-form-group">
+          <label htmlFor="firstName" class="input-label">First Name</label>
           <input
             type="text"
             id="firstName"
             value={firstName}
             onChange={handleFirstNameChange}
+	    class="input-form-control"
           />
         </div>
-        <div>
-          <label htmlFor="lastName">Last Name:</label>
+        <div class="input-form-group">
+          <label htmlFor="lastName" class="input-label">Last Name</label>
           <input
             type="text"
             id="lastName"
             value={lastName}
             onChange={handleLastNameChange}
+	    class="input-form-control"
           />
         </div>
-        <div>
-          <label htmlFor="email">Email:</label>
+        <div class="input-form-group">
+          <label htmlFor="email" class="input-label">Email</label>
           <input
             type="email"
             id="email"
             value={email}
             onChange={handleEmailChange}
+	    class="input-form-control"
           />
         </div>
-        <button type="submit">Share</button>
+	<div class="input-form-group">
+        <button type="submit" class="btn btn-warning btn-lg input-form-button">Share</button>
+	</div>
       </form>
+      </div>
+      </div>
+      </div>
     </div>
   );
 };
