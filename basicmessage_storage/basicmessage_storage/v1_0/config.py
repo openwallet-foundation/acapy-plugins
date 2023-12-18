@@ -48,9 +48,9 @@ def get_config(settings: Mapping[str, Any]) -> BasicMessageStorageConfig:
             settings.get("plugin_config", {}).get("basicmessage_storage"),
         )
         global_plugin_config_dict = settings.get("plugin_config", {}).get(
-            "basicmessage_storage"
+            "basicmessage_storage", {}
         )
-        tenant_plugin_config_dict = settings.get("basicmessage_storage")
+        tenant_plugin_config_dict = settings.get("basicmessage_storage", {})
         LOGGER.debug("Retrieved (global): %s", global_plugin_config_dict)
         LOGGER.debug("Retrieved (tenant)): %s", tenant_plugin_config_dict)
         global_plugin_config_dict = process_config_dict(global_plugin_config_dict)
