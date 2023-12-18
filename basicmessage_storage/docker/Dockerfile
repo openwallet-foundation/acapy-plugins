@@ -28,4 +28,4 @@ COPY basicmessage_storage/ basicmessage_storage/
 COPY docker/*.yml ./
 
 ENTRYPOINT ["/bin/bash", "-c", "aca-py \"$@\"", "--"]
-CMD ["start", "--arg-file", "default.yml"]
+CMD ["start", "--arg-file", "default.yml", "--plugin-config", "plugin.yml"]

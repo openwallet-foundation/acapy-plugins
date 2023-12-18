@@ -10,7 +10,7 @@
       "request": "launch",
       "module": "aries_cloudagent",
       "justMyCode": false,
-      "args": ["start", "--arg-file=${workspaceRoot}/docker/default.yml"]
+      "args": ["start", "--arg-file=${workspaceRoot}/docker/default.yml", "--plugin-config=${workspaceRoot}/docker/plugins.yml"]
     },
     {
       "name": "ruff - basicmessage_storage",

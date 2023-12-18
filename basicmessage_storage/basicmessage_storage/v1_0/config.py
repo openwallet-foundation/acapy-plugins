@@ -16,7 +16,7 @@ def _alias_generator(key: str) -> str:
 class BasicMessageStorageConfig(BaseModel):
     """Configuration for the basicmessage_storage."""
 
-    wallet_enabled: bool = True
+    wallet_enabled: bool = False
 
     class Config:
         """Inner class for configuration."""
@@ -44,15 +44,24 @@ def get_config(settings: Mapping[str, Any]) -> BasicMessageStorageConfig:
     """Retrieve configuration from settings."""
     try:
         LOGGER.debug(
-            "Constructing config from: %s", settings.get("basicmessage_storage")
+            "Constructing config from: %s",
+            settings.get("plugin_config", {}).get("basicmessage_storage"),
         )
-        plugin_config_dict = settings.get("basicmessage_storage", {})
-        LOGGER.debug("Retrieved: %s", plugin_config_dict)
-        plugin_config_dict = process_config_dict(plugin_config_dict)
-        LOGGER.debug("Parsed: %s", plugin_config_dict)
+        global_plugin_config_dict = settings.get("plugin_config", {}).get(
+            "basicmessage_storage"
+        )
+        tenant_plugin_config_dict = settings.get("basicmessage_storage")
+        LOGGER.debug("Retrieved (global): %s", global_plugin_config_dict)
+        LOGGER.debug("Retrieved (tenant)): %s", tenant_plugin_config_dict)
+        global_plugin_config_dict = process_config_dict(global_plugin_config_dict)
+        tenant_plugin_config_dict = process_config_dict(tenant_plugin_config_dict)
+        LOGGER.debug("Parsed (global): %s", global_plugin_config_dict)
+        LOGGER.debug("Parsed (tenant): %s", tenant_plugin_config_dict)
         default_config = BasicMessageStorageConfig.default().dict()
         LOGGER.debug("Default Config: %s", default_config)
-        config_dict = merge({}, default_config, plugin_config_dict)
+        config_dict = merge(
+            {}, default_config, global_plugin_config_dict, tenant_plugin_config_dict
+        )
         LOGGER.debug("Merged: %s", config_dict)
         config = BasicMessageStorageConfig(**config_dict)
     except KeyError:
