@@ -45,17 +45,17 @@ class TestInit(AsyncTestCase):
     @asynctest.patch.object(BasicMessageRecord, "save")
     async def test_basic_message_event_handler_saves_record(self, mock_save):
         event = Event(topic="test", payload={})
-        await basic_message_event_handler(self.profile, event)
+        with asynctest.patch.object(test_module, "get_config") as mock_config:
+            mock_config.return_value = MockConfig(wallet_enabled=True)
+            await basic_message_event_handler(self.profile, event)
 
-        assert mock_save.called
+            assert mock_save.called
 
     @asynctest.patch.object(BasicMessageRecord, "save")
-    async def test_basic_message_event_handler_does_not_save_if_disabled(
+    async def test_basic_message_event_handler_does_not_save_if_not_enabled(
         self, mock_save
     ):
         event = Event(topic="test", payload={})
-        with asynctest.patch.object(test_module, "get_config") as mock_config:
-            mock_config.return_value = MockConfig(wallet_enabled=False)
-            await basic_message_event_handler(self.profile, event)
+        await basic_message_event_handler(self.profile, event)
 
-            assert not mock_save.called
+        assert not mock_save.called
