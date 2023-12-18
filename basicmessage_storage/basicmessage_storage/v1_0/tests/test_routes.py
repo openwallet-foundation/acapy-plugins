@@ -61,9 +61,11 @@ class TestRoutes(AsyncTestCase):
             save=lambda: (_ for _ in ()).throw(Exception("test"))
         )
         mock_basic_message_rec_class.deserialize.return_value = mock_basic_message_rec
+        with asynctest.patch.object(test_module, "get_config") as mock_config:
+            mock_config.return_value = MockConfig(wallet_enabled=True)
 
-        with self.assertRaises(Exception):
-            await plugin_connections_send_message(self.request)
+            with self.assertRaises(Exception):
+                await plugin_connections_send_message(self.request)
 
     @asynctest.patch.object(base_module, "ConnRecord", autospec=True)
     @asynctest.patch.object(test_module, "BasicMessageRecord", autospec=True)
