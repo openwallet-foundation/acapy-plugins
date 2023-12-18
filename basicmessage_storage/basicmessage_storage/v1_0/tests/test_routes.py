@@ -10,6 +10,7 @@ from basicmessage_storage.v1_0.models import BasicMessageRecord
 
 from .. import routes as test_module
 from ..routes import all_messages_list, plugin_connections_send_message
+from .test_init import MockConfig
 
 
 class TestRoutes(AsyncTestCase):
@@ -36,12 +37,14 @@ class TestRoutes(AsyncTestCase):
         self.request.json = async_mock.CoroutineMock()
         self.request.json.return_value = {"content": "content"}
         self.request.match_info = {"conn_id": self.test_conn_id}
-
         mock_basic_message_rec = async_mock.MagicMock(save=async_mock.CoroutineMock())
         mock_basic_message_rec_class.deserialize.return_value = mock_basic_message_rec
-        res = await plugin_connections_send_message(self.request)
+        with asynctest.patch.object(test_module, "get_config") as mock_config:
+            mock_config.return_value = MockConfig(wallet_enabled=True)
 
-        mock_basic_message_rec.save.assert_called()
+            res = await plugin_connections_send_message(self.request)
+
+            mock_basic_message_rec.save.assert_called()
         assert res is not None
 
     @asynctest.patch.object(base_module, "ConnRecord", autospec=True)
