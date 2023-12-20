@@ -28,7 +28,6 @@ def established_connection(bob, alice):
     yield resp["connection_id"]
 
 
-
 def test_storage(bob, alice, established_connection):
     # make sure connection is active...
     time.sleep(2)
@@ -47,6 +46,7 @@ def test_storage(bob, alice, established_connection):
     # alice should have 1 sent and 1 received (auto-reponse)
     alice_messages = alice.retrieve_basicmessages()
     assert len(alice_messages["results"]) == 2
+
 
 def test_deletion(bob, alice, established_connection):
     # make sure connection is active...
@@ -67,7 +67,6 @@ def test_deletion(bob, alice, established_connection):
     alice_messages = alice.retrieve_basicmessages()
     assert len(alice_messages["results"]) == 4
     time.sleep(2)
-
 
     alice.delete_basicmessage(alice_messages["results"][0]["message_id"])
     time.sleep(2)

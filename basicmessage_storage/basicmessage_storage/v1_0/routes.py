@@ -28,6 +28,8 @@ from aries_cloudagent.storage.error import StorageError, StorageNotFoundError
 from marshmallow import fields, validate
 
 from .models import BasicMessageRecord, BasicMessageRecordSchema
+from .config import get_config
+
 
 LOGGER = logging.getLogger(__name__)
 
@@ -60,6 +62,7 @@ class BasicMessageListSchema(OpenAPISchema):
         fields.Nested(BasicMessageRecordSchema()),
         description="List of basic message records",
     )
+
 
 class BasicMessageIdMatchInfoSchema(OpenAPISchema):
     """Path parameters and validators for request taking message id."""
@@ -126,13 +129,17 @@ async def plugin_connections_send_message(request: web.BaseRequest):
     # save it
     context: AdminRequestContext = request["context"]
     profile = context.profile
-    try:
-        async with profile.session() as session:
-            await msg.save(session, reason="New sent message")
-            LOGGER.debug(msg)
-    except Exception as err:
-        LOGGER.error(err)
-        raise err
+
+    if not get_config(profile.settings).wallet_enabled:
+        LOGGER.debug("message not saved, basicmessage_storage.wallet_enabled=False")
+    else:
+        try:
+            async with profile.session() as session:
+                await msg.save(session, reason="New sent message")
+                LOGGER.info(msg)
+        except Exception as err:
+            LOGGER.error(err)
+            raise err
 
     return response
 
@@ -198,9 +205,11 @@ async def delete_message(request: web.BaseRequest):
     message_id = request.match_info["message_id"]
     try:
         async with profile.session() as session:
-            record = await BasicMessageRecord.retrieve_by_message_id(session, message_id)
+            record = await BasicMessageRecord.retrieve_by_message_id(
+                session, message_id
+            )
             await record.delete_record(session)
-        
+
     except StorageNotFoundError as err:
         raise web.HTTPNotFound(reason=err.roll_up) from err
     except (StorageError, BaseModelError) as err:

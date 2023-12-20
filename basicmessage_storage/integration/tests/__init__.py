@@ -18,8 +18,9 @@ def post(agent: str, path: str, **kwargs):
     """Post."""
     return requests.post(f"{agent}{path}", **kwargs)
 
+
 def delete(agent: str, path: str, **kwargs):
-    """Post."""
+    """Delete."""
     return requests.delete(f"{agent}{path}", **kwargs)
 
 
@@ -84,7 +85,6 @@ class Agent:
     def retrieve_basicmessages(self, **kwargs):
         """Retrieve connections."""
         return get(self.url, "/basicmessages", params=kwargs)
-    
 
     @unwrap_json_response
     @fail_if_not_ok("Failed to delete basic messages")
