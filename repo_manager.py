@@ -1,9 +1,11 @@
+from copy import deepcopy
 import os
 import shutil
 from typing import Optional
 from enum import Enum
 
-GLOBAL_PLUGIN_DIR = 'plugin_globals' 
+GLOBAL_PLUGIN_DIR = 'plugin_globals'
+
 
 class PluginInfo:
     def __init__(
@@ -17,11 +19,11 @@ class PluginInfo:
         self.description = description
 
 
-class MangagedPoetrySections:
+class MangagedPoetrySections(Enum):
     META = '[tool.poetry]'
     DEPS = '[tool.poetry.dependencies]'
-    INT_DEPS = '[tool.poetry.dev-dependencies]'
-    DEV_DEPS = '[tool.poetry.group.integration.dependencies]'
+    DEV_DEPS = '[tool.poetry.dev-dependencies]'
+    INT_DEPS = '[tool.poetry.group.integration.dependencies]'
     RUFF = '[tool.ruff]'
     RUFF_LINT = '[tool.ruff.lint]'
     RUFF_FILES = '[tool.ruff.per-file-ignores]'
@@ -30,35 +32,38 @@ class MangagedPoetrySections:
     COVERAGE_REPORT = '[tool.coverage.report]'
     COVERAGE_XML = '[tool.coverage.xml]'
     BUILD = '[build-system]'
+    EXTRAS = '[tool.poetry.extras]'
 
 
-class Sections:
-    def __init__(self):
-        self.meta = []
-        self.deps = []
-        self.dev_deps = []
-        self.int_deps = []
-        self.ruff = []
-        self.ruff_lint = []
-        self.ruff_files = []
-        self.pytest = []
-        self.coverage = []
-        self.coverage_report = []
-        self.coverage_xml = []
-        self.build = []
+sections = {
+    'META': [],
+    'DEPS': [],
+    'DEV_DEPS': [],
+    'INT_DEPS': [],
+    'RUFF': [],
+    'RUFF_LINT': [],
+    'RUFF_FILES': [],
+    'PYTEST': [],
+    'COVERAGE': [],
+    'COVERAGE_REPORT': [],
+    'COVERAGE_XML': [],
+    'BUILD': [],
+    'EXTRAS': []
+}
+
 
 class NEW_PLUGIN_FOLDERS(Enum):
     DOCKER = 'docker'
     INTEGRATION = 'integration'
+    DEVCONTAINER = '.devcontainer'
+    VSCODE = '.vscode'
+
 
 class NEW_PLUGIN_FILES(Enum):
     PYPROJECT = 'pyproject.toml'
     README = 'README.md'
     DEFINITION = 'definition.py'
 
-class COMMON_DEV_FOLDERS(Enum):
-    DEVCONTAINER = '.devcontainer'
-    VSCODE = '.vscode'
 
 class TAGGED_FILES(Enum):
     DOCKER_DEFAULT = 'docker/default.yml'
@@ -78,10 +83,6 @@ def replace_plugin_tag(path: str, info: PluginInfo):
         file.write(filedata)
 
 
-def is_blank_line(line: str) -> bool:
-    return len(line.strip()) == 0
-
-
 def copy_all_common_files_for_new_plugin(info: PluginInfo) -> None:
     for folder in list(NEW_PLUGIN_FOLDERS):
         shutil.copytree(
@@ -93,23 +94,9 @@ def copy_all_common_files_for_new_plugin(info: PluginInfo) -> None:
             f'./{GLOBAL_PLUGIN_DIR}/{file.value}',
             f'./{info.name}/{file.value}'
         )
-
-def copy_common_files_for_all_plugins(info: PluginInfo) -> None:
-    for folder in list(COMMON_DEV_FOLDERS):
-        shutil.copytree(
-            f'./{GLOBAL_PLUGIN_DIR}/{folder.value}',
-            f'./{info.name}/{folder.value}',
-            dirs_exist_ok=True
-        )
     for file in list(TAGGED_FILES):
         replace_plugin_tag(
             f'./{info.name}/{file.value}', info)
-
-
-def copy_and_tag_shared_files(info: PluginInfo, new_plugin: bool = True):
-    if new_plugin:
-        copy_all_common_files_for_new_plugin(info)
-    copy_common_files_for_all_plugins(info)
 
 
 def combine_dependenices(plugin_dependencies, global_dependencies) -> None:
@@ -117,50 +104,37 @@ def combine_dependenices(plugin_dependencies, global_dependencies) -> None:
     for p_dep in plugin_dependencies:
         if (p_dep.split('=')[0].strip() not in [g_dep.split('=')[0].strip() for g_dep in global_dependencies]):
             global_dependencies.append(p_dep)
-    global_dependencies.sort()
 
 
-def get_section(i: int, filedata: list, arr: list) -> int:
+def is_end_of_section(line: str, current_section: str) -> bool:
+    str_line = line.strip()
+    return str_line in [section.value for section in MangagedPoetrySections] and str_line != current_section
+
+
+def get_section(i: int, filedata: list, arr: list, current_section: str) -> int:
     """Put the section into the array and return the number of lines in the section."""
     j = i
-    while j < len(filedata) and not is_blank_line(filedata[j]):
+    while j < len(filedata) and not is_end_of_section(filedata[j], current_section):
         arr.append(filedata[j])
         j += 1
+    # Remove the last empty line
+    if arr[-1] == '':
+        arr.pop()
     return j - i
 
 
-def extract_common_sections(filedata: str, sections: Sections) -> None:
+def extract_common_sections(filedata: str, sections: dict) -> None:
     """Go through the file by line and extract the section into the sections object."""
     filedata = filedata.split('\n')
     for i in range(len(filedata)):
         line = filedata[i]
-        if line == MangagedPoetrySections.META:
-            i += get_section(i + 1, filedata, sections.meta)
-        if line == MangagedPoetrySections.DEPS:
-            i += get_section(i + 1, filedata, sections.deps)
-        if line == MangagedPoetrySections.DEV_DEPS:
-            i += get_section(i + 1, filedata, sections.dev_deps)
-        if line == MangagedPoetrySections.INT_DEPS:
-            i += get_section(i + 1, filedata, sections.int_deps)
-        if line == MangagedPoetrySections.RUFF:
-            i += get_section(i + 1, filedata, sections.ruff)
-        if line == MangagedPoetrySections.RUFF_LINT:
-            i += get_section(i + 1, filedata, sections.ruff_lint)
-        if line == MangagedPoetrySections.RUFF_FILES:
-            i += get_section(i + 1, filedata, sections.ruff_files)
-        if line == MangagedPoetrySections.PYTEST:
-            i += get_section(i + 1, filedata, sections.pytest)
-        if line == MangagedPoetrySections.COVERAGE:
-            i += get_section(i + 1, filedata, sections.coverage)
-        if line == MangagedPoetrySections.COVERAGE_REPORT:
-            i += get_section(i + 1, filedata, sections.coverage_report)
-        if line == MangagedPoetrySections.COVERAGE_XML:
-            i += get_section(i + 1, filedata, sections.coverage_xml)
-        if line == MangagedPoetrySections.BUILD:
-            i += get_section(i + 1, filedata, sections.build)
+        for section in MangagedPoetrySections:
+            if line.startswith(section.value):
+                i += get_section(i + 1, filedata,
+                                 sections[section.name], section.value)
 
 
-def get_section_output(i: int, content: list, output: list, section: list) -> int:
+def get_section_output(i: int, content: list, output: list, section: list, current_section: str) -> int:
     """
     Get a config section based off of an empty line of length of file.
     Args:
@@ -173,7 +147,7 @@ def get_section_output(i: int, content: list, output: list, section: list) -> in
     """
     j = i
     output.append(content[j])
-    while (j < len(content) - 1 and not is_blank_line(content[j])):
+    while (j < len(content) - 1 and not is_end_of_section(content[j], current_section)):
         j += 1
     while (len(section) > 0):
         output.append(section.pop(0) + '\n')
@@ -181,10 +155,10 @@ def get_section_output(i: int, content: list, output: list, section: list) -> in
     return j - i
 
 
-def get_and_combine_main_poetry_sections(name: str) -> (Sections, Sections):
+def get_and_combine_main_poetry_sections(name: str) -> (dict, dict):
     """Get the global main sections and combine them with the plugin specific sections."""
-    global_sections = Sections()
-    plugin_sections = Sections()
+    global_sections = deepcopy(sections)
+    plugin_sections = deepcopy(sections)
 
     with open(f'./{GLOBAL_PLUGIN_DIR}/{TAGGED_FILES.PYPROJECT.value}', 'r') as file:
         filedata = file.read()
@@ -194,15 +168,15 @@ def get_and_combine_main_poetry_sections(name: str) -> (Sections, Sections):
         filedata = file.read()
         extract_common_sections(filedata, plugin_sections)
 
-    combine_dependenices(plugin_sections.deps, global_sections.deps)
-    combine_dependenices(plugin_sections.dev_deps,
-                         global_sections.dev_deps)
-    combine_dependenices(plugin_sections.int_deps,
-                         global_sections.int_deps)
+    combine_dependenices(plugin_sections['DEPS'], global_sections['DEPS'])
+    combine_dependenices(plugin_sections['DEV_DEPS'],
+                         global_sections['DEV_DEPS'])
+    combine_dependenices(plugin_sections['INT_DEPS'],
+                         global_sections['INT_DEPS'])
     return global_sections, plugin_sections
 
 
-def process_main_config_sections(name: str, plugin_sections: Sections, global_sections: Sections) -> None:
+def process_main_config_sections(name: str, plugin_sections: dict, global_sections: dict) -> None:
     """Process the main config sections and write them to the plugins pyproject.toml file."""
     with open(f'./{GLOBAL_PLUGIN_DIR}/{TAGGED_FILES.PYPROJECT.value}', 'r') as in_file:
         content = in_file.readlines()
@@ -211,54 +185,59 @@ def process_main_config_sections(name: str, plugin_sections: Sections, global_se
     with open(f'./{name}/{TAGGED_FILES.PYPROJECT.value}', 'w') as out_file:
         i = 0
         while i < len(content):
-            if content[i].startswith(MangagedPoetrySections.META):
-                output.append(MangagedPoetrySections.META + '\n')
-                [output.append(line + '\n') for line in plugin_sections.meta]
+            if content[i].startswith(MangagedPoetrySections.META.value):
+                output.append(MangagedPoetrySections.META.value + '\n')
+                [output.append(line + '\n')
+                 for line in plugin_sections['META']]
                 output.append('\n')
                 i += 1
-            if content[i].startswith(MangagedPoetrySections.DEPS):
+            if content[i].startswith(MangagedPoetrySections.DEPS.value):
                 i += get_section_output(i, content,
-                                        output, global_sections.deps)
-            if content[i].startswith(MangagedPoetrySections.DEV_DEPS):
+                                        output, global_sections[MangagedPoetrySections.DEPS.name], MangagedPoetrySections.DEPS.value)
+            if content[i].startswith(MangagedPoetrySections.DEV_DEPS.value):
                 i += get_section_output(i, content,
-                                        output, global_sections.dev_deps)
-            if content[i].startswith(MangagedPoetrySections.INT_DEPS):
+                                        output, global_sections[MangagedPoetrySections.DEV_DEPS.name], MangagedPoetrySections.DEV_DEPS.value)
+            if content[i].startswith(MangagedPoetrySections.INT_DEPS.value):
                 i += get_section_output(i, content,
-                                        output, global_sections.int_deps)
-            if content[i].startswith(MangagedPoetrySections.RUFF):
+                                        output, global_sections[MangagedPoetrySections.INT_DEPS.name], MangagedPoetrySections.INT_DEPS.value)
+            if content[i].startswith(MangagedPoetrySections.RUFF.value):
                 i += get_section_output(i, content,
-                                        output, global_sections.ruff)
-            if content[i].startswith(MangagedPoetrySections.RUFF_LINT):
+                                        output, global_sections[MangagedPoetrySections.RUFF.name], MangagedPoetrySections.RUFF.value)
+            if content[i].startswith(MangagedPoetrySections.RUFF_LINT.value):
                 i += get_section_output(i, content,
-                                        output, global_sections.ruff_lint)
-            if content[i].startswith(MangagedPoetrySections.RUFF_FILES):
+                                        output, global_sections[MangagedPoetrySections.RUFF_LINT.name], MangagedPoetrySections.RUFF_LINT.value)
+            if content[i].startswith(MangagedPoetrySections.RUFF_FILES.value):
                 i += get_section_output(i, content,
-                                        output, global_sections.ruff_files)
-            if content[i].startswith(MangagedPoetrySections.PYTEST):
+                                        output, global_sections[MangagedPoetrySections.RUFF_FILES.name], MangagedPoetrySections.RUFF_FILES.value)
+            if content[i].startswith(MangagedPoetrySections.PYTEST.value):
                 i += get_section_output(i, content,
-                                        output, global_sections.pytest)
-            if content[i].startswith(MangagedPoetrySections.COVERAGE):
+                                        output, global_sections[MangagedPoetrySections.PYTEST.name], MangagedPoetrySections.PYTEST.value)
+            if content[i].startswith(MangagedPoetrySections.COVERAGE.value):
                 i += get_section_output(i, content,
-                                        output, global_sections.coverage)
-            if content[i].startswith(MangagedPoetrySections.COVERAGE_REPORT):
+                                        output, global_sections[MangagedPoetrySections.COVERAGE.name], MangagedPoetrySections.COVERAGE.value)
+            if content[i].startswith(MangagedPoetrySections.COVERAGE_REPORT.value):
                 i += get_section_output(i, content, output,
-                                        global_sections.coverage_report)
-            if content[i].startswith(MangagedPoetrySections.COVERAGE_XML):
+                                        global_sections[MangagedPoetrySections.COVERAGE_REPORT.name], MangagedPoetrySections.COVERAGE_REPORT.value)
+            if content[i].startswith(MangagedPoetrySections.COVERAGE_XML.value):
                 i += get_section_output(i, content,
-                                        output, global_sections.coverage_xml)
-            if content[i].startswith(MangagedPoetrySections.BUILD):
+                                        output, global_sections[MangagedPoetrySections.COVERAGE_XML.name], MangagedPoetrySections.COVERAGE_XML.value)
+            if content[i].startswith(MangagedPoetrySections.BUILD.value):
                 i += get_section_output(i, content,
-                                        output, global_sections.build)
+                                        output, global_sections[MangagedPoetrySections.BUILD.name], MangagedPoetrySections.BUILD.value)
+            if content[i].startswith(MangagedPoetrySections.EXTRAS.value):
+                i += get_section_output(i, content,
+                                        output, global_sections[MangagedPoetrySections.EXTRAS.name], MangagedPoetrySections.EXTRAS.value)
             else:
                 i += 1
         out_file.writelines(output)
-    replace_plugin_tag(f'./{name}/{TAGGED_FILES.PYPROJECT.value}', PluginInfo(name))
+    replace_plugin_tag(
+        f'./{name}/{TAGGED_FILES.PYPROJECT.value}', PluginInfo(name))
 
 
-def get_and_combine_integration_poetry_sections(name: str) -> (Sections, Sections):
+def get_and_combine_integration_poetry_sections(name: str) -> (dict, dict):
     """Get the global integration sections and combine them with the plugin specific sections."""
-    global_sections = Sections()
-    plugin_sections = Sections()
+    global_sections = deepcopy(sections)
+    plugin_sections = deepcopy(sections)
     with open(f'./{GLOBAL_PLUGIN_DIR}/{TAGGED_FILES.PYPROJECT_INTEGRATION.value}', 'r') as file:
         filedata = file.read()
     extract_common_sections(filedata, global_sections)
@@ -267,13 +246,14 @@ def get_and_combine_integration_poetry_sections(name: str) -> (Sections, Section
         filedata = file.read()
 
     extract_common_sections(filedata, plugin_sections)
-    combine_dependenices(plugin_sections.deps, global_sections.deps)
-    combine_dependenices(plugin_sections.dev_deps, global_sections.dev_deps)
+    combine_dependenices(plugin_sections['DEPS'], global_sections['DEPS'])
+    combine_dependenices(
+        plugin_sections['DEV_DEPS'], global_sections['DEV_DEPS'])
 
     return global_sections, plugin_sections
 
 
-def process_integration_config_sections(name: str, plugin_sections: Sections, global_sections: Sections) -> None:
+def process_integration_config_sections(name: str, plugin_sections: dict, global_sections: dict) -> None:
     """Process the integration test config sections and write them to the plugins intergqtion/pyproject.toml file."""
     with open(f'./{GLOBAL_PLUGIN_DIR}/{TAGGED_FILES.PYPROJECT_INTEGRATION.value}', 'r') as in_file:
         content = in_file.readlines()
@@ -282,20 +262,20 @@ def process_integration_config_sections(name: str, plugin_sections: Sections, gl
     with open(f'./{name}/{TAGGED_FILES.PYPROJECT_INTEGRATION.value}', 'w') as out_file:
         i = 0
         while i < len(content):
-            if content[i].startswith(MangagedPoetrySections.META):
-                output.append(MangagedPoetrySections.META + '\n')
+            if content[i].startswith(MangagedPoetrySections.META.value):
+                output.append(MangagedPoetrySections.META.value + '\n')
                 i += 1
-                [output.append(line + '\n') for line in plugin_sections.meta]
-                output.append('\n')
-            if content[i].startswith(MangagedPoetrySections.DEPS):
+                [output.append(line + '\n')
+                 for line in plugin_sections['META']]
+            if content[i].startswith(MangagedPoetrySections.DEPS.value):
                 i += get_section_output(i, content,
-                                        output, global_sections.deps)
-            if content[i].startswith(MangagedPoetrySections.DEV_DEPS):
+                                        output, global_sections['DEPS'], MangagedPoetrySections.DEPS.value)
+            if content[i].startswith(MangagedPoetrySections.DEV_DEPS.value):
                 i += get_section_output(i, content,
-                                        output, global_sections.dev_deps)
-            if content[i].startswith(MangagedPoetrySections.BUILD):
+                                        output, global_sections['DEV_DEPS'], MangagedPoetrySections.DEV_DEPS.value)
+            if content[i].startswith(MangagedPoetrySections.BUILD.value):
                 i += get_section_output(i, content,
-                                        output, global_sections.build)
+                                        output, global_sections['BUILD'], MangagedPoetrySections.BUILD.value)
             else:
                 i += 1
         out_file.writelines(output)
@@ -306,7 +286,8 @@ def replace_global_sections(name: str) -> None:
     Combine the global sections with the plugin specific sections and write them to the plugins pyproject.toml file
     with the global dependencies overriding the plugin dependencies.
     """
-    global_sections, plugin_sections = get_and_combine_main_poetry_sections(name)
+    global_sections, plugin_sections = get_and_combine_main_poetry_sections(
+        name)
     process_main_config_sections(name, plugin_sections, global_sections)
     global_sections, plugin_sections = get_and_combine_integration_poetry_sections(
         name)
@@ -329,8 +310,7 @@ def main():
         What would you like to do? 
         (1) Create a new plugin
         (2) Update all plugin common poetry sections 
-        (3) Update all plugin common development files 
-        (4) Exit \n\nInput:  """
+        (3) Exit \n\nInput:  """
     selection = input(options)
 
     # Create a new plugin
@@ -344,11 +324,12 @@ def main():
             exit(1)
         version = str(
             input("Enter the plugin version (default is 0.1.0): ") or "0.1.0")
-        description = input("Enter the plugin description (default is ''): ") or ""
+        description = input(
+            "Enter the plugin description (default is ''): ") or ""
 
         plugin_info = PluginInfo(name, version, description)
         os.makedirs(f'./{name}/{name}/v1_0')
-        copy_and_tag_shared_files(info=plugin_info)
+        copy_all_common_files_for_new_plugin(plugin_info)
 
         os.system(f'cd {name} && poetry install --no-root')
 
@@ -364,15 +345,7 @@ def main():
                     f'cd {plugin_name} && rm poetry.lock && poetry install')
                 os.system(
                     f'cd {plugin_name}/integration && rm poetry.lock && poetry install')
-    # Update common development files
-    elif selection == "3":
-        msg = """Updating all plugin common development files: This will take the common development files from the plugin_globals and copy them into each plugin."""
-        print(msg)
-        for plugin_name in os.listdir('./'):
-            if is_plugin_directory(plugin_name):
-                print(f'Updating development files in {plugin_name}\n')
-                copy_and_tag_shared_files(info=PluginInfo(
-                    name=plugin_name), new_plugin=False)
+
 
 if __name__ == "__main__":
     main()
