@@ -8,18 +8,22 @@ readme = "README.md"
 
 [tool.poetry.dependencies]
 python = "^3.9"
+pytest = "^7.4.0"
+pytest-asyncio = "^0.21.0"
+asynctest = "^0.13.0"
+requests = "^2.31.0"
 aries-askar = "^0.3.0"
 did-peer-4 = "^0.1.4"
 aiohttp = "^3.9.0"
-
 
 [tool.poetry.group.dev.dependencies]
 black = "^23.11.0"
 ruff = "^0.1.6"
 controller = {git = "https://github.com/indicio-tech/acapy-minimal-example.git"}
-pytest = "^7.4.3"
-pytest-asyncio = "^0.21.1"
+
+[tool.poetry.dev-dependencies]
 
 [build-system]
-requires = ["poetry-core"]
+requires = ["poetry-core>=1.0.0"]
 build-backend = "poetry.core.masonry.api"
+

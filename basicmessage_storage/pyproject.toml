@@ -16,20 +16,20 @@ mergedeep = "^1.3.4"
 aca-py = ["aries-cloudagent"]
 
 [tool.poetry.dev-dependencies]
-asynctest = "0.13.0"
+ruff = "^0.1.2"
 black = "23.7.0"
+asynctest = "0.13.0"
 pytest = "~7.4.0"
 pytest-asyncio = "0.14.0"
 pytest-cov = "2.10.1"
 pytest-ruff = "^0.1.1"
-ruff = "^0.1.2"
 
 [tool.poetry.group.integration.dependencies]
-aries-askar = { version = "~0.2.5" }
+aries-askar = { version = "~0.3.0" }
 indy-credx = { version = "~1.0.0" }
 indy-vdr = { version = "~0.3.3" }
-python3-indy = { version = "^1.11.1" }
 ursa-bbs-signatures = { version = "~1.0.1" }
+python3-indy = { version = "^1.11.1" }
 
 [tool.ruff]
 line-length = 90

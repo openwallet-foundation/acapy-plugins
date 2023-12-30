@@ -7,8 +7,11 @@ readme = "README.md"
 
 [tool.poetry.dependencies]
 python = "^3.9"
+
+# Define ACA-Py as an optional/extra dependancy so it can be
+# explicitly installed with the plugin if desired.
+aries-cloudagent = { version = ">=0.10.3, < 1.0.0", optional = true }
 aiohttp = "^3.8.5"
-aries-cloudagent = { version = ">=0.11.0, < 1.0.0", optional = true }
 aries-askar = "~0.3.0"
 aiohttp-cors = "^0.7.0"
 marshmallow = "^3.20.1"
@@ -17,28 +20,29 @@ marshmallow = "^3.20.1"
 aca-py = ["aries-cloudagent"]
 
 [tool.poetry.dev-dependencies]
-ruff="^0.0.285"
-black="23.7.0"
-
-# testing
+ruff = "^0.1.2"
+black = "23.7.0"
 asynctest = "0.13.0"
 pytest = "~7.4.0"
 pytest-asyncio = "0.14.0"
-pytest-ruff="^0.1.1"
+pytest-cov = "2.10.1"
+pytest-ruff = "^0.1.1"
+
+# testing
 mock= "~4.0"
 
 [tool.poetry.group.integration.dependencies]
-indy-credx= { version = "~1.0.0" }
-indy-vdr= { version = "~0.3.3" }
-
-
-[tool.poetry.group.dev.dependencies]
-pre-commit = "^3.5.0"
-pytest-cov = "^4.1.0"
+aries-askar = { version = "~0.3.0" }
+indy-credx = { version = "~1.0.0" }
+indy-vdr = { version = "~0.3.3" }
+ursa-bbs-signatures = { version = "~1.0.1" }
+python3-indy = { version = "^1.11.1" }
 
 [tool.ruff]
-select = ["E", "F", "C", "D"]
+line-length = 90
 
+[tool.ruff.lint]
+select = ["E", "F", "C", "D"]
 ignore = [
     # Google Python Doc Style
     "D203", "D204", "D213", "D215", "D400", "D401", "D404", "D406", "D407",
@@ -49,28 +53,26 @@ ignore = [
     "D417", "C901",
 ]
 
-line-length = 90
-
 [tool.ruff.per-file-ignores]
 "**/{tests}/*" = ["F841", "D", "E501"]
 
 [tool.pytest.ini_options]
+testpaths = "oid4vci"
 addopts = """
-    tests
+    -p no:warnings
     --quiet --junitxml=./test-reports/junit.xml
-    --cov-config .coveragerc --cov=oid4vci --cov-report term
-    --ruff
+    --cov-config .coveragerc --cov=oid4vci --cov-report term --cov-report xml
 """
 markers = []
 junit_family = "xunit1"
 asyncio_mode = "auto"
 
 [tool.coverage.run]
-
 omit = [
     "*/tests/*",
     "docker/*",
     "integration/*",
+    "*/definition.py"
 ]
 data_file = "test-reports/.coverage"
 
@@ -89,3 +91,4 @@ output = "test-reports/coverage.xml"
 [build-system]
 requires = ["setuptools", "poetry-core>=1.2"]
 build-backend = "poetry.core.masonry.api"
+
