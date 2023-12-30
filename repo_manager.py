@@ -1,8 +1,8 @@
-from copy import deepcopy
 import os
 import shutil
-from typing import Optional
+from copy import deepcopy
 from enum import Enum
+from typing import Optional
 
 GLOBAL_PLUGIN_DIR = 'plugin_globals'
 
@@ -19,7 +19,7 @@ class PluginInfo:
         self.description = description
 
 
-class MangagedPoetrySections(Enum):
+class MangagedPoetrySections(str, Enum):
     META = '[tool.poetry]'
     DEPS = '[tool.poetry.dependencies]'
     DEV_DEPS = '[tool.poetry.dev-dependencies]'
@@ -181,6 +181,8 @@ def process_main_config_sections(name: str, plugin_sections: dict, global_sectio
     with open(f'./{GLOBAL_PLUGIN_DIR}/{TAGGED_FILES.PYPROJECT.value}', 'r') as in_file:
         content = in_file.readlines()
 
+    sections = [section.value for section in MangagedPoetrySections]
+
     output = []
     with open(f'./{name}/{TAGGED_FILES.PYPROJECT.value}', 'w') as out_file:
         i = 0
@@ -191,42 +193,11 @@ def process_main_config_sections(name: str, plugin_sections: dict, global_sectio
                  for line in plugin_sections['META']]
                 output.append('\n')
                 i += 1
-            if content[i].startswith(MangagedPoetrySections.DEPS.value):
-                i += get_section_output(i, content,
-                                        output, global_sections[MangagedPoetrySections.DEPS.name], MangagedPoetrySections.DEPS.value)
-            if content[i].startswith(MangagedPoetrySections.DEV_DEPS.value):
-                i += get_section_output(i, content,
-                                        output, global_sections[MangagedPoetrySections.DEV_DEPS.name], MangagedPoetrySections.DEV_DEPS.value)
-            if content[i].startswith(MangagedPoetrySections.INT_DEPS.value):
-                i += get_section_output(i, content,
-                                        output, global_sections[MangagedPoetrySections.INT_DEPS.name], MangagedPoetrySections.INT_DEPS.value)
-            if content[i].startswith(MangagedPoetrySections.RUFF.value):
-                i += get_section_output(i, content,
-                                        output, global_sections[MangagedPoetrySections.RUFF.name], MangagedPoetrySections.RUFF.value)
-            if content[i].startswith(MangagedPoetrySections.RUFF_LINT.value):
-                i += get_section_output(i, content,
-                                        output, global_sections[MangagedPoetrySections.RUFF_LINT.name], MangagedPoetrySections.RUFF_LINT.value)
-            if content[i].startswith(MangagedPoetrySections.RUFF_FILES.value):
-                i += get_section_output(i, content,
-                                        output, global_sections[MangagedPoetrySections.RUFF_FILES.name], MangagedPoetrySections.RUFF_FILES.value)
-            if content[i].startswith(MangagedPoetrySections.PYTEST.value):
-                i += get_section_output(i, content,
-                                        output, global_sections[MangagedPoetrySections.PYTEST.name], MangagedPoetrySections.PYTEST.value)
-            if content[i].startswith(MangagedPoetrySections.COVERAGE.value):
-                i += get_section_output(i, content,
-                                        output, global_sections[MangagedPoetrySections.COVERAGE.name], MangagedPoetrySections.COVERAGE.value)
-            if content[i].startswith(MangagedPoetrySections.COVERAGE_REPORT.value):
-                i += get_section_output(i, content, output,
-                                        global_sections[MangagedPoetrySections.COVERAGE_REPORT.name], MangagedPoetrySections.COVERAGE_REPORT.value)
-            if content[i].startswith(MangagedPoetrySections.COVERAGE_XML.value):
-                i += get_section_output(i, content,
-                                        output, global_sections[MangagedPoetrySections.COVERAGE_XML.name], MangagedPoetrySections.COVERAGE_XML.value)
-            if content[i].startswith(MangagedPoetrySections.BUILD.value):
-                i += get_section_output(i, content,
-                                        output, global_sections[MangagedPoetrySections.BUILD.name], MangagedPoetrySections.BUILD.value)
-            if content[i].startswith(MangagedPoetrySections.EXTRAS.value):
-                i += get_section_output(i, content,
-                                        output, global_sections[MangagedPoetrySections.EXTRAS.name], MangagedPoetrySections.EXTRAS.value)
+
+            for section in sections:
+                if (content[i].startswith(section)):
+                    i += get_section_output(i, content,
+                            output, global_sections[MangagedPoetrySections(content[i].strip()).name], content[i])
             else:
                 i += 1
         out_file.writelines(output)
@@ -258,24 +229,23 @@ def process_integration_config_sections(name: str, plugin_sections: dict, global
     with open(f'./{GLOBAL_PLUGIN_DIR}/{TAGGED_FILES.PYPROJECT_INTEGRATION.value}', 'r') as in_file:
         content = in_file.readlines()
 
+    sections = [section.value for section in MangagedPoetrySections]
+
     output = []
     with open(f'./{name}/{TAGGED_FILES.PYPROJECT_INTEGRATION.value}', 'w') as out_file:
         i = 0
         while i < len(content):
             if content[i].startswith(MangagedPoetrySections.META.value):
                 output.append(MangagedPoetrySections.META.value + '\n')
-                i += 1
                 [output.append(line + '\n')
                  for line in plugin_sections['META']]
-            if content[i].startswith(MangagedPoetrySections.DEPS.value):
-                i += get_section_output(i, content,
-                                        output, global_sections['DEPS'], MangagedPoetrySections.DEPS.value)
-            if content[i].startswith(MangagedPoetrySections.DEV_DEPS.value):
-                i += get_section_output(i, content,
-                                        output, global_sections['DEV_DEPS'], MangagedPoetrySections.DEV_DEPS.value)
-            if content[i].startswith(MangagedPoetrySections.BUILD.value):
-                i += get_section_output(i, content,
-                                        output, global_sections['BUILD'], MangagedPoetrySections.BUILD.value)
+                i += 1
+                output.append('\n')
+                
+            for section in sections:
+                if (content[i].startswith(section)):
+                    i += get_section_output(i, content,
+                            output, global_sections[MangagedPoetrySections(content[i].strip()).name], content[i])
             else:
                 i += 1
         out_file.writelines(output)
