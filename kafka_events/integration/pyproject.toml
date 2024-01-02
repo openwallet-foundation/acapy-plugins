@@ -6,11 +6,12 @@ authors = ["Daniel Bluhm <dbluhm@pm.me>"]
 license = "Apache-2.0"
 
 [tool.poetry.dependencies]
-python = "^3.7"
-pytest = "^6.2.4"
-pytest-asyncio = "^0.15.1"
+python = "^3.9"
+pytest = "^7.4.0"
+pytest-asyncio = "^0.21.0"
+asynctest = "^0.13.0"
+requests = "^2.31.0"
 pytest-cov = "^2.12.1"
-asynctest = "0.13.0"
 acapy-client = {git="https://github.com/indicio-tech/acapy-client.git", branch="acapy/main"}
 aiokafka = "^0.7.1"
 echo-agent = {git = "https://github.com/indicio-tech/echo-agent.git", rev = "4cfaf5f7c88bcc3953fdb0b43885c028413a09dc", extras = ["client"]}
@@ -23,3 +24,4 @@ pre-commit = "^2.13.0"
 [build-system]
 requires = ["poetry-core>=1.0.0"]
 build-backend = "poetry.core.masonry.api"
+
