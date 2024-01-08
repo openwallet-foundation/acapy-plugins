@@ -1,4 +1,5 @@
 import json
+import re
 
 import asynctest
 from aiohttp import web
@@ -42,7 +43,10 @@ class TestRoutes(AsyncTestCase):
     async def setUp(self) -> None:
         self.session_inject = {}
         self.profile = InMemoryProfile.test_profile()
-        self.context = AdminRequestContext.test_context(self.session_inject)
+        mock_session = async_mock.MagicMock()
+        mock_session.__aenter__ = async_mock.CoroutineMock(return_value=mock_session)
+        self.profile.session = mock_session
+        self.context = AdminRequestContext.test_context(self.session_inject, profile=self.profile)
         self.request_dict = {
             "context": self.context,
         }
