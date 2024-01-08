@@ -16,7 +16,8 @@ USER root
 RUN chown indy:indy -R .
 USER indy
 
-RUN poetry install --no-dev --extras aca-py
+ARG install_flags='--with integration --extras aca-py'
+RUN poetry install ${install_flags}
 
 # Make site packages location more accessible (for use with volumes)
 RUN ln -s $(poetry env info -p)/lib/python3.6/site-packages site-packages
