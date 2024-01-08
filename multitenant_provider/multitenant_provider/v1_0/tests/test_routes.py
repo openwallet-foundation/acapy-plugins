@@ -1,5 +1,4 @@
 import json
-import re
 
 import asynctest
 from aiohttp import web
