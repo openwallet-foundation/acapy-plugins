@@ -14,6 +14,10 @@ RUN poetry config virtualenvs.in-project true
 
 # Setup project
 RUN mkdir multitenant_provider && touch multitenant_provider/__init__.py
+
+# create log file, should be able to remove after fix
+RUN touch /aca-py.log
+
 COPY pyproject.toml poetry.lock README.md ./
 ARG install_flags='--with integration --extras aca-py'
 RUN poetry install ${install_flags}

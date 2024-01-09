@@ -19,12 +19,6 @@ plugin:
 #config
 genesis-url: http://test.bcovrin.vonx.io/genesis
 
-# Multi-tenancy
-multitenant: true
-multitenant-admin: true
-jwt-secret: insecure-jwt-secret
-multitenancy-config: '{"wallet-type":"askar-profile","wallet-name":"askar-wallet"}'
-
 # Wallet
 wallet-type: askar
 log-level: info

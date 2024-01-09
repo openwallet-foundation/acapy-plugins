@@ -62,7 +62,7 @@ ignore = [
 testpaths = "redis_events"
 addopts = """
     -p no:warnings
-    --quiet --junitxml=./test-reports/junit.xml
+    --quiet --junitxml=./.test-reports/junit.xml
     --cov-config .coveragerc --cov=redis_events --cov-report term --cov-report xml
 """
 markers = []
@@ -76,7 +76,7 @@ omit = [
     "integration/*",
     "*/definition.py"
 ]
-data_file = "test-reports/.coverage"
+data_file = ".test-reports/.coverage"
 
 [tool.coverage.report]
 exclude_lines = [
@@ -88,7 +88,7 @@ skip_covered = true
 show_missing = true
 
 [tool.coverage.xml]
-output = "test-reports/coverage.xml"
+output = ".test-reports/coverage.xml"
 
 [build-system]
 requires = ["setuptools", "poetry-core>=1.2"]
