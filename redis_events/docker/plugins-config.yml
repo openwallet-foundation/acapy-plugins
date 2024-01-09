@@ -30,3 +30,8 @@ redis_queue:
       acapy::revocation-notification-v2::received: acapy-revocation-notification-v2-received
       acapy::forward::received: acapy-forward-received
     deliver_webhook: true
+
+
+# For integration tests
+basicmessage_storage:
+  wallet_enabled: True
