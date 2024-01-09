@@ -30,4 +30,4 @@ COPY redis_events/ redis_events/
 COPY docker/*.yml ./
 
 ENTRYPOINT ["/bin/bash", "-c", "aca-py \"$@\"", "--"]
-CMD ["start", "--arg-file", "default.yml"]
+CMD ["start", "--arg-file", "integration.yml"]
