@@ -26,7 +26,7 @@ plugin:
 #config
 genesis-url: http://test.bcovrin.vonx.io/genesis
 
-# Wallet
+#Wallet
 wallet-name: test-provider-wallet
 wallet-key: test-provider-key
 
@@ -36,6 +36,7 @@ jwt-secret: insecure-jwt-secret
 multitenant-admin: true
 
 log-level: info
+log-file: /aca-py.log
 
 auto-accept-invites: true
 auto-respond-messages: true

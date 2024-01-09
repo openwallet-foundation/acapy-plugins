@@ -10,7 +10,6 @@ pytest = "^7.4.0"
 pytest-asyncio = "^0.21.0"
 asynctest = "^0.13.0"
 requests = "^2.31.0"
-aries-cloudagent = { version = ">=0.10.3, < 1.0.0" }
 
 [tool.poetry.dev-dependencies]
 

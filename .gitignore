@@ -1,7 +1,8 @@
 __pycache__/
 .pytest_cache/
 .ruff_cache/
-test-reports/
+.test-reports/
+**/test-reports/
 .coverage
 coverage.xml
 settings.json
