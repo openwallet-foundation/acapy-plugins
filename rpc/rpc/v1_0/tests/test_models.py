@@ -26,6 +26,18 @@ def test_invalid_rpc_base_jsonrpc_missing(test_input):
 
 @pytest.mark.parametrize('test_input', [{
   **rpc_base,
+  'method': 'test.method',
+  'id': 123
+}, {
+  **rpc_base,
+  'method': 'test.method',
+  'id': '123'
+}, {
+  **rpc_base,
+  'method': 'test.method',
+  'id': None
+}, {
+  **rpc_base,
   'method': 'test.method'
 }])
 def test_valid_rpc_request(test_input):
@@ -34,6 +46,9 @@ def test_valid_rpc_request(test_input):
 
   assert result.jsonrpc == '2.0'
   assert result.method == 'test.method'
+  # Test optional fields
+  if ('id' in test_input):
+    assert result.id == test_input['id']
 
 @pytest.mark.parametrize('test_input', [{
   **rpc_base,
@@ -47,6 +62,20 @@ def test_invalid_rpc_request_internal_method(test_input):
   
   assert 'method' in exc_info.value.messages
   assert 'Method name cannot be internal RPC method' in exc_info.value.messages['method']
+
+@pytest.mark.parametrize('test_input', [{
+  **rpc_base,
+  'method': 'test.method',
+  'id': 12.34
+}])
+def test_invalid_rpc_request_id_float(test_input):
+  schema = RPCRequestModelSchema()
+  
+  with pytest.raises(ValidationError) as exc_info:
+    schema.load(test_input)
+  
+  assert 'id' in exc_info.value.messages
+  assert 'ID must be an integer, string, or null' in exc_info.value.messages['id']
 
 @pytest.mark.parametrize('test_input', [{
   'code': -123,

@@ -1,6 +1,11 @@
 """RPC Messages model classes and schemas."""
+from typing import Any, Mapping
 from aries_cloudagent.messaging.models.base import BaseModel, BaseModelSchema
-from marshmallow import fields, validate
+from marshmallow import fields, validate, ValidationError
+
+def validate_id(id):
+  if not isinstance(id, (int, str, type(None))):
+    raise ValidationError('ID must be an integer, string, or null')
 
 class RPCBaseModel(BaseModel):
   """RPC Base Model"""
@@ -18,9 +23,10 @@ class RPCRequestModel(RPCBaseModel):
   class Meta:
     schema_class = 'RPCRequestModelSchema'
 
-  def __init__(self, jsonrpc, method):
+  def __init__(self, jsonrpc, method, id):
     super().__init__(jsonrpc)
     self.method = method
+    self.id = id
 
 class RPCResponseModel(RPCBaseModel):
   """RPC Response Model"""
@@ -53,6 +59,9 @@ class RPCRequestModelSchema(RPCBaseModelSchema):
 
   method = fields.String(required=True, validate=validate.Regexp(regex='^(?!rpc\.).*$',
                                                                  error='Method name cannot be internal RPC method'))
+
+  # Optional parameters
+  id = fields.Raw(validate=validate_id, missing=None)
 
 class RPCResponseModelSchema(RPCBaseModelSchema):
   """Schema to allow serialization/deserialization of RPC Response Models."""
