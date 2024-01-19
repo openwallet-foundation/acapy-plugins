@@ -38,10 +38,11 @@ class RPCErrorModel(BaseModel):
   class Meta:
     schema_class = 'RPCErrorModelSchema'
   
-  def __init__(self, code, message):
+  def __init__(self, code, message, data):
     super().__init__()
     self.code = code
     self.message = message
+    self.data = data
 
 class RPCBaseModelSchema(BaseModelSchema):
   """Schema to allow serialization/deserialization of RPC Base Models."""
@@ -75,3 +76,6 @@ class RPCErrorModelSchema(BaseModelSchema):
 
   code = fields.Integer(required=True)
   message = fields.String(required=True)
+
+  # Optional parameters
+  data = fields.Raw(missing=None)

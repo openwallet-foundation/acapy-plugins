@@ -89,6 +89,16 @@ def test_invalid_rpc_request_id_float(test_input):
 }, {
   'code': '123',
   'message': 'Test error message'
+}, {
+  'code': 123,
+  'message': 'Test error message',
+  'data': 'abc'
+}, {
+  'code': 123,
+  'message': 'Test error message',
+  'data': {
+    'test': 'abc'
+  }
 }])
 def test_valid_rpc_error(test_input):
   schema = RPCErrorModelSchema()
@@ -96,6 +106,9 @@ def test_valid_rpc_error(test_input):
 
   assert result.code == int(test_input['code'])
   assert result.message == test_input['message']
+  # Test optional fields
+  if ('data' in test_input):
+    assert result.data == test_input['data']
 
 @pytest.mark.parametrize('test_input', [{
   'message': 'Test error message'
