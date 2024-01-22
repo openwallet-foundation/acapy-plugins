@@ -1,11 +1,23 @@
 """RPC Messages model classes and schemas."""
-from typing import Any, Mapping
+from typing import Mapping
 from aries_cloudagent.messaging.models.base import BaseModel, BaseModelSchema
 from marshmallow import fields, validate, ValidationError, validates_schema
 
 def validate_id(id):
   if not isinstance(id, (int, str, type(None))):
     raise ValidationError('ID must be an integer, string, or null.')
+  
+
+class Params(fields.Field):
+  """RPC Params field. Can be either a list of strings or a key value mapping of strings."""
+
+  def _deserialize(self, value, attr, data, **kwargs):
+    if isinstance(value, list):
+      return value
+    elif isinstance(value, Mapping):
+      return value
+    else:
+      raise ValidationError('Params must be an array, object, or null.')
 
 
 class RPCBaseModel(BaseModel):
@@ -25,10 +37,11 @@ class RPCRequestModel(RPCBaseModel):
   class Meta:
     schema_class = 'RPCRequestModelSchema'
 
-  def __init__(self, jsonrpc, method, id):
+  def __init__(self, jsonrpc, method, id, params):
     super().__init__(jsonrpc)
     self.method = method
     self.id = id
+    self.params = params
 
 
 class RPCResponseModel(RPCBaseModel):
@@ -77,6 +90,7 @@ class RPCRequestModelSchema(RPCBaseModelSchema):
 
   # Optional parameters
   id = fields.Raw(validate=validate_id, missing=None)
+  params = Params(missing=None)
 
 
 class RPCResponseModelSchema(RPCBaseModelSchema):

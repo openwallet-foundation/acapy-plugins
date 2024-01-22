@@ -42,6 +42,28 @@ def test_invalid_rpc_base_jsonrpc_missing(test_input):
 }, {
   **rpc_base,
   'method': 'test.method'
+}, {
+  **rpc_base,
+  'method': 'test.method',
+  'params': ["1", "2", "3"]
+}, {
+  **rpc_base,
+  'method': 'test.method',
+  'params': {
+    'test': 'params'
+  }
+}, {
+  **rpc_base,
+  'method': 'test.method',
+  'params': []
+}, {
+  **rpc_base,
+  'method': 'test.method',
+  'params': {}
+}, {
+  **rpc_base,
+  'method': 'test.method',
+  'params': None
 }])
 def test_valid_rpc_request(test_input):
   schema = RPCRequestModelSchema()
@@ -81,6 +103,25 @@ def test_invalid_rpc_request_id_float(test_input):
   
   assert 'id' in exc_info.value.messages
   assert 'ID must be an integer, string, or null.' in exc_info.value.messages['id']
+
+
+@pytest.mark.parametrize('test_input', [{
+  **rpc_base,
+  'method': 'test.method',
+  'params': 'test params'
+}, {
+  **rpc_base,
+  'method': 'test.method',
+  'params': 123
+}])
+def test_invalid_rpc_request_params_type(test_input):
+  schema = RPCRequestModelSchema()
+
+  with pytest.raises(ValidationError) as exc_info:
+    schema.load(test_input)
+
+  assert 'params' in exc_info.value.messages
+  assert 'Params must be an array, object, or null.' in exc_info.value.messages['params']
 
 
 @pytest.mark.parametrize('test_input', [{
