@@ -1,7 +1,16 @@
 import pytest
+from unittest.mock import patch
 
 from marshmallow import ValidationError
-from rpc.v1_0.models import RPCBaseModelSchema, RPCRequestModelSchema, RPCResponseModelSchema, RPCErrorModelSchema
+from rpc.v1_0.models import (
+  DRPCRequestRecordSchema,
+  DRPCResponseRecordSchema,
+  RPCBaseModelSchema,
+  RPCRequestModelSchema,
+  RPCResponseModelSchema,
+  RPCErrorModelSchema,
+  Response
+)
 
 rpc_base = {
   'jsonrpc': '2.0'
@@ -275,3 +284,161 @@ def test_invalid_rpc_response_result_and_error(test_input):
 
   assert '_schema' in exc_info.value.messages
   assert 'RPC response cannot have both result and error.' in exc_info.value.messages['_schema']
+
+
+@pytest.mark.parametrize('test_input', [{
+  'request': {
+    **rpc_base,
+    'method': 'test.method',
+    'id': 123
+  }
+}, {
+  'request': [{
+    **rpc_base,
+    'method': 'test.method',
+    'id': 123
+  }, {
+    **rpc_base,
+    'method': 'test.method.2',
+    'id': '123'
+  }]
+}, {
+  'request': {
+    **rpc_base,
+    'method': 'test.method',
+    'id': None
+  }
+}])
+def test_valid_drpc_request(test_input):
+  schema = DRPCRequestRecordSchema()
+  result = schema.load(test_input)
+
+  if isinstance(test_input['request'], list):
+    assert isinstance(result.request, list)
+    requests = result.request
+    for i in range(len(requests)):
+      assert requests[i].jsonrpc == '2.0'
+      assert requests[i].method == test_input['request'][i]['method']
+      assert requests[i].id == test_input['request'][i]['id']
+  else:
+    assert result.request.jsonrpc == '2.0'
+    assert result.request.method == test_input['request']['method']
+    assert result.request.id == test_input['request']['id']
+
+
+@pytest.mark.parametrize('test_input', [{
+  'request': {},
+}, {
+  'request': []
+}, {
+  'request': None
+}])
+def test_invalid_drpc_request_request_missing(test_input):
+  schema = DRPCRequestRecordSchema()
+
+  with pytest.raises(ValidationError) as exc_info:
+    schema.load(test_input)
+
+  assert 'request' in exc_info.value.messages
+  assert 'RPC request cannot be empty.' in exc_info.value.messages['request']
+
+
+@pytest.mark.parametrize('test_input', [{
+  'response': {
+    **rpc_base,
+    'result': 'test result',
+    'id': 123
+  }
+}, {
+  'response': [{
+    **rpc_base,
+    'result': 'test result',
+    'id': 123
+  }, {
+    **rpc_base,
+    'result': 'test result',
+    'id': '123'
+  }]
+}, {
+  'response': {
+    **rpc_base,
+    'error': {
+      'code': -123,
+      'message': 'Test error message'
+    },
+    'id': None
+  }
+}, {
+  'response': [{
+    **rpc_base,
+    'error': {
+      'code': -123,
+      'message': 'Test error message'
+    },
+    'id': None
+  }, {
+    **rpc_base,
+    'error': {
+      'code': -123,
+      'message': 'Test error message'
+    },
+    'id': '123'
+  }]
+}, {
+  'response': [{
+    **rpc_base,
+    'result': 'test result',
+    'id': 123
+  }, {
+    **rpc_base,
+    'error': {
+      'code': -123,
+      'message': 'Test error message'
+    },
+    'id': '123'
+  }]
+}])
+def test_valid_drpc_response(test_input):
+  schema = DRPCResponseRecordSchema()
+  result = schema.load(test_input)
+
+  if isinstance(test_input['response'], list):
+    assert isinstance(result.response, list)
+    responses = result.response
+    for i in range(len(responses)):
+      assert responses[i].jsonrpc == '2.0'
+      assert responses[i].id == test_input['response'][i]['id']
+      if ('error' in test_input['response'][i]):
+        # Check for error
+        assert responses[i].error.code == test_input['response'][i]['error']['code']
+        assert responses[i].error.message == test_input['response'][i]['error']['message']
+      else:
+        # Check for result
+        assert responses[i].result == test_input['response'][i]['result']
+  else:
+    assert result.response.jsonrpc == '2.0'
+    assert result.response.id == test_input['response']['id']
+    if ('error' in test_input['response']):
+      # Check for error
+      assert result.response.error.code == test_input['response']['error']['code']
+      assert result.response.error.message == test_input['response']['error']['message']
+    else:
+      # Check for result
+      assert result.response.result == test_input['response']['result']
+  
+
+@pytest.mark.parametrize('test_input', [{
+  'response': {}
+}, {
+  'response': []
+}, {
+  'response': None
+}])
+def test_invalid_drpc_response_response_missing(test_input):
+  schema = DRPCResponseRecordSchema()
+
+  with pytest.raises(ValidationError) as exc_info:
+    schema.load(test_input)
+
+  assert 'response' in exc_info.value.messages
+  assert 'RPC response cannot be empty.' in exc_info.value.messages['response']

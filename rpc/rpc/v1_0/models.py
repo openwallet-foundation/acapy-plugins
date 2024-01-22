@@ -1,6 +1,7 @@
 """RPC Messages model classes and schemas."""
-from typing import Mapping
+from typing import List, Mapping, Union
 from aries_cloudagent.messaging.models.base import BaseModel, BaseModelSchema
+from aries_cloudagent.messaging.models.base_record import BaseRecord, BaseRecordSchema
 from marshmallow import fields, validate, ValidationError, validates_schema
 
 def validate_id(id):
@@ -18,6 +19,42 @@ class Params(fields.Field):
       return value
     else:
       raise ValidationError('Params must be an array, object, or null.')
+
+
+class Request(fields.Field):
+  """RPC Request field. Can be either a single RPCRequest or a list of RPCRequest."""
+
+  def load_request(self, value):
+    return RPCRequestModelSchema().load(value)
+
+  def _deserialize(self, value, attr, data, **kwargs):
+    if isinstance(value, list):
+      if not len(value):
+        raise ValidationError('RPC request cannot be empty.')
+      # Map through list and load each item
+      return [self.load_request(item) for item in value]
+    else:
+      if not value:
+        raise ValidationError('RPC request cannot be empty.')
+      return self.load_request(value)
+
+
+class Response(fields.Field):
+  """RPC Response field. Can be either a single RPCResponse, a single RPCError or a list of RPCResponses or RPCErrors."""
+
+  def load_response_or_error(self, value):
+      return RPCResponseModelSchema().load(value)
+
+  def _deserialize(self, value, attr, data, **kwargs):
+    if isinstance(value, list):
+      if not len(value):
+        raise ValidationError('RPC response cannot be empty.')
+      # Map through list and load each item
+      return [self.load_response_or_error(item) for item in value]
+    else:
+      if not value:
+        raise ValidationError('RPC response cannot be empty.')
+      return self.load_response_or_error(value)
 
 
 class RPCBaseModel(BaseModel):
@@ -47,14 +84,14 @@ class RPCRequestModel(RPCBaseModel):
 class RPCResponseModel(RPCBaseModel):
   """RPC Response Model"""
 
+  class Meta:
+    schema_class = 'RPCResponseModelSchema'
+
   def __init__(self, jsonrpc, result, error, id):
     super().__init__(jsonrpc)
     self.result = result
     self.error = error
     self.id = id
-
-  class Meta:
-    schema_class = 'RPCResponseModelSchema'
 
 
 class RPCErrorModel(BaseModel):
@@ -68,6 +105,45 @@ class RPCErrorModel(BaseModel):
     self.code = code
     self.message = message
     self.data = data
+
+
+class DRPCRequestRecord(BaseRecord):
+  """DIDComm RPC Request Record"""
+
+  class Meta:
+    schema_class = 'DRPCequestRecordSchema'
+
+  # TODO: Add correct type
+  RECORD_TYPE = 'drpc_request_record'
+
+  STATE_REQUEST_SENT = 'request-sent' # when request is sent
+  STATE_COMPLETED = 'completed' # when response is received
+
+  def __init__(self, *,
+               state = STATE_REQUEST_SENT, request: Union[RPCRequestModel, List[RPCRequestModel]],
+               **kwargs):
+    super().__init__(state=state, **kwargs)
+    self.request = request
+
+
+class DRPCResponseRecord(BaseRecord):
+  """DIDComm RPC Response Record"""
+
+  class Meta:
+    schema_class = 'DRPCResponseRecordSchema'
+
+  # TODO: Add correct type
+  RECORD_TYPE = 'drpc_response_record'
+
+  STATE_REQUEST_RECEIVED = 'request-received' # when request is received
+  STATE_COMPLETED = 'completed' # when response is sent
+
+  def __init__(self, *,
+               state = STATE_REQUEST_RECEIVED,
+               response: Union[RPCResponseModel, RPCErrorModel, List[Union[RPCResponseModel, RPCErrorModel]]],
+               **kwargs):
+    super().__init__(state=state, **kwargs)
+    self.response = response
 
 
 class RPCBaseModelSchema(BaseModelSchema):
@@ -125,3 +201,21 @@ class RPCErrorModelSchema(BaseModelSchema):
 
   # Optional parameters
   data = fields.Raw(missing=None)
+
+
+class DRPCRequestRecordSchema(BaseRecordSchema):
+  """Schema to allow serialization/deserialization of DPRC Request Records."""
+
+  class Meta:
+    model_class = 'DRPCRequestRecord'
+
+  request = Request(required=True, error_messages={'null': 'RPC request cannot be empty.'})
+
+
+class DRPCResponseRecordSchema(BaseRecordSchema):
+  """Schema to allow serialization/deserialization of DPRC Response Records."""
+
+  class Meta:
+    model_class = 'DRPCResponseRecord'
+
+  response = Response(required=True, error_messages={'null': 'RPC response cannot be empty.'})
