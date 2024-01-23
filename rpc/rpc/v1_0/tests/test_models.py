@@ -8,8 +8,7 @@ from rpc.v1_0.models import (
   RPCBaseModelSchema,
   RPCRequestModelSchema,
   RPCResponseModelSchema,
-  RPCErrorModelSchema,
-  Response
+  RPCErrorModelSchema
 )
 
 rpc_base = {
@@ -210,10 +209,6 @@ def test_invalid_rpc_error_code_type(test_input):
 @pytest.mark.parametrize('test_input', [{
     **rpc_base,
     'result': 'test result',
-    'id': None
-}, {
-    **rpc_base,
-    'result': 'test result',
     'id': 123
 }, {
     **rpc_base,
@@ -231,7 +226,7 @@ def test_invalid_rpc_error_code_type(test_input):
       'code': -123,
       'message': 'Test error message'
     },
-    'id': 123
+    'id': None
 }])
 def test_valid_rpc_response(test_input):
   schema = RPCResponseModelSchema()
@@ -382,7 +377,7 @@ def test_invalid_drpc_request_request_missing(test_input):
       'code': -123,
       'message': 'Test error message'
     },
-    'id': '123'
+    'id': None
   }]
 }, {
   'response': [{
@@ -395,7 +390,7 @@ def test_invalid_drpc_request_request_missing(test_input):
       'code': -123,
       'message': 'Test error message'
     },
-    'id': '123'
+    'id': None
   }]
 }])
 def test_valid_drpc_response(test_input):

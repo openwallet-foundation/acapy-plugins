@@ -4,6 +4,21 @@ from aries_cloudagent.messaging.models.base import BaseModel, BaseModelSchema
 from aries_cloudagent.messaging.models.base_record import BaseRecord, BaseRecordSchema
 from marshmallow import fields, validate, ValidationError, validates_schema
 
+
+RPC_REQUEST_EXAMPLE = {
+  'jsonrpc': '2.0',
+  'method': 'example..method',
+  'id': 1,
+  'params': ["1", "a"]
+}
+
+RPC_RESPONSE_EXAMPLE = {
+  'jsonrpc': '2.0',
+  'result': 'result',
+  'id': 1
+}
+
+
 def validate_id(id):
   if not isinstance(id, (int, str, type(None))):
     raise ValidationError('ID must be an integer, string, or null.')
@@ -113,7 +128,6 @@ class DRPCRequestRecord(BaseRecord):
   class Meta:
     schema_class = 'DRPCequestRecordSchema'
 
-  # TODO: Add correct type
   RECORD_TYPE = 'drpc_request_record'
 
   STATE_REQUEST_SENT = 'request-sent' # when request is sent
@@ -132,7 +146,6 @@ class DRPCResponseRecord(BaseRecord):
   class Meta:
     schema_class = 'DRPCResponseRecordSchema'
 
-  # TODO: Add correct type
   RECORD_TYPE = 'drpc_response_record'
 
   STATE_REQUEST_RECEIVED = 'request-received' # when request is received
@@ -189,6 +202,12 @@ class RPCResponseModelSchema(RPCBaseModelSchema):
     if data.get('result') and data.get('error'):
       raise ValidationError('RPC response cannot have both result and error.')
     
+    if data.get('result') and data.get('id') is None:
+      raise ValidationError('RPC response with result must have an ID.')
+
+    if data.get('error') and data.get('id') is not None:
+      raise ValidationError('RPC response with error must have an null ID.')
+    
 
 class RPCErrorModelSchema(BaseModelSchema):
   """Schema to allow serialization/deserialization of RPC Error Models."""
@@ -204,18 +223,21 @@ class RPCErrorModelSchema(BaseModelSchema):
 
 
 class DRPCRequestRecordSchema(BaseRecordSchema):
-  """Schema to allow serialization/deserialization of DPRC Request Records."""
+  """Schema to allow serialization/deserialization of DIDComm RPC Request Records."""
 
   class Meta:
     model_class = 'DRPCRequestRecord'
 
-  request = Request(required=True, error_messages={'null': 'RPC request cannot be empty.'})
-
+  request = Request(required=True,
+                    error_messages={'null': 'RPC request cannot be empty.'},
+                    metadata={'description': 'RPC request', 'example': RPC_REQUEST_EXAMPLE})
 
 class DRPCResponseRecordSchema(BaseRecordSchema):
-  """Schema to allow serialization/deserialization of DPRC Response Records."""
+  """Schema to allow serialization/deserialization of DIDComm RPC Response Records."""
 
   class Meta:
     model_class = 'DRPCResponseRecord'
 
-  response = Response(required=True, error_messages={'null': 'RPC response cannot be empty.'})
+  response = Response(required=True,
+                      error_messages={'null': 'RPC response cannot be empty.'},
+                      metadata={'description': 'RPC response', 'example': RPC_RESPONSE_EXAMPLE})
