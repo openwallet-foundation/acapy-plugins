@@ -7,7 +7,7 @@ from marshmallow import fields, validate, ValidationError, validates_schema
 
 RPC_REQUEST_EXAMPLE = {
   'jsonrpc': '2.0',
-  'method': 'example..method',
+  'method': 'example.method',
   'id': 1,
   'params': ["1", "a"]
 }
@@ -41,6 +41,15 @@ class Request(fields.Field):
 
   def load_request(self, value):
     return RPCRequestModelSchema().load(value)
+  
+  def dump_request(self, value):
+    return RPCRequestModelSchema().dump(value)
+  
+  def _serialize(self, value, attr, obj, **kwargs):
+    if isinstance(value, list):
+      return [self.dump_request(item) for item in value]
+    else:
+      return self.dump_request(value)
 
   def _deserialize(self, value, attr, data, **kwargs):
     if isinstance(value, list):
@@ -126,7 +135,7 @@ class DRPCRequestRecord(BaseRecord):
   """DIDComm RPC Request Record"""
 
   class Meta:
-    schema_class = 'DRPCequestRecordSchema'
+    schema_class = 'DRPCRequestRecordSchema'
 
   RECORD_TYPE = 'drpc_request_record'
 
@@ -206,7 +215,7 @@ class RPCResponseModelSchema(RPCBaseModelSchema):
       raise ValidationError('RPC response with result must have an ID.')
 
     if data.get('error') and data.get('id') is not None:
-      raise ValidationError('RPC response with error must have an null ID.')
+      raise ValidationError('RPC response with error must have a null ID.')
     
 
 class RPCErrorModelSchema(BaseModelSchema):
