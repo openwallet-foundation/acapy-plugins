@@ -13,6 +13,22 @@
       "args": ["start", "--arg-file=${workspaceRoot}/docker/default.yml"]
     },
     {
+      "name": "Run/Debug RPC Requester Plugin",
+      "type": "python",
+      "request": "launch",
+      "module": "aries_cloudagent",
+      "justMyCode": false,
+      "args": ["start", "--arg-file=${workspaceRoot}/docker/rpc-requester.yml"]
+    },
+    {
+      "name": "Run/Debug RPC Responder Plugin",
+      "type": "python",
+      "request": "launch",
+      "module": "aries_cloudagent",
+      "justMyCode": false,
+      "args": ["start", "--arg-file=${workspaceRoot}/docker/rpc-responder.yml"]
+    },
+    {
       "name": "ruff - rpc",
       "type": "python",
       "request": "launch",

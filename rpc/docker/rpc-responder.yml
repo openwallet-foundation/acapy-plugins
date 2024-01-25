@@ -1,0 +1,22 @@
+label: rpc-responder
+
+admin: [0.0.0.0, 4001]
+admin-insecure-mode: true
+# admin-api-key: change-me
+
+inbound-transport:
+  - [http, 0.0.0.0, 4000]
+  - [ws, 0.0.0.0, 4002]
+outbound-transport: http
+endpoint:
+  - http://host.docker.internal:4000
+
+plugin:
+  - rpc.v1_0
+
+genesis-url: http://test.bcovrin.vonx.io/genesis
+
+log-level: info
+
+auto-accept-invites: true
+auto-respond-messages: true
