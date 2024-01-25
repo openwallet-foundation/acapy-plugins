@@ -282,6 +282,39 @@ def test_invalid_rpc_response_result_and_error(test_input):
 
 
 @pytest.mark.parametrize('test_input', [{
+  **rpc_base,
+  'result': 'test result',
+  'id': None
+}])
+def test_invalid_rpc_response_id_missing(test_input):
+  schema = RPCResponseModelSchema()
+
+  with pytest.raises(ValidationError) as exc_info:
+    schema.load(test_input)
+
+  assert '_schema' in exc_info.value.messages
+  assert 'RPC response with result must have an ID.' in exc_info.value.messages['_schema']
+
+
+@pytest.mark.parametrize('test_input', [{
+  **rpc_base,
+  'error': {
+    'code': -123,
+    'message': 'Test error message',
+  },
+  'id': 123
+}])
+def test_invalid_rpc_error_id_not_null(test_input):
+  schema = RPCResponseModelSchema()
+
+  with pytest.raises(ValidationError) as exc_info:
+    schema.load(test_input)
+
+  assert '_schema' in exc_info.value.messages
+  assert 'RPC response with error must have a null ID.' in exc_info.value.messages['_schema']
+
+
+@pytest.mark.parametrize('test_input', [{
   'request': {
     **rpc_base,
     'method': 'test.method',
