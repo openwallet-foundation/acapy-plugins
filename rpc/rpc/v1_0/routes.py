@@ -16,7 +16,7 @@ from aries_cloudagent.storage.error import StorageNotFoundError, StorageError
 from rpc.v1_0.models import (
   RPC_REQUEST_EXAMPLE,
   RPC_RESPONSE_EXAMPLE,
-  DRPCRequestRecord,
+  DRPCRecord,
   Request,
   Response
 )
@@ -33,7 +33,7 @@ class DRPCRequest(BaseModel):
     """DIDComm RPC Request Model."""
     
     class Meta:
-        schema_class = "DRPCRequestSchema"
+        schema_class = 'DRPCRequestSchema'
 
     def __init__(self, *, conn_id: str = None, request: dict = None, **kwargs):
         super().__init__(**kwargs)
@@ -45,7 +45,7 @@ class DRPCResponse(BaseModel):
     """DIDComm RPC Response Model."""
     
     class Meta:
-        schema_class = "DRPCResponseSchema"
+        schema_class = 'DRPCResponseSchema'
 
     def __init__(self, *, conn_id: str = None, response: dict = None, **kwargs):
         super().__init__(**kwargs)
@@ -57,38 +57,30 @@ class DRPCRequestSchema(BaseModelSchema, OpenAPISchema):
     """Request schema for sending a DIDComm RPC Request."""
 
     class Meta:
-      model_class = "DRPCRequest"
+      model_class = 'DRPCRequest'
 
-    conn_id = fields.String(
-        required=True,
-        metadata={"description": "Connection identifier", "example": UUID4_EXAMPLE},
-    )
+    conn_id = fields.String(required=True,
+                            metadata={'description': 'Connection identifier', 'example': UUID4_EXAMPLE})
 
-    request = Request(
-        required=True,
-        metadata={"description": "RPC Request", "example": RPC_REQUEST_EXAMPLE},
-    )
+    request = Request(required=True,
+                      metadata={'description': 'RPC Request', 'example': RPC_REQUEST_EXAMPLE})
 
 
 class DRPCResponseSchema(BaseModelSchema, OpenAPISchema):
     """Request schema for sending a DIDComm RPC Response."""
 
     class Meta:
-      model_class = "DRPCResponse"
+      model_class = 'DRPCResponse'
 
-    conn_id = fields.String(
-        required=True,
-        metadata={"description": "Connection identifier", "example": UUID4_EXAMPLE},
-    )
+    conn_id = fields.String(required=True,
+                            metadata={'description': 'Connection identifier', 'example': UUID4_EXAMPLE})
 
-    response = Response(
-        required=True,
-        metadata={"description": "RPC Response", "example": RPC_RESPONSE_EXAMPLE},
-    )
+    response = Response(required=True,
+                        metadata={'description': 'RPC Response', 'example': RPC_RESPONSE_EXAMPLE})
 
   
 @docs(
-    tags=["drpc"], summary="Send a DIDComm RPC request message",
+    tags=['drpc'], summary="Send a DIDComm RPC request message",
 )
 @request_schema(DRPCRequestSchema())
 @response_schema(DRPCRequestMessageSchema(), 200)
@@ -114,11 +106,11 @@ async def drpc_send_request(request: web.BaseRequest):
             raise web.HTTPNotFound(reason=err.roll_up) from err
 
         if (connection.is_ready):
-            request_record = DRPCRequestRecord(request=request)
+            request_record = DRPCRecord(request=request)
 
             # Save the request in the wallet
             record = StorageRecord(
-                type=DRPCRequestRecord.RECORD_TYPE,
+                type=DRPCRecord.RECORD_TYPE,
                 value=request_record.serialize()
             )
             try:
@@ -128,8 +120,8 @@ async def drpc_send_request(request: web.BaseRequest):
 
             # Create a new message to the recipient
             msg = DRPCRequestMessage(conn_id=conn_id,
-                                    request=request_record.request,
-                                    state=request_record.state)
+                                     request=request_record.request,
+                                     state=request_record.state)
             # TODO: Uncomment when testing against another agent with drpc enabled
             await outbound_handler(msg, connection_id=conn_id)
             return web.json_response(msg.serialize())

@@ -3,8 +3,7 @@ from unittest.mock import patch
 
 from marshmallow import ValidationError
 from rpc.v1_0.models import (
-  DRPCRequestRecordSchema,
-  DRPCResponseRecordSchema,
+  DRPCRecordSchema,
   RPCBaseModelSchema,
   RPCRequestModelSchema,
   RPCResponseModelSchema,
@@ -315,12 +314,14 @@ def test_invalid_rpc_error_id_not_null(test_input):
 
 
 @pytest.mark.parametrize('test_input', [{
+  'state': 'request-sent',
   'request': {
     **rpc_base,
     'method': 'test.method',
     'id': 123
   }
 }, {
+  'state': 'request-sent',
   'request': [{
     **rpc_base,
     'method': 'test.method',
@@ -331,6 +332,7 @@ def test_invalid_rpc_error_id_not_null(test_input):
     'id': '123'
   }]
 }, {
+  'state': 'request-sent',
   'request': {
     **rpc_base,
     'method': 'test.method',
@@ -338,7 +340,7 @@ def test_invalid_rpc_error_id_not_null(test_input):
   }
 }])
 def test_valid_drpc_request(test_input):
-  schema = DRPCRequestRecordSchema()
+  schema = DRPCRecordSchema()
   result = schema.load(test_input)
 
   if isinstance(test_input['request'], list):
@@ -362,7 +364,7 @@ def test_valid_drpc_request(test_input):
   'request': None
 }])
 def test_invalid_drpc_request_request_missing(test_input):
-  schema = DRPCRequestRecordSchema()
+  schema = DRPCRecordSchema()
 
   with pytest.raises(ValidationError) as exc_info:
     schema.load(test_input)
@@ -372,22 +374,44 @@ def test_invalid_drpc_request_request_missing(test_input):
 
 
 @pytest.mark.parametrize('test_input', [{
+  'state': 'completed',
+  'request': {
+    **rpc_base,
+    'method': 'test.method',
+    'id': 123
+  },
   'response': {
     **rpc_base,
     'result': 'test result',
     'id': 123
   }
 }, {
+  'state': 'completed',
+  'request': [{
+    **rpc_base,
+    'method': 'test.method',
+    'id': 123
+  }, {
+    **rpc_base,
+    'method': 'test.method.2',
+    'id': '123'
+  }],
   'response': [{
     **rpc_base,
     'result': 'test result',
     'id': 123
   }, {
     **rpc_base,
-    'result': 'test result',
+    'result': 'test result 2',
     'id': '123'
   }]
 }, {
+  'state': 'completed',
+  'request': {
+    **rpc_base,
+    'method': 'test.method',
+    'id': None
+  },
   'response': {
     **rpc_base,
     'error': {
@@ -397,6 +421,16 @@ def test_invalid_drpc_request_request_missing(test_input):
     'id': None
   }
 }, {
+  'state': 'completed',
+  'request': [{
+    **rpc_base,
+    'method': 'test.method',
+    'id': None
+  }, {
+    **rpc_base,
+    'method': 'test.method.2',
+    'id': None
+  }],
   'response': [{
     **rpc_base,
     'error': {
@@ -408,11 +442,21 @@ def test_invalid_drpc_request_request_missing(test_input):
     **rpc_base,
     'error': {
       'code': -123,
-      'message': 'Test error message'
+      'message': 'Test error message 2'
     },
     'id': None
   }]
 }, {
+  'state': 'completed',
+  'request': [{
+    **rpc_base,
+    'method': 'test.method',
+    'id': 123
+  }, {
+    **rpc_base,
+    'method': 'test.method.2',
+    'id': None
+  }],
   'response': [{
     **rpc_base,
     'result': 'test result',
@@ -421,13 +465,13 @@ def test_invalid_drpc_request_request_missing(test_input):
     **rpc_base,
     'error': {
       'code': -123,
-      'message': 'Test error message'
+      'message': 'Test error message 2'
     },
     'id': None
   }]
 }])
 def test_valid_drpc_response(test_input):
-  schema = DRPCResponseRecordSchema()
+  schema = DRPCRecordSchema()
   result = schema.load(test_input)
 
   if isinstance(test_input['response'], list):
@@ -456,17 +500,20 @@ def test_valid_drpc_response(test_input):
   
 
 @pytest.mark.parametrize('test_input', [{
-  'response': {}
+  'state': 'completed',
+  'request': {},
 }, {
-  'response': []
+  'state': 'completed',
+  'request': [],
 }, {
-  'response': None
+  'state': 'completed',
+  'request': None,
 }])
-def test_invalid_drpc_response_response_missing(test_input):
-  schema = DRPCResponseRecordSchema()
+def test_invalid_drpc_response_request_missing(test_input):
+  schema = DRPCRecordSchema()
 
   with pytest.raises(ValidationError) as exc_info:
     schema.load(test_input)
 
-  assert 'response' in exc_info.value.messages
-  assert 'RPC response cannot be empty.' in exc_info.value.messages['response']
+  assert 'request' in exc_info.value.messages
+  assert 'RPC request cannot be empty.' in exc_info.value.messages['request']
