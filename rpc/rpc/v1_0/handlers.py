@@ -1,7 +1,9 @@
+"""Message handlers for DIDComm RPC v1.0."""
+
 from aries_cloudagent.messaging.base_handler import (
     BaseResponder,
     BaseHandler,
-    RequestContext
+    RequestContext,
 )
 
 from rpc.v1_0.messages import DRPCRequestMessage, DRPCResponseMessage

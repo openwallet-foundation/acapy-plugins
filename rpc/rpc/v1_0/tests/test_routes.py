@@ -13,8 +13,8 @@ def test_valid_drpc_request():
             "jsonrpc": "2.0",
             "method": "test.method",
             "id": "1",
-            "params": {"one": "1"}
-        }
+            "params": {"one": "1"},
+        },
     }
 
     schema = DRPCRequestSchema()
@@ -31,21 +31,20 @@ def test_invalid_drpc_request():
 
     data = {
         "conn_id": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
-        "request": {
-            "method": "test.method",
-            "id": "1",
-            "params": {"one": "1"}
-        }
+        "request": {"method": "test.method", "id": "1", "params": {"one": "1"}},
     }
 
     schema = DRPCRequestSchema()
 
     with pytest.raises(ValidationError) as exc_info:
-      schema.load(data)
+        schema.load(data)
 
-    assert 'request' in exc_info.value.messages
-    assert 'jsonrpc' in exc_info.value.messages['request']
-    assert 'Missing data for required field.' in exc_info.value.messages['request']['jsonrpc']
+    assert "request" in exc_info.value.messages
+    assert "jsonrpc" in exc_info.value.messages["request"]
+    assert (
+        "Missing data for required field."
+        in exc_info.value.messages["request"]["jsonrpc"]
+    )
 
 
 def test_valid_drpc_request_message():
@@ -57,9 +56,9 @@ def test_valid_drpc_request_message():
             "jsonrpc": "2.0",
             "method": "test.method",
             "id": "1",
-            "params": {"one": "1"}
+            "params": {"one": "1"},
         },
-        "state": "request-sent"
+        "state": "request-sent",
     }
 
     schema = DRPCRequestMessageSchema()
@@ -72,16 +71,13 @@ def test_valid_drpc_request_message():
     assert result.request.id == "1"
     assert result.request.params == {"one": "1"}
 
+
 def test_valid_drpc_response():
     """Test the DRPCResponseSchema schema."""
 
     data = {
         "conn_id": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
-        "response": {
-            "jsonrpc": "2.0",
-            "result": "test result",
-            "id": "1"
-        }
+        "response": {"jsonrpc": "2.0", "result": "test result", "id": "1"},
     }
 
     schema = DRPCResponseSchema()
@@ -97,20 +93,20 @@ def test_invalid_drpc_response():
 
     data = {
         "conn_id": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
-        "response": {
-            "result": "test result",
-            "id": "1"
-        }
+        "response": {"result": "test result", "id": "1"},
     }
 
     schema = DRPCResponseSchema()
 
     with pytest.raises(ValidationError) as exc_info:
-      schema.load(data)
+        schema.load(data)
 
-    assert 'response' in exc_info.value.messages
-    assert 'jsonrpc' in exc_info.value.messages['response']
-    assert 'Missing data for required field.' in exc_info.value.messages['response']['jsonrpc']
+    assert "response" in exc_info.value.messages
+    assert "jsonrpc" in exc_info.value.messages["response"]
+    assert (
+        "Missing data for required field."
+        in exc_info.value.messages["response"]["jsonrpc"]
+    )
 
 
 def test_valid_drpc_response_message():
@@ -118,12 +114,8 @@ def test_valid_drpc_response_message():
 
     data = {
         "conn_id": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
-        "response": {
-            "jsonrpc": "2.0",
-            "result": "test result",
-            "id": "1"
-        },
-        "state": "completed"
+        "response": {"jsonrpc": "2.0", "result": "test result", "id": "1"},
+        "state": "completed",
     }
 
     schema = DRPCResponseMessageSchema()

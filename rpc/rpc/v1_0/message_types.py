@@ -1,4 +1,4 @@
-"""Message type identifiers for Action Menus."""
+"""Message types for DIDComm RPC v1.0."""
 
 from aries_cloudagent.protocols.didcomm_prefix import DIDCommPrefix
 
