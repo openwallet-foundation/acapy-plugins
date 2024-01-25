@@ -1,0 +1,70 @@
+from aries_cloudagent.messaging.agent_message import AgentMessage, AgentMessageSchema
+from aries_cloudagent.messaging.valid import UUID4_EXAMPLE
+from marshmallow import fields
+
+from rpc.v1_0.message_types import DRPC_REQUEST, DRPC_RESPONSE, PROTOCOL_PACKAGE
+from rpc.v1_0.models import DRPCRequestRecordSchema, DRPCResponseRecordSchema
+
+
+class DRPCRequestMessage(AgentMessage):
+    """DIDComm RPC Request Agent Message."""
+
+    class Meta:
+        schema_class = "DRPCRequestMessageSchema"
+        message_type = DRPC_REQUEST
+        handler_class = f"{PROTOCOL_PACKAGE}.handlers.DRPCRequestHandler"
+
+    def __init__(self,
+                 *,
+                 conn_id: str = None,
+                 request: dict = None,
+                 state: str = None,
+                 **kwargs):
+        super().__init__(**kwargs)
+        self.conn_id = conn_id
+        self.request = request
+        self.state = state
+
+
+class DRPCResponseMessage(AgentMessage):
+    """DIDComm RPC Response Agent Message."""
+
+    class Meta:
+        schema_class = "DRPCResponseMessageSchema"
+        message_type = DRPC_RESPONSE
+        handler_class = f"{PROTOCOL_PACKAGE}.handlers.DRPCResponseHandler"
+
+    def __init__(self,
+                 *,
+                 conn_id: str = None,
+                 response: dict = None,
+                 state: str = None,
+                 **kwargs):
+        super().__init__(**kwargs)
+        self.conn_id = conn_id
+        self.response = response
+        self.state = state
+
+
+class DRPCRequestMessageSchema(AgentMessageSchema, DRPCRequestRecordSchema):
+    """Agent Message schema from sending a DIDComm RPC Request."""
+
+    class Meta:
+      model_class = "DRPCRequestMessage"
+
+    conn_id = fields.String(
+        required=True,
+        metadata={"description": "Connection identifier", "example": UUID4_EXAMPLE},
+    )
+
+
+class DRPCResponseMessageSchema(AgentMessageSchema, DRPCResponseRecordSchema):
+    """Agent Message schema from sending a DIDComm RPC Response."""
+
+    class Meta:
+      model_class = "DRPCResponseMessage"
+
+    conn_id = fields.String(
+        required=True,
+        metadata={"description": "Connection identifier", "example": UUID4_EXAMPLE},
+    )
