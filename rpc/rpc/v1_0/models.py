@@ -325,9 +325,11 @@ class DRPCRecordSchema(BaseRecordSchema):
         missing=None,
     )
 
-    # @validates_schema
-    # def validate_response_state(self, data, **kwargs):
-    #   """Validate that the response is not empty if the state is in 'completed'."""
+    @validates_schema
+    def validate_response_state(self, data, **kwargs):
+        """Validate that the response is not empty if the state is in 'completed'."""
 
-    #   if self.state != self.STATE_COMPLETED and self.response is None:
-    #     raise ValidationError('RPC response cannot be empty if state is \'completed\'.')
+        if data.get("state") == DRPCRecord.STATE_COMPLETED and not data.get("response"):
+            raise ValidationError(
+                "RPC response cannot be empty if state is 'completed'."
+            )

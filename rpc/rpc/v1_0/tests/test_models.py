@@ -289,7 +289,7 @@ def test_invalid_rpc_error_id_not_null(test_input):
         },
     ],
 )
-def test_valid_drpc_request(test_input):
+def test_valid_drpc_request_record_request_sent(test_input):
     schema = DRPCRecordSchema()
     result = schema.load(test_input)
 
@@ -309,14 +309,12 @@ def test_valid_drpc_request(test_input):
 @pytest.mark.parametrize(
     "test_input",
     [
-        {
-            "request": {},
-        },
+        {"request": {}},
         {"request": []},
         {"request": None},
     ],
 )
-def test_invalid_drpc_request_request_missing(test_input):
+def test_invalid_drpc_record_request_missing(test_input):
     schema = DRPCRecordSchema()
 
     with pytest.raises(ValidationError) as exc_info:
@@ -390,7 +388,7 @@ def test_invalid_drpc_request_request_missing(test_input):
         },
     ],
 )
-def test_valid_drpc_response(test_input):
+def test_valid_drpc_record_completed(test_input):
     schema = DRPCRecordSchema()
     result = schema.load(test_input)
 
@@ -445,7 +443,7 @@ def test_valid_drpc_response(test_input):
         },
     ],
 )
-def test_invalid_drpc_response_request_missing(test_input):
+def test_invalid_drpc_response_record_request_missing(test_input):
     schema = DRPCRecordSchema()
 
     with pytest.raises(ValidationError) as exc_info:
