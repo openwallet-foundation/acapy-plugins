@@ -8,7 +8,7 @@ def test_valid_drpc_request():
     """Test the DRPCRequestSchema schema."""
 
     data = {
-        "conn_id": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+        "connection_id": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
         "request": {
             "jsonrpc": "2.0",
             "method": "test.method",
@@ -19,7 +19,7 @@ def test_valid_drpc_request():
 
     schema = DRPCRequestSchema()
     result = schema.load(data)
-    assert result.conn_id == "3fa85f64-5717-4562-b3fc-2c963f66afa6"
+    assert result.connection_id == "3fa85f64-5717-4562-b3fc-2c963f66afa6"
     assert result.request.jsonrpc == "2.0"
     assert result.request.method == "test.method"
     assert result.request.id == "1"
@@ -30,7 +30,7 @@ def test_invalid_drpc_request():
     """Test the DRPCRequestSchema schema."""
 
     data = {
-        "conn_id": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+        "connection_id": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
         "request": {"method": "test.method", "id": "1", "params": {"one": "1"}},
     }
 
@@ -51,7 +51,7 @@ def test_valid_drpc_request_message():
     """Test the DRPCRequesMessageSchema schema."""
 
     data = {
-        "conn_id": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+        "connection_id": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
         "request": {
             "jsonrpc": "2.0",
             "method": "test.method",
@@ -65,7 +65,7 @@ def test_valid_drpc_request_message():
     result = schema.load(data)
     assert result._id is not None
     assert result._type is not None
-    assert result.conn_id == "3fa85f64-5717-4562-b3fc-2c963f66afa6"
+    assert result.connection_id == "3fa85f64-5717-4562-b3fc-2c963f66afa6"
     assert result.request.jsonrpc == "2.0"
     assert result.request.method == "test.method"
     assert result.request.id == "1"
@@ -76,13 +76,13 @@ def test_valid_drpc_response():
     """Test the DRPCResponseSchema schema."""
 
     data = {
-        "conn_id": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+        "connection_id": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
         "response": {"jsonrpc": "2.0", "result": "test result", "id": "1"},
     }
 
     schema = DRPCResponseSchema()
     result = schema.load(data)
-    assert result.conn_id == "3fa85f64-5717-4562-b3fc-2c963f66afa6"
+    assert result.connection_id == "3fa85f64-5717-4562-b3fc-2c963f66afa6"
     assert result.response.jsonrpc == "2.0"
     assert result.response.result == "test result"
     assert result.response.id == "1"
@@ -92,7 +92,7 @@ def test_invalid_drpc_response():
     """Test the DRPCResponseSchema schema."""
 
     data = {
-        "conn_id": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+        "connection_id": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
         "response": {"result": "test result", "id": "1"},
     }
 
@@ -113,7 +113,7 @@ def test_valid_drpc_response_message():
     """Test the DRPCResponseMessageSchema schema."""
 
     data = {
-        "conn_id": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+        "connection_id": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
         "response": {"jsonrpc": "2.0", "result": "test result", "id": "1"},
         "state": "completed",
     }
@@ -122,7 +122,7 @@ def test_valid_drpc_response_message():
     result = schema.load(data)
     assert result._id is not None
     assert result._type is not None
-    assert result.conn_id == "3fa85f64-5717-4562-b3fc-2c963f66afa6"
+    assert result.connection_id == "3fa85f64-5717-4562-b3fc-2c963f66afa6"
     assert result.response.jsonrpc == "2.0"
     assert result.response.result == "test result"
     assert result.response.id == "1"

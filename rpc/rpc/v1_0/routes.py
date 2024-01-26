@@ -38,11 +38,11 @@ class DRPCRequest(BaseModel):
 
         schema_class = "DRPCRequestSchema"
 
-    def __init__(self, *, conn_id: str = None, request: dict = None, **kwargs):
+    def __init__(self, *, connection_id: str = None, request: dict = None, **kwargs):
         """Initialize DIDComm RPC Request Model."""
 
         super().__init__(**kwargs)
-        self.conn_id = conn_id
+        self.connection_id = connection_id
         self.request = request
 
 
@@ -54,11 +54,11 @@ class DRPCResponse(BaseModel):
 
         schema_class = "DRPCResponseSchema"
 
-    def __init__(self, *, conn_id: str = None, response: dict = None, **kwargs):
+    def __init__(self, *, connection_id: str = None, response: dict = None, **kwargs):
         """Initialize DIDComm RPC Response Model."""
 
         super().__init__(**kwargs)
-        self.conn_id = conn_id
+        self.connection_id = connection_id
         self.response = response
 
 
@@ -70,7 +70,7 @@ class DRPCRequestSchema(BaseModelSchema, OpenAPISchema):
 
         model_class = "DRPCRequest"
 
-    conn_id = fields.String(
+    connection_id = fields.String(
         required=True,
         metadata={"description": "Connection identifier", "example": UUID4_EXAMPLE},
     )
@@ -89,7 +89,7 @@ class DRPCResponseSchema(BaseModelSchema, OpenAPISchema):
 
         model_class = "DRPCResponse"
 
-    conn_id = fields.String(
+    connection_id = fields.String(
         required=True,
         metadata={"description": "Connection identifier", "example": UUID4_EXAMPLE},
     )
@@ -115,18 +115,20 @@ async def drpc_send_request(request: web.BaseRequest):
     outbound_handler = request["outbound_message_router"]
 
     body = await request.json()
-    conn_id = body["conn_id"]
+    connection_id = body["connection_id"]
     request = body["request"]
 
     async with context.session() as session:
         storage = session.inject(BaseStorage)
         try:
-            connection = await ConnRecord.retrieve_by_id(session, conn_id)
+            connection = await ConnRecord.retrieve_by_id(session, connection_id)
         except StorageNotFoundError as err:
             raise web.HTTPNotFound(reason=err.roll_up) from err
 
         if connection.is_ready:
-            request_record = DRPCRecord(request=request)
+            request_record = DRPCRecord(
+                request=request, state=DRPCRecord.STATE_REQUEST_SENT
+            )
 
             # Save the request in the wallet
             record = StorageRecord(
@@ -139,15 +141,14 @@ async def drpc_send_request(request: web.BaseRequest):
 
             # Create a new message to the recipient
             msg = DRPCRequestMessage(
-                conn_id=conn_id,
+                connection_id=connection_id,
                 request=request_record.request,
                 state=request_record.state,
             )
-            # TODO: Uncomment when testing against another agent with drpc enabled
-            await outbound_handler(msg, connection_id=conn_id)
+            await outbound_handler(msg, connection_id=connection_id)
             return web.json_response(msg.serialize())
 
-        raise web.HTTPForbidden(reason=f"Connection {conn_id} is not ready")
+        raise web.HTTPForbidden(reason=f"Connection {connection_id} is not ready")
 
 
 @docs(
@@ -165,13 +166,13 @@ async def drpc_send_response(request: web.BaseRequest):
     # outbound_handler = request["outbound_message_router"]
 
     body = await request.json()
-    conn_id = body["conn_id"]
+    connection_id = body["connection_id"]
     # response = body["response"]
 
     async with context.session() as session:
         # storage = session.inject(BaseStorage)
         try:
-            connection = await ConnRecord.retrieve_by_id(session, conn_id)
+            connection = await ConnRecord.retrieve_by_id(session, connection_id)
         except StorageNotFoundError as err:
             raise web.HTTPNotFound(reason=err.roll_up) from err
 
@@ -181,7 +182,7 @@ async def drpc_send_response(request: web.BaseRequest):
 
             return web.json_response({})
 
-        raise web.HTTPForbidden(reason=f"Connection {conn_id} is not ready")
+        raise web.HTTPForbidden(reason=f"Connection {connection_id} is not ready")
 
 
 async def register(app: web.Application):
