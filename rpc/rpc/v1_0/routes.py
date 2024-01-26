@@ -1,5 +1,6 @@
 """Routes for DIDComm RPC v1.0."""
 
+import json
 import logging
 
 from aiohttp import web
@@ -24,6 +25,7 @@ from rpc.v1_0.models import (
 from rpc.v1_0.messages import (
     DRPCRequestMessage,
     DRPCRequestMessageSchema,
+    DRPCResponseMessage,
     DRPCResponseMessageSchema,
 )
 
@@ -54,12 +56,20 @@ class DRPCResponse(BaseModel):
 
         schema_class = "DRPCResponseSchema"
 
-    def __init__(self, *, connection_id: str = None, response: dict = None, **kwargs):
+    def __init__(
+        self,
+        *,
+        connection_id: str = None,
+        response: dict = None,
+        thread_id: str = None,
+        **kwargs,
+    ):
         """Initialize DIDComm RPC Response Model."""
 
         super().__init__(**kwargs)
         self.connection_id = connection_id
         self.response = response
+        self.thread_id = thread_id
 
 
 class DRPCRequestSchema(BaseModelSchema, OpenAPISchema):
@@ -99,6 +109,11 @@ class DRPCResponseSchema(BaseModelSchema, OpenAPISchema):
         metadata={"description": "RPC Response", "example": RPC_RESPONSE_EXAMPLE},
     )
 
+    thread_id = fields.String(
+        required=True,
+        metadata={"description": "Thread identifier", "example": UUID4_EXAMPLE},
+    )
+
 
 @docs(
     tags=["drpc"],
@@ -132,12 +147,14 @@ async def drpc_send_request(request: web.BaseRequest):
 
             # Save the request in the wallet
             record = StorageRecord(
-                type=DRPCRecord.RECORD_TYPE, value=request_record.serialize()
+                type=DRPCRecord.RECORD_TYPE,
+                value=json.dumps(request_record.serialize()),
             )
+
             try:
                 await storage.add_record(record)
             except StorageError as err:
-                raise web.HTTPBadRequest(reason=err.roll_up) from err
+                raise web.HTTPInternalServerError(reason=err.roll_up) from err
 
             # Create a new message to the recipient
             msg = DRPCRequestMessage(
@@ -145,6 +162,19 @@ async def drpc_send_request(request: web.BaseRequest):
                 request=request_record.request,
                 state=request_record.state,
             )
+
+            try:
+                await storage.update_record(
+                    record,
+                    value=json.dumps(request_record.serialize()),
+                    tags={
+                        "connection_id": connection_id,
+                        "thread_id": msg._id,
+                    },
+                )
+            except StorageError as err:
+                raise web.HTTPInternalServerError(reason=err.roll_up) from err
+
             await outbound_handler(msg, connection_id=connection_id)
             return web.json_response(msg.serialize())
 
@@ -163,24 +193,46 @@ async def drpc_send_response(request: web.BaseRequest):
     LOGGER.debug("Recieved DRPC send response >>>")
 
     context: AdminRequestContext = request["context"]
-    # outbound_handler = request["outbound_message_router"]
+    outbound_handler = request["outbound_message_router"]
 
     body = await request.json()
     connection_id = body["connection_id"]
-    # response = body["response"]
+    thread_id = body["thread_id"]
+    response = body["response"]
 
     async with context.session() as session:
-        # storage = session.inject(BaseStorage)
         try:
             connection = await ConnRecord.retrieve_by_id(session, connection_id)
         except StorageNotFoundError as err:
             raise web.HTTPNotFound(reason=err.roll_up) from err
 
         if connection.is_ready:
-            # TODO:
-            pass
+            try:
+                response_record = await DRPCRecord.retrieve_by_connection_and_thread(
+                    session, connection_id, thread_id
+                )
+            except StorageNotFoundError as err:
+                raise web.HTTPNotFound(reason=err.roll_up) from err
 
-            return web.json_response({})
+            # Update the response_record with the response and state
+            response_record.response = response
+            response_record.state = DRPCRecord.STATE_COMPLETED
+
+            try:
+                await response_record.save(session)
+            except StorageError as err:
+                raise web.HTTPInternalServerError(reason=err.roll_up) from err
+
+            # Create a new message to the recipient
+            msg = DRPCResponseMessage(
+                connection_id=connection_id,
+                response=response_record.response,
+                state=response_record.state,
+            )
+            msg.assign_thread_id(thread_id)
+
+            await outbound_handler(msg, connection_id=connection_id)
+            return web.json_response(msg.serialize())
 
         raise web.HTTPForbidden(reason=f"Connection {connection_id} is not ready")
 
