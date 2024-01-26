@@ -37,13 +37,18 @@ def test_invalid_rpc_base_jsonrpc_missing(test_input):
     [
         {**rpc_base, "method": "test.method", "id": 123},
         {**rpc_base, "method": "test.method", "id": "123"},
-        {**rpc_base, "method": "test.method", "id": None},
-        {**rpc_base, "method": "test.method"},
-        {**rpc_base, "method": "test.method", "params": ["1", "2", "3"]},
-        {**rpc_base, "method": "test.method", "params": {"test": "params"}},
-        {**rpc_base, "method": "test.method", "params": []},
-        {**rpc_base, "method": "test.method", "params": {}},
-        {**rpc_base, "method": "test.method", "params": None},
+        {**rpc_base, "method": "test.notification", "id": None},
+        {**rpc_base, "method": "test.notification"},
+        {**rpc_base, "method": "test.method", "params": ["1", "2", "3"], "id": 123},
+        {**rpc_base, "method": "test.method", "params": {"test": "params"}, "id": 123},
+        {**rpc_base, "method": "test.method", "params": [], "id": 123},
+        {**rpc_base, "method": "test.method", "params": {}, "id": 123},
+        {**rpc_base, "method": "test.method", "params": None, "id": 123},
+        {**rpc_base, "method": "test.notification", "params": ["1", "2", "3"]},
+        {**rpc_base, "method": "test.notification", "params": {"test": "params"}},
+        {**rpc_base, "method": "test.notification", "params": []},
+        {**rpc_base, "method": "test.notification", "params": {}},
+        {**rpc_base, "method": "test.notification", "params": None},
     ],
 )
 def test_valid_rpc_request(test_input):
@@ -51,7 +56,7 @@ def test_valid_rpc_request(test_input):
     result = schema.load(test_input)
 
     assert result.jsonrpc == "2.0"
-    assert result.method == "test.method"
+    assert result.method == test_input["method"]
     # Test optional fields
     if "id" in test_input:
         assert result.id == test_input["id"]
@@ -87,8 +92,8 @@ def test_invalid_rpc_request_id_float(test_input):
 @pytest.mark.parametrize(
     "test_input",
     [
-        {**rpc_base, "method": "test.method", "params": "test params"},
-        {**rpc_base, "method": "test.method", "params": 123},
+        {**rpc_base, "method": "test.method", "params": "test params", "id": 123},
+        {**rpc_base, "method": "test.method", "params": 123, "id": 123},
     ],
 )
 def test_invalid_rpc_request_params_type(test_input):
@@ -125,7 +130,13 @@ def test_valid_rpc_error(test_input):
         assert result.data == test_input["data"]
 
 
-@pytest.mark.parametrize("test_input", [{"message": "Test error message"}])
+@pytest.mark.parametrize(
+    "test_input",
+    [
+        {"message": "Test error message"},
+        {"message": "Test error message", "data": "abc"},
+    ],
+)
 def test_invalid_rpc_error_code_missing(test_input):
     schema = RPCErrorModelSchema()
 
@@ -136,7 +147,7 @@ def test_invalid_rpc_error_code_missing(test_input):
     assert "Missing data for required field." in exc_info.value.messages["code"]
 
 
-@pytest.mark.parametrize("test_input", [{"code": 123}])
+@pytest.mark.parametrize("test_input", [{"code": 123}, {"code": "123", "data": "abc"}])
 def test_invalid_rpc_error_message_missing(test_input):
     schema = RPCErrorModelSchema()
 
@@ -148,7 +159,11 @@ def test_invalid_rpc_error_message_missing(test_input):
 
 
 @pytest.mark.parametrize(
-    "test_input", [{"code": "abc", "message": "Test error message"}]
+    "test_input",
+    [
+        {"code": "abc", "message": "Test error message"},
+        {"code": "abc", "message": "Test error message", "data": "abc"},
+    ],
 )
 def test_invalid_rpc_error_code_type(test_input):
     schema = RPCErrorModelSchema()
@@ -170,6 +185,21 @@ def test_invalid_rpc_error_code_type(test_input):
             **rpc_base,
             "error": {"code": -123, "message": "Test error message"},
             "id": None,
+        },
+        {
+            **rpc_base,
+            "error": {"code": -123, "message": "Test error message"},
+            "id": 123,
+        },
+        {
+            **rpc_base,
+            "error": {"code": "-123", "message": "Test error message"},
+            "id": None,
+        },
+        {
+            **rpc_base,
+            "error": {"code": "-123", "message": "Test error message"},
+            "id": "123",
         },
     ],
 )
@@ -215,7 +245,7 @@ def test_invalid_rpc_response_result_or_error_missing(test_input):
         }
     ],
 )
-def test_invalid_rpc_response_result_and_error(test_input):
+def test_invalid_rpc_response_result_and_error_present(test_input):
     schema = RPCResponseModelSchema()
 
     with pytest.raises(ValidationError) as exc_info:
@@ -228,10 +258,21 @@ def test_invalid_rpc_response_result_and_error(test_input):
     )
 
 
+@pytest.mark.parametrize("test_input", [{**rpc_base, "result": "test result"}])
+def test_invalid_rpc_response_result_id_missing(test_input):
+    schema = RPCResponseModelSchema()
+
+    with pytest.raises(ValidationError) as exc_info:
+        schema.load(test_input)
+
+    assert "id" in exc_info.value.messages
+    assert "Missing data for required field." in exc_info.value.messages["id"]
+
+
 @pytest.mark.parametrize(
     "test_input", [{**rpc_base, "result": "test result", "id": None}]
 )
-def test_invalid_rpc_response_id_missing(test_input):
+def test_invalid_rpc_response_result_id_null(test_input):
     schema = RPCResponseModelSchema()
 
     with pytest.raises(ValidationError) as exc_info:
@@ -240,32 +281,6 @@ def test_invalid_rpc_response_id_missing(test_input):
     assert "_schema" in exc_info.value.messages
     assert (
         "RPC response with result must have an ID."
-        in exc_info.value.messages["_schema"]
-    )
-
-
-@pytest.mark.parametrize(
-    "test_input",
-    [
-        {
-            **rpc_base,
-            "error": {
-                "code": -123,
-                "message": "Test error message",
-            },
-            "id": 123,
-        }
-    ],
-)
-def test_invalid_rpc_error_id_not_null(test_input):
-    schema = RPCResponseModelSchema()
-
-    with pytest.raises(ValidationError) as exc_info:
-        schema.load(test_input)
-
-    assert "_schema" in exc_info.value.messages
-    assert (
-        "RPC response with error must have a null ID."
         in exc_info.value.messages["_schema"]
     )
 
@@ -286,7 +301,14 @@ def test_invalid_rpc_error_id_not_null(test_input):
         },
         {
             "state": "request-sent",
-            "request": {**rpc_base, "method": "test.method", "id": None},
+            "request": {**rpc_base, "method": "test.notification", "id": None},
+        },
+        {
+            "state": "request-sent",
+            "request": [
+                {**rpc_base, "method": "test.method", "id": 123},
+                {**rpc_base, "method": "test.notification", "id": None},
+            ],
         },
     ],
 )
@@ -315,7 +337,7 @@ def test_valid_drpc_request_record_request_sent(test_input):
         {"request": None},
     ],
 )
-def test_invalid_drpc_record_request_missing(test_input):
+def test_invalid_drpc_record_request_empty(test_input):
     schema = DRPCRecordSchema()
 
     with pytest.raises(ValidationError) as exc_info:
@@ -346,24 +368,24 @@ def test_invalid_drpc_record_request_missing(test_input):
         },
         {
             "state": "completed",
-            "request": {**rpc_base, "method": "test.method", "id": None},
+            "request": {**rpc_base, "method": "test.erroneous.method", "id": 123},
             "response": {
                 **rpc_base,
                 "error": {"code": -123, "message": "Test error message"},
-                "id": None,
+                "id": 123,
             },
         },
         {
             "state": "completed",
             "request": [
-                {**rpc_base, "method": "test.method", "id": None},
-                {**rpc_base, "method": "test.method.2", "id": None},
+                {**rpc_base, "method": "test.erroneous.method", "id": 123},
+                {**rpc_base, "method": "test.erroneous.method.2", "id": None},
             ],
             "response": [
                 {
                     **rpc_base,
                     "error": {"code": -123, "message": "Test error message"},
-                    "id": None,
+                    "id": 123,
                 },
                 {
                     **rpc_base,
@@ -376,7 +398,7 @@ def test_invalid_drpc_record_request_missing(test_input):
             "state": "completed",
             "request": [
                 {**rpc_base, "method": "test.method", "id": 123},
-                {**rpc_base, "method": "test.method.2", "id": None},
+                {**rpc_base, "method": "test.erroneous.method.2", "id": None},
             ],
             "response": [
                 {**rpc_base, "result": "test result", "id": 123},
@@ -445,6 +467,18 @@ def test_valid_drpc_record_completed(test_input):
     "test_input",
     [
         {
+            "state": "request-received",
+            "request": {},
+        },
+        {
+            "state": "request-received",
+            "request": [],
+        },
+        {
+            "state": "request-received",
+            "request": None,
+        },
+        {
             "state": "completed",
             "request": {},
         },
@@ -466,3 +500,61 @@ def test_invalid_drpc_response_record_request_missing(test_input):
 
     assert "request" in exc_info.value.messages
     assert "RPC request cannot be empty." in exc_info.value.messages["request"]
+
+
+@pytest.mark.parametrize(
+    "test_input",
+    [
+        {
+            "state": "completed",
+            "request": {**rpc_base, "method": "test.method", "id": 123},
+            "response": None,
+        },
+    ],
+)
+def test_invalid_drpc_response_record_completed_response_is_null(test_input):
+    schema = DRPCRecordSchema()
+
+    with pytest.raises(ValidationError) as exc_info:
+        schema.load(test_input)
+
+    assert "_schema" in exc_info.value.messages
+    assert (
+        "RPC response cannot be null if state is 'completed'."
+        in exc_info.value.messages["_schema"]
+    )
+
+
+@pytest.mark.skip
+@pytest.mark.parametrize(
+    "test_input",
+    [
+        {
+            "jsonrpc": "2.0",
+            "method": "test.method",
+            "params": {"one": "1"},
+            "id": "1",
+        },
+        [
+            {
+                "jsonrpc": "2.0",
+                "method": "test.method",
+                "params": {"one": "1"},
+                "id": "1",
+            },
+            {
+                "jsonrpc": "2.0",
+                "method": "test.method.2",
+                "params": {"two": "2"},
+                "id": "2",
+            },
+        ],
+    ],
+)
+def test_rpc_request_serializes(test_input):
+    if isinstance(test_input, list):
+        rpc_requests = [RPCRequestModelSchema().load(request) for request in test_input]
+        assert [request.serialize() for request in rpc_requests] == test_input
+    else:
+        rpc_request = RPCRequestModelSchema().load(test_input)
+        assert rpc_request.serialize() == test_input

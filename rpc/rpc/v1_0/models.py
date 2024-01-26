@@ -307,9 +307,6 @@ class RPCResponseModelSchema(RPCBaseModelSchema):
         if data.get("result") and data.get("id") is None:
             raise ValidationError("RPC response with result must have an ID.")
 
-        if data.get("error") and data.get("id") is not None:
-            raise ValidationError("RPC response with error must have a null ID.")
-
 
 class DRPCRecordSchema(BaseRecordSchema):
     """Schema for serialization/deserialization of DIDComm RPC Records."""
@@ -355,5 +352,5 @@ class DRPCRecordSchema(BaseRecordSchema):
             and data.get("response") is None
         ):
             raise ValidationError(
-                "RPC response cannot be empty if state is 'completed'."
+                "RPC response cannot be null if state is 'completed'."
             )
