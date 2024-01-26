@@ -7,7 +7,6 @@ from marshmallow import fields, validate, ValidationError, validates_schema
 from aries_cloudagent.core.profile import ProfileSession
 from aries_cloudagent.messaging.models.base import BaseModel, BaseModelSchema
 from aries_cloudagent.messaging.models.base_record import BaseRecord, BaseRecordSchema
-from aries_cloudagent.messaging.valid import UUID4_EXAMPLE
 
 
 RPC_REQUEST_EXAMPLE = {
@@ -349,7 +348,7 @@ class DRPCRecordSchema(BaseRecordSchema):
 
     @validates_schema
     def validate_state_completed(self, data, **kwargs):
-        """Validate that the response and thread_is are not empty if the state is in 'completed'."""
+        """Validate that the response is not empty if the state is in 'completed'."""
 
         if (
             data.get("state") == DRPCRecord.STATE_COMPLETED
