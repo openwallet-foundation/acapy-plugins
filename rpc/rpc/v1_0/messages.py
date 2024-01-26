@@ -2,7 +2,7 @@
 
 from aries_cloudagent.messaging.agent_message import AgentMessage, AgentMessageSchema
 from aries_cloudagent.messaging.valid import UUID4_EXAMPLE
-from marshmallow import fields, validate
+from marshmallow import ValidationError, fields, pre_dump, validate
 
 from rpc.v1_0.message_types import (
     DRPC_REQUEST,
@@ -54,7 +54,14 @@ class DRPCResponseMessage(AgentMessage):
         message_type = DRPC_RESPONSE
         handler_class = f"{PROTOCOL_PACKAGE}.handlers.DRPCResponseHandler"
 
-    def __init__(self, *, connection_id: str, response: dict, state: str, **kwargs):
+    def __init__(
+        self,
+        *,
+        connection_id: str,
+        response: dict,
+        state: str,
+        **kwargs,
+    ):
         """Initialize DIDComm RPC Response Message."""
 
         super().__init__(**kwargs)
@@ -105,9 +112,9 @@ class DRPCResponseMessageSchema(AgentMessageSchema):
     )
 
     response = Response(
-        required=False,
+        required=True,
+        error_messages={"null": "RPC response cannot be null."},
         metadata={"description": "RPC response", "example": RPC_RESPONSE_EXAMPLE},
-        missing=None,
     )
 
     state = fields.String(
@@ -120,3 +127,10 @@ class DRPCResponseMessageSchema(AgentMessageSchema):
             "example": DRPCRecord.STATE_REQUEST_RECEIVED,
         },
     )
+
+    @pre_dump
+    def check_thread_deco(self, obj, **kwargs):
+        """Thread decorator, and its thid, are mandatory."""
+        if not obj._decorators.to_dict().get("~thread", {}).keys() >= {"thid"}:
+            raise ValidationError("Missing required field(s) in thread decorator")
+        return obj

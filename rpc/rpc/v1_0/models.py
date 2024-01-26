@@ -1,9 +1,13 @@
 """Data models for DIDComm RPC v1.0."""
 
 from typing import Any, List, Mapping, Optional, Union
+
+from marshmallow import fields, validate, ValidationError, validates_schema
+
+from aries_cloudagent.core.profile import ProfileSession
 from aries_cloudagent.messaging.models.base import BaseModel, BaseModelSchema
 from aries_cloudagent.messaging.models.base_record import BaseRecord, BaseRecordSchema
-from marshmallow import fields, validate, ValidationError, validates_schema
+from aries_cloudagent.messaging.valid import UUID4_EXAMPLE
 
 
 RPC_REQUEST_EXAMPLE = {
@@ -92,12 +96,12 @@ class Response(fields.Field):
 
         if isinstance(value, list):
             if not len(value):
-                raise ValidationError("RPC response cannot be empty.")
+                return []
             # Map through list and load each item
             return [self.load_response_or_error(item) for item in value]
         else:
             if not value:
-                raise ValidationError("RPC response cannot be empty.")
+                return {}
             return self.load_response_or_error(value)
 
 
@@ -148,7 +152,7 @@ class RPCRequestModel(RPCBaseModel):
         method: str,
         id: Optional[Union[int, str]],
         params: Union[List[str], Mapping[str, str]],
-        **kwargs
+        **kwargs,
     ):
         """Initialize RPC Request Model."""
 
@@ -173,7 +177,7 @@ class RPCResponseModel(RPCBaseModel):
         result: Optional[Any],
         error: Optional[RPCErrorModel],
         id: Optional[Union[int, str]],
-        **kwargs
+        **kwargs,
     ):
         """Initialize RPC Response Model."""
 
@@ -205,14 +209,32 @@ class DRPCRecord(BaseRecord):
         *,
         state: str,
         request: Union[RPCRequestModel, List[RPCRequestModel]],
-        response: Optional[Union[RPCResponseModel, List[RPCResponseModel]]],
-        **kwargs
+        response: Optional[Union[RPCResponseModel, List[RPCResponseModel]]] = None,
+        **kwargs,
     ):
         """Initialize DRPCRecord."""
 
         super().__init__(state=state, **kwargs)
         self.request = request
         self.response = response
+
+    @classmethod
+    async def retrieve_by_connection_and_thread(
+        cls, session: ProfileSession, connection_id: str, thread_id: str
+    ) -> "DRPCRecord":
+        """Retrieve a DRPCRecord by connection and thread ID."""
+
+        cache_key = f"drpc_record_ctidx::{connection_id}::{thread_id}"
+        record_id = await cls.get_cached_key(session, cache_key)
+
+        if record_id:
+            record = await cls.retrieve_by_id(session, record_id)
+        else:
+            record = await cls.retrieve_by_tag_filter(
+                session, {"connection_id": connection_id, "thread_id": thread_id}
+            )
+            await cls.set_cached_key(session, cache_key, record._id)
+        return record
 
 
 class RPCBaseModelSchema(BaseModelSchema):
@@ -326,10 +348,13 @@ class DRPCRecordSchema(BaseRecordSchema):
     )
 
     @validates_schema
-    def validate_response_state(self, data, **kwargs):
-        """Validate that the response is not empty if the state is in 'completed'."""
+    def validate_state_completed(self, data, **kwargs):
+        """Validate that the response and thread_is are not empty if the state is in 'completed'."""
 
-        if data.get("state") == DRPCRecord.STATE_COMPLETED and not data.get("response"):
+        if (
+            data.get("state") == DRPCRecord.STATE_COMPLETED
+            and data.get("response") is None
+        ):
             raise ValidationError(
                 "RPC response cannot be empty if state is 'completed'."
             )

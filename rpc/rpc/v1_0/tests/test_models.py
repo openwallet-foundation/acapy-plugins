@@ -1,6 +1,7 @@
 import pytest
 
 from marshmallow import ValidationError
+
 from rpc.v1_0.models import (
     DRPCRecordSchema,
     RPCBaseModelSchema,
@@ -386,6 +387,19 @@ def test_invalid_drpc_record_request_missing(test_input):
                 },
             ],
         },
+        {
+            "state": "completed",
+            "request": {**rpc_base, "method": "test.notification", "id": None},
+            "response": {},
+        },
+        {
+            "state": "completed",
+            "request": [
+                {**rpc_base, "method": "test.notification", "id": None},
+                {**rpc_base, "method": "test.notification.2", "id": None},
+            ],
+            "response": [],
+        },
     ],
 )
 def test_valid_drpc_record_completed(test_input):
@@ -412,8 +426,12 @@ def test_valid_drpc_record_completed(test_input):
                 # Check for result
                 assert responses[i].result == test_input["response"][i]["result"]
     else:
-        assert result.response.jsonrpc == "2.0"
-        assert result.response.id == test_input["response"]["id"]
+        if "result" in test_input["response"] or "error" in test_input["response"]:
+            assert result.response.jsonrpc == "2.0"
+            assert result.response.id == test_input["response"]["id"]
+        if "result" in test_input["response"]:
+            # Check for result
+            assert result.response.result == test_input["response"]["result"]
         if "error" in test_input["response"]:
             # Check for error
             assert result.response.error.code == test_input["response"]["error"]["code"]
@@ -421,9 +439,6 @@ def test_valid_drpc_record_completed(test_input):
                 result.response.error.message
                 == test_input["response"]["error"]["message"]
             )
-        else:
-            # Check for result
-            assert result.response.result == test_input["response"]["result"]
 
 
 @pytest.mark.parametrize(
