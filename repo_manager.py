@@ -90,9 +90,10 @@ def copy_all_common_files_for_new_plugin(info: PluginInfo) -> None:
             f'./{info.name}/{folder.value}'
         )
     for file in list(NEW_PLUGIN_FILES):
+        file_location = f'./{info.name}/{file.value}' if not file == NEW_PLUGIN_FILES.DEFINITION else f'./{info.name}/{info.name}/{file.value}'
         shutil.copyfile(
             f'./{GLOBAL_PLUGIN_DIR}/{file.value}',
-            f'./{info.name}/{file.value}'
+            file_location
         )
     for file in list(TAGGED_FILES):
         replace_plugin_tag(
@@ -197,7 +198,7 @@ def process_main_config_sections(name: str, plugin_sections: dict, global_sectio
             for section in sections:
                 if (content[i].startswith(section)):
                     i += get_section_output(i, content,
-                            output, global_sections[MangagedPoetrySections(content[i].strip()).name], content[i])
+                                            output, global_sections[MangagedPoetrySections(content[i].strip()).name], content[i])
             else:
                 i += 1
         out_file.writelines(output)
@@ -241,11 +242,11 @@ def process_integration_config_sections(name: str, plugin_sections: dict, global
                  for line in plugin_sections['META']]
                 i += 1
                 output.append('\n')
-                
+
             for section in sections:
                 if (content[i].startswith(section)):
                     i += get_section_output(i, content,
-                            output, global_sections[MangagedPoetrySections(content[i].strip()).name], content[i])
+                                            output, global_sections[MangagedPoetrySections(content[i].strip()).name], content[i])
             else:
                 i += 1
         out_file.writelines(output)
