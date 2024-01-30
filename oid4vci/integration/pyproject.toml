@@ -14,7 +14,7 @@ asynctest = "^0.13.0"
 requests = "^2.31.0"
 aries-askar = "^0.3.0"
 did-peer-4 = "^0.1.4"
-aiohttp = "^3.9.0"
+aiohttp = "^3.9.2"
 
 [tool.poetry.group.dev.dependencies]
 black = "^23.11.0"
