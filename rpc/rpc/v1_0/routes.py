@@ -6,6 +6,7 @@ import logging
 from aiohttp import web
 from aiohttp_apispec import (
     docs,
+    match_info_schema,
     querystring_schema,
     request_schema,
     response_schema,
@@ -353,12 +354,47 @@ async def drpc_get_records(request: web.BaseRequest):
         return web.json_response({"results": results})
 
 
+@docs(
+    tags=["drpc"],
+    summary="Get a DIDComm RPC record",
+)
+@match_info_schema(DRPCRecordMatchInfoSchema())
+@response_schema(DRPCRecordSchema(), 200)
+async def drpc_get_record(request: web.BaseRequest):
+    """Request handler for getting a DIDComm RPC record."""
+
+    LOGGER.debug("Recieved DRPC get record >>>")
+
+    context: AdminRequestContext = request["context"]
+
+    record_id = request.match_info["record_id"]
+
+    async with context.session() as session:
+        try:
+            storage = session.inject(BaseStorage)
+            record = await storage.get_record(DRPCRecord.RECORD_TYPE, record_id)
+            val = json.loads(record.value)
+            drpc_record = DRPCRecord.from_storage(record.id, val)
+            return web.json_response(
+                {
+                    **drpc_record.serialize(),
+                    "id": record.id,
+                    "tags": record.tags,
+                }
+            )
+        except (StorageError, BaseModelError) as err:
+            raise web.HTTPNotFound(reason=err.roll_up) from err
+
+
 async def register(app: web.Application):
     """Register routes."""
 
     app.add_routes([web.post("/drpc/request", drpc_send_request)])
     app.add_routes([web.post("/drpc/response", drpc_send_response)])
     app.add_routes([web.get("/drpc/records", drpc_get_records, allow_head=False)])
+    app.add_routes(
+        [web.get("/drpc/records/{record_id}", drpc_get_record, allow_head=False)]
+    )
 
 
 def post_process_routes(app: web.Application):
