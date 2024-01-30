@@ -4,14 +4,24 @@ import json
 import logging
 
 from aiohttp import web
-from aiohttp_apispec import docs, querystring_schema, request_schema, response_schema
+from aiohttp_apispec import (
+    docs,
+    querystring_schema,
+    request_schema,
+    response_schema,
+)
 from marshmallow import fields, validate
 
 from aries_cloudagent.admin.request_context import AdminRequestContext
 from aries_cloudagent.connections.models.conn_record import ConnRecord
+from aries_cloudagent.messaging.models.base import (
+    BaseModel,
+    BaseModelSchema,
+    BaseModelError,
+)
+from aries_cloudagent.messaging.models.base_record import match_post_filter
 from aries_cloudagent.messaging.models.openapi import OpenAPISchema
 from aries_cloudagent.messaging.valid import UUID4_EXAMPLE
-from aries_cloudagent.messaging.models.base import BaseModel, BaseModelSchema
 from aries_cloudagent.storage.base import BaseStorage, StorageRecord
 from aries_cloudagent.storage.error import StorageNotFoundError, StorageError
 
@@ -117,19 +127,19 @@ class DRPCResponseSchema(BaseModelSchema, OpenAPISchema):
 
 
 class DRPCRecordListQuerySchema(OpenAPISchema):
-    """Parameters and validators for credential exchange record list query."""
+    """Parameters and validators for DIDComm RPC request/response exchange query."""
 
-    connection_id = fields.Str(
+    connection_id = fields.String(
         required=False,
         metadata={"description": "Connection identifier", "example": UUID4_EXAMPLE},
     )
 
-    thread_id = fields.Str(
+    thread_id = fields.String(
         required=False,
         metadata={"description": "Thread identifier", "example": UUID4_EXAMPLE},
     )
 
-    state = fields.Str(
+    state = fields.String(
         required=False,
         validate=validate.OneOf(
             [
@@ -149,6 +159,17 @@ class DRPCRecordListSchema(OpenAPISchema):
         fields.Nested(DRPCRecordSchema()),
         required=True,
         metadata={"description": "List of DIDComm RPC request/reponse exchanges"},
+    )
+
+
+class DRPCRecordMatchInfoSchema(OpenAPISchema):
+    """Parameters and validators for DIDComm RPC request/response exchange match."""
+
+    record_id = fields.String(
+        required=True,
+        metadata={
+            "description": "DRPC record identifier",
+        },
     )
 
 
@@ -305,17 +326,28 @@ async def drpc_get_records(request: web.BaseRequest):
 
     async with context.session() as session:
         try:
-            records = await DRPCRecord.query(
-                session,
-                tag_filter=tag_filter,
-                post_filter_positive=post_filter,
-                alt=True,
+            storage = session.inject(BaseStorage)
+            rows = await storage.find_all_records(
+                DRPCRecord.RECORD_TYPE,
+                DRPCRecord.prefix_tag_filter(tag_filter),
+                {"forUpdate": False, "retrieveTags": False},
             )
-            results = [
-                {**record.serialize(), "id": record.storage_record.id}
-                for record in records
-            ]
-        except StorageError as err:
+            results = []
+            for record in rows:
+                val = json.loads(record.value)
+                if match_post_filter(val, post_filter, positive=True, alt=True):
+                    try:
+                        drpc_record = DRPCRecord.from_storage(record.id, val)
+                        results.append(
+                            {
+                                **drpc_record.serialize(),
+                                "id": record.id,
+                                "tags": record.tags,
+                            }
+                        )
+                    except BaseModelError as err:
+                        raise BaseModelError(f"{err}, for record id {record.id}")
+        except (StorageError, BaseModelError) as err:
             raise web.HTTPInternalServerError(reason=err.roll_up) from err
 
         return web.json_response({"results": results})
