@@ -4,8 +4,8 @@ import json
 import logging
 
 from aiohttp import web
-from aiohttp_apispec import docs, request_schema, response_schema
-from marshmallow import fields
+from aiohttp_apispec import docs, querystring_schema, request_schema, response_schema
+from marshmallow import fields, validate
 
 from aries_cloudagent.admin.request_context import AdminRequestContext
 from aries_cloudagent.connections.models.conn_record import ConnRecord
@@ -19,6 +19,7 @@ from rpc.v1_0.models import (
     RPC_REQUEST_EXAMPLE,
     RPC_RESPONSE_EXAMPLE,
     DRPCRecord,
+    DRPCRecordSchema,
     Request,
     Response,
 )
@@ -112,6 +113,42 @@ class DRPCResponseSchema(BaseModelSchema, OpenAPISchema):
     thread_id = fields.String(
         required=True,
         metadata={"description": "Thread identifier", "example": UUID4_EXAMPLE},
+    )
+
+
+class DRPCRecordListQuerySchema(OpenAPISchema):
+    """Parameters and validators for credential exchange record list query."""
+
+    connection_id = fields.Str(
+        required=False,
+        metadata={"description": "Connection identifier", "example": UUID4_EXAMPLE},
+    )
+
+    thread_id = fields.Str(
+        required=False,
+        metadata={"description": "Thread identifier", "example": UUID4_EXAMPLE},
+    )
+
+    state = fields.Str(
+        required=False,
+        validate=validate.OneOf(
+            [
+                DRPCRecord.STATE_REQUEST_SENT,
+                DRPCRecord.STATE_REQUEST_RECEIVED,
+                DRPCRecord.STATE_COMPLETED,
+            ]
+        ),
+        metadata={"description": "RPC state"},
+    )
+
+
+class DRPCRecordListSchema(OpenAPISchema):
+    """Response schema for getting all DIDComm RPC request/response exchanges."""
+
+    results = fields.List(
+        fields.Nested(DRPCRecordSchema()),
+        required=True,
+        metadata={"description": "List of DIDComm RPC request/reponse exchanges"},
     )
 
 
@@ -218,8 +255,14 @@ async def drpc_send_response(request: web.BaseRequest):
             response_record.response = response
             response_record.state = DRPCRecord.STATE_COMPLETED
 
+            storage = session.inject(BaseStorage)
+            value = json.dumps(response_record.serialize())
+            tags = {
+                "connection_id": connection_id,
+                "thread_id": thread_id,
+            }
             try:
-                await response_record.save(session)
+                await storage.update_record(response_record.storage_record, value, tags)
             except StorageError as err:
                 raise web.HTTPInternalServerError(reason=err.roll_up) from err
 
@@ -237,11 +280,53 @@ async def drpc_send_response(request: web.BaseRequest):
         raise web.HTTPForbidden(reason=f"Connection {connection_id} is not ready")
 
 
+@docs(
+    tags=["drpc"],
+    summary="Get all DIDComm RPC records",
+)
+@querystring_schema(DRPCRecordListQuerySchema())
+@response_schema(DRPCRecordListSchema(), 200)
+async def drpc_get_records(request: web.BaseRequest):
+    """Request handler for getting all DIDComm RPC records."""
+
+    LOGGER.debug("Recieved DRPC get records >>>")
+
+    context: AdminRequestContext = request["context"]
+
+    tag_filter = {}
+    if "thread_id" in request.query and request.query["thread_id"] != "":
+        tag_filter["thread_id"] = request.query["thread_id"]
+    if "connection_id" in request.query and request.query["connection_id"] != "":
+        tag_filter["connection_id"] = request.query["connection_id"]
+
+    post_filter = {}
+    if "state" in request.query and request.query["state"] != "":
+        post_filter["state"] = request.query["state"]
+
+    async with context.session() as session:
+        try:
+            records = await DRPCRecord.query(
+                session,
+                tag_filter=tag_filter,
+                post_filter_positive=post_filter,
+                alt=True,
+            )
+            results = [
+                {**record.serialize(), "id": record.storage_record.id}
+                for record in records
+            ]
+        except StorageError as err:
+            raise web.HTTPInternalServerError(reason=err.roll_up) from err
+
+        return web.json_response({"results": results})
+
+
 async def register(app: web.Application):
     """Register routes."""
 
     app.add_routes([web.post("/drpc/request", drpc_send_request)])
     app.add_routes([web.post("/drpc/response", drpc_send_response)])
+    app.add_routes([web.get("/drpc/records", drpc_get_records, allow_head=False)])
 
 
 def post_process_routes(app: web.Application):

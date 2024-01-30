@@ -70,9 +70,18 @@ class DRPCResponseHandler(BaseHandler):
             response_record = await DRPCRecord.retrieve_by_connection_and_thread(
                 session, connection_id, thread_id
             )
-            response_record.response = context.message.response
+            response_record.response = context.message.response.serialize()
             response_record.state = DRPCRecord.STATE_COMPLETED
-            await response_record.save(session)
+
+            storage = session.inject(BaseStorage)
+            await storage.update_record(
+                response_record.storage_record,
+                json.dumps(response_record.serialize()),
+                {
+                    "connection_id": connection_id,
+                    "thread_id": thread_id,
+                },
+            )
 
         await context.profile.notify(
             "drpc::response::received",
