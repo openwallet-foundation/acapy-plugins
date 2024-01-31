@@ -44,14 +44,14 @@ class DRPCRequestHandler(BaseHandler):
             )
             await storage.add_record(record)
 
-        await context.profile.notify(
-            "acapy::webhook::drpc_request",
-            {
-                "connection_id": connection_id,
-                "thread_id": thread_id,
-                "request": serialized_request_record,
-            },
-        )
+        notification = {
+            "connection_id": connection_id,
+            "thread_id": thread_id,
+            "request": serialized_request_record,
+        }
+
+        await context.profile.notify("drpc::request::received", notification)
+        await context.profile.notify("acapy::webhook::drpc_request", notification)
 
 
 class DRPCResponseHandler(BaseHandler):
@@ -86,11 +86,11 @@ class DRPCResponseHandler(BaseHandler):
                 },
             )
 
-        await context.profile.notify(
-            "acapy::webhook::drpc_response",
-            {
-                "connection_id": connection_id,
-                "thread_id": thread_id,
-                "response": serialized_response_record,
-            },
-        )
+        notification = {
+            "connection_id": connection_id,
+            "thread_id": thread_id,
+            "response": serialized_response_record,
+        }
+
+        await context.profile.notify("drpc::response::received", notification)
+        await context.profile.notify("acapy::webhook::drpc_response", notification)
