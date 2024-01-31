@@ -53,6 +53,12 @@ class Agent:
         self.url = url
 
     @unwrap_json_response
+    @fail_if_not_ok("Failed to get connections")
+    def get_connections(self, **kwargs):
+        """Get connections."""
+        return get(self.url, "/connections", params=kwargs)
+
+    @unwrap_json_response
     @fail_if_not_ok("Create invitation failed")
     def create_invitation(self, **kwargs):
         """Create invitation."""
@@ -74,6 +80,30 @@ class Agent:
             self.url,
             f"/connections/{connection_id}/accept-invitation",
         )
+
+    @unwrap_json_response
+    @fail_if_not_ok("Failed to send DRPC request")
+    def send_drpc_request(self, **kwargs):
+        """Send DRPC request."""
+        return post(self.url, "/drpc/request", json=kwargs)
+
+    @unwrap_json_response
+    @fail_if_not_ok("Failed to send DRPC response")
+    def send_drpc_response(self, **kwargs):
+        """Send DRPC response."""
+        return post(self.url, "/drpc/response", json=kwargs)
+
+    @unwrap_json_response
+    @fail_if_not_ok("Failed to get DRPC record list")
+    def get_drpc_records(self, **kwargs):
+        """Get DRPC record list."""
+        return get(self.url, f"/drpc/records", params=kwargs)
+
+    @unwrap_json_response
+    @fail_if_not_ok("Failed to get DRPC record")
+    def get_drpc_record(self, record_id: str):
+        """Get DRPC record."""
+        return get(self.url, f"/drpc/records/{record_id}")
 
     @unwrap_json_response
     @fail_if_not_ok("Failed to send basic message")
@@ -98,7 +128,7 @@ class Agent:
     def post(
         self, path: str, return_json: bool = True, fail_with: str = None, **kwargs
     ):
-        """Do get to agent endpoint."""
+        """Do post to agent endpoint."""
         wrapped_post = post
         if fail_with:
             wrapped_post = fail_if_not_ok(fail_with)(wrapped_post)
