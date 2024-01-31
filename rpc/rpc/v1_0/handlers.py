@@ -31,10 +31,12 @@ class DRPCRequestHandler(BaseHandler):
             request_record = DRPCRecord(
                 request=context.message.request, state=DRPCRecord.STATE_REQUEST_RECEIVED
             )
+            serialized_request_record = request_record.serialize()
+
             storage = session.inject(BaseStorage)
             record = StorageRecord(
                 type=DRPCRecord.RECORD_TYPE,
-                value=json.dumps(request_record.serialize()),
+                value=json.dumps(serialized_request_record),
                 tags={
                     "connection_id": connection_id,
                     "thread_id": thread_id,
@@ -43,11 +45,11 @@ class DRPCRequestHandler(BaseHandler):
             await storage.add_record(record)
 
         await context.profile.notify(
-            "drpc::request::received",
+            "acapy::webhook::drpc_request",
             {
                 "connection_id": connection_id,
                 "thread_id": thread_id,
-                "request": request_record.serialize(),
+                "request": serialized_request_record,
             },
         )
 
@@ -72,11 +74,12 @@ class DRPCResponseHandler(BaseHandler):
             )
             response_record.response = context.message.response.serialize()
             response_record.state = DRPCRecord.STATE_COMPLETED
+            serialized_response_record = response_record.serialize()
 
             storage = session.inject(BaseStorage)
             await storage.update_record(
                 response_record.storage_record,
-                json.dumps(response_record.serialize()),
+                json.dumps(serialized_response_record),
                 {
                     "connection_id": connection_id,
                     "thread_id": thread_id,
@@ -84,10 +87,10 @@ class DRPCResponseHandler(BaseHandler):
             )
 
         await context.profile.notify(
-            "drpc::response::received",
+            "acapy::webhook::drpc_response",
             {
                 "connection_id": connection_id,
                 "thread_id": thread_id,
-                "request": response_record.serialize(),
+                "response": serialized_response_record,
             },
         )
