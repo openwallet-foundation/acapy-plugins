@@ -2,7 +2,6 @@ import pytest
 import time
 
 from . import Agent, BOB, ALICE
-from unittest.mock import patch
 
 rpc_request = {"jsonrpc": "2.0", "method": "add", "params": [1, 2], "id": 1}
 rpc_response = {"jsonrpc": "2.0", "result": 3, "id": 1}

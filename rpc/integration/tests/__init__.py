@@ -97,7 +97,7 @@ class Agent:
     @fail_if_not_ok("Failed to get DRPC record list")
     def get_drpc_records(self, **kwargs):
         """Get DRPC record list."""
-        return get(self.url, f"/drpc/records", params=kwargs)
+        return get(self.url, "/drpc/records", params=kwargs)
 
     @unwrap_json_response
     @fail_if_not_ok("Failed to get DRPC record")
