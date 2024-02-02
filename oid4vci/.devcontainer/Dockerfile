@@ -2,7 +2,7 @@
 ARG VARIANT="3.9-bullseye"
 FROM mcr.microsoft.com/vscode/devcontainers/python:0-${VARIANT}
 
-ARG POETRY_VERSION="1.4.2"
+ARG POETRY_VERSION="1.7.1"
 ENV POETRY_HOME="/opt/poetry" \
     POETRY_VERSION=${POETRY_VERSION}
 
