@@ -88,7 +88,20 @@ class Response(fields.Field):
     def load_response_or_error(self, value):
         """Load RPC response or error."""
 
-        return RPCResponseModelSchema().load(value)
+        return RPCResponseModelSchema().load(value) if value else None
+
+    def dump_response_or_error(self, value):
+        """Dump RPC response or error."""
+
+        return RPCResponseModelSchema().dump(value) if value else None
+
+    def _serialize(self, value, attr, obj, **kwargs):
+        """Serialize RPC response or error."""
+
+        if isinstance(value, list):
+            return [self.dump_response_or_error(item) for item in value]
+        else:
+            return self.dump_response_or_error(value)
 
     def _deserialize(self, value, attr, data, **kwargs):
         """Deserialize RPC response or error."""

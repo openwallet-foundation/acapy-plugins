@@ -525,7 +525,6 @@ def test_invalid_drpc_response_record_completed_response_is_null(test_input):
     )
 
 
-@pytest.mark.skip
 @pytest.mark.parametrize(
     "test_input",
     [
