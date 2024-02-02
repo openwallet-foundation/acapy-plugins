@@ -1,21 +1,21 @@
 """ACA-Py Event to Redis."""
 
+import base64
 import json
 import logging
-import base64
 import re
 from string import Template
 from typing import Any, Optional, cast
 
+from aries_cloudagent.config.injection_context import InjectionContext
 from aries_cloudagent.core.event_bus import Event, EventBus, EventWithMetadata
 from aries_cloudagent.core.profile import Profile
 from aries_cloudagent.core.util import SHUTDOWN_EVENT_PATTERN, STARTUP_EVENT_PATTERN
-from aries_cloudagent.config.injection_context import InjectionContext
 from aries_cloudagent.transport.error import TransportError
 from redis.asyncio import RedisCluster
-from redis.exceptions import RedisError, RedisClusterException
+from redis.exceptions import RedisClusterException, RedisError
 
-from ..config import OutboundConfig, get_config, EventConfig
+from ..config import EventConfig, OutboundConfig, get_config
 
 LOGGER = logging.getLogger(__name__)
 
@@ -99,8 +99,7 @@ async def handle_event(profile: Profile, event: EventWithMetadata):
             try:
                 event_payload = process_event_payload(event.payload.payload)
             except TypeError:
-                event_payload = process_event_payload(
-                    event.payload.enc_payload)
+                event_payload = process_event_payload(event.payload.enc_payload)
     payload = {
         "wallet_id": wallet_id or "base",
         "state": event_payload.get("state"),
@@ -110,8 +109,7 @@ async def handle_event(profile: Profile, event: EventWithMetadata):
     }
     webhook_urls = profile.settings.get("admin.webhook_urls")
     try:
-        config_events = get_config(
-            profile.settings).event or EventConfig.default()
+        config_events = get_config(profile.settings).event or EventConfig.default()
         template = config_events.event_topic_maps[event.metadata.pattern.pattern]
         redis_topic = Template(template).substitute(**payload)
         LOGGER.info(f"Sending message {payload} with topic {redis_topic}")
@@ -130,8 +128,7 @@ async def handle_event(profile: Profile, event: EventWithMetadata):
         # Deliver/dispatch events to webhook_urls directly
         if config_events.deliver_webhook and webhook_urls:
             config_outbound = (
-                get_config(
-                    profile.settings).outbound or OutboundConfig.default()
+                get_config(profile.settings).outbound or OutboundConfig.default()
             )
             for endpoint in webhook_urls:
                 api_key = None
@@ -139,26 +136,22 @@ async def handle_event(profile: Profile, event: EventWithMetadata):
                     endpoint_hash_split = endpoint.split("#")
                     endpoint = endpoint_hash_split[0]
                     api_key = endpoint_hash_split[1]
-                webhook_topic = config_events.event_webhook_topic_maps.get(
-                    event.topic)
-                endpoint = f"{endpoint}/topic/{webhook_topic}/"
-                headers = {"x-wallet-id": wallet_id} if wallet_id else {}
-                if not api_key:
-                    headers["x-api-key"] = api_key
-                outbound = str.encode(
-                    json.dumps(
-                        {
-                            "service": {"url": endpoint},
-                            "payload": base64.urlsafe_b64encode(
-                                str.encode(json.dumps(payload))
-                            ).decode(),
-                            "headers": headers,
-                        }
-                    ),
-                )
-                await redis.rpush(
-                    config_outbound.acapy_outbound_topic,
-                    outbound,
-                )
+                webhook_topic = config_events.event_webhook_topic_maps.get(event.topic)
+                if endpoint and webhook_topic:
+                    endpoint = f"{endpoint}/topic/{webhook_topic}/"
+                    headers = {"x-wallet-id": wallet_id} if wallet_id else {}
+                    if api_key is not None:
+                        headers["x-api-key"] = api_key
+                    outbound_msg = {
+                        "service": {"url": endpoint},
+                        "payload": base64.urlsafe_b64encode(
+                            str.encode(json.dumps(payload))
+                        ).decode(),
+                        "headers": headers,
+                    }
+                    await redis.rpush(
+                        config_outbound.acapy_outbound_topic,
+                        str.encode(json.dumps(outbound_msg)),
+                    )
     except (RedisError, RedisClusterException, ValueError) as err:
         LOGGER.exception(f"Failed to process and send webhook, {err}")

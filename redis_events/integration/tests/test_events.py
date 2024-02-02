@@ -65,16 +65,6 @@ async def test_base_redis_keys_are_set(redis):
 async def test_outbound_queue_removes_messages_from_queue_and_deliver_sends_them(faber: Agent, established_connection: str, redis):
     faber.send_message(established_connection, "Hello Alice")
     faber.send_message(established_connection, "Another Alice")
-    msg_received = False
-    retry_pop_count = 0
-    while not msg_received:
-        msg = await redis.blpop("acapy_outbound", 2)
-        if not msg:
-            if retry_pop_count > 3:
-                raise Exception("blpop call failed to retrieve message")
-            retry_pop_count = retry_pop_count + 1
-            time.sleep(1)
-        msg_received = True
     messages = faber.retrieve_basicmessages()['results']
     assert "Hello Alice" in (msg['content'] for msg in messages)
     assert "Another Alice" in (msg['content'] for msg in messages)
