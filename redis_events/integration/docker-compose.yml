@@ -164,6 +164,14 @@ services:
       - "alice:host-gateway"
       - "faber:host-gateway"
 
+  dummy-server:
+    image: python:3.9-slim
+    ports:
+      - 8080:8080
+    command: python -m http.server 8080
+    networks:
+      - acapy_default
+
   faber:
     image: redis-events-integration
     build:
@@ -221,12 +229,14 @@ services:
       - redis-cluster
       - faber
       - alice
+      - dummy-server
     networks:
       - acapy_default
     extra_hosts:
       - "faber:host-gateway"
       - "relay:host-gateway"
       - "alice:host-gateway"
+      - "dummy-server:host-gateway"
 
 networks:
   acapy_default:
