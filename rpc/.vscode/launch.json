@@ -1,0 +1,54 @@
+{
+  // Use IntelliSense to learn about possible attributes.
+  // Hover to view descriptions of existing attributes.
+  // For more information, visit: https://go.microsoft.com/fwlink/?linkid=830387
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "name": "Run/Debug Plugin",
+      "type": "python",
+      "request": "launch",
+      "module": "aries_cloudagent",
+      "justMyCode": false,
+      "args": ["start", "--arg-file=${workspaceRoot}/docker/default.yml"]
+    },
+    {
+      "name": "Run/Debug RPC Requester Plugin",
+      "type": "python",
+      "request": "launch",
+      "module": "aries_cloudagent",
+      "justMyCode": false,
+      "args": ["start", "--arg-file=${workspaceRoot}/docker/rpc-requester.yml"]
+    },
+    {
+      "name": "Run/Debug RPC Responder Plugin",
+      "type": "python",
+      "request": "launch",
+      "module": "aries_cloudagent",
+      "justMyCode": false,
+      "args": ["start", "--arg-file=${workspaceRoot}/docker/rpc-responder.yml"]
+    },
+    {
+      "name": "ruff - rpc",
+      "type": "python",
+      "request": "launch",
+      "module": "ruff",
+      "console": "integratedTerminal",
+      "sudo": true,
+      "justMyCode": true,
+      "cwd": "${workspaceFolder}/rpc",
+      "args": ["check", "."]
+    },
+    {
+      "name": "ruff fix - rpc",
+      "type": "python",
+      "request": "launch",
+      "module": "ruff",
+      "console": "integratedTerminal",
+      "sudo": true,
+      "justMyCode": true,
+      "cwd": "${workspaceFolder}/rpc",
+      "args": ["check", ".", "--fix"]
+    }
+  ]
+}
