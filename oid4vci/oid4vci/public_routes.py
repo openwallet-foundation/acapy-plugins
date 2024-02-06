@@ -350,25 +350,31 @@ async def issue_cred(request: web.Request):
     if not pop.holder_kid:
         raise web.HTTPBadRequest(reason="No kid in proof; required for jwt_vc_json")
 
+    verification_method = ex_record.verification_method
+    issuer_did  = verification_method.split("#")[0] if verification_method.startswith("did:") else verification_method
+
+    holder_kid = pop.holder_kid
+    holder_did = holder_kid.split("#")[0] if holder_kid.startswith("did:") else holder_kid
+    
     payload = {
         "vc": {
             **(supported.vc_additional_data or {}),
             "id": cred_id,
-            "issuer": ex_record.verification_method,
+            "issuer": issuer_did,
             "issuanceDate": formatted_time,
             "credentialSubject": {
                 **(ex_record.credential_subject or {}),
-                "id": pop.holder_kid,
+                "id": holder_did,
             },
         },
-        "iss": ex_record.verification_method,
+        "iss": issuer_did,
         "nbf": current_time_unix_timestamp,
         "jti": cred_id,
-        "sub": pop.holder_kid,
+        "sub": holder_did,
     }
 
     jws = await jwt_sign(
-        context.profile, {}, payload, verification_method=ex_record.verification_method
+        context.profile, {}, payload, verification_method=verification_method
     )
 
     async with context.session() as session:
