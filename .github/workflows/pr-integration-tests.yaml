@@ -17,7 +17,7 @@ jobs:
       #       Check out repo
       #----------------------------------------------
       - name: Check out repository
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
       #----------------------------------------------
       #       Get docker compose
       #----------------------------------------------
@@ -28,7 +28,7 @@ jobs:
       #----------------------------------------------
       - name: Get changed files
         id: changed-files
-        uses: tj-actions/changed-files@v41
+        uses: tj-actions/changed-files@v42
       #----------------------------------------------
       #       Get changed plugins
       #----------------------------------------------
