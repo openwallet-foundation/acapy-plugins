@@ -19,14 +19,14 @@ jobs:
       #       Check out repo
       #----------------------------------------------
       - name: Check out repository
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
       #----------------------------------------------
       #       Install python and poetry with cache
       #----------------------------------------------
       - name: Install poetry
         run: pipx install poetry
         id: setup-poetry
-      - uses: actions/setup-python@v4
+      - uses: actions/setup-python@v5
         with:
           python-version: "3.9"
           cache: "poetry"
@@ -35,7 +35,7 @@ jobs:
       #----------------------------------------------
       - name: Get changed files
         id: changed-files
-        uses: tj-actions/changed-files@v41
+        uses: tj-actions/changed-files@v42
       #----------------------------------------------
       #       Get changed plugins
       #----------------------------------------------
