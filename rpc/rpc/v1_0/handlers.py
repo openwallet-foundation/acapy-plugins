@@ -72,7 +72,7 @@ class DRPCResponseHandler(BaseHandler):
             response_record = await DRPCRecord.retrieve_by_connection_and_thread(
                 session, connection_id, thread_id
             )
-            response_record.response = context.message.response.serialize()
+            response_record.response = context.message.response
             response_record.state = DRPCRecord.STATE_COMPLETED
             serialized_response_record = response_record.serialize()
 
