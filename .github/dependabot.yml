@@ -1,5 +1,5 @@
- # For details on how this file works refer to:
- #   - https://docs.github.com/en/code-security/dependabot/dependabot-version-updates/configuration-options-for-the-dependabot.yml-file
+# For details on how this file works refer to:
+#   - https://docs.github.com/en/code-security/dependabot/dependabot-version-updates/configuration-options-for-the-dependabot.yml-file
 version: 2
 updates:
   # Maintain dependencies for GitHub Actions
@@ -11,4 +11,52 @@ updates:
       interval: weekly
     groups:
       all-actions:
-        patterns: [ "*" ]
+        patterns: ["*"]
+
+  # Maintain pip dependencies for basicmessage_storage plugin
+  - package-ecosystem: pip
+    directory: /basicmessage_storage
+    schedule:
+      interval: daily
+
+  # Maintain pip dependencies for connection_update plugin
+  - package-ecosystem: pip
+    directory: /connection_update
+    schedule:
+      interval: daily
+
+  # Maintain pip dependencies for kafka_events plugin
+  - package-ecosystem: pip
+    directory: /kafka_events
+    schedule:
+      interval: daily
+
+  # Maintain pip dependencies for multitenant_provider plugin
+  - package-ecosystem: pip
+    directory: /multitenant_provider
+    schedule:
+      interval: daily
+
+  # Maintain pip dependencies for oid4vci plugin
+  - package-ecosystem: pip
+    directory: /oid4vci
+    schedule:
+      interval: daily
+
+  # Maintain pip dependencies for plugin_globals
+  - package-ecosystem: pip
+    directory: /plugin_globals
+    schedule:
+      interval: daily
+
+  # Maintain pip dependencies for redis_events plugin
+  - package-ecosystem: pip
+    directory: /redis_events
+    schedule:
+      interval: daily
+
+  # Maintain pip dependencies for rpc plugin
+  - package-ecosystem: pip
+    directory: /rpc
+    schedule:
+      interval: daily
