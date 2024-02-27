@@ -22,6 +22,7 @@ Maintainers are assigned the following scopes in this repository:
 
 | GitHub ID       | Name             | Scope      | LFID | Discord ID | Email | Company Affiliation |
 | --------------- | ---------------- | ---------- | ---- | ---------- | ----- | ------------------- |
+| amanji          | Akiff Manji      | Maintainer |      |            |       | BC Gov              |
 | andrewwhitehead | Andrew Whitehead | Maintainer |      |            |       | BC Gov              |
 | chumbert        | Clement Humbert  | Maintainer |      |            |       | SICPA               |
 | dbluhm          | Daniel Bluhm     |            |      |            |       | Indicio PBC         |
