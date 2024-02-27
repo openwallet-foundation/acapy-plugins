@@ -1,0 +1,34 @@
+# Alice agent configuration
+
+auto-provision: true
+label: bob
+
+inbound-transport:
+   - [http, 0.0.0.0, 9020]
+
+outbound-transport: http
+
+wallet-type: askar
+wallet-storage-type: default
+wallet-name: bob-wallet
+wallet-key: bob-wallet-key
+
+admin-insecure-mode: true
+
+admin: [0.0.0.0, 9021]
+
+endpoint: http://localhost:9020
+
+no-ledger: true
+
+# Connections
+debug-connections: true
+auto-accept-invites: true
+auto-accept-requests: true
+auto-ping-connection: true
+
+auto-store-credential: true
+preserve-exchange-records: true
+auto-respond-messages: true
+
+log-level: info

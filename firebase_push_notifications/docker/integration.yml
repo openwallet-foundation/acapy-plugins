@@ -1,0 +1,33 @@
+label: firebase_push_notifications_mediator
+
+admin: [0.0.0.0, 3001]
+admin-insecure-mode: true
+
+inbound-transport:
+  - [http, 0.0.0.0, 3000]
+outbound-transport: http
+endpoint:
+  - http://localhost:3000
+
+plugin:
+  - firebase_push_notifications.v1_0
+
+no-ledger: true
+
+# Mediation
+open-mediation: true
+enable-undelivered-queue: true
+
+# Connections
+debug-connections: true
+auto-accept-invites: true
+auto-respond-messages: true
+auto-ping-connection: true
+auto-accept-requests: true
+
+log-level: info
+
+# Invitation
+connections-invite: true
+invite-label: "Mediator"
+invite-multi-use: true
