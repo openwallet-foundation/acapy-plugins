@@ -4,6 +4,7 @@ import base64
 import json
 import logging
 import re
+import time
 from string import Template
 from typing import Any, Optional, cast
 
@@ -113,13 +114,17 @@ async def handle_event(profile: Profile, event: EventWithMetadata):
         template = config_events.event_topic_maps[event.metadata.pattern.pattern]
         redis_topic = Template(template).substitute(**payload)
         LOGGER.info(f"Sending message {payload} with topic {redis_topic}")
+
+        origin = profile.settings.get("default_label")
+
+        metadata = {"time_ns": time.time_ns()}
+        metadata_wallet_id = {"x-wallet-id": wallet_id} if wallet_id else {}
+        metadata_origin = {"origin": origin} if origin else {}
+        metadata.update(metadata_wallet_id)
+        metadata.update(metadata_origin)
+
         outbound = str.encode(
-            json.dumps(
-                {
-                    "payload": payload,
-                    "metadata": {"x-wallet-id": wallet_id} if wallet_id else {},
-                }
-            ),
+            json.dumps({"payload": payload, "metadata": metadata}),
         )
         await redis.rpush(
             redis_topic,
