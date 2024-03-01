@@ -10,13 +10,11 @@ def test_drpc_response_message_validation_error():
         schema = DRPCResponseMessageSchema()
         msg = schema.load(
             {
-                "connection_id": "123",
                 "response": {
                     "jsonrpc": "2.0",
                     "id": "1",
                     "result": {"one": "1"},
                 },
-                "state": "completed",
             }
         )
 

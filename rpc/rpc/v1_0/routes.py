@@ -6,9 +6,9 @@ import logging
 from aiohttp import web
 from aiohttp_apispec import (
     docs,
+    json_schema,
     match_info_schema,
     querystring_schema,
-    request_schema,
     response_schema,
 )
 from marshmallow import fields, validate
@@ -50,13 +50,12 @@ class DRPCRequest(BaseModel):
     class Meta:
         """DRPCRequest metadata."""
 
-        schema_class = "DRPCRequestSchema"
+        schema_class = "DRPCRequestJSONSchema"
 
-    def __init__(self, *, connection_id: str = None, request: dict = None, **kwargs):
+    def __init__(self, *, request: dict = None, **kwargs):
         """Initialize DIDComm RPC Request Model."""
 
         super().__init__(**kwargs)
-        self.connection_id = connection_id
         self.request = request
 
 
@@ -66,36 +65,32 @@ class DRPCResponse(BaseModel):
     class Meta:
         """DRPCResponse metadata."""
 
-        schema_class = "DRPCResponseSchema"
+        schema_class = "DRPCResponseJSONSchema"
 
-    def __init__(
-        self,
-        *,
-        connection_id: str = None,
-        response: dict = None,
-        thread_id: str = None,
-        **kwargs,
-    ):
+    def __init__(self, *, response: dict = None, thread_id: str = None, **kwargs):
         """Initialize DIDComm RPC Response Model."""
 
         super().__init__(**kwargs)
-        self.connection_id = connection_id
         self.response = response
         self.thread_id = thread_id
 
 
-class DRPCRequestSchema(BaseModelSchema, OpenAPISchema):
-    """Request schema for sending a DIDComm RPC Request."""
+class DRPCConnIdMatchInfoSchema(OpenAPISchema):
+    """Match info schema for DIDComm RPC request/response exchange."""
 
-    class Meta:
-        """DRPCRequestSchema metadata."""
-
-        model_class = "DRPCRequest"
-
-    connection_id = fields.String(
+    conn_id = fields.String(
         required=True,
         metadata={"description": "Connection identifier", "example": UUID4_EXAMPLE},
     )
+
+
+class DRPCRequestJSONSchema(BaseModelSchema, OpenAPISchema):
+    """Request schema for sending a DIDComm RPC Request."""
+
+    class Meta:
+        """DRPCRequestJSONSchema metadata."""
+
+        model_class = "DRPCRequest"
 
     request = Request(
         required=True,
@@ -103,18 +98,13 @@ class DRPCRequestSchema(BaseModelSchema, OpenAPISchema):
     )
 
 
-class DRPCResponseSchema(BaseModelSchema, OpenAPISchema):
+class DRPCResponseJSONSchema(BaseModelSchema, OpenAPISchema):
     """Request schema for sending a DIDComm RPC Response."""
 
     class Meta:
-        """DRPCResponseSchema metadata."""
+        """DRPCResponseJSONSchema metadata."""
 
         model_class = "DRPCResponse"
-
-    connection_id = fields.String(
-        required=True,
-        metadata={"description": "Connection identifier", "example": UUID4_EXAMPLE},
-    )
 
     response = Response(
         required=True,
@@ -178,7 +168,8 @@ class DRPCRecordMatchInfoSchema(OpenAPISchema):
     tags=["drpc"],
     summary="Send a DIDComm RPC request message",
 )
-@request_schema(DRPCRequestSchema())
+@match_info_schema(DRPCConnIdMatchInfoSchema())
+@json_schema(DRPCRequestJSONSchema())
 @response_schema(DRPCRequestMessageSchema(), 200)
 async def drpc_send_request(request: web.BaseRequest):
     """Request handler for sending a DIDComm RPC request message."""
@@ -188,8 +179,9 @@ async def drpc_send_request(request: web.BaseRequest):
     context: AdminRequestContext = request["context"]
     outbound_handler = request["outbound_message_router"]
 
+    connection_id = request.match_info["conn_id"]
+
     body = await request.json()
-    connection_id = body["connection_id"]
     request = body["request"]
 
     async with context.session() as session:
@@ -216,11 +208,7 @@ async def drpc_send_request(request: web.BaseRequest):
                 raise web.HTTPInternalServerError(reason=err.roll_up) from err
 
             # Create a new message to the recipient
-            msg = DRPCRequestMessage(
-                connection_id=connection_id,
-                request=request_record.request,
-                state=request_record.state,
-            )
+            msg = DRPCRequestMessage(request=request_record.request)
 
             try:
                 await storage.update_record(
@@ -244,7 +232,8 @@ async def drpc_send_request(request: web.BaseRequest):
     tags=["drpc"],
     summary="Send a DIDComm RPC response message",
 )
-@request_schema(DRPCResponseSchema())
+@match_info_schema(DRPCConnIdMatchInfoSchema())
+@json_schema(DRPCResponseJSONSchema())
 @response_schema(DRPCResponseMessageSchema(), 200)
 async def drpc_send_response(request: web.BaseRequest):
     """Request handler for sending a DIDComm RPC response message."""
@@ -254,8 +243,9 @@ async def drpc_send_response(request: web.BaseRequest):
     context: AdminRequestContext = request["context"]
     outbound_handler = request["outbound_message_router"]
 
+    connection_id = request.match_info["conn_id"]
+
     body = await request.json()
-    connection_id = body["connection_id"]
     thread_id = body["thread_id"]
     response = body["response"]
 
@@ -289,11 +279,7 @@ async def drpc_send_response(request: web.BaseRequest):
                 raise web.HTTPInternalServerError(reason=err.roll_up) from err
 
             # Create a new message to the recipient
-            msg = DRPCResponseMessage(
-                connection_id=connection_id,
-                response=response_record.response,
-                state=response_record.state,
-            )
+            msg = DRPCResponseMessage(response=response_record.response)
             msg.assign_thread_id(thread_id)
 
             await outbound_handler(msg, connection_id=connection_id)
@@ -389,8 +375,8 @@ async def drpc_get_record(request: web.BaseRequest):
 async def register(app: web.Application):
     """Register routes."""
 
-    app.add_routes([web.post("/drpc/request", drpc_send_request)])
-    app.add_routes([web.post("/drpc/response", drpc_send_response)])
+    app.add_routes([web.post("/drpc/{conn_id}/request", drpc_send_request)])
+    app.add_routes([web.post("/drpc/{conn_id}/response", drpc_send_response)])
     app.add_routes([web.get("/drpc/records", drpc_get_records, allow_head=False)])
     app.add_routes(
         [web.get("/drpc/records/{record_id}", drpc_get_record, allow_head=False)]

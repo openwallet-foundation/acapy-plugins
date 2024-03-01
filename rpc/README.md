@@ -5,7 +5,7 @@
 DIDComm RPC (DRPC) allows Aries agents to remotely execute methods on each others controllers using JSON-RPC over DIDComm.
 
 - v1_0:
-  - Introduces `/drpc/request` and `/drpc/response` POST endpoints for sending RPC request and response/error message(s), respectively, according to the specification of RPC request and and response/error objects as defined by [JSON-RPC](https://www.jsonrpc.org/specification).
+  - Introduces `/drpc/{conn_id}/request` and `/drpc/{conn_id}/response` POST endpoints for sending RPC request and response/error message(s), respectively, according to the specification of RPC request and and response/error objects as defined by [JSON-RPC](https://www.jsonrpc.org/specification).
   - Introduces `/drpc/records` and `/drpc/records/{record_id}` GET endpoints for querying DRPC records stored in Aries agent wallets.
 
 
@@ -29,11 +29,11 @@ The basic sequence of events in a DRPC interaction are as follows (starting with
     participant BC as BobController
     end
 
-    AC->>AA: POST /drpc/request
+    AC->>AA: POST /drpc/{conn_id}/request
     AA->>BA: outbound
     BA->>BC: acapy::webhook::drpc_request
 
-    BC->>BA: POST /drpc/response
+    BC->>BA: POST /drpc/{conn_id}/response
     BA->>AA: inbound
     AA->>AC: acapy::webhook::drpc_response
 

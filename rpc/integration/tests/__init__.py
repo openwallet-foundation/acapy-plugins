@@ -74,7 +74,7 @@ class Agent:
 
     @unwrap_json_response
     @fail_if_not_ok("Accept invitation failed")
-    def accept_invite(self, connection_id: str):
+    def accept_invite(self, connection_id: str, **kwargs):
         """Accept invitation."""
         return post(
             self.url,
@@ -83,15 +83,15 @@ class Agent:
 
     @unwrap_json_response
     @fail_if_not_ok("Failed to send DRPC request")
-    def send_drpc_request(self, **kwargs):
+    def send_drpc_request(self, connection_id, **kwargs):
         """Send DRPC request."""
-        return post(self.url, "/drpc/request", json=kwargs)
+        return post(self.url, f"/drpc/{connection_id}/request", json=kwargs)
 
     @unwrap_json_response
     @fail_if_not_ok("Failed to send DRPC response")
-    def send_drpc_response(self, **kwargs):
+    def send_drpc_response(self, connection_id, **kwargs):
         """Send DRPC response."""
-        return post(self.url, "/drpc/response", json=kwargs)
+        return post(self.url, f"/drpc/{connection_id}/response", json=kwargs)
 
     @unwrap_json_response
     @fail_if_not_ok("Failed to get DRPC record list")
@@ -101,13 +101,13 @@ class Agent:
 
     @unwrap_json_response
     @fail_if_not_ok("Failed to get DRPC record")
-    def get_drpc_record(self, record_id: str):
+    def get_drpc_record(self, record_id: str, **kwargs):
         """Get DRPC record."""
         return get(self.url, f"/drpc/records/{record_id}")
 
     @unwrap_json_response
     @fail_if_not_ok("Failed to send basic message")
-    def send_message(self, connection_id, content):
+    def send_message(self, connection_id, content, **kwargs):
         """Set connection metadata."""
         return post(
             self.url,
