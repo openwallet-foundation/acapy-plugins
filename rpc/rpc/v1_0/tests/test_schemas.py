@@ -4,14 +4,13 @@ import pytest
 from aries_cloudagent.messaging.valid import UUID4_EXAMPLE
 
 from rpc.v1_0.messages import DRPCRequestMessageSchema, DRPCResponseMessageSchema
-from rpc.v1_0.routes import DRPCRequestSchema, DRPCResponseSchema
+from rpc.v1_0.routes import DRPCRequestJSONSchema, DRPCResponseJSONSchema
 
 
 def test_valid_drpc_request():
-    """Test the DRPCRequestSchema schema."""
+    """Test the DRPCRequestJSONSchema schema."""
 
     data = {
-        "connection_id": UUID4_EXAMPLE,
         "request": {
             "jsonrpc": "2.0",
             "method": "test.method",
@@ -20,9 +19,8 @@ def test_valid_drpc_request():
         },
     }
 
-    schema = DRPCRequestSchema()
+    schema = DRPCRequestJSONSchema()
     result = schema.load(data)
-    assert result.connection_id == UUID4_EXAMPLE
     assert result.request.jsonrpc == "2.0"
     assert result.request.method == "test.method"
     assert result.request.id == "1"
@@ -30,14 +28,14 @@ def test_valid_drpc_request():
 
 
 def test_invalid_drpc_request():
-    """Test the DRPCRequestSchema schema."""
+    """Test the DRPCRequestJSONSchema schema."""
 
     data = {
         "connection_id": UUID4_EXAMPLE,
         "request": {"method": "test.method", "id": "1", "params": {"one": "1"}},
     }
 
-    schema = DRPCRequestSchema()
+    schema = DRPCRequestJSONSchema()
 
     with pytest.raises(ValidationError) as exc_info:
         schema.load(data)
@@ -54,21 +52,18 @@ def test_valid_drpc_request_message():
     """Test the DRPCRequesMessageSchema schema."""
 
     data = {
-        "connection_id": UUID4_EXAMPLE,
         "request": {
             "jsonrpc": "2.0",
             "method": "test.method",
             "id": "1",
             "params": {"one": "1"},
         },
-        "state": "request-sent",
     }
 
     schema = DRPCRequestMessageSchema()
     result = schema.load(data)
     assert result._id is not None
     assert result._type is not None
-    assert result.connection_id == UUID4_EXAMPLE
     assert result.request.jsonrpc == "2.0"
     assert result.request.method == "test.method"
     assert result.request.id == "1"
@@ -76,31 +71,29 @@ def test_valid_drpc_request_message():
 
 
 def test_valid_drpc_response():
-    """Test the DRPCResponseSchema schema."""
+    """Test the DRPCResponseJSONSchema schema."""
 
     data = {
-        "connection_id": UUID4_EXAMPLE,
         "response": {"jsonrpc": "2.0", "result": "test result", "id": "1"},
         "thread_id": UUID4_EXAMPLE,
     }
 
-    schema = DRPCResponseSchema()
+    schema = DRPCResponseJSONSchema()
     result = schema.load(data)
-    assert result.connection_id == UUID4_EXAMPLE
     assert result.response.jsonrpc == "2.0"
     assert result.response.result == "test result"
     assert result.response.id == "1"
 
 
 def test_invalid_drpc_response():
-    """Test the DRPCResponseSchema schema."""
+    """Test the DRPCResponseJSONSchema schema."""
 
     data = {
         "connection_id": UUID4_EXAMPLE,
         "response": {"result": "test result", "id": "1"},
     }
 
-    schema = DRPCResponseSchema()
+    schema = DRPCResponseJSONSchema()
 
     with pytest.raises(ValidationError) as exc_info:
         schema.load(data)
@@ -116,17 +109,12 @@ def test_invalid_drpc_response():
 def test_valid_drpc_response_message():
     """Test the DRPCResponseMessageSchema schema."""
 
-    data = {
-        "connection_id": UUID4_EXAMPLE,
-        "response": {"jsonrpc": "2.0", "result": "test result", "id": "1"},
-        "state": "completed",
-    }
+    data = {"response": {"jsonrpc": "2.0", "result": "test result", "id": "1"}}
 
     schema = DRPCResponseMessageSchema()
     result = schema.load(data)
     assert result._id is not None
     assert result._type is not None
-    assert result.connection_id == UUID4_EXAMPLE
     assert result.response.jsonrpc == "2.0"
     assert result.response.result == "test result"
     assert result.response.id == "1"

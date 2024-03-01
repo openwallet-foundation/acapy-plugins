@@ -33,29 +33,17 @@ test_tags = {
 }
 
 
-def generate_mock_drpc_request_message(connection_id, request):
+def generate_mock_drpc_request_message(request):
     schema = test_module.DRPCRequestMessageSchema()
-    msg = schema.load(
-        {
-            "connection_id": connection_id,
-            "request": request,
-            "state": "request-sent",
-        }
-    )
+    msg = schema.load({"request": request})
     msg._id = "test-request-message-id"
     msg._type = "https://didcomm.org/drpc/1.0/request"
     return msg
 
 
-def generate_mock_drpc_response_message(connection_id, thread_id, response):
+def generate_mock_drpc_response_message(thread_id, response):
     schema = test_module.DRPCResponseMessageSchema()
-    msg = schema.load(
-        {
-            "connection_id": connection_id,
-            "response": response,
-            "state": "completed",
-        }
-    )
+    msg = schema.load({"response": response})
     msg._id = "test-response-message-id"
     msg._type = "https://didcomm.org/drpc/1.0/response"
     msg.assign_thread_id(thread_id)
@@ -212,16 +200,12 @@ class TestDRPCRoutes(AsyncTestCase):
     @async_mock.patch.object(
         test_module,
         "DRPCRequestMessage",
-        return_value=generate_mock_drpc_request_message(
-            "test-connection-id", test_rpc_request
-        ),
+        return_value=generate_mock_drpc_request_message(test_rpc_request),
     )
     async def test_send_drpc_request_success(self, *_):
+        self.request.match_info = {"conn_id": "test-connection-id"}
         self.request.json = async_mock.CoroutineMock(
-            return_value={
-                "connection_id": "test-connection-id",
-                "request": test_rpc_request,
-            }
+            return_value={"request": test_rpc_request}
         )
 
         self.storage.add_record = async_mock.CoroutineMock()
@@ -231,9 +215,7 @@ class TestDRPCRoutes(AsyncTestCase):
             await test_module.drpc_send_request(self.request)
             mock_response.assert_called_once_with(
                 {
-                    "connection_id": "test-connection-id",
                     "request": test_rpc_request,
-                    "state": "request-sent",
                     "@id": "test-request-message-id",
                     "@type": "https://didcomm.org/drpc/1.0/request",
                 }
@@ -255,13 +237,13 @@ class TestDRPCRoutes(AsyncTestCase):
         test_module,
         "DRPCResponseMessage",
         return_value=generate_mock_drpc_response_message(
-            "test-connection-id", "test-request-message-id", test_rpc_response
+            "test-request-message-id", test_rpc_response
         ),
     )
     async def test_send_drpc_response_success(self, *_):
+        self.request.match_info = {"conn_id": "test-connection-id"}
         self.request.json = async_mock.CoroutineMock(
             return_value={
-                "connection_id": "test-connection-id",
                 "thread_id": "test-request-message-id",
                 "response": test_rpc_response,
             }
@@ -274,9 +256,7 @@ class TestDRPCRoutes(AsyncTestCase):
             await test_module.drpc_send_response(self.request)
             mock_response.assert_called_once_with(
                 {
-                    "connection_id": "test-connection-id",
                     "response": test_rpc_response,
-                    "state": "completed",
                     "@id": "test-response-message-id",
                     "@type": "https://didcomm.org/drpc/1.0/response",
                     "~thread": {"thid": "test-request-message-id"},
@@ -289,9 +269,9 @@ class TestDRPCRoutes(AsyncTestCase):
         side_effect=StorageNotFoundError(),
     )
     async def test_http_not_found_thrown_on_connection_not_found_error(self, *_):
+        self.request.match_info = {"conn_id": "test-connection-id"}
         self.request.json = async_mock.CoroutineMock(
             return_value={
-                "connection_id": "test-connection-id",
                 "request": test_rpc_request,
                 "response": test_rpc_response,
                 "thread_id": "test-thread-id",
@@ -313,11 +293,9 @@ class TestDRPCRoutes(AsyncTestCase):
         return_value=MockConnRecord("test-connection-id", True),
     )
     async def test_http_internal_server_error_thrown_on_add_storage_error(self, *_):
+        self.request.match_info = {"conn_id": "test-connection-id"}
         self.request.json = async_mock.CoroutineMock(
-            return_value={
-                "connection_id": "test-connection-id",
-                "request": test_rpc_request,
-            }
+            return_value={"request": test_rpc_request}
         )
 
         self.storage.add_record = async_mock.CoroutineMock(side_effect=StorageError())
@@ -338,9 +316,9 @@ class TestDRPCRoutes(AsyncTestCase):
         ),
     )
     async def test_http_internal_server_error_thrown_on_update_storage_error(self, *_):
+        self.request.match_info = {"conn_id": "test-connection-id"}
         self.request.json = async_mock.CoroutineMock(
             return_value={
-                "connection_id": "test-connection-id",
                 "request": test_rpc_request,
                 "response": test_rpc_response,
                 "thread_id": "test-thread-id",
@@ -369,9 +347,9 @@ class TestDRPCRoutes(AsyncTestCase):
         side_effect=StorageNotFoundError(),
     )
     async def test_http_not_found_thrown_on_drpc_record_not_found_error(self, *_):
+        self.request.match_info = {"conn_id": "test-connection-id"}
         self.request.json = async_mock.CoroutineMock(
             return_value={
-                "connection_id": "test-connection-id",
                 "response": test_rpc_response,
                 "thread_id": "test-thread-id",
             }
