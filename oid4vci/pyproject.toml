@@ -29,7 +29,7 @@ pytest-cov = "2.10.1"
 pytest-ruff = "^0.1.1"
 
 # testing
-mock= "~4.0"
+mock= "~5.1"
 
 [tool.poetry.group.integration.dependencies]
 aries-askar = { version = "~0.3.0" }
