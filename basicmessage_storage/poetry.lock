@@ -173,15 +173,15 @@ yaml = ["PyYAML (>=3.10)"]
 
 [[package]]
 name = "aries-askar"
-version = "0.3.0"
+version = "0.3.1"
 description = ""
 optional = false
 python-versions = ">=3.6.3"
 files = [
-    {file = "aries_askar-0.3.0-py3-none-macosx_10_9_universal2.whl", hash = "sha256:924a17b027406992ecf37ec7f4a683364b285f48b24ba5a8ed2adb0a26d8454d"},
-    {file = "aries_askar-0.3.0-py3-none-manylinux2014_aarch64.whl", hash = "sha256:6665140131c491cc4cb751b144b758b3d90ce18919f2d94c666ef5ae23da7cc8"},
-    {file = "aries_askar-0.3.0-py3-none-manylinux2014_x86_64.whl", hash = "sha256:c59def3dce660c5a9aba90ac341e9c39b4f523ffa7345cf6131c9dd1c8e947d4"},
-    {file = "aries_askar-0.3.0-py3-none-win_amd64.whl", hash = "sha256:3a921ec32105390cec75f2c3d2b05ffe38eeecf81f86de7ead086b0ba8d93a6c"},
+    {file = "aries_askar-0.3.1-py3-none-macosx_10_9_universal2.whl", hash = "sha256:efd5f7000d1934e0425c7b9738193d42f41dda09741dd3724a35e9d1aa6b3c42"},
+    {file = "aries_askar-0.3.1-py3-none-manylinux2014_aarch64.whl", hash = "sha256:01541c0787460a3af0520afc904c4d72098caed4ab3d4b5bcb6bd742b4bafbf9"},
+    {file = "aries_askar-0.3.1-py3-none-manylinux2014_x86_64.whl", hash = "sha256:56117089c23c4c179e9cff274e165da5fe7df01be1f39e27bd6f7daf73fe1c67"},
+    {file = "aries_askar-0.3.1-py3-none-win_amd64.whl", hash = "sha256:394d71bddd320202e49e2ab3822558b7cf08ae65c92d55cf215afab4d9c3b8c1"},
 ]
 
 [package.dependencies]
@@ -374,7 +374,7 @@ files = [
 name = "cffi"
 version = "1.16.0"
 description = "Foreign Function Interface for Python calling C code."
-optional = false
+optional = true
 python-versions = ">=3.8"
 files = [
     {file = "cffi-1.16.0-cp310-cp310-macosx_10_9_x86_64.whl", hash = "sha256:6b3d6606d369fc1da4fd8c357d026317fbb9c9b75d36dc16e90e84c26854b088"},
@@ -641,7 +641,7 @@ toml = ["tomli"]
 name = "cryptography"
 version = "42.0.4"
 description = "cryptography is a package which provides cryptographic recipes and primitives to Python developers."
-optional = false
+optional = true
 python-versions = ">=3.7"
 files = [
     {file = "cryptography-42.0.4-cp37-abi3-macosx_10_12_universal2.whl", hash = "sha256:ffc73996c4fca3d2b6c1c8c12bfd3ad00def8621da24f547626bf06441400449"},
@@ -1690,7 +1690,7 @@ wcwidth = "*"
 name = "pycparser"
 version = "2.21"
 description = "C parser in Python"
-optional = false
+optional = true
 python-versions = ">=2.7, !=3.0.*, !=3.1.*, !=3.2.*, !=3.3.*"
 files = [
     {file = "pycparser-2.21-py2.py3-none-any.whl", hash = "sha256:8ee45429555515e1f6b185e78100aea234072576aa43ab53aefcae078162fca9"},
@@ -2567,4 +2567,4 @@ aca-py = ["aries-cloudagent"]
 [metadata]
 lock-version = "2.0"
 python-versions = "^3.9"
-content-hash = "002feb2408e66e322a327504502c521d40cff9ac4c7e0478affca0d3f5e521df"
+content-hash = "2e6c715366064d3be2e3de9705c37f09046e6f750b21a4949ed3b59843d592a8"
