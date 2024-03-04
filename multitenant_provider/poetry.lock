@@ -1140,14 +1140,15 @@ files = [
 
 [[package]]
 name = "indy-vdr"
-version = "0.3.4"
+version = "0.4.1"
 description = ""
 optional = false
 python-versions = ">=3.6.3"
 files = [
-    {file = "indy_vdr-0.3.4-py3-none-macosx_10_9_universal2.whl", hash = "sha256:ad9dffe5ca01fd7e0bf5515890eff51f635e3051bc0edc86f5cbb122bf33385b"},
-    {file = "indy_vdr-0.3.4-py3-none-manylinux2014_x86_64.whl", hash = "sha256:6912ca7219d22cd421d6278dfa5682f4ef8560fab6eef615c61c80551aaa6fed"},
-    {file = "indy_vdr-0.3.4-py3-none-win_amd64.whl", hash = "sha256:fcfc1225da29a7bbcc9059df5c55553ca6abd74d4a8478e7b825d8944502f461"},
+    {file = "indy_vdr-0.4.1-py3-none-macosx_10_9_universal2.whl", hash = "sha256:62d18b411e6c2ca7204299306a08cf65a43dec0982f1d9749d44f02f4817ff0a"},
+    {file = "indy_vdr-0.4.1-py3-none-manylinux2014_aarch64.whl", hash = "sha256:826c128170a42ccb06d24c9018876cdfdc94fc6870661b21d47ffa022a1570bb"},
+    {file = "indy_vdr-0.4.1-py3-none-manylinux2014_x86_64.whl", hash = "sha256:6cbcd760059c8410c09948f8f64dbf8a80a47fe8072d7d865fcfffe7e867266b"},
+    {file = "indy_vdr-0.4.1-py3-none-win_amd64.whl", hash = "sha256:c67de1c4498806ad5afaec104ca4edc2b4c7bb59e02d588c3bfd85164e017158"},
 ]
 
 [[package]]
@@ -2623,4 +2624,4 @@ aca-py = ["aries-cloudagent"]
 [metadata]
 lock-version = "2.0"
 python-versions = "^3.9"
-content-hash = "a3146daddbb20357ac5c626cd9a16383d42a515ec69d1d745df32bbdd2d4aeaa"
+content-hash = "2d2d9d6f850d4a7a2095a279bed08429fd8ec7f5fe6b90af789d0d69c8ffc101"
