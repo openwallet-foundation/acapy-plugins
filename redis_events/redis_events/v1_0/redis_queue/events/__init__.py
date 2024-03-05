@@ -89,7 +89,7 @@ async def handle_event(profile: Profile, event: EventWithMetadata):
     if not redis:
         redis = await redis_setup(profile, event)
 
-    LOGGER.info("Handling event: %s", event)
+    LOGGER.debug("Handling event: %s", event)
     wallet_id = cast(Optional[str], profile.settings.get("wallet.id"))
     try:
         event_payload = process_event_payload(event.payload)
@@ -113,7 +113,7 @@ async def handle_event(profile: Profile, event: EventWithMetadata):
         config_events = get_config(profile.settings).event or EventConfig.default()
         template = config_events.event_topic_maps[event.metadata.pattern.pattern]
         redis_topic = Template(template).substitute(**payload)
-        LOGGER.info(f"Sending message {payload} with topic {redis_topic}")
+        LOGGER.debug(f"Sending message {payload} with topic {redis_topic}")
 
         origin = profile.settings.get("default_label")
 
