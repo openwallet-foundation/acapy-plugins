@@ -20,60 +20,62 @@ from acapy_client.models.conn_record import ConnRecord
 from echo_agent import EchoClient
 
 
-@pytest_asyncio.fixture(scope="session")
+@pytest_asyncio.fixture(scope="module")
 def event_loop():
     """Create a session scoped event loop.
     pytest.asyncio plugin provides a default function scoped event loop
     which cannot be used as a dependency to session scoped fixtures.
     """
-    return asyncio.get_event_loop()
+    loop = asyncio.new_event_loop()
+    yield loop
+    loop.close()
 
 
-@pytest_asyncio.fixture(scope="session")
+@pytest_asyncio.fixture(scope="module")
 def host():
     """Hostname of agent under test."""
     return getenv("AGENT_HOST", "localhost")
 
 
-@pytest_asyncio.fixture(scope="session")
+@pytest_asyncio.fixture(scope="module")
 def port():
     """Port of agent under test."""
     return getenv("AGENT_PORT", 3000)
 
 
-@pytest_asyncio.fixture(scope="session")
+@pytest_asyncio.fixture(scope="module")
 def backchannel_port():
     """Port of agent under test backchannel."""
     return getenv("AGENT_BACKCHANNEL_PORT", 3001)
 
 
-@pytest_asyncio.fixture(scope="session")
+@pytest_asyncio.fixture(scope="module")
 def echo_endpoint():
     return getenv("ECHO_ENDPOINT", "http://localhost:4000")
 
 
-@pytest_asyncio.fixture(scope="session")
+@pytest_asyncio.fixture(scope="module")
 def backchannel(host, backchannel_port):
     """Yield backchannel client."""
     yield Client(base_url="http://{}:{}".format(host, backchannel_port))
 
 
-@pytest_asyncio.fixture(scope="session")
+@pytest_asyncio.fixture(scope="module")
 def suite_seed():
     yield hashlib.sha256(b"acapy-plugin-toolbox-int-test-runner").hexdigest()[:32]
 
 
-@pytest_asyncio.fixture(scope="session")
+@pytest_asyncio.fixture(scope="module")
 def agent_seed():
     yield hashlib.sha256(b"acapy-plugin-toolbox-int-test-runner").hexdigest()[:32]
 
 
-@pytest_asyncio.fixture(scope="session")
+@pytest_asyncio.fixture(scope="module")
 def agent_endpoint(host, port):
     yield "http://{}:{}".format(host, port)
 
 
-@pytest_asyncio.fixture(scope="session")
+@pytest_asyncio.fixture(scope="module")
 def agent_connection(
     suite_seed, agent_seed, backchannel, echo_endpoint
 ) -> Iterator[ConnectionStaticResult]:
@@ -112,17 +114,17 @@ def agent_connection(
     )
 
 
-@pytest_asyncio.fixture(scope="session")
+@pytest_asyncio.fixture(scope="module")
 def conn_record(agent_connection: ConnectionStaticResult):
     yield agent_connection.record
 
 
-@pytest_asyncio.fixture(scope="session")
+@pytest_asyncio.fixture(scope="module")
 def connection_id(conn_record: ConnRecord):
     yield conn_record.connection_id
 
 
-@pytest_asyncio.fixture(scope="session")
+@pytest_asyncio.fixture(scope="module")
 def echo_agent(echo_endpoint: str):
     yield EchoClient(base_url=echo_endpoint)
 
@@ -133,7 +135,7 @@ async def echo(echo_agent: EchoClient):
         yield client
 
 
-@pytest_asyncio.fixture(scope="session")
+@pytest_asyncio.fixture(scope="module")
 async def connection(
     agent_connection: ConnectionStaticResult, echo_agent: EchoClient, suite_seed: str
 ):
@@ -148,7 +150,7 @@ async def connection(
     yield conn
 
 
-@pytest_asyncio.fixture
+@pytest_asyncio.fixture(scope="module")
 def consumer():
     def _consumer(topic: str):
         return AIOKafkaConsumer(topic, bootstrap_servers="kafka", group_id="test")
