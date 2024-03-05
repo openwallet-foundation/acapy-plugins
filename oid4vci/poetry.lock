@@ -1894,16 +1894,17 @@ testing = ["fields", "hunter", "process-tests (==2.0.2)", "pytest-xdist", "six",
 
 [[package]]
 name = "pytest-ruff"
-version = "0.1.1"
+version = "0.3"
 description = "pytest plugin to check ruff requirements."
 optional = false
-python-versions = ">=3.7,<4.0"
+python-versions = ">=3.8,<4.0"
 files = [
-    {file = "pytest_ruff-0.1.1-py3-none-any.whl", hash = "sha256:db33c8d32d730d61d372c1ac4615b1036c47a14c781cbc0ae71811c4cadadc47"},
-    {file = "pytest_ruff-0.1.1.tar.gz", hash = "sha256:f599768ff3834d6b1d6d26b25a030a5b1dcc9cf187239bd9621a7f25f7d8fe46"},
+    {file = "pytest_ruff-0.3-py3-none-any.whl", hash = "sha256:625d142fa65855cd2d6edae395287829eea91a951d2b77cbe824463680b35760"},
+    {file = "pytest_ruff-0.3.tar.gz", hash = "sha256:798fafcee34dff6055c9082b394a5f314d6db2a562fb560da29cfe4e1996eb77"},
 ]
 
 [package.dependencies]
+pytest = ">=5"
 ruff = ">=0.0.242"
 
 [[package]]
@@ -2573,4 +2574,4 @@ aca-py = ["aries-cloudagent"]
 [metadata]
 lock-version = "2.0"
 python-versions = "^3.9"
-content-hash = "b78d3383f711f25016d000723138b9d2f5a6eed3b19c7f4fafd373e3d89c978c"
+content-hash = "66f36c5d46c5222754635b86822fc482816079be2f98b0384b968cf208539d2c"
