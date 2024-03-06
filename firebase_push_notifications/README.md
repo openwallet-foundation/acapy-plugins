@@ -16,12 +16,12 @@ Mediator->>Mobile: No
 Note left of Mobile: Do Nothing
 Mediator->>Mobile: Yes
 Note left of Mobile: Open notification Permission Modal
-Mobile->Mobile: User says "not now"
+Mobile->>Mobile: User says "not now"
 Note left of Mobile: Close Modal and set user denied to true
-Mobile->Mobile: User says "Allow"
+Mobile->>Mobile: User says "Allow"
 Mobile->>Mediator: Send device token
 Note right of Mediator: Save device token for conenction
-Mobile->Mobile: OS permissions popup
+Mobile->>Mobile: OS permissions popup
 Note left of Mobile: Approve or deny OS level permission
 ```
 
@@ -35,13 +35,13 @@ participant Firebase
 Note left of Agent (Faber): Wants to send message to Mobile (Alice)
 Agent (Faber)->>Mediator: Message
 Mediator->>Mobile (Alice): Message
-Mediator->Mediator: Receives Forwarding event in aca-py
+Mediator->>Mediator: Receives Forwarding event in aca-py
 Note right of Mediator: Get device token for connection
-Mediator->Mediator: token is blank or None
+Mediator->>Mediator: token is blank or None
 Note right of Mediator: Do nothing
-Mediator->Mediator: message sent withing 'n' minutes
+Mediator->>Mediator: message sent withing 'n' minutes
 Note right of Mediator: Do nothing
-Mediator->Mediator: Token exists
+Mediator->>Mediator: Token exists
 Mediator->>Firebase: Request: Send OS notification to token
 Firebase->>Mobile (Alice): Sends OS notification
 ```
