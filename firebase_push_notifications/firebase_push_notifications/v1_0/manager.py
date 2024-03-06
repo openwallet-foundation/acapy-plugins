@@ -50,7 +50,7 @@ async def send_message(profile, connection_id):
             record = await FirebaseConnectionRecord.retrieve_by_connection_id(
                 session, connection_id
             )
-        except StorageNotFoundError as e:
+        except StorageNotFoundError:
             return
 
         """ Don't send token if it is blank. This is the same as being disabled """
