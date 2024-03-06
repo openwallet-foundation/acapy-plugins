@@ -15,7 +15,7 @@ fastapi = "^0.109.2"
 nest-asyncio = "^1.5.5"
 pydantic = "^1.8.2"
 redis = "^4.1.4"
-uvicorn = "0.16.0"
+uvicorn = "0.27.1"
 
 [tool.poetry.extras]
 aca-py = ["aries-cloudagent"]
