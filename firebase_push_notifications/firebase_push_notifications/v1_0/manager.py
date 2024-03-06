@@ -51,9 +51,6 @@ async def send_message(profile, connection_id):
                 session, connection_id
             )
         except StorageNotFoundError as e:
-            LOGGER.debug(
-                f"Could not retrieve device token for connection {connection_id} : {e}"
-            )
             return
 
         """ Don't send token if it is blank. This is the same as being disabled """
@@ -68,12 +65,12 @@ async def send_message(profile, connection_id):
         if record.sent_time is not None and parser.parse(
             record.sent_time
         ) > datetime_now() - timedelta(minutes=MAX_SEND_RATE_MINUTES):
-            LOGGER.info(
+            LOGGER.debug(
                 f"Connection {connection_id} was sent a push notification within the last {MAX_SEND_RATE_MINUTES} minutes. Skipping."  # noqa: E501
             )
             return
 
-        LOGGER.info(
+        LOGGER.debug(
             f"Sending push notification to firebase from connection: {connection_id}"
         )
 
@@ -109,7 +106,7 @@ async def send_message(profile, connection_id):
         )
 
         if resp.status_code == 200:
-            LOGGER.info(
+            LOGGER.debug(
                 f"Successfully sent message to firebase for delivery. response: {resp.text}"  # noqa: E501
             )
             record.sent_time = time_now()
