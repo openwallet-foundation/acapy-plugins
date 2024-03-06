@@ -144,7 +144,7 @@ class TestManager(asynctest.TestCase):
         await test_module.send_message(self.profile, self.test_conn_id)
 
         assert mock_retrieve.await_count == 1
-        assert mock_logger_debug.call_count == 1
+        assert mock_logger_debug.call_count == 0
         assert not mock_post.called
 
     async def test_save_device_token_should_save_new_record(self):
