@@ -116,11 +116,14 @@ async def handle_event(profile: Profile, event: EventWithMetadata):
         LOGGER.debug(f"Sending message {payload} with topic {redis_topic}")
 
         origin = profile.settings.get("default_label")
+        group_id = profile.settings.get("wallet.group_id")
 
         metadata = {"time_ns": time.time_ns()}
         metadata_wallet_id = {"x-wallet-id": wallet_id} if wallet_id else {}
+        metadata_group_id = {"group_id": group_id} if group_id else {}
         metadata_origin = {"origin": origin} if origin else {}
         metadata.update(metadata_wallet_id)
+        metadata.update(metadata_group_id)
         metadata.update(metadata_origin)
 
         outbound = str.encode(
