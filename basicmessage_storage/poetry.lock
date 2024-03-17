@@ -374,7 +374,7 @@ files = [
 name = "cffi"
 version = "1.16.0"
 description = "Foreign Function Interface for Python calling C code."
-optional = true
+optional = false
 python-versions = ">=3.8"
 files = [
     {file = "cffi-1.16.0-cp310-cp310-macosx_10_9_x86_64.whl", hash = "sha256:6b3d6606d369fc1da4fd8c357d026317fbb9c9b75d36dc16e90e84c26854b088"},
@@ -644,7 +644,7 @@ toml = ["tomli"]
 name = "cryptography"
 version = "42.0.5"
 description = "cryptography is a package which provides cryptographic recipes and primitives to Python developers."
-optional = true
+optional = false
 python-versions = ">=3.7"
 files = [
     {file = "cryptography-42.0.5-cp37-abi3-macosx_10_12_universal2.whl", hash = "sha256:a30596bae9403a342c978fb47d9b0ee277699fa53bbafad14706af51fe543d16"},
@@ -1165,17 +1165,18 @@ six = "*"
 
 [[package]]
 name = "jwcrypto"
-version = "1.5.4"
+version = "1.5.6"
 description = "Implementation of JOSE Web standards"
-optional = true
+optional = false
 python-versions = ">= 3.8"
 files = [
-    {file = "jwcrypto-1.5.4.tar.gz", hash = "sha256:0815fbab613db99bad85691da5f136f8860423396667728a264bcfa6e1db36b0"},
+    {file = "jwcrypto-1.5.6-py3-none-any.whl", hash = "sha256:150d2b0ebbdb8f40b77f543fb44ffd2baeff48788be71f67f03566692fd55789"},
+    {file = "jwcrypto-1.5.6.tar.gz", hash = "sha256:771a87762a0c081ae6166958a954f80848820b2ab066937dc8b8379d65b1b039"},
 ]
 
 [package.dependencies]
 cryptography = ">=3.4"
-typing_extensions = ">=4.5.0"
+typing-extensions = ">=4.5.0"
 
 [[package]]
 name = "lxml"
@@ -1704,7 +1705,7 @@ wcwidth = "*"
 name = "pycparser"
 version = "2.21"
 description = "C parser in Python"
-optional = true
+optional = false
 python-versions = ">=2.7, !=3.0.*, !=3.1.*, !=3.2.*, !=3.3.*"
 files = [
     {file = "pycparser-2.21-py2.py3-none-any.whl", hash = "sha256:8ee45429555515e1f6b185e78100aea234072576aa43ab53aefcae078162fca9"},
