@@ -3,7 +3,8 @@ import logging
 import re
 
 from aiohttp import web
-from aiohttp_apispec import docs, match_info_schema, request_schema, response_schema
+from aiohttp_apispec import (docs, match_info_schema, request_schema,
+                             response_schema)
 from aries_cloudagent.admin.request_context import AdminRequestContext
 from aries_cloudagent.connections.models.conn_record import ConnRecord
 from aries_cloudagent.core.event_bus import Event, EventBus
@@ -122,12 +123,12 @@ async def register(app: web.Application):
     """Register routes."""
 
     app.add_routes(
-        [web.post("/push-notification-fcm/1.0/{conn_id}/send", send_push_notification)]
+        [web.post("/push-notification-fcm/{conn_id}/send", send_push_notification)]
     )
     app.add_routes(
         [
             web.post(
-                "/push-notification-fcm/1.0/{conn_id}/set_device_info",
+                "/push-notification-fcm/{conn_id}/set_device_info",
                 set_connection_device_info,
             )
         ]
