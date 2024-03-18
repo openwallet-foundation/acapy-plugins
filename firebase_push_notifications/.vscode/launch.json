@@ -1,0 +1,62 @@
+{
+  // Use IntelliSense to learn about possible attributes.
+  // Hover to view descriptions of existing attributes.
+  // For more information, visit: https://go.microsoft.com/fwlink/?linkid=830387
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "name": "Run/Debug Plugin",
+      "type": "python",
+      "request": "launch",
+      "module": "aries_cloudagent",
+      "justMyCode": false,
+      "args": ["start", "--arg-file=${workspaceRoot}/docker/default.yml"]
+    },
+    {
+      "name": "Run/Debug Mediator",
+      "type": "python",
+      "request": "launch",
+      "module": "aries_cloudagent",
+      "justMyCode": false,
+      "args": ["start", "--arg-file=${workspaceRoot}/docker/integration.yml"]
+    },
+    {
+      "name": "Run/Debug Bob",
+      "type": "python",
+      "request": "launch",
+      "module": "aries_cloudagent",
+      "justMyCode": false,
+      "args": ["start", "--arg-file=${workspaceRoot}/docker/bob.yml"]
+    },
+    {
+      "name": "Run/Debug Alice",
+      "type": "python",
+      "request": "launch",
+      "module": "aries_cloudagent",
+      "justMyCode": false,
+      "args": ["start", "--arg-file=${workspaceRoot}/docker/alice.yml"]
+    },
+    {
+      "name": "ruff - firebase_push_notifications",
+      "type": "python",
+      "request": "launch",
+      "module": "ruff",
+      "console": "integratedTerminal",
+      "sudo": true,
+      "justMyCode": true,
+      "cwd": "${workspaceFolder}/firebase_push_notifications",
+      "args": ["check", "."]
+    },
+    {
+      "name": "ruff fix - firebase_push_notifications",
+      "type": "debugpy",
+      "request": "launch",
+      "module": "ruff",
+      "console": "integratedTerminal",
+      "sudo": true,
+      "justMyCode": true,
+      "cwd": "${workspaceFolder}/firebase_push_notifications",
+      "args": ["check", ".", "--fix"]
+    }
+  ]
+}

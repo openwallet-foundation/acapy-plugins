@@ -1,0 +1,38 @@
+# Alice agent configuration
+
+auto-provision: true
+label: alice
+
+inbound-transport:
+   - [http, 0.0.0.0, 9010]
+
+outbound-transport: http
+
+wallet-type: askar
+wallet-storage-type: default
+wallet-name: alice-wallet
+wallet-key: alice-wallet-key
+
+admin-insecure-mode: true
+
+admin: [0.0.0.0, 9011]
+
+endpoint: http://localhost:9010
+
+no-ledger: true
+
+# Connections
+debug-connections: true
+auto-accept-invites: true
+auto-accept-requests: true
+auto-ping-connection: true
+
+auto-store-credential: true
+preserve-exchange-records: true
+auto-respond-messages: true
+
+log-level: info
+
+# Mediation
+mediator-invitation: http://localhost:3000?c_i=eyJAdHlwZSI6ICJodHRwczovL2RpZGNvbW0ub3JnL2Nvbm5lY3Rpb25zLzEuMC9pbnZpdGF0aW9uIiwgIkBpZCI6ICIzYWJkNzMwOS1lMWY2LTRhNmEtYjVlMi0wNzYwZjZlMzhhODMiLCAibGFiZWwiOiAiTWVkaWF0b3IiLCAicmVjaXBpZW50S2V5cyI6IFsiRjY0QkF0aGc1RFh5V2JYRDFMQ3l0QXVkMzZhb0QzUHRpeXU4NEFWVjc2Tk4iXSwgInNlcnZpY2VFbmRwb2ludCI6ICJodHRwOi8vbG9jYWxob3N0OjMwMDAifQ==
+mediator-connections-invite: true
