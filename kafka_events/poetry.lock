@@ -2041,20 +2041,21 @@ testing = ["argcomplete", "attrs (>=19.2.0)", "hypothesis (>=3.56)", "mock", "no
 
 [[package]]
 name = "pytest-asyncio"
-version = "0.14.0"
-description = "Pytest support for asyncio."
+version = "0.23.6"
+description = "Pytest support for asyncio"
 optional = false
-python-versions = ">= 3.5"
+python-versions = ">=3.8"
 files = [
-    {file = "pytest-asyncio-0.14.0.tar.gz", hash = "sha256:9882c0c6b24429449f5f969a5158b528f39bde47dc32e85b9f0403965017e700"},
-    {file = "pytest_asyncio-0.14.0-py3-none-any.whl", hash = "sha256:2eae1e34f6c68fc0a9dc12d4bea190483843ff4708d24277c41568d6b6044f1d"},
+    {file = "pytest-asyncio-0.23.6.tar.gz", hash = "sha256:ffe523a89c1c222598c76856e76852b787504ddb72dd5d9b6617ffa8aa2cde5f"},
+    {file = "pytest_asyncio-0.23.6-py3-none-any.whl", hash = "sha256:68516fdd1018ac57b846c9846b954f0393b26f094764a28c955eabb0536a4e8a"},
 ]
 
 [package.dependencies]
-pytest = ">=5.4.0"
+pytest = ">=7.0.0,<9"
 
 [package.extras]
-testing = ["async-generator (>=1.3)", "coverage", "hypothesis (>=5.7.1)"]
+docs = ["sphinx (>=5.3)", "sphinx-rtd-theme (>=1.0)"]
+testing = ["coverage (>=6.2)", "hypothesis (>=5.7.1)"]
 
 [[package]]
 name = "pytest-cov"
@@ -2727,4 +2728,4 @@ aca-py = ["aries-cloudagent"]
 [metadata]
 lock-version = "2.0"
 python-versions = "^3.9"
-content-hash = "56fcfae11db145db1b9b28aa1edfaeff61ea91585631bc4f76d45805fcaa9622"
+content-hash = "542c05356bfe5993a117740af1453667130dcfd7ddc62dab345616f7458fa3b9"
