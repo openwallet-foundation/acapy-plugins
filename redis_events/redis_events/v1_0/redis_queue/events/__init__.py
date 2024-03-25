@@ -85,6 +85,18 @@ def process_event_payload(event_payload: Any):
 
 async def handle_event(profile: Profile, event: EventWithMetadata):
     """Push events from aca-py events."""
+    config_events = get_config(profile.settings).event or EventConfig.default()
+    pattern = event.metadata.pattern.pattern
+    template = config_events.event_topic_maps.get(pattern)
+
+    if not template:
+        LOGGER.warning(f"Could not infer template from pattern: {pattern}")
+        return
+
+    if "-with-state" not in template:
+        # We are only interested in state change webhooks. This avoids duplicate events
+        return
+
     redis = profile.inject_or(RedisCluster)
     if not redis:
         redis = await redis_setup(profile, event)
@@ -110,8 +122,6 @@ async def handle_event(profile: Profile, event: EventWithMetadata):
     }
     webhook_urls = profile.settings.get("admin.webhook_urls")
     try:
-        config_events = get_config(profile.settings).event or EventConfig.default()
-        template = config_events.event_topic_maps[event.metadata.pattern.pattern]
         redis_topic = Template(template).substitute(**payload)
         LOGGER.debug(f"Sending message {payload} with topic {redis_topic}")
 

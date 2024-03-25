@@ -57,7 +57,8 @@ def established_connection(faber, alice):
 @pytest.mark.asyncio
 async def test_base_redis_keys_are_set(redis):
     time.sleep(1)
-    assert await redis.lrange("acapy-record-base", 0, -1) != []
+    # skip `acapy-record-base` because our custom implementation is not interested in base keys!
+    # assert await redis.lrange("acapy-record-base", 0, -1) != []
     assert await redis.lrange("acapy-record-with-state-base", 0, -1) != []
 
 
