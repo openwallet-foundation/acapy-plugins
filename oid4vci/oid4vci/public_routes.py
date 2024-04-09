@@ -116,7 +116,7 @@ async def token(request: web.Request):
     if not pre_authorized_code or not isinstance(pre_authorized_code, str):
         raise web.HTTPBadRequest(reason="pre-authorized_code is missing or invalid")
 
-    user_pin = request.query.get("user_pin")
+    user_pin = form.get("user_pin")
     try:
         async with context.profile.session() as session:
             record = await OID4VCIExchangeRecord.retrieve_by_code(
