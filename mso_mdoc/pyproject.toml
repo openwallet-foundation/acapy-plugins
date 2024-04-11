@@ -1,0 +1,89 @@
+[tool.poetry]
+name = "mso_mdoc"
+version = "0.1.0"
+description = ""
+authors = []
+
+[tool.poetry.dependencies]
+python = "^3.9"
+cbor2 = "~5"
+cbor-diag = "*"
+cwt = "~2"
+pycose = "~1"
+
+# Define ACA-Py as an optional/extra dependancy so it can be
+# explicitly installed with the plugin if desired.
+aries-cloudagent = { version = ">=0.10.3, < 1.0.0", optional = true }
+
+[tool.poetry.extras]
+aca-py = ["aries-cloudagent"]
+
+[tool.poetry.dev-dependencies]
+ruff = "^0.1.2"
+black = "23.7.0"
+asynctest = "0.13.0"
+pytest = "~7.4.0"
+pytest-asyncio = "0.14.0"
+pytest-cov = "2.10.1"
+pytest-ruff = "^0.1.1"
+
+[tool.poetry.group.integration.dependencies]
+aries-askar = { version = "~0.3.0" }
+indy-credx = { version = "~1.1.1" }
+indy-vdr = { version = "~0.4.1" }
+ursa-bbs-signatures = { version = "~1.0.1" }
+python3-indy = { version = "^1.11.1" }
+
+[tool.ruff]
+line-length = 90
+
+[tool.ruff.lint]
+select = ["E", "F", "C", "D"]
+ignore = [
+    # Google Python Doc Style
+    "D203", "D204", "D213", "D215", "D400", "D401", "D404", "D406", "D407",
+    "D408", "D409", "D413",
+    "D202", # Allow blank line after docstring
+    "D104", # Don't require docstring in public package
+    # Things that we should fix, but are too much work right now
+    "D417", "C901",
+]
+
+[tool.ruff.per-file-ignores]
+"**/{tests}/*" = ["F841", "D", "E501"]
+
+[tool.pytest.ini_options]
+testpaths = "mso_mdoc"
+addopts = """
+    -p no:warnings
+    --quiet --junitxml=./.test-reports/junit.xml
+    --cov-config .coveragerc --cov=mso_mdoc --cov-report term --cov-report xml
+"""
+markers = []
+junit_family = "xunit1"
+asyncio_mode = "auto"
+
+[tool.coverage.run]
+omit = [
+    "*/tests/*",
+    "docker/*",
+    "integration/*",
+    "*/definition.py"
+]
+data_file = ".test-reports/.coverage"
+
+[tool.coverage.report]
+exclude_lines = [
+    "pragma: no cover",
+    "@abstract"
+]
+precision = 2
+skip_covered = true
+show_missing = true
+
+[tool.coverage.xml]
+output = ".test-reports/coverage.xml"
+
+[build-system]
+requires = ["setuptools", "poetry-core>=1.2"]
+build-backend = "poetry.core.masonry.api"
