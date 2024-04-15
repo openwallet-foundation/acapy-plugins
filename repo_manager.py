@@ -1,5 +1,7 @@
 import os
+import re
 import shutil
+import sys
 from copy import deepcopy
 from enum import Enum
 from typing import Optional
@@ -270,19 +272,28 @@ def is_plugin_directory(plugin_name: str) -> bool:
     return os.path.isdir(plugin_name) and plugin_name != GLOBAL_PLUGIN_DIR and not plugin_name.startswith('.')
 
 
-def main():
-    print("Checking poetry is available...")
-    response = os.system('which poetry')
-    if response == "":
-        print("Poetry is not available. Please install poetry.")
-        exit(1)
+def main(arg_1 = None):
 
     options = """
         What would you like to do? 
         (1) Create a new plugin
         (2) Update all plugin common poetry sections 
-        (3) Exit \n\nInput:  """
-    selection = input(options)
+        (3) Upgrade plugin_global dependencies 
+        (4) Update plugins description with supported aries-cloudagent version
+        (5) Get the plugins that upgraded since last release
+        (6) Exit \n\nInput:  """
+    
+    if arg_1:
+        selection = arg_1
+    else:
+        selection = input(options)
+    
+    if (selection != "4" and selection != "5"):
+        print("Checking poetry is available...")
+        response = os.system('which poetry')
+        if response == "":
+            print("Poetry is not available. Please install poetry.")
+            exit(1)
 
     # Create a new plugin
     if selection == "1":
@@ -302,7 +313,7 @@ def main():
         os.makedirs(f'./{name}/{name}/v1_0')
         copy_all_common_files_for_new_plugin(plugin_info)
 
-        os.system(f'cd {name} && poetry install --no-root')
+        os.system(f'cd {name} && poetry install --all-extras')
 
     # Update common poetry sections
     elif selection == "2":
@@ -313,10 +324,97 @@ def main():
                 print(f'Updating common poetry sections in {plugin_name}\n')
                 replace_global_sections(plugin_name)
                 os.system(
-                    f'cd {plugin_name} && rm poetry.lock && poetry install')
+                    f'cd {plugin_name} && rm poetry.lock && poetry lock')
                 os.system(
-                    f'cd {plugin_name}/integration && rm poetry.lock && poetry install')
+                    f'cd {plugin_name}/integration && rm poetry.lock && poetry lock')
+                
+    # Install plugin globals
+    elif selection == "3":
+        msg = """Upgrade plugin_global dependencies \n"""
+        print(msg)
+        os.system('cd plugin_globals && poetry lock')
+
+    # Update plugins description with supported aries-cloudagent version
+    elif selection == "4":
+        with open('./plugin_globals/poetry.lock', 'r') as file:
+            for line in file:
+                if 'name = "aries-cloudagent"' in line:
+                    next_line = next(file, None)
+                    global_version = re.findall(r'"([^"]*)"', next_line)
+                    break
+        msg = f"""### Release v{global_version[0]}\n##### The latest supported versions of aries-cloudagent for each plugin are as follows:\n"""
+        print(msg)
+        print("| Plugin Name | Supported aries-cloudagent version |")
+        print("| --- | --- |")
+        for plugin_name in sorted(os.listdir('./')):
+            if is_plugin_directory(plugin_name):
+                with open(f'./{plugin_name}/poetry.lock', 'r') as file:
+                    for line in file:
+                        if 'name = "aries-cloudagent"' in line:
+                            next_line = next(file, None)
+                            version = re.findall(r'"([^"]*)"', next_line)
+                            break
+                with open(f'./{plugin_name}/pyproject.toml', 'r') as file:
+                    filedata = file.read()
+                    linedata = filedata.split('\n')
+                    for i in range(len(linedata)):
+                        line = linedata[i]
+                        if 'description = ' in line:
+                            description = re.findall(r'"([^"]*)"', line)
+                            description_line = line
+                            break
+
+                if description[0].find('Supported aries-cloudagent version') != -1:
+                    description[0] = description[0].split(' (Supported aries-cloudagent version')[0]
+
+                filedata = filedata.replace(description_line, f'description = "{description[0]} (Supported aries-cloudagent version: {version[0]}) "')
+                with open(f'./{plugin_name}/pyproject.toml', 'w') as file:                    
+                    file.write(filedata)
+                print(f'|{plugin_name} | {version[0]}|')    
+        
+        print("***")
+
+    elif selection == "5":
+        with open('./plugin_globals/poetry.lock', 'r') as file:
+            for line in file:
+                if 'name = "aries-cloudagent"' in line:
+                    next_line = next(file, None)
+                    global_version = re.findall(r'"([^"]*)"', next_line)
+                    break
+
+        with open('RELEASES.md', 'r') as file:
+            last_releases = []
+            for line in file:
+                if f'### Release v{global_version[0]}' in line:
+                    line = next(file)
+                    line = next(file)
+                    line = next(file)
+                    while '***' not in line:
+                        if line != '| Plugin Name | Supported aries-cloudagent version |\n' and line != '| --- | --- |\n':
+                            last_releases.append(line.strip())
+                        line = next(file)
+                    break
+        if len(last_releases) != 0:
+            last_releases.pop()
+
+        plugins_on_old_release = []
+        for item in last_releases:
+            if (item.split('|')[2].strip() == global_version[0]):
+                plugins_on_old_release.append(item.split('|')[1].strip())
+
+        [print(plugin) for plugin in plugins_on_old_release]
+
+    elif selection == "6":
+        print("Exiting...")
+        exit(0)
+    else:
+        print("Invalid selection. Please try again.")
+        main() 
+
 
 
 if __name__ == "__main__":
-    main()
+    try:
+        main(sys.argv[1])
+    except Exception:
+        main()
