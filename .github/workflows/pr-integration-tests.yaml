@@ -57,7 +57,7 @@ jobs:
           echo "changed-plugins=${changed_dirs[*]}" >> $GITHUB_OUTPUT
 
       #----------------------------------------------
-      #       Get changed plugins
+      #       Run Integation Tests
       #----------------------------------------------
       - name: Run Integration Tests
         id: integration-tests
