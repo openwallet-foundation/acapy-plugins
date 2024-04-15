@@ -1,0 +1,77 @@
+name: Create Release
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - "main"
+
+permissions:
+  contents: write
+
+jobs:
+
+  checks:
+    
+    name: "Create Release"
+    permissions: write-all
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: .
+    steps:
+      - uses: actions/checkout@v4
+      - name: Check If Release Should Be Created
+        run: |
+          echo "Checking if triggered from release branch or dispatch"
+          echo "GITHUB_EVENT_NAME: $GITHUB_EVENT_NAME"
+          echo "GITHUB_REF: $GITHUB_REF"
+          if [[ $GITHUB_EVENT_NAME != 'workflow_dispatch' ]]; then
+            echo "Workflow not triggered from dispatch"
+            if [[ $GITHUB_REF == refs/heads/release* ]]; then
+              echo "Triggered from release branch"
+            else
+              echo "Not triggered from release branch or dispatch. exiting..."
+              exit 1
+            fi
+          fi
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.9'
+      - name: Create Release
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}     
+        run: |
+          echo "Creating release"
+
+          remote_version=$(pip index versions aries-cloudagent)
+          version=$(grep -oP '(?<=Available versions: ).*?(?=,)' <<< "$remote_version")
+
+          git config --global user.name 'Release Bot'
+          git config --global user.email 'release-bot@users.noreply.github.com'
+          git remote set-url --push origin https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/jamshale/aries-acapy-plugins
+          git fetch --tags
+
+          get_tags_output=$(git tag -n0 "*$version*")
+          echo "Tag output:" 
+          echo "${get_tags_output}"
+
+          tags_num=0
+          for item in ${get_tags_output}; do
+            tags_num=$((tags_num+1))
+          done
+
+          echo "Number of matched tags: $tags_num"
+          
+          release_tag=""
+          if [ $tags_num -eq 0 ]
+          then
+            release_tag=$version
+          else
+            release_tag="$version.$tags_num"
+          fi
+
+          git tag -a $release_tag -m "Release $tag"
+          git push origin $release_tag
+          gh release create $release_tag --title "Release for aries-cloudagent v$version" --notes "Release $release_tag"
+
