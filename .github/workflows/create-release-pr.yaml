@@ -1,0 +1,304 @@
+name: Create Release PR
+
+on:
+  workflow_dispatch:
+    inputs:
+      re_release:
+        description: 'Re-Release same version with fixes'
+        required: false
+        type: boolean
+  schedule:
+    - cron: "0 0 * * *"
+
+
+permissions:
+  contents: write
+
+jobs:
+  checks:
+    name: "Create Release PR"
+    permissions: write-all
+    runs-on: ubuntu-latest
+    outputs:
+      current_available_version: ${{ steps.current_available_version.outputs.version }}
+      current_global_version: ${{ steps.current_global_version.outputs.version }}
+      upgrade_available: ${{ steps.current_global_version.outputs.available }}
+      lint_plugins: ${{ steps.lint_plugins.outputs.lint_plugins }}
+      unit_test_plugins: ${{ steps.unit_test_plugins.outputs.unit_test_plugins }}
+      integration_test_plugins: ${{ steps.integration_test_plugins.outputs.integration_test_plugins }}
+      all_potential_upgrades: ${{ steps.all_potential_upgrades.outputs.all_potential_upgrades }}
+    defaults:
+      run:
+        working-directory: .
+    steps:
+      #----------------------------------------------
+      #       Check out repo
+      #----------------------------------------------
+      - uses: actions/checkout@v4
+      #----------------------------------------------
+      #       Setup python
+      #----------------------------------------------
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.9'
+      #----------------------------------------------
+      #       Install poetry
+      #----------------------------------------------
+      - name: Install poetry
+        run: pipx install poetry
+        id: setup-poetry
+      #----------------------------------------------
+      #       Get the latest version of aries-cloudagent from pypi
+      #----------------------------------------------
+      - name: Get latest aries-cloudagent version
+        id: current_available_version
+        run: |
+          remote_version=$(pip index versions aries-cloudagent)
+          version=$(grep -oP '(?<=Available versions: ).*?(?=,)' <<< "$remote_version")
+          echo current_available_version=$version >> $GITHUB_OUTPUT
+          echo "Remote version = $version"
+      #----------------------------------------------
+      #       Check the latest version from plugins_global lock file
+      #----------------------------------------------
+      - name: Get global aries-cloudagent version from plugins repo
+        id: current_global_version
+        run: |
+          cd plugin_globals
+          lock_version=$(grep -A1 'name = "aries-cloudagent"' poetry.lock | grep -v 'name = "aries-cloudagent"')
+          version=$(grep -oP '(?<=").*?(?=")' <<< "$lock_version")
+          echo current_global_version=$version >> $GITHUB_OUTPUT
+          echo "Global version = $version"
+      #----------------------------------------------
+      #       Check if aries-cloudagent upgrade available
+      #       If the global version is greater than or equal to the remote version, exit
+      #       If re-release is requested, skip this step
+      #----------------------------------------------
+      - name: Check if aries-cloudagent upgrade available
+        run: |
+          current_available_version="${{steps.current_available_version.outputs.current_available_version}}"
+          echo "Remote version = $current_available_version"
+          current_global_version="${{steps.current_global_version.outputs.current_global_version}}"
+          echo "Global version = $current_global_version"
+          sem_version () { 
+            echo "$@" | awk -F. '{ printf("%d%03d%03d%03d\n", $1,$2,$3,$4); }'; 
+          }
+          echo "Input re-release = ${{ inputs.re_release }}"
+          if [ ${{ inputs.re_release }} == "true" ]; then
+            echo "Re-Release requested"
+          else
+            if [ $(sem_version $current_global_version) -ge $(sem_version $current_available_version) ]; then
+              echo "Version of aries-cloudagent is up to date"
+              exit 1
+            fi
+              echo "Detected aries-cloudagent upgrade available..."
+          fi
+      #----------------------------------------------
+      #       Update global aries-cloudagent version in lock file
+      #----------------------------------------------
+      - name: Update global acapy version
+        run: |
+          python repo_manager.py 3
+          echo "Update global acapy version"
+      #----------------------------------------------
+      #       Update all plugins with aries-cloudagent and global and local dependencies
+      #----------------------------------------------
+      - name: Run global updates
+        run: |
+          python repo_manager.py 2
+          echo "Upgrade all plugins"
+      #----------------------------------------------
+      #       Get all potential upgrades
+      #----------------------------------------------
+      - name: Get all potential upgrades
+        id: all_potential_upgrades
+        run: |
+          declare -a potential_upgrades=()
+          upgraded_plugins=$(python repo_manager.py 5)
+          for dir in ./*/; do
+              current_folder=$(basename "$dir")
+              if [[ $current_folder == "plugin_globals" ]]; then
+                  continue
+              fi
+              found=false
+              for plugin in ${upgraded_plugins}; do
+                  if [[ $current_folder == *"$plugin"* ]]; then
+                      found=true
+                      break
+                  fi
+              done
+              if [[ $found != true ]]; then
+                  potential_upgrades+=("$current_folder")
+              fi
+          done
+          echo "Potential upgrades: ${potential_upgrades[*]}"
+          echo all_potential_upgrades=${potential_upgrades[*]} >> $GITHUB_OUTPUT
+      #----------------------------------------------
+      #       Collect plugins that fail linting
+      #----------------------------------------------
+      - name: Lint plugins
+        id: lint_plugins
+        continue-on-error: true
+        run: |
+          declare -a failed_plugins=()
+          for dir in ./*/; do
+            current_folder=$(basename "$dir")
+            if [[ $current_folder == "plugin_globals" ]]; then
+              continue
+            fi
+            cd $current_folder
+            poetry install --no-interaction --no-root --extras "aca-py"
+            if poetry run ruff check .; then
+              echo "plugin $current_folder passed lint check"
+            else
+              echo "plugin $current_folder failed lint check"
+              failed_plugins+=("$current_folder")
+            fi
+            cd ..
+          done
+          echo lint_plugins=${failed_plugins[*]} >> $GITHUB_OUTPUT
+      #----------------------------------------------
+      #       Collect plugins that fail unit tests
+      #----------------------------------------------
+      - name: Unit Test Plugins
+        id: unit_test_plugins
+        continue-on-error: true
+        run: |
+          declare -a failed_plugins=()
+          for dir in ./*/; do
+            current_folder=$(basename "$dir")
+            if [[ $current_folder == "plugin_globals" ]]; then
+              continue
+            fi
+            cd $current_folder
+            poetry install --no-interaction --no-root --extras "aca-py"
+            if poetry run pytest; then
+              echo "plugin $current_folder passed unit test check"
+            else
+              echo "plugin $current_folder failed unit test check"
+              failed_plugins+=("$current_folder")
+            fi
+            cd ..
+          done
+          echo unit_test_plugins=${failed_plugins[*]} >> $GITHUB_OUTPUT
+      #----------------------------------------------
+      #       Install docker compose
+      #----------------------------------------------
+      # - name: Initialize Docker Compose
+      #   uses: isbang/compose-action@v1.5.1
+      #----------------------------------------------
+      #       Collect plugins that fail integration tests
+      #----------------------------------------------
+      # - name: Integration Test Plugins
+      #   id: integration_test_plugins
+      #   continue-on-error: true
+      #   run: |
+      #     declare -a failed_plugins=()
+      #     for dir in ./*/; do
+      #       current_folder=$(basename "$dir")
+      #       if [[ $current_folder == "plugin_globals" ]]; then
+      #         continue
+      #       fi
+      #       cd $current_folder/integration
+      #       docker compose down --remove-orphans
+      #       docker compose build
+      #       if docker compose run tests; then
+      #         echo "plugin $current_folder passed integration test check"
+      #       else
+      #         echo "plugin $current_folder failed integration test check"
+      #         failed_plugins+=("$current_folder")
+      #       fi
+      #       cd ../..
+      #     done
+      #     echo integration_test_plugins=${failed_plugins[*]} >> $GITHUB_OUTPUT
+      - name: Create Pull Request
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}     
+        run: |
+          echo "Merging failed plugins"
+          failed_plugins=()          
+          
+          # Merge all failed plugins
+
+          potential_upgrades=(${{ steps.all_potential_upgrades.outputs.all_potential_upgrades }})
+          echo "All potential upgrades: ${{ steps.all_potential_upgrades.outputs.all_potential_upgrades }}"
+
+          lint_plugins=(${{steps.lint_plugins.outputs.lint_plugins}})
+          unit_test_plugins=(${{steps.unit_test_plugins.outputs.unit_test_plugins}})
+          
+          for plugin in "${lint_plugins[@]}"; do
+            if [[ ! " ${failed_plugins[@]} " =~ " $plugin " ]]; then
+              failed_plugins+=("$plugin")
+            fi
+          done
+
+          for plugin in "${unit_test_plugins[@]}"; do
+            if [[ ! " ${failed_plugins[@]} " =~ " $plugin " ]]; then
+              failed_plugins+=("$plugin")
+            fi
+          done
+
+          echo "Failed plugins: ${failed_plugins[*]}"
+
+          # Get release for the branch name and docs
+
+          release_version="${{steps.current_available_version.outputs.current_available_version}}"
+          echo "Remote version = $release_version"
+
+          # Configure the git bot
+
+          git config --global user.name 'Release Bot'
+          git config --global user.email 'release-bot@users.noreply.github.com'
+          git remote set-url --push origin https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/jamshale/aries-acapy-plugins
+          git fetch --all
+          git checkout -b "release-v$release_version"
+
+          # Add all the changed files and then remove the failed plugins
+
+          git add .
+
+          for plugin in "${failed_plugins[@]}"; do
+            git restore --staged $plugin
+            git checkout -- $plugin
+          done
+
+          # Get the release notes and update the plugin decription with acapy version
+
+          body=$(python repo_manager.py 4)
+
+          # Update the RELEASES.md file with the release notes
+
+          echo "$body" | cat - RELEASES.md > temp && mv temp RELEASES.md
+
+          # Add the updated pyproject.toml and RELEASES.md files
+          git add ./*pyproject.toml
+          git add ./RELEASES.md
+
+          # Check if there are any upgrades
+          upgraded_plugins=$(python repo_manager.py 5)
+          has_upgrades=false
+
+          echo 
+          for plugin in ${potential_upgrades[@]}; do
+            for upgrade in ${upgraded_plugins[@]}; do
+              if [[ $plugin == *"$upgrade"* ]]; then
+                has_upgrades=true
+                break
+              fi
+            done
+          done
+
+          if [ "$has_upgrades" = true ]
+          then
+            echo "Upgrades detected. Committing the changes"
+          else
+            echo "No upgrades detected. Skipping commit and release"
+            exit 1
+          fi
+
+          git commit -s -m "Pre-Release Upgrades"
+          git push --set-upstream origin "release-v$release_version"
+
+          # Create the PR
+
+          title="Release for aries-cloudagent v$release_version"
+          gh pr create --title "$title" --body "$body" --base main --head "release-v$release_version" 
