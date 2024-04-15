@@ -1,0 +1,103 @@
+name: Create Release
+
+on:
+  push:
+    branches:
+      - "main"
+
+permissions:
+  contents: write
+
+jobs:
+
+  checks:
+    name: "Create Release"
+    permissions: write-all
+    runs-on: ubuntu-latest
+    outputs:
+      current_available_version: ${{ steps.current_available_version.outputs.version }}
+      should_create_release: ${{ steps.should_create_release.outputs.should_create_release }}
+    defaults:
+      run:
+        working-directory: .
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Get latest aries-cloudagent version
+        id: current_available_version
+        run: |
+          remote_version=$(pip index versions aries-cloudagent)
+          version=$(grep -oP '(?<=Available versions: ).*?(?=,)' <<< "$remote_version")
+          echo current_available_version=$version >> $GITHUB_OUTPUT
+          echo "Remote version = $version"
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.9'
+      - name: Check If Release Should Be Created
+        id: should_create_release
+        run: |
+          found_upgrade=false
+          get_changed_files=$(git diff --name-only ${{ github.event.before }} ${{ github.event.after }})
+          echo "${get_changed_files}"
+
+          upgraded_plugins=$(python repo_manager.py 5)
+
+          echo "Upgraded Plugins: ${upgraded_plugins}"
+
+          for file in ${get_changed_files}; do
+            if [[ $file == *"/poetry.lock"* ]] && [[ $file != *"integration/poetry.lock"* ]]; then
+              for plugin in ${upgraded_plugins}; do
+                if [[ $plugin == *"$file"* ]]; then
+                  echo "Upgrade Detected for $plugin in file $file"
+                  found_upgrade=true
+                fi
+              done
+            fi
+          done
+
+          if [ "$found_upgrade" = true ]
+          then
+            echo "Upgrade Detected. Creating Release"
+          else
+            echo "No Upgrade Detected. Skipping Release Creation."
+          fi
+          echo should_create_release=$found_upgrade >> $GITHUB_OUTPUT
+      - name: Create Release
+        if: steps.should_create_release.outputs.should_create_release == 'true' 
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}     
+        run: |
+          echo "Creating release"
+          echo ${{ steps.should_create_release.outputs.should_create_release }}
+          remote_version=$(pip index versions aries-cloudagent)
+          version=$(grep -oP '(?<=Available versions: ).*?(?=,)' <<< "$remote_version")
+
+          git config --global user.name 'Release Bot'
+          git config --global user.email 'release-bot@users.noreply.github.com'
+          git remote set-url --push origin https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/jamshale/aries-acapy-plugins
+          git fetch --tags
+
+          get_tags_output=$(git tag -n0 "*$version*")
+          echo "Tag output:" 
+          echo "${get_tags_output}"
+
+          tags_num=0
+          for item in ${get_tags_output}; do
+            tags_num=$((tags_num+1))
+          done
+
+          echo "Number of matched tags: $tags_num"
+          
+          release_tag=""
+          if [ $tags_num -eq 0 ]
+          then
+            release_tag=$version
+          else
+            release_tag="$version.$tags_num"
+          fi
+
+          git tag -a $release_tag -m "Release $tag"
+          git push origin $release_tag
+          gh release create $release_tag --title "Release for aries-cloudagent v$version" --notes "Release $release_tag"
+
