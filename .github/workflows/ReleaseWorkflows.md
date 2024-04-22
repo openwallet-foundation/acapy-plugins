@@ -39,7 +39,7 @@ flowchart TB
     ConfigureGit --> GetReleaseTags[Get Release Tags - Based on ACA-PY Version]
     GetReleaseTags --> TagsExist{Tags Exist}
     TagsExist --> |Yes| IncrementPatch[Increment Patch]
-    TagsExist --> |No| CreateTagOnACAPYVersion[Increment Minor]
+    TagsExist --> |No| CreateTagOnACAPYVersion[Create Tag on ACA-PY Version]
     IncrementPatch --> GetReleaseNotes[Get Release Notes and Plugins That Updated]
     CreateTagOnACAPYVersion --> GetReleaseNotes
     GetReleaseNotes --> CreateReleaseBranch[Create Release Branch]
