@@ -15,7 +15,6 @@ jobs:
     permissions: write-all
     runs-on: ubuntu-latest
     outputs:
-      current_available_version: ${{ steps.current_available_version.outputs.version }}
       should_create_release: ${{ steps.should_create_release.outputs.should_create_release }}
     defaults:
       run:
@@ -24,16 +23,15 @@ jobs:
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0
-      - name: Get latest aries-cloudagent version
-        id: current_available_version
-        run: |
-          remote_version=$(pip index versions aries-cloudagent)
-          version=$(grep -oP '(?<=Available versions: ).*?(?=,)' <<< "$remote_version")
-          echo current_available_version=$version >> $GITHUB_OUTPUT
-          echo "Remote version = $version"
+      # ----------------------------------------------
+      #       Install Python
+      # ----------------------------------------------
       - uses: actions/setup-python@v5
         with:
           python-version: '3.9'
+      # ----------------------------------------------
+      #       Check if a release should be created
+      # ----------------------------------------------
       - name: Check If Release Should Be Created
         id: should_create_release
         run: |
@@ -44,6 +42,9 @@ jobs:
           upgraded_plugins=$(python repo_manager.py 5)
 
           echo "${upgraded_plugins}"
+
+          # Check if any of the changed files are poetry.lock files
+          # and if they not match the global poetry.lock file
 
           for file in ${get_changed_files}; do
             if [[ $file == *"/poetry.lock"* ]] && [[ $file != *"integration/poetry.lock"* ]]; then
@@ -63,6 +64,9 @@ jobs:
             echo "No Upgrade Detected. Skipping Release Creation."
           fi
           echo should_create_release=$found_upgrade >> $GITHUB_OUTPUT
+      # ----------------------------------------------
+      #       Create Release
+      # ----------------------------------------------
       - name: Create Release
         if: steps.should_create_release.outputs.should_create_release == 'true' 
         env:
@@ -75,8 +79,10 @@ jobs:
 
           git config --global user.name 'Release Bot'
           git config --global user.email 'release-bot@users.noreply.github.com'
-          git remote set-url --push origin https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/jamshale/aries-acapy-plugins
+          git remote set-url --push origin https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/hyperledger/aries-acapy-plugins
           git fetch --tags
+
+          # Determine the release tag
 
           get_tags_output=$(git tag -n0 "*$version*")
           echo "Tag output:" 
@@ -96,6 +102,8 @@ jobs:
           else
             release_tag="$version.$tags_num"
           fi
+
+          # Get the release notes
 
           body=$(python repo_manager.py 4)
 

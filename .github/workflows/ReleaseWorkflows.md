@@ -32,8 +32,7 @@ title: Create Release Workflow
 
 flowchart TB
     Start[Create Release] --> OnPushMain[On Push to Main]
-    OnPushMain --> GetACAPYRelease[Get latest ACA-PY Release via PIP]
-    GetACAPYRelease --> CheckChangeSet{Check ACAPY Version in Change Set}
+    OnPushMain --> CheckChangeSet{Check ACAPY Version in Change Set}
     CheckChangeSet --> |No updated lock files| End
     CheckChangeSet --> |Updated lock files| ConfigureGit[Configure Git]
     ConfigureGit --> GetReleaseTags[Get Release Tags - Based on ACA-PY Version]

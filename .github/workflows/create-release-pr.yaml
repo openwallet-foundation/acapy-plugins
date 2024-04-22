@@ -267,7 +267,7 @@ jobs:
 
           git config --global user.name 'Release Bot'
           git config --global user.email 'release-bot@users.noreply.github.com'
-          git remote set-url --push origin https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/jamshale/aries-acapy-plugins
+          git remote set-url --push origin https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/hyperledger/aries-acapy-plugins
           git fetch --all
           git checkout -b "release-v$release_version"
 
