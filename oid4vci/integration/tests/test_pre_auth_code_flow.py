@@ -1,12 +1,12 @@
 """Quick test script."""
 import json
+from os import getenv
+from urllib.parse import urlencode
+
 import pytest
 import pytest_asyncio
-from urllib.parse import urlencode
-from os import getenv
-
-from controller.controller import Controller
-from controller.models import DIDResult
+from acapy_controller.controller import Controller
+from acapy_controller.models import DIDResult
 from oid4vci_client.client import OpenID4VCIClient
 
 ISSUER_ADMIN_ENDPOINT = getenv("ISSUER_ADMIN_ENDPOINT", "http://localhost:3001")
