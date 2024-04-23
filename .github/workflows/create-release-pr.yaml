@@ -28,6 +28,7 @@ jobs:
       integration_test_plugins: ${{ steps.integration_test_plugins.outputs.integration_test_plugins }}
       integration_test_exit_code: ${{ steps.integration_test_plugins.outputs.integration_test_exit_code }}
       all_potential_upgrades: ${{ steps.all_potential_upgrades.outputs.all_potential_upgrades }}
+      pr_body: ${{ steps.prepare_pr.outputs.pr_body }}
     defaults:
       run:
         working-directory: .
@@ -70,29 +71,34 @@ jobs:
           echo current_global_version=$version >> $GITHUB_OUTPUT
           echo "Global version = $version"
       #----------------------------------------------
+      #       Re-Release Check
+      #----------------------------------------------
+      - name: Re-Release Check
+        if: ${{ inputs.re_release }} == "true"
+        run: |
+          echo "Re-Release manually requested. Skipping upgrade available check."
+      #----------------------------------------------
       #       Check if aries-cloudagent upgrade available
       #       If the global version is greater than or equal to the remote version, exit
-      #       If re-release is requested, skip this step
       #----------------------------------------------
       - name: Check if aries-cloudagent upgrade available
+        if: ${{ inputs.re_release }} != "true"
         run: |
           current_available_version="${{steps.current_available_version.outputs.current_available_version}}"
           echo "Remote version = $current_available_version"
           current_global_version="${{steps.current_global_version.outputs.current_global_version}}"
           echo "Global version = $current_global_version"
+
+          # Compare versions
           sem_version () { 
             echo "$@" | awk -F. '{ printf("%d%03d%03d%03d\n", $1,$2,$3,$4); }'; 
           }
-          echo "Input re-release = ${{ inputs.re_release }}"
-          if [ ${{ inputs.re_release }} == "true" ]; then
-            echo "Re-Release requested"
-          else
-            if [ $(sem_version $current_global_version) -ge $(sem_version $current_available_version) ]; then
-              echo "Version of aries-cloudagent is up to date"
-              exit 1
-            fi
-              echo "Detected aries-cloudagent upgrade available..."
+
+          if [ $(sem_version $current_global_version) -ge $(sem_version $current_available_version) ]; then
+            echo "Version of aries-cloudagent is up to date"
+            exit 1
           fi
+            echo "Detected aries-cloudagent upgrade available..."
       #----------------------------------------------
       #       Update global aries-cloudagent version in lock file
       #----------------------------------------------
@@ -214,20 +220,22 @@ jobs:
             cd ../..
           done
           echo integration_test_plugins=${failed_plugins[*]} >> $GITHUB_OUTPUT
-      - name: Create Pull Request
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}     
+      #----------------------------------------------
+      #       Integration Test Failure Check
+      #----------------------------------------------
+      - name: Integration Test Failure Check
+        if: ${{ steps.integration_test_plugins.outputs.integration_test_exit_code }} == 17
+        run: |
+          echo "Integration tests failed with exit code 17. Skipping commit and release"
+          echo integration_test_exit_code=17 >> $GITHUB_OUTPUT
+      # ----------------------------------------------
+      #       Prepare Pull Request
+      # ----------------------------------------------
+      - name: Prepare Pull Request 
+        id: prepare_pr
         run: |
           echo "Merging failed plugins"
           failed_plugins=()
-
-          integration_test_exit_code="${{ steps.integration_test_plugins.outputs.integration_test_exit_code }}"
-          echo "Integration test exit code: $integration_test_exit_code"
-
-          if [[ $integration_test_exit_code == "17" ]]; then
-            echo "Integration tests failed with exit code 17. Skipping commit and release"
-            exit 1
-          fi
           
           # Merge all failed plugins
 
@@ -267,9 +275,6 @@ jobs:
 
           git config --global user.name 'Release Bot'
           git config --global user.email 'release-bot@users.noreply.github.com'
-          git remote set-url --push origin https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/hyperledger/aries-acapy-plugins
-          git fetch --all
-          git checkout -b "release-v$release_version"
 
           # Add all the changed files and then remove the failed plugins
 
@@ -288,15 +293,10 @@ jobs:
 
           echo "$body" | cat - RELEASES.md > temp && mv temp RELEASES.md
 
-          # Add the updated pyproject.toml and RELEASES.md files
-          git add ./*pyproject.toml
-          git add ./RELEASES.md
-
           # Check if there are any upgrades
           upgraded_plugins=$(python repo_manager.py 5)
           has_upgrades=false
 
-          echo 
           for plugin in ${potential_upgrades[@]}; do
             for upgrade in ${upgraded_plugins[@]}; do
               if [[ $plugin == *"$upgrade"* ]]; then
@@ -314,15 +314,43 @@ jobs:
             exit 1
           fi
 
-          git commit -s -m "Release v$release_version Upgrades"
-          git push --set-upstream origin "release-v$release_version"
-
-          # Create the PR
+          # Update the release notes with the upgraded plugins
 
           details="Plugins upgraded this release: "
           for plugin in ${upgraded_plugins}; do
             details="$details $plugin"
           done
 
-          title="Release for aries-cloudagent v$release_version"
-          gh pr create --title "$title" --body "$body $details" --base main --head "release-v$release_version" 
+          # Replace the first occurence of ' - ' with the details
+
+          sed '0,/\s\-\s/{s// ${details}/}'' RELEASES.md
+
+          # Add the updated pyproject.toml and RELEASES.md files
+          git add ./*pyproject.toml
+          git add ./RELEASES.md
+
+          git commit -s -m "Release v$release_version Upgrades"
+
+          # Prepare the PR body
+
+          EOF=$(dd if=/dev/urandom bs=15 count=1 status=none | base64)
+          echo "pr_body<<$EOF" >> $GITHUB_OUTPUT
+          echo "$body $details" >> $GITHUB_OUTPUT
+          echo "$EOF" >> $GITHUB_OUTPUT
+      #----------------------------------------------
+      #       Create Release PR
+      #----------------------------------------------
+      - name: Create PR
+        uses: peter-evans/create-pull-request@v6
+        with:
+          author: Release Bot <release-bot@users.noreply.github.com>
+          committer: Release Bot <release-bot@users.noreply.github.com>
+          token: ${{ secrets.BOT_PR_PAT }}
+          commit-message: "Release v${{ steps.current_available_version.outputs.current_available_version }}"
+          title: "Release for aries-cloudagent v${{ steps.current_available_version.outputs.current_available_version }}"
+          body: "${{ steps.prepare_pr.outputs.pr_body }}"
+          branch: "release-v${{ steps.current_available_version.outputs.current_available_version }}"
+          base: "main"
+          draft: false
+          signoff: true
+          delete-branch: true
