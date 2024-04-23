@@ -214,9 +214,10 @@ jobs:
             cd ../..
           done
           echo integration_test_plugins=${failed_plugins[*]} >> $GITHUB_OUTPUT
-      - name: Create Pull Request
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}     
+      # ----------------------------------------------
+      #       Prepare Pull Request
+      # ----------------------------------------------
+      - name: Prepare Pull Request 
         run: |
           echo "Merging failed plugins"
           failed_plugins=()
@@ -314,8 +315,8 @@ jobs:
             exit 1
           fi
 
-          git commit -s -m "Release v$release_version Upgrades"
-          git push --set-upstream origin "release-v$release_version"
+          # git commit -s -m "Release v$release_version Upgrades"
+          # git push --set-upstream origin "release-v$release_version"
 
           # Create the PR
 
@@ -325,4 +326,21 @@ jobs:
           done
 
           title="Release for aries-cloudagent v$release_version"
-          gh pr create --title "$title" --body "$body $details" --base main --head "release-v$release_version" 
+          # gh pr create --title "$title" --body "$body $details" --base main --head "release-v$release_version" 
+      #----------------------------------------------
+      #       Create Release PR
+      #----------------------------------------------
+      - name: Create PR
+        uses: peter-evans/create-pull-request@v6
+        with:
+          author: Release Bot <release-bot@users.noreply.github.com>
+          committer: Release Bot <release-bot@users.noreply.github.com>
+          token: ${{ secrets.GITHUB_TOKEN }}
+          commit-message: "Release v${{ steps.current_available_version.outputs.current_available_version }}"
+          title: "Release v${{ steps.current_available_version.outputs.current_available_version }}"
+          body: "Release v${{ steps.current_available_version.outputs.current_available_version }}"
+          branch: "release-v${{ steps.current_available_version.outputs.current_available_version }}"
+          base: "jamshale/aries-acapy-plugins:main"
+          draft: false
+          signoff: true
+          delete-branch: true
