@@ -16,6 +16,8 @@ jobs:
     runs-on: ubuntu-latest
     outputs:
       should_create_release: ${{ steps.should_create_release.outputs.should_create_release }}
+      body: ${{ steps.prepare_release.outputs.body }}
+      tag: ${{ steps.prepare_release.outputs.tag }}
     defaults:
       run:
         working-directory: .
@@ -65,12 +67,11 @@ jobs:
           fi
           echo should_create_release=$found_upgrade >> $GITHUB_OUTPUT
       # ----------------------------------------------
-      #       Create Release
+      #       Prepare Release
       # ----------------------------------------------
-      - name: Create Release
-        if: steps.should_create_release.outputs.should_create_release == 'true' 
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}     
+      - name: Prepare Release
+        id: prepare_release
+        if: steps.should_create_release.outputs.should_create_release == 'true'     
         run: |
           echo "Creating release"
           echo ${{ steps.should_create_release.outputs.should_create_release }}
@@ -79,7 +80,6 @@ jobs:
 
           git config --global user.name 'Release Bot'
           git config --global user.email 'release-bot@users.noreply.github.com'
-          git remote set-url --push origin https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/hyperledger/aries-acapy-plugins
           git fetch --tags
 
           # Determine the release tag
@@ -113,7 +113,25 @@ jobs:
             details="$details $plugin"
           done
 
-          git tag -a $release_tag -m "Release $tag"
-          git push origin $release_tag
-          gh release create $release_tag --title "Release for aries-cloudagent v$version" --notes "$body $details"
+          # Set the outputs
+
+          echo tag=$release_tag >> $GITHUB_OUTPUT
+
+          EOF=$(dd if=/dev/urandom bs=15 count=1 status=none | base64)
+          echo "release_body<<$EOF" >> $GITHUB_OUTPUT
+          echo "$body $details" >> $GITHUB_OUTPUT
+          echo "$EOF" >> $GITHUB_OUTPUT
+
+      # ----------------------------------------------
+      #       Create Release
+      # ----------------------------------------------
+      - name: Create Release
+        if: steps.should_create_release.outputs.should_create_release == 'true'
+        uses: softprops/action-gh-release@v2
+        with:
+          token: ${{ secrets.BOT_PR_PAT }}
+          name: ${{ steps.prepare_release.outputs.tag }}
+          body: ${{ steps.prepare_release.outputs.body }}
+          tag_name: ${{ steps.prepare_release.outputs.tag }}
+          prerelease: false
 
