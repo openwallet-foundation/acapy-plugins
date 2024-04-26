@@ -7,7 +7,7 @@ WAIT_ATTEMPTS=${WAIT_ATTEMPTS:-10}
 
 liveliness_check () {
         for CURRENT_ATTEMPT in $(seq 1 "$WAIT_ATTEMPTS"); do
-                if ! curl -s -o /dev/null -w '%{http_code}' "${1}/status" | grep "200" > /dev/null; then
+                if ! curl -s -o /dev/null -w '%{http_code}' "${1}/api/tunnels/command_line" | grep "200" > /dev/null; then
 			if [[ $CURRENT_ATTEMPT -gt $WAIT_ATTEMPTS ]]
 			then
 				echo "Failed while waiting for 200 status from ${1}"
