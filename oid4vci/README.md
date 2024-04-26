@@ -12,12 +12,16 @@ This repository showcases a simplified demonstration of the OID4VCI (OpenID for 
 
 - Sphereon Wallet App on your mobile device
 - Docker + Docker Compose
+- Ngrok Account (free tier is okay)
 
 ### Steps to Run the Demo
+
+First, you'll have to get your authtoken from ngrok. Note this value down.
 
 ```shell
 cd oid4vci/demo
 docker compose build
+echo "NGROK_AUTHTOKEN=<PASTE YOUR AUTHTOKEN HERE>" > .env
 docker compose up
 docker compose down -v  # Clean up
 ```
