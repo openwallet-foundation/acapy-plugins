@@ -317,18 +317,18 @@ jobs:
 
           # Update the release notes with the upgraded plugins
 
-          details=$(printf "Plugins upgraded this release: \n\t\t - ")
+          details=$(printf 'Plugins upgraded this release: \\n\\t\\t - ')
 
           plugin_count=${#upgraded_plugins[@]}
           for i in $(seq 0 "$(("$plugin_count" - 2))" );
           do
-              details=$(printf '%s %s \n\t\t - ' "$details" "${upgraded_plugins[$i]}")
+              details=$(printf '%s %s \\n\\t\\t - ' "$details" "${upgraded_plugins[$i]}")
           done
-          # details=$(printf '%s %s \n' "$details" "${upgraded_plugins[-1]}")
+          details=$(printf '%s %s \\n' "$details" "${upgraded_plugins[-1]}")
 
           # Replace the first occurence of ' - ' with the details
 
-          sed -i "0,/\s\-\s/s// - ${details}/" RELEASES.md
+          sed -i "0,/\s\-\s/s// - $(printf '%s ' ${details})/" RELEASES.md
 
           # Add the updated pyproject.toml and RELEASES.md files
           git add ./*pyproject.toml
