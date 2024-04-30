@@ -2,8 +2,8 @@ name: Create Release
 
 on:
   push:
-    branches:
-      - "main"
+    branches: ['main']
+    paths: ['*/poetry.lock']
 
 permissions:
   contents: write
@@ -15,7 +15,6 @@ jobs:
     permissions: write-all
     runs-on: ubuntu-latest
     outputs:
-      should_create_release: ${{ steps.should_create_release.outputs.should_create_release }}
       body: ${{ steps.prepare_release.outputs.body }}
       tag: ${{ steps.prepare_release.outputs.tag }}
     defaults:
@@ -32,69 +31,30 @@ jobs:
         with:
           python-version: '3.9'
       # ----------------------------------------------
-      #       Check if a release should be created
-      # ----------------------------------------------
-      - name: Check If Release Should Be Created
-        id: should_create_release
-        run: |
-          found_upgrade=false
-          get_changed_files=$(git diff --name-only ${{ github.event.before }} ${{ github.event.after }})
-          echo "${get_changed_files}"
-
-          upgraded_plugins=$(python repo_manager.py 5)
-
-          echo "${upgraded_plugins}"
-
-          # Check if any of the changed files are poetry.lock files
-          # and if they not match the global poetry.lock file
-
-          for file in ${get_changed_files}; do
-            if [[ $file == *"/poetry.lock"* ]] && [[ $file != *"integration/poetry.lock"* ]]; then
-              for plugin in ${upgraded_plugins}; do
-                if [[ $file == *"$plugin"* ]]; then
-                  echo "Upgrade Detected for $plugin in file $file"
-                  found_upgrade=true
-                fi
-              done
-            fi
-          done
-
-          if [ "$found_upgrade" = true ]
-          then
-            echo "Upgrade Detected. Creating Release"
-          else
-            echo "No Upgrade Detected. Skipping Release Creation."
-          fi
-          echo should_create_release=$found_upgrade >> $GITHUB_OUTPUT
-      # ----------------------------------------------
       #       Prepare Release
       # ----------------------------------------------
       - name: Prepare Release
         id: prepare_release
-        if: steps.should_create_release.outputs.should_create_release == 'true'     
         run: |
           echo "Creating release"
           echo ${{ steps.should_create_release.outputs.should_create_release }}
+
+          # Get the latest version
           remote_version=$(pip index versions aries-cloudagent)
           version=$(grep -oP '(?<=Available versions: ).*?(?=,)' <<< "$remote_version")
 
+          # Set the git config
           git config --global user.name 'Release Bot'
           git config --global user.email 'release-bot@users.noreply.github.com'
           git fetch --tags
 
           # Determine the release tag
-
           get_tags_output=$(git tag -n0 "*$version*")
-          echo "Tag output:" 
-          echo "${get_tags_output}"
-
+          echo "Tag output: ${get_tags_output}"
           tags_num=0
           for item in ${get_tags_output}; do
             tags_num=$((tags_num+1))
           done
-
-          echo "Number of matched tags: $tags_num"
-          
           release_tag=""
           if [ $tags_num -eq 0 ]
           then
@@ -104,19 +64,19 @@ jobs:
           fi
 
           # Get the release notes
-
           body=$(python repo_manager.py 4)
-
-          details="Plugins upgraded this release: "
-          upgraded_plugins=$(python repo_manager.py 5)
-          for plugin in ${upgraded_plugins}; do
-            details="$details $plugin"
+          body=${body/v$version/v$release_tag}
+          upgraded_plugins=($(python repo_manager.py 5))
+          details=$(printf '#### Plugins upgraded this release: \n\t - ')
+          count=${#upgraded_plugins[*]}
+          for i in $(seq 0 "$(("$count" - 2))" );
+          do
+              details=$(printf '%s %s \n\t - ' "$details" "${upgraded_plugins[$i]}")
           done
+          details=$(printf '%s %s \n' "$details" "${upgraded_plugins[$count - 1]}")
 
           # Set the outputs
-
           echo tag=$release_tag >> $GITHUB_OUTPUT
-
           EOF=$(dd if=/dev/urandom bs=15 count=1 status=none | base64)
           echo "release_body<<$EOF" >> $GITHUB_OUTPUT
           echo "$body $details" >> $GITHUB_OUTPUT
@@ -126,12 +86,11 @@ jobs:
       #       Create Release
       # ----------------------------------------------
       - name: Create Release
-        if: steps.should_create_release.outputs.should_create_release == 'true'
         uses: softprops/action-gh-release@v2
         with:
           token: ${{ secrets.BOT_PR_PAT }}
           name: ${{ steps.prepare_release.outputs.tag }}
-          body: ${{ steps.prepare_release.outputs.body }}
+          body: ${{ steps.prepare_release.outputs.release_body }}
           tag_name: ${{ steps.prepare_release.outputs.tag }}
           prerelease: false
 
