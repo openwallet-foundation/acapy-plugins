@@ -298,6 +298,9 @@ jobs:
           upgraded_plugins=$(python repo_manager.py 5)
           has_upgrades=false
 
+          echo "Upgraded plugins: $upgraded_plugins"
+          echo "Upgraded plugins: $upgraded_plugins[*]"
+
           for plugin in ${potential_upgrades[@]}; do
             for upgrade in ${upgraded_plugins[@]}; do
               if [[ $plugin == *"$upgrade"* ]]; then
