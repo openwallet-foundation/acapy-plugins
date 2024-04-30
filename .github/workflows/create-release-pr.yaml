@@ -299,7 +299,6 @@ jobs:
           has_upgrades=false
 
           echo "Upgraded plugins: $upgraded_plugins"
-          echo "Upgraded plugins: $upgraded_plugins[*]"
 
           for plugin in ${potential_upgrades[@]}; do
             for upgrade in ${upgraded_plugins[@]}; do
@@ -322,7 +321,8 @@ jobs:
 
           details=$(printf 'Plugins upgraded this release: \n\t\t - ')
 
-          plugin_count=${#upgraded_plugins[@]}
+          upgraded_plugins=("${upgraded_plugins[@]}")
+          plugin_count=${#upgraded_plugins[*]}
           echo plugin_count: $plugin_count
           echo "$(("$plugin_count" - 2))"
           for i in $(seq 0 "$(("$plugin_count" - 2))" );
