@@ -14,10 +14,10 @@ asynctest = "^0.13.0"
 requests = "^2.31.0"
 aries-askar = "^0.3.0"
 did-peer-4 = "^0.1.4"
-aiohttp = "^3.9.2"
+aiohttp = "^3.9.4"
 
 [tool.poetry.group.dev.dependencies]
-black = "^23.11.0"
+black = "^24.3.0"
 ruff = "^0.1.6"
 controller = {git = "https://github.com/indicio-tech/acapy-minimal-example.git"}
 
