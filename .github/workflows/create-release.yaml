@@ -15,6 +15,7 @@ jobs:
     permissions: write-all
     runs-on: ubuntu-latest
     outputs:
+      should_create_release: ${{ steps.should_create_release.outputs.should_create_release }}
       body: ${{ steps.prepare_release.outputs.body }}
       tag: ${{ steps.prepare_release.outputs.tag }}
     defaults:
@@ -31,10 +32,46 @@ jobs:
         with:
           python-version: '3.9'
       # ----------------------------------------------
+      #       Check if a release should be created
+      # ----------------------------------------------
+      - name: Check If Release Should Be Created
+        id: should_create_release
+        run: |
+          found_upgrade=false
+          get_changed_files=$(git diff --name-only ${{ github.event.before }} ${{ github.event.after }})
+          echo "${get_changed_files}"
+
+          upgraded_plugins=$(python repo_manager.py 5)
+
+          echo "${upgraded_plugins}"
+
+          # Check if any of the changed files are poetry.lock files
+          # and if they not match the global poetry.lock file
+
+          for file in ${get_changed_files}; do
+            if [[ $file == *"/poetry.lock"* ]] && [[ $file != *"integration/poetry.lock"* ]]; then
+              for plugin in ${upgraded_plugins}; do
+                if [[ $file == *"$plugin"* ]]; then
+                  echo "Upgrade Detected for $plugin in file $file"
+                  found_upgrade=true
+                fi
+              done
+            fi
+          done
+
+          if [ "$found_upgrade" = true ]
+          then
+            echo "Upgrade Detected. Creating Release"
+          else
+            echo "No Upgrade Detected. Skipping Release Creation."
+          fi
+          echo should_create_release=$found_upgrade >> $GITHUB_OUTPUT
+      # ----------------------------------------------
       #       Prepare Release
       # ----------------------------------------------
       - name: Prepare Release
         id: prepare_release
+        if: steps.should_create_release.outputs.should_create_release == 'true'  
         run: |
           echo "Creating release"
           echo ${{ steps.should_create_release.outputs.should_create_release }}
@@ -86,6 +123,7 @@ jobs:
       #       Create Release
       # ----------------------------------------------
       - name: Create Release
+        if: steps.should_create_release.outputs.should_create_release == 'true'  
         uses: softprops/action-gh-release@v2
         with:
           token: ${{ secrets.BOT_PR_PAT }}
