@@ -141,6 +141,19 @@ files = [
 frozenlist = ">=1.1.0"
 
 [[package]]
+name = "anoncreds"
+version = "0.2.0"
+description = ""
+optional = false
+python-versions = ">=3.6.3"
+files = [
+    {file = "anoncreds-0.2.0-py3-none-macosx_10_9_universal2.whl", hash = "sha256:ec57e224d5f1b8749c3d6ff75bb61229a4f9c31df1ee863835f025c78ec10cd0"},
+    {file = "anoncreds-0.2.0-py3-none-manylinux2014_aarch64.whl", hash = "sha256:55dd0ad8c8611d2f6af158485dbd2f3c9524694ee4eaf1c5558973f1e436f943"},
+    {file = "anoncreds-0.2.0-py3-none-manylinux2014_x86_64.whl", hash = "sha256:6fb3b28e1f7c283ba27cb5d65ce3dd5303162e17c4311d69cb93402bfd2e3317"},
+    {file = "anoncreds-0.2.0-py3-none-win_amd64.whl", hash = "sha256:6c19d86117589ca5cc8f85637d62ebe077c52c34a5de9d1915f5e551458202b1"},
+]
+
+[[package]]
 name = "anyio"
 version = "4.3.0"
 description = "High level compatibility layer for multiple asynchronous event loop implementations"
@@ -199,13 +212,13 @@ cached-property = ">=1.5,<2.0"
 
 [[package]]
 name = "aries-cloudagent"
-version = "0.11.0"
+version = "0.12.0"
 description = "Hyperledger Aries Cloud Agent Python (ACA-Py) is a foundation for building decentralized identity applications and services running in non-mobile environments."
 optional = true
-python-versions = ">=3.9,<4.0"
+python-versions = "<4.0,>=3.9"
 files = [
-    {file = "aries_cloudagent-0.11.0-py3-none-any.whl", hash = "sha256:f9cb95c45afc2ce10f02e5071f6cfed8436e83e8d7442487bff12c4f544adc21"},
-    {file = "aries_cloudagent-0.11.0.tar.gz", hash = "sha256:f495b2affee8862e9323f5b7b38f26c1cc83dc81aa97f28be378ae5badba3458"},
+    {file = "aries_cloudagent-0.12.0-py3-none-any.whl", hash = "sha256:0416d58fe53fe90107d4f7a77349d5b9082cb18dba1051bb9bf9d7c4ba5e3054"},
+    {file = "aries_cloudagent-0.12.0.tar.gz", hash = "sha256:dee04b11bd1eafeb866a0ec8437c9fa81dc607fcf3e7798976346ee08b58a9b9"},
 ]
 
 [package.dependencies]
@@ -243,7 +256,7 @@ sd-jwt = ">=0.10.3,<0.11.0"
 unflatten = ">=0.1,<0.2"
 
 [package.extras]
-askar = ["aries-askar (>=0.3.0,<0.4.0)", "indy-credx (>=1.1.1,<1.2.0)", "indy-vdr (>=0.4.0,<0.5.0)"]
+askar = ["anoncreds (==0.2.0.dev11)", "aries-askar (>=0.3.0,<0.4.0)", "indy-credx (>=1.1.1,<1.2.0)", "indy-vdr (>=0.4.0,<0.5.0)"]
 bbs = ["ursa-bbs-signatures (>=1.0.1,<1.1.0)"]
 indy = ["python3-indy (>=1.11.1,<2.0.0)"]
 
@@ -672,6 +685,9 @@ files = [
     {file = "coverage-7.4.3-pp38.pp39.pp310-none-any.whl", hash = "sha256:7cbde573904625509a3f37b6fecea974e363460b556a627c60dc2f47e2fffa51"},
     {file = "coverage-7.4.3.tar.gz", hash = "sha256:276f6077a5c61447a48d133ed13e759c09e62aff0dc84274a68dc18660104d52"},
 ]
+
+[package.dependencies]
+tomli = {version = "*", optional = true, markers = "python_full_version <= \"3.11.0a6\" and extra == \"toml\""}
 
 [package.extras]
 toml = ["tomli"]
@@ -2048,21 +2064,21 @@ testing = ["async-generator (>=1.3)", "coverage", "hypothesis (>=5.7.1)"]
 
 [[package]]
 name = "pytest-cov"
-version = "2.10.1"
+version = "3.0.0"
 description = "Pytest plugin for measuring coverage."
 optional = false
-python-versions = ">=2.7, !=3.0.*, !=3.1.*, !=3.2.*, !=3.3.*, !=3.4.*"
+python-versions = ">=3.6"
 files = [
-    {file = "pytest-cov-2.10.1.tar.gz", hash = "sha256:47bd0ce14056fdd79f93e1713f88fad7bdcc583dcd7783da86ef2f085a0bb88e"},
-    {file = "pytest_cov-2.10.1-py2.py3-none-any.whl", hash = "sha256:45ec2d5182f89a81fc3eb29e3d1ed3113b9e9a873bcddb2a71faaab066110191"},
+    {file = "pytest-cov-3.0.0.tar.gz", hash = "sha256:e7f0f5b1617d2210a2cabc266dfe2f4c75a8d32fb89eafb7ad9d06f6d076d470"},
+    {file = "pytest_cov-3.0.0-py3-none-any.whl", hash = "sha256:578d5d15ac4a25e5f961c938b85a05b09fdaae9deef3bb6de9a6e766622ca7a6"},
 ]
 
 [package.dependencies]
-coverage = ">=4.4"
+coverage = {version = ">=5.2.1", extras = ["toml"]}
 pytest = ">=4.6"
 
 [package.extras]
-testing = ["fields", "hunter", "process-tests (==2.0.2)", "pytest-xdist", "six", "virtualenv"]
+testing = ["fields", "hunter", "process-tests", "pytest-xdist", "six", "virtualenv"]
 
 [[package]]
 name = "pytest-mock"
@@ -2798,4 +2814,4 @@ aca-py = ["aries-cloudagent"]
 [metadata]
 lock-version = "2.0"
 python-versions = "^3.9"
-content-hash = "e91c69dfb1ea14cc17bcfcb2b5ab11efebb2430b5dbd3a545106c288cbfc73ec"
+content-hash = "3984940c5c8ddc145ad8404e6aa56d3d9955ef8044ffc8a9c27be93607e2332a"

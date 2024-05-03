@@ -29,7 +29,7 @@ indy-credx = { version = "~1.1.1" }
 indy-vdr = { version = "~0.4.1" }
 ursa-bbs-signatures = { version = "~1.0.1" }
 python3-indy = { version = "^1.11.1" }
-anoncreds = { version = "0.2.0.dev11", allow-prereleases = true }
+anoncreds = { version = "0.2.0" }
 
 [tool.ruff]
 line-length = 90

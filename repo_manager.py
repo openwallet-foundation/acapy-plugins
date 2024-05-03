@@ -434,8 +434,11 @@ def main(arg_1 = None):
             new_plugins = [plugin for plugin in all_plugins if plugin not in released_plugins]
             for plugin in new_plugins:
                 plugins_on_old_release.append(plugin)
-        [print(plugin) for plugin in plugins_on_old_release]
+        output = ""
+        for plugin in plugins_on_old_release:
+            output += f'{plugin} '
 
+        print(output)
     elif selection == "6":
         print("Exiting...")
         exit(0)

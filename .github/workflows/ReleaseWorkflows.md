@@ -32,15 +32,15 @@ title: Create Release Workflow
 
 flowchart TB
     Start[Create Release] --> OnPushMain[On Push to Main]
-    OnPushMain --> CheckChangeSet{Check ACAPY Version in Change Set}
-    CheckChangeSet --> |No updated lock files| End
-    CheckChangeSet --> |Updated lock files| ConfigureGit[Configure Git]
+    OnPushMain --> ChangedPoetryFiles{Changed poetry.lock Files?}
+    ChangedPoetryFiles --> |No| End
+    ChangedPoetryFiles --> |Yes| ConfigureGit[Configure Git]
     ConfigureGit --> GetReleaseTags[Get Release Tags - Based on ACA-PY Version]
     GetReleaseTags --> TagsExist{Tags Exist}
-    TagsExist --> |Yes| IncrementPatch[Increment Patch]
+    TagsExist --> |Yes| IncrementPatch[Increment Patch Version. Ex: 1.0.0 -> 1.0.0.1 or 1.0.0.1 -> 1.0.0.2]
     TagsExist --> |No| CreateTagOnACAPYVersion[Create Tag on ACA-PY Version]
     IncrementPatch --> GetReleaseNotes[Get Release Notes and Plugins That Updated]
     CreateTagOnACAPYVersion --> GetReleaseNotes
-    GetReleaseNotes --> CreateReleaseBranch[Create Release Branch]
+    GetReleaseNotes --> CreateRelease[Create Release]
 
 ```

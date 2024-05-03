@@ -30,6 +30,7 @@ jobs:
       integration_test_exit_code: ${{ steps.integration_test_plugins.outputs.integration_test_exit_code }}
       all_potential_upgrades: ${{ steps.all_potential_upgrades.outputs.all_potential_upgrades }}
       pr_body: ${{ steps.prepare_pr.outputs.pr_body }}
+      tag_version: ${{ steps.prepare_pr.outputs.tag_version }}
     defaults:
       run:
         working-directory: .
@@ -97,7 +98,7 @@ jobs:
 
           if [ $(sem_version $current_global_version) -ge $(sem_version $current_available_version) ]; then
             echo "Version of aries-cloudagent is up to date"
-            exit 1
+            exit 0
           fi
             echo "Detected aries-cloudagent upgrade available..."
       #----------------------------------------------
@@ -239,7 +240,6 @@ jobs:
           failed_plugins=()
           
           # Merge all failed plugins
-
           potential_upgrades=(${{ steps.all_potential_upgrades.outputs.all_potential_upgrades }})
           echo "All potential upgrades: ${{ steps.all_potential_upgrades.outputs.all_potential_upgrades }}"
 
@@ -268,36 +268,44 @@ jobs:
           echo "Failed plugins: ${failed_plugins[*]}"
 
           # Get release for the branch name and docs
-
           release_version="${{steps.current_available_version.outputs.current_available_version}}"
           echo "Remote version = $release_version"
 
           # Configure the git bot
-
           git config --global user.name 'Release Bot'
           git config --global user.email 'release-bot@users.noreply.github.com'
 
           # Add all the changed files and then remove the failed plugins
-
           git add .
-
           for plugin in "${failed_plugins[@]}"; do
             git restore --staged $plugin
             git checkout -- $plugin
           done
 
           # Get the release notes and update the plugin decription with acapy version
-
           body=$(python repo_manager.py 4)
 
-          # Update the RELEASES.md file with the release notes
+          # Determine the release version via tags
+          get_tags_output=$(git tag -n0 "*$release_version*")
+          echo "Tag output: ${get_tags_output}"
+          tags_num=0
+          for item in ${get_tags_output}; do
+            tags_num=$((tags_num+1))
+          done
+          tag_version=""
+          if [ $tags_num -eq 0 ]
+          then
+            tag_version=$release_version
+          else
+            tag_version="$release_version.$tags_num"
+          fi
 
+          # Update the RELEASES.md file with the release notes
           echo "$body" | cat - RELEASES.md > temp && mv temp RELEASES.md
 
           # Check if there are any upgrades
-          upgraded_plugins=$(python repo_manager.py 5)
+          upgraded_plugins=($(python repo_manager.py 5))
           has_upgrades=false
-
           for plugin in ${potential_upgrades[@]}; do
             for upgrade in ${upgraded_plugins[@]}; do
               if [[ $plugin == *"$upgrade"* ]]; then
@@ -306,7 +314,6 @@ jobs:
               fi
             done
           done
-
           if [ "$has_upgrades" = true ]
           then
             echo "Upgrades detected. Committing the changes"
@@ -315,29 +322,36 @@ jobs:
             exit 1
           fi
 
-          # Update the release notes with the upgraded plugins
+          # Update the release notes with the upgraded plugins. 
+          # For replacing with the sed command we need to double escape the newline and tab characters.
+          details=$(printf '#### Plugins upgraded this release: \n\t - ')
+          double_escape_details=$(printf '#### Plugins upgraded this release: \\n\\t - ')
 
-          details="Plugins upgraded this release: "
-          for plugin in ${upgraded_plugins}; do
-            details="$details $plugin"
+          # For replacing the first occurence of ' - ' with the details
+          count=${#upgraded_plugins[*]}
+          for i in $(seq 0 "$(("$count" - 2))" );
+          do
+              details=$(printf '%s %s \n\t - ' "$details" "${upgraded_plugins[$i]}")
+              double_escape_details=$(printf '%s %s \\n\\t - ' "$double_escape_details" "${upgraded_plugins[$i]}")
           done
+          details=$(printf '%s %s \n' "$details" "${upgraded_plugins[$count - 1]}")
+          double_escape_details=$(printf '%s %s \n' "$double_escape_details" "${upgraded_plugins[$count - 1]}")
 
           # Replace the first occurence of ' - ' with the details
+          sed -i "0,/\s\-\s/s// - $(printf '%s ' ${double_escape_details})/" RELEASES.md
 
-          sed -i "0,/\s\-\s/s// - ${details}/" RELEASES.md
-
-          # Add the updated pyproject.toml and RELEASES.md files
-          git add ./*pyproject.toml
-          git add ./RELEASES.md
-
-          git commit -s -m "Release v$release_version Upgrades"
+          # Replace the release version with the release tag
+          sed -i "0,/v$release_version/{s/v$release_version/v$tag_version/}" RELEASES.md
+          body=${body/v$release_version/v$tag_version}
 
           # Prepare the PR body
-
           EOF=$(dd if=/dev/urandom bs=15 count=1 status=none | base64)
           echo "pr_body<<$EOF" >> $GITHUB_OUTPUT
           echo "$body $details" >> $GITHUB_OUTPUT
           echo "$EOF" >> $GITHUB_OUTPUT
+
+          # Set the tag version output
+          echo tag_version=$tag_version >> $GITHUB_OUTPUT
       #----------------------------------------------
       #       Create Release PR
       #----------------------------------------------
@@ -347,10 +361,10 @@ jobs:
           author: Release Bot <release-bot@users.noreply.github.com>
           committer: Release Bot <release-bot@users.noreply.github.com>
           token: ${{ secrets.BOT_PR_PAT }}
-          commit-message: "Release v${{ steps.current_available_version.outputs.current_available_version }}"
-          title: "Release for aries-cloudagent v${{ steps.current_available_version.outputs.current_available_version }}"
+          commit-message: "Release v${{ steps.prepare_pr.outputs.tag_version }} Upgrades"
+          title: "Release for aries-cloudagent v${{ steps.prepare_pr.outputs.tag_version }}"
           body: "${{ steps.prepare_pr.outputs.pr_body }}"
-          branch: "release-v${{ steps.current_available_version.outputs.current_available_version }}"
+          branch: "release-v${{ steps.prepare_pr.outputs.tag_version }}"
           base: "main"
           draft: false
           signoff: true
