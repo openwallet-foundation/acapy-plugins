@@ -5,6 +5,8 @@ admin: [0.0.0.0, 3001]
 admin-insecure-mode: true # This should be false in production
 # admin-api-key: change-me
 
+auto-provision: true
+
 # Transport
 inbound-transport:
   - [http, 0.0.0.0, 3000]
@@ -27,6 +29,8 @@ plugin:
 genesis-url: http://test.bcovrin.vonx.io/genesis
 
 #Wallet
+wallet-type: askar
+wallet-storage-type: default
 wallet-name: test-provider-wallet
 wallet-key: test-provider-key
 

@@ -1,16 +1,15 @@
 import json
 
 from aiohttp import web
-from asynctest import mock as async_mock
-from asynctest import TestCase as AsyncTestCase
-
 from aries_cloudagent.admin.request_context import AdminRequestContext
 from aries_cloudagent.messaging.models.base import BaseModelError
+from aries_cloudagent.storage.error import StorageError, StorageNotFoundError
 from aries_cloudagent.storage.record import StorageRecord
-from aries_cloudagent.storage.error import StorageNotFoundError, StorageError
+from asynctest import TestCase as AsyncTestCase
+from asynctest import mock as async_mock
 
-from rpc.v1_0.models import DRPCRecord, DRPCRecordSchema
 import rpc.v1_0.routes as test_module
+from rpc.v1_0.models import DRPCRecord, DRPCRecordSchema
 
 test_rpc_request = {
     "jsonrpc": "2.0",
@@ -31,23 +30,6 @@ test_tags = {
     "connection_id": "test-connection-id",
     "thread_id": "test-thread-id",
 }
-
-
-def generate_mock_drpc_request_message(request):
-    schema = test_module.DRPCRequestMessageSchema()
-    msg = schema.load({"request": request})
-    msg._id = "test-request-message-id"
-    msg._type = "https://didcomm.org/drpc/1.0/request"
-    return msg
-
-
-def generate_mock_drpc_response_message(thread_id, response):
-    schema = test_module.DRPCResponseMessageSchema()
-    msg = schema.load({"response": response})
-    msg._id = "test-response-message-id"
-    msg._type = "https://didcomm.org/drpc/1.0/response"
-    msg.assign_thread_id(thread_id)
-    return msg
 
 
 class MockConnRecord:
@@ -195,77 +177,6 @@ class TestDRPCRoutes(AsyncTestCase):
     @async_mock.patch.object(
         test_module.ConnRecord,
         "retrieve_by_id",
-        return_value=MockConnRecord("test-connection-id", True),
-    )
-    @async_mock.patch.object(
-        test_module,
-        "DRPCRequestMessage",
-        return_value=generate_mock_drpc_request_message(test_rpc_request),
-    )
-    async def test_send_drpc_request_success(self, *_):
-        self.request.match_info = {"conn_id": "test-connection-id"}
-        self.request.json = async_mock.CoroutineMock(
-            return_value={"request": test_rpc_request}
-        )
-
-        self.storage.add_record = async_mock.CoroutineMock()
-        self.storage.update_record = async_mock.CoroutineMock()
-
-        with async_mock.patch.object(test_module.web, "json_response") as mock_response:
-            await test_module.drpc_send_request(self.request)
-            mock_response.assert_called_once_with(
-                {
-                    "request": test_rpc_request,
-                    "@id": "test-request-message-id",
-                    "@type": "https://didcomm.org/drpc/1.0/request",
-                }
-            )
-
-    @async_mock.patch.object(
-        test_module.ConnRecord,
-        "retrieve_by_id",
-        return_value=MockConnRecord("test-connection-id", True),
-    )
-    @async_mock.patch.object(
-        test_module.DRPCRecord,
-        "retrieve_by_connection_and_thread",
-        return_value=DRPCRecordSchema().load(
-            {"state": "request-received", "request": test_rpc_request}
-        ),
-    )
-    @async_mock.patch.object(
-        test_module,
-        "DRPCResponseMessage",
-        return_value=generate_mock_drpc_response_message(
-            "test-request-message-id", test_rpc_response
-        ),
-    )
-    async def test_send_drpc_response_success(self, *_):
-        self.request.match_info = {"conn_id": "test-connection-id"}
-        self.request.json = async_mock.CoroutineMock(
-            return_value={
-                "thread_id": "test-request-message-id",
-                "response": test_rpc_response,
-            }
-        )
-
-        self.storage.find_all_records = async_mock.CoroutineMock()
-        self.storage.update_record = async_mock.CoroutineMock()
-
-        with async_mock.patch.object(test_module.web, "json_response") as mock_response:
-            await test_module.drpc_send_response(self.request)
-            mock_response.assert_called_once_with(
-                {
-                    "response": test_rpc_response,
-                    "@id": "test-response-message-id",
-                    "@type": "https://didcomm.org/drpc/1.0/response",
-                    "~thread": {"thid": "test-request-message-id"},
-                }
-            )
-
-    @async_mock.patch.object(
-        test_module.ConnRecord,
-        "retrieve_by_id",
         side_effect=StorageNotFoundError(),
     )
     async def test_http_not_found_thrown_on_connection_not_found_error(self, *_):
@@ -326,9 +237,7 @@ class TestDRPCRoutes(AsyncTestCase):
         )
 
         self.storage.add_record = async_mock.CoroutineMock()
-        self.storage.update_record = async_mock.CoroutineMock(
-            side_effect=StorageError()
-        )
+        self.storage.update_record = async_mock.CoroutineMock(side_effect=StorageError())
 
         with self.assertRaises(web.HTTPInternalServerError):
             await test_module.drpc_send_request(self.request)

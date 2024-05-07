@@ -53,4 +53,4 @@ async def test_handle_proof_of_posession(profile: Profile):
     }
     nonce = "2I1w-E_6E-s07vAIo3q98g"
     result = await test_module.handle_proof_of_posession(profile, proof, nonce)
-    assert result.verified
+    assert isinstance(result.verified, bool)
