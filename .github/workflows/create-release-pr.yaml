@@ -195,7 +195,7 @@ jobs:
       #       Install docker compose
       # ----------------------------------------------
       - name: Initialize Docker Compose
-        uses: isbang/compose-action@v1.5.1
+        uses: isbang/compose-action@v2.0.0
       # ----------------------------------------------
       #       Collect plugins that fail integration tests
       # ----------------------------------------------
