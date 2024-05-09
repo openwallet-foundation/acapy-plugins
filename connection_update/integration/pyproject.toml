@@ -6,7 +6,7 @@ authors = []
 
 [tool.poetry.dependencies]
 python = "^3.9"
-pytest = "^7.4.0"
+pytest = "^8.2.0"
 pytest-asyncio = "^0.23.5"
 requests = "^2.31.0"
 aries-cloudagent = { version = ">=0.10.3, < 1.0.0" }
