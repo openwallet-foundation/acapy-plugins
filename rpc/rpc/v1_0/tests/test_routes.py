@@ -39,7 +39,7 @@ class MockConnRecord:
 
 
 class TestDRPCRoutes(IsolatedAsyncioTestCase):
-    def setUp(self):
+    async def asyncSetUp(self):
         self.session_inject = {}
 
         self.storage = MagicMock()

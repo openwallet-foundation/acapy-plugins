@@ -48,7 +48,7 @@ class MockWalletRecordRequiresKey:
 
 
 class TestMulittokenHandler(IsolatedAsyncioTestCase):
-    async def setUp(self) -> None:
+    async def asyncSetUp(self) -> None:
         self.session_inject = {}
         self.manager = MagicMock()
         self.get_profile = lambda: InMemoryProfile.test_profile()

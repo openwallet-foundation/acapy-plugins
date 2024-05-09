@@ -8,7 +8,7 @@ from ..models import WalletTokenRecord
 
 
 class TestModels(IsolatedAsyncioTestCase):
-    def setUp(self) -> None:
+    async def asyncSetUp(self) -> None:
         self.profile = InMemoryProfile.test_profile()
 
     @patch.object(

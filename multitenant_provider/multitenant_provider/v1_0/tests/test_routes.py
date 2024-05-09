@@ -38,7 +38,7 @@ class MockWalletRecordRequiresExternalKey:
 
 
 class TestRoutes(IsolatedAsyncioTestCase):
-    async def setUp(self) -> None:
+    async def asyncSetUp(self) -> None:
         self.session_inject = {}
         self.profile = InMemoryProfile.test_profile()
         mock_session = MagicMock()
