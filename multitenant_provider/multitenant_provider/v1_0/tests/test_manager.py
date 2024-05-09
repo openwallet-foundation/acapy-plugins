@@ -1,14 +1,13 @@
 from typing import Optional
+from unittest import IsolatedAsyncioTestCase
+from unittest.mock import AsyncMock, MagicMock, patch
 
-import asynctest
 import bcrypt
 import jwt
 from aries_cloudagent.core.in_memory import InMemoryProfile
 from aries_cloudagent.multitenant.error import WalletKeyMissingError
 from aries_cloudagent.storage.error import StorageError
 from aries_cloudagent.wallet.models.wallet_record import WalletRecord
-from asynctest import TestCase as AsyncTestCase
-from asynctest import mock as async_mock
 
 from multitenant_provider.v1_0.config import (
     MultitenantProviderConfig,
@@ -48,12 +47,12 @@ class MockWalletRecordRequiresKey:
     wallet_id = "test-wallet-id"
 
 
-class TestMulittokenHandler(AsyncTestCase):
+class TestMulittokenHandler(IsolatedAsyncioTestCase):
     async def setUp(self) -> None:
         self.session_inject = {}
-        self.manager = async_mock.MagicMock()
+        self.manager = MagicMock()
         self.get_profile = lambda: InMemoryProfile.test_profile()
-        self.context = async_mock.MagicMock()
+        self.context = MagicMock()
 
     def get_create_token_side_effect(always_check_key: bool):
         return [
@@ -68,7 +67,7 @@ class TestMulittokenHandler(AsyncTestCase):
         assert multi_token_handler.manager is not None
         assert multi_token_handler.logger is not None
 
-    @asynctest.patch.object(
+    @patch.object(
         WalletTokenRecord,
         "query_by_wallet_id",
         return_value="test-wallet",
@@ -83,14 +82,14 @@ class TestMulittokenHandler(AsyncTestCase):
 
         assert response == "test-wallet"
 
-    @asynctest.patch.object(WalletTokenRecord, "save")
-    @asynctest.patch.object(
+    @patch.object(WalletTokenRecord, "save")
+    @patch.object(
         WalletTokenRecord,
         "query_by_wallet_id",
         return_value="test-wallet",
         side_effect=StorageError("test"),
     )
-    @asynctest.patch.object(
+    @patch.object(
         WalletRecord,
         "retrieve_by_id",
         return_value=WalletRecord(
@@ -110,7 +109,7 @@ class TestMulittokenHandler(AsyncTestCase):
         assert mock_save.called
         assert isinstance(response, WalletTokenRecord)
 
-    @asynctest.patch.object(
+    @patch.object(
         bcrypt,
         "checkpw",
         side_effect=[True, True, True, False, False, True, False, False],
@@ -146,13 +145,13 @@ class TestMulittokenHandler(AsyncTestCase):
         assert result is False
         assert mock_check.call_count == 8
 
-    @asynctest.patch.object(
+    @patch.object(
         MulittokenHandler,
         "find_or_create_wallet_token_record",
         return_value=WalletRecord(wallet_id="wallet-id"),
     )
     async def test_create_wallet_returns_record_on_success(self, mock_find_record):
-        self.manager._super_create_wallet = async_mock.CoroutineMock()
+        self.manager._super_create_wallet = AsyncMock()
         self.manager._super_create_wallet.return_value = WalletRecord(
             wallet_id="wallet-id"
         )
@@ -163,7 +162,7 @@ class TestMulittokenHandler(AsyncTestCase):
         assert mock_find_record.called
         assert isinstance(wallet_record, WalletRecord)
 
-    @asynctest.patch.object(
+    @patch.object(
         MulittokenHandler,
         "find_or_create_wallet_token_record",
         return_value=WalletTokenRecord(wallet_id="wallet-id"),
@@ -171,7 +170,7 @@ class TestMulittokenHandler(AsyncTestCase):
     async def test_create_wallet_raises_exception_when_create_fails(
         self, mock_find_record
     ):
-        self.manager._super_create_wallet = async_mock.CoroutineMock()
+        self.manager._super_create_wallet = AsyncMock()
         self.manager._super_create_wallet.side_effect = Exception("test")
 
         multi_token_handler = MulittokenHandler(self.manager)
@@ -181,14 +180,14 @@ class TestMulittokenHandler(AsyncTestCase):
             )
             assert mock_find_record.called is False
 
-    @asynctest.patch.object(
+    @patch.object(
         MulittokenHandler,
         "find_or_create_wallet_token_record",
         return_value=WalletTokenRecord(wallet_id="wallet-id"),
         side_effect=Exception,
     )
     async def test_create_wallet_raises_exception_when_create_token_fails(self, _):
-        self.manager._super_create_wallet = async_mock.CoroutineMock()
+        self.manager._super_create_wallet = AsyncMock()
         self.manager._super_create_wallet.return_value = WalletRecord(
             wallet_id="wallet-id"
         )
@@ -199,24 +198,24 @@ class TestMulittokenHandler(AsyncTestCase):
                 settings={"wallet.key": "wallet-key"}, key_management_mode="managed"
             )
 
-    @asynctest.patch.object(
+    @patch.object(
         MulittokenHandler,
         "find_or_create_wallet_token_record",
         return_value=WalletTokenRecord(
             wallet_id="wallet-id",
         ),
     )
-    @asynctest.patch.object(
+    @patch.object(
         MulittokenHandler,
         "get_profile",
         side_effect=get_create_token_side_effect(always_check_key=False),
     )
-    @asynctest.patch.object(
+    @patch.object(
         WalletRecord,
         "save",
         return_value=WalletRecord(wallet_id="wallet-id-test"),
     )
-    @asynctest.patch.object(
+    @patch.object(
         WalletTokenRecord,
         "save",
         return_value=WalletTokenRecord(wallet_id="wallet-id-test"),
@@ -236,14 +235,14 @@ class TestMulittokenHandler(AsyncTestCase):
         assert mock_save.called
         assert token is not None
 
-    @asynctest.patch.object(
+    @patch.object(
         MulittokenHandler,
         "find_or_create_wallet_token_record",
         return_value=WalletTokenRecord(
             wallet_id="wallet-id",
         ),
     )
-    @asynctest.patch.object(
+    @patch.object(
         MulittokenHandler,
         "get_profile",
         side_effect=get_create_token_side_effect(always_check_key=False),
@@ -254,26 +253,26 @@ class TestMulittokenHandler(AsyncTestCase):
         with self.assertRaises(WalletKeyMissingError):
             await multi_token_handler.create_auth_token(wallet_record)
 
-    @asynctest.patch.object(
+    @patch.object(
         MulittokenHandler,
         "find_or_create_wallet_token_record",
         return_value=WalletTokenRecord(
             wallet_id="wallet-id",
         ),
     )
-    @asynctest.patch.object(
+    @patch.object(
         MulittokenHandler,
         "get_profile",
         side_effect=get_create_token_side_effect(always_check_key=True),
     )
-    @asynctest.patch.object(
+    @patch.object(
         MulittokenHandler,
         "find_or_create_wallet_token_record",
         return_value=WalletTokenRecord(
             wallet_id="wallet-id",
         ),
     )
-    @asynctest.patch.object(MulittokenHandler, "check_wallet_key", return_value=False)
+    @patch.object(MulittokenHandler, "check_wallet_key", return_value=False)
     async def test_create_auth_token_always_check_key_mismatch(self, _1, _2, _3, _4):
         wallet_record = WalletRecord(
             jwt_iat="test-jwt-iat",
@@ -288,7 +287,7 @@ class TestMulittokenHandler(AsyncTestCase):
                 wallet_record, wallet_key="wallet-key"
             )
 
-    @asynctest.patch.object(
+    @patch.object(
         MulittokenHandler,
         "get_profile",
         side_effect=[
@@ -298,8 +297,8 @@ class TestMulittokenHandler(AsyncTestCase):
             InMemoryProfile.test_profile(),
         ],
     )
-    @asynctest.patch.object(MulittokenHandler, "check_wallet_key", return_value=True)
-    @asynctest.patch.object(
+    @patch.object(MulittokenHandler, "check_wallet_key", return_value=True)
+    @patch.object(
         jwt,
         "decode",
         return_value={
@@ -308,14 +307,14 @@ class TestMulittokenHandler(AsyncTestCase):
             "iat": "test-iat",
         },
     )
-    @asynctest.patch.object(
+    @patch.object(
         WalletRecord,
         "retrieve_by_id",
         return_value=WalletRecord(
             wallet_id="wallet-id-test", settings={"type": "in_memory"}
         ),
     )
-    @asynctest.patch.object(
+    @patch.object(
         WalletTokenRecord,
         "query_by_wallet_id",
         return_value=WalletTokenRecord(
@@ -325,7 +324,7 @@ class TestMulittokenHandler(AsyncTestCase):
     async def test_get_profile_for_token(
         self, get_wallet_token, get_wallet, _3, _4, _5
     ):
-        self.manager.get_wallet_profile = async_mock.CoroutineMock()
+        self.manager.get_wallet_profile = AsyncMock()
         multi_token_handler = MulittokenHandler(self.manager)
         self.manager.get_wallet_profile.return_value = "profile"
         profile = await multi_token_handler.get_profile_for_token(
@@ -336,7 +335,7 @@ class TestMulittokenHandler(AsyncTestCase):
         assert get_wallet_token.called
         assert get_wallet.called
 
-    @asynctest.patch.object(
+    @patch.object(
         MulittokenHandler,
         "get_profile",
         side_effect=[
@@ -346,8 +345,8 @@ class TestMulittokenHandler(AsyncTestCase):
             InMemoryProfile.test_profile(),
         ],
     )
-    @asynctest.patch.object(MulittokenHandler, "check_wallet_key", return_value=True)
-    @asynctest.patch.object(
+    @patch.object(MulittokenHandler, "check_wallet_key", return_value=True)
+    @patch.object(
         jwt,
         "decode",
         side_effect=[
@@ -355,13 +354,13 @@ class TestMulittokenHandler(AsyncTestCase):
             {"wallet_id": "test-wallet-id", "iat": "test-iat"},
         ],
     )
-    @asynctest.patch.object(
+    @patch.object(
         WalletTokenRecord,
         "query_by_wallet_id",
-        return_value=async_mock.MagicMock(WalletTokenRecord),
+        return_value=MagicMock(WalletTokenRecord),
     )
     async def test_get_profile_for_token_expired_signature(self, _1, _2, _3, _4):
-        self.manager.get_wallet_profile = async_mock.CoroutineMock()
+        self.manager.get_wallet_profile = AsyncMock()
         multi_token_handler = MulittokenHandler(self.manager)
         self.manager.get_wallet_profile.return_value = "profile"
         with self.assertRaises(jwt.exceptions.ExpiredSignatureError):

@@ -1,9 +1,9 @@
-from asynctest import TestCase as AsyncTestCase
+from unittest import IsolatedAsyncioTestCase
 
 from ..config import MultitenantProviderConfig, TokenExpiryConfig, get_config
 
 
-class TestConfig(AsyncTestCase):
+class TestConfig(IsolatedAsyncioTestCase):
 
     async def test_get_token_expiry_delta(self):
         token_config = TokenExpiryConfig()
