@@ -1,6 +1,7 @@
 """Supported Credential Record."""
 
 from typing import Dict, List, Optional
+
 from aries_cloudagent.messaging.models.base_record import BaseRecord, BaseRecordSchema
 from marshmallow import fields
 

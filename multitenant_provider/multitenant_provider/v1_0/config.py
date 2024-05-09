@@ -6,7 +6,6 @@ from typing import Any, Mapping, Optional
 from mergedeep import merge
 from pydantic import BaseModel
 
-
 LOGGER = logging.getLogger(__name__)
 
 

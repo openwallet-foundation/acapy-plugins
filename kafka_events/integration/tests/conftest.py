@@ -5,10 +5,7 @@ import hashlib
 from os import getenv
 from typing import Iterator, Optional
 
-from aiokafka.consumer.consumer import AIOKafkaConsumer
-from aiokafka.producer.producer import AIOKafkaProducer
 import pytest_asyncio
-
 from acapy_client import Client
 from acapy_client.api.connection import create_static, delete_connection, set_metadata
 from acapy_client.models import (
@@ -17,6 +14,8 @@ from acapy_client.models import (
     ConnectionStaticResult,
 )
 from acapy_client.models.conn_record import ConnRecord
+from aiokafka.consumer.consumer import AIOKafkaConsumer
+from aiokafka.producer.producer import AIOKafkaProducer
 from echo_agent import EchoClient
 
 

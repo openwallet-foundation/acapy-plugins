@@ -9,11 +9,11 @@ from typing import cast
 
 from aiokafka import AIOKafkaConsumer
 from aiokafka.structs import ConsumerRecord
-
 from aries_cloudagent.messaging.error import MessageParseError
-from aries_cloudagent.transport.error import WireFormatParseError, RecipientKeysError
+from aries_cloudagent.transport.error import RecipientKeysError, WireFormatParseError
 from aries_cloudagent.transport.inbound.base import BaseInboundTransport
-from .config import get_config, InboundConfig
+
+from .config import InboundConfig, get_config
 
 LOGGER = logging.getLogger(__name__)
 

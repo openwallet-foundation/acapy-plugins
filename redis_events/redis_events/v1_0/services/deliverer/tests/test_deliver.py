@@ -1,13 +1,15 @@
 import asyncio
-import aiohttp
 import base64
-import redis
+import json
 import os
 import string
-import json
-
-from asynctest import TestCase as AsyncTestCase, mock as async_mock, PropertyMock
 from time import time
+
+import aiohttp
+import redis
+from asynctest import PropertyMock
+from asynctest import TestCase as AsyncTestCase
+from asynctest import mock as async_mock
 
 from .. import deliver as test_module
 from ..deliver import Deliverer, main

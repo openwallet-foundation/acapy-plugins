@@ -11,9 +11,7 @@ from aries_cloudagent.core.profile import Profile
 from aries_cloudagent.multitenant.askar_profile_manager import (
     AskarProfileMultitenantManager,
 )
-from aries_cloudagent.multitenant.base import (
-    MultitenantManagerError,
-)
+from aries_cloudagent.multitenant.base import MultitenantManagerError
 from aries_cloudagent.multitenant.error import WalletKeyMissingError
 from aries_cloudagent.multitenant.manager import MultitenantManager
 from aries_cloudagent.storage.error import StorageError

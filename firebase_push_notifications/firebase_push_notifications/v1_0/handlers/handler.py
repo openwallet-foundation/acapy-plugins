@@ -7,8 +7,8 @@ from aries_cloudagent.messaging.base_handler import (
     RequestContext,
 )
 
-from ..messages.set_device_info import SetDeviceInfo
 from ..manager import save_device_token
+from ..messages.set_device_info import SetDeviceInfo
 
 LOGGER = logging.getLogger(__name__)
 

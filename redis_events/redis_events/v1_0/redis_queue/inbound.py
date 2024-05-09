@@ -2,8 +2,8 @@
 import asyncio
 import base64
 import json
-from json import JSONDecodeError
 import logging
+from json import JSONDecodeError
 from typing import cast
 from uuid import uuid4
 
@@ -18,14 +18,10 @@ from aries_cloudagent.transport.wire_format import (
     DIDCOMM_V1_MIME_TYPE,
 )
 from redis.asyncio import RedisCluster
-from redis.exceptions import RedisError, RedisClusterException
+from redis.exceptions import RedisClusterException, RedisError
 
-from .utils import (
-    curr_datetime_to_str,
-    b64_to_bytes,
-)
-
-from .config import get_config, InboundConfig, ConnectionConfig
+from .config import ConnectionConfig, InboundConfig, get_config
+from .utils import b64_to_bytes, curr_datetime_to_str
 
 LOGGER = logging.getLogger(__name__)
 

@@ -5,8 +5,8 @@ from aries_cloudagent.messaging.valid import (
     INDY_ISO8601_DATETIME_EXAMPLE,
     INDY_ISO8601_DATETIME_VALIDATE,
 )
-from marshmallow import fields
 from aries_cloudagent.storage.base import BaseStorage
+from marshmallow import fields
 
 
 class BasicMessageRecord(BaseRecord):

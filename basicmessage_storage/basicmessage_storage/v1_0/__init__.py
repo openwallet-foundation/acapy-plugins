@@ -2,14 +2,15 @@ import logging
 import re
 
 from aries_cloudagent.config.injection_context import InjectionContext
-from aries_cloudagent.core.event_bus import EventBus, Event
+from aries_cloudagent.core.event_bus import Event, EventBus
 from aries_cloudagent.core.profile import Profile
 from aries_cloudagent.core.protocol_registry import ProtocolRegistry
 from aries_cloudagent.multitenant.admin.routes import (
     ACAPY_LIFECYCLE_CONFIG_FLAG_ARGS_MAP,
 )
-from .models import BasicMessageRecord
+
 from .config import get_config
+from .models import BasicMessageRecord
 
 LOGGER = logging.getLogger(__name__)
 

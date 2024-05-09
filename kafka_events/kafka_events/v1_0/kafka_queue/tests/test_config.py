@@ -1,6 +1,6 @@
 from aries_cloudagent.config.settings import Settings
 from kafka_queue import config
-from kafka_queue.config import InboundConfig, OutboundConfig, EventsConfig
+from kafka_queue.config import EventsConfig, InboundConfig, OutboundConfig
 
 DUMMY_INBOUND_CONFIG = {"consumer": {"group-id": "some-group-id"}, "topics": []}
 DUMMY_OUTBOUND_CONFIG = None

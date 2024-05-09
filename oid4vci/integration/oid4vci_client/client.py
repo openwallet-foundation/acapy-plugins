@@ -1,14 +1,14 @@
 """OpenID Connect 4 Verifiable Credential Issuance Client."""
 
 
-from dataclasses import dataclass
 import json
+from dataclasses import dataclass
 from typing import Dict, List, Literal, Optional, Union
 from urllib.parse import parse_qsl, urlparse
 
 from aiohttp import ClientSession
 
-from .crypto import AskarKey, AskarCryptoService
+from .crypto import AskarCryptoService, AskarKey
 from .did import generate
 
 PRE_AUTH_GRANT = "urn:ietf:params:oauth:grant-type:pre-authorized_code"

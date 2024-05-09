@@ -1,11 +1,11 @@
 from aries_cloudagent.core.event_bus import Event, EventBus
 from aries_cloudagent.core.in_memory import InMemoryProfile
-from asynctest import TestCase as AsyncTestCase
-from asynctest import mock as async_mock
 from aries_cloudagent.core.protocol_registry import ProtocolRegistry
 from aries_cloudagent.multitenant.base import BaseMultitenantManager
+from asynctest import TestCase as AsyncTestCase
+from asynctest import mock as async_mock
 
-from .. import setup, on_startup
+from .. import on_startup, setup
 
 
 class TestInit(AsyncTestCase):

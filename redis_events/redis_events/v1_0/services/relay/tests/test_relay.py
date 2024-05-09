@@ -1,9 +1,11 @@
-import aiohttp
-import os
 import json
-import redis
+import os
 
-from asynctest import TestCase as AsyncTestCase, mock as async_mock, PropertyMock
+import aiohttp
+import redis
+from asynctest import PropertyMock
+from asynctest import TestCase as AsyncTestCase
+from asynctest import mock as async_mock
 
 from .. import relay as test_module
 from ..relay import HttpRelay, WSRelay

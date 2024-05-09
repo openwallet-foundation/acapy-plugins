@@ -6,7 +6,6 @@ import ssl
 from typing import List, Optional, Union
 
 from aiokafka.producer.producer import AIOKafkaProducer
-
 from aries_cloudagent.core.profile import Profile
 from aries_cloudagent.transport.outbound.base import (
     BaseOutboundTransport,
@@ -14,7 +13,8 @@ from aries_cloudagent.transport.outbound.base import (
     OutboundTransportError,
 )
 from aries_cloudagent.transport.outbound.manager import QueuedOutboundMessage
-from .config import get_config, OutboundConfig
+
+from .config import OutboundConfig, get_config
 
 LOGGER = logging.getLogger(__name__)
 

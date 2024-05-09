@@ -1,11 +1,13 @@
 import base64
 import json
-import redis
 
+import redis
+from aiohttp.test_utils import unused_port
 from aries_cloudagent.core.in_memory import InMemoryProfile
 from aries_cloudagent.messaging.error import MessageParseError
-from aiohttp.test_utils import unused_port
-from asynctest import TestCase as AsyncTestCase, mock as async_mock, PropertyMock
+from asynctest import PropertyMock
+from asynctest import TestCase as AsyncTestCase
+from asynctest import mock as async_mock
 
 from .. import inbound as test_inbound
 from ..inbound import RedisInboundTransport

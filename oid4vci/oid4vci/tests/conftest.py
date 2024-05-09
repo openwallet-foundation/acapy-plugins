@@ -1,5 +1,4 @@
 import pytest
-
 from aries_cloudagent.core.in_memory import InMemoryProfile
 
 

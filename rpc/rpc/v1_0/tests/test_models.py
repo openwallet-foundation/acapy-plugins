@@ -1,13 +1,12 @@
 import pytest
-
 from marshmallow import ValidationError
 
 from rpc.v1_0.models import (
     DRPCRecordSchema,
     RPCBaseModelSchema,
+    RPCErrorModelSchema,
     RPCRequestModelSchema,
     RPCResponseModelSchema,
-    RPCErrorModelSchema,
 )
 
 rpc_base = {"jsonrpc": "2.0"}

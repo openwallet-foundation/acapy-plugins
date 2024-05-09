@@ -1,10 +1,10 @@
 """Quick test script."""
 import asyncio
-from urllib.parse import urlencode
 from os import getenv
+from urllib.parse import urlencode
 
-from jrpc_client import JsonRpcClient, TCPSocketTransport
 from controller.controller import Controller
+from jrpc_client import JsonRpcClient, TCPSocketTransport
 
 AFJ_HOST = getenv("AFJ_HOST", "localhost")
 AFJ_PORT = int(getenv("AFJ_PORT", "3000"))

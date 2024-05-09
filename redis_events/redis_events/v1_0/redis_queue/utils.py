@@ -1,12 +1,12 @@
 """Utilities for redis_queue module."""
 import asyncio
-import datetime
 import base64
+import datetime
 import json
 import logging
+from typing import List, Union
 
 from redis.asyncio import RedisCluster
-from typing import Union, List
 
 LOGGER = logging.getLogger(__name__)
 

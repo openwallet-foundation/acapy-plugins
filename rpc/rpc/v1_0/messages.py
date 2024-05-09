@@ -3,17 +3,8 @@
 from aries_cloudagent.messaging.agent_message import AgentMessage, AgentMessageSchema
 from marshmallow import ValidationError, pre_dump
 
-from rpc.v1_0.message_types import (
-    DRPC_REQUEST,
-    DRPC_RESPONSE,
-    PROTOCOL_PACKAGE,
-)
-from rpc.v1_0.models import (
-    RPC_REQUEST_EXAMPLE,
-    RPC_RESPONSE_EXAMPLE,
-    Request,
-    Response,
-)
+from rpc.v1_0.message_types import DRPC_REQUEST, DRPC_RESPONSE, PROTOCOL_PACKAGE
+from rpc.v1_0.models import RPC_REQUEST_EXAMPLE, RPC_RESPONSE_EXAMPLE, Request, Response
 
 
 class DRPCRequestMessage(AgentMessage):

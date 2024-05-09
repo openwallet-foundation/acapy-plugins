@@ -2,8 +2,8 @@
 
 import logging
 from typing import Any, Mapping, Optional
-from pydantic import BaseModel, validator
 
+from pydantic import BaseModel, validator
 
 LOGGER = logging.getLogger(__name__)
 

@@ -5,17 +5,17 @@ from aiohttp import web
 from aiohttp_apispec import docs, request_schema, response_schema
 from aries_cloudagent.admin.request_context import AdminRequestContext
 from aries_cloudagent.multitenant.admin.routes import (
-    CreateWalletTokenRequestSchema,
-    CreateWalletTokenResponseSchema,
     CreateWalletRequestSchema,
     CreateWalletResponseSchema,
+    CreateWalletTokenRequestSchema,
+    CreateWalletTokenResponseSchema,
     wallet_create,
 )
 from aries_cloudagent.multitenant.base import BaseMultitenantManager
 from aries_cloudagent.multitenant.error import WalletKeyMissingError
 from aries_cloudagent.storage.error import StorageNotFoundError
 from aries_cloudagent.wallet.models.wallet_record import WalletRecord
-from marshmallow import validates_schema, ValidationError
+from marshmallow import ValidationError, validates_schema
 
 from .config import MultitenantProviderConfig
 from .manager import WalletKeyMismatchError

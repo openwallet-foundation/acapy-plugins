@@ -1,16 +1,16 @@
 """Redis Outbound Delivery Service."""
-import aiohttp
 import asyncio
 import base64
+import json
 import logging
 import signal
-import json
-
 from contextlib import suppress
-from redis.asyncio import RedisCluster
-from redis.exceptions import RedisError, RedisClusterException
-from time import time
 from os import getenv
+from time import time
+
+import aiohttp
+from redis.asyncio import RedisCluster
+from redis.exceptions import RedisClusterException, RedisError
 
 from redis_events.v1_0.status_endpoint.status_endpoints import (
     start_status_endpoints_server,

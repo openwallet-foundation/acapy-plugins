@@ -27,9 +27,9 @@ from aries_cloudagent.wallet.jwt import nym_to_did
 from marshmallow import fields
 from marshmallow.validate import OneOf
 
+from .config import Config
 from .models.exchange import OID4VCIExchangeRecord, OID4VCIExchangeRecordSchema
 from .models.supported_cred import SupportedCredential, SupportedCredentialSchema
-from .config import Config
 
 SPEC_URI = (
     "https://openid.net/specs/openid-4-verifiable-credential-issuance-1_0-11.html"

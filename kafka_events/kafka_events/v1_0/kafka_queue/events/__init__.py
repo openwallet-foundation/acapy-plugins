@@ -8,12 +8,12 @@ from string import Template
 from typing import Optional, cast
 
 from aiokafka import AIOKafkaProducer
-
 from aries_cloudagent.config.injection_context import InjectionContext
 from aries_cloudagent.core.event_bus import Event, EventBus, EventWithMetadata
 from aries_cloudagent.core.profile import Profile
 from aries_cloudagent.core.util import SHUTDOWN_EVENT_PATTERN, STARTUP_EVENT_PATTERN
-from ..config import get_config, EventsConfig
+
+from ..config import EventsConfig, get_config
 
 LOGGER = logging.getLogger(__name__)
 

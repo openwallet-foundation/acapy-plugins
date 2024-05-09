@@ -4,11 +4,10 @@ import logging
 from abc import ABC, abstractmethod
 from typing import List, Mapping, Optional, Union
 
-from pydantic import BaseModel, Extra
-
 from aries_cloudagent.config.base import BaseSettings
 from aries_cloudagent.config.plugin_settings import PluginSettings
 from aries_cloudagent.config.settings import Settings
+from pydantic import BaseModel, Extra
 
 LOGGER = logging.getLogger(__name__)
 

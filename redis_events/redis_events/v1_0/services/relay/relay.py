@@ -12,10 +12,10 @@ from aiohttp import WSMessage, WSMsgType, web
 from redis.asyncio import RedisCluster
 from redis.exceptions import RedisClusterException, RedisError
 
-from redis_events.v1_0.redis_queue.utils import (b64_to_bytes,
-                                                 process_payload_recip_key)
-from redis_events.v1_0.status_endpoint.status_endpoints import \
-    start_status_endpoints_server
+from redis_events.v1_0.redis_queue.utils import b64_to_bytes, process_payload_recip_key
+from redis_events.v1_0.status_endpoint.status_endpoints import (
+    start_status_endpoints_server,
+)
 
 logging.basicConfig(
     format="%(asctime)s | %(levelname)s: %(message)s",

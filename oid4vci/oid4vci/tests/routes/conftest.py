@@ -1,8 +1,10 @@
+from unittest.mock import MagicMock
+
+import pytest
 from aries_cloudagent.admin.request_context import AdminRequestContext
 from aries_cloudagent.core.in_memory import InMemoryProfile
 from aries_cloudagent.resolver.did_resolver import DIDResolver
-import pytest
-from unittest.mock import MagicMock
+
 from oid4vci.jwk_resolver import JwkResolver
 
 

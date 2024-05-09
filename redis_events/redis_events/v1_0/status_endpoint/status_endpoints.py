@@ -1,9 +1,9 @@
 """FastAPI status endpoints for readiness and liveness checks."""
 import logging
-import uvicorn
-import nest_asyncio
 
-from fastapi import Security, Depends, APIRouter, HTTPException
+import nest_asyncio
+import uvicorn
+from fastapi import APIRouter, Depends, HTTPException, Security
 from fastapi.security.api_key import APIKeyHeader
 
 nest_asyncio.apply()

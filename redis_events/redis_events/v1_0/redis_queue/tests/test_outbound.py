@@ -6,9 +6,11 @@ import time
 import redis
 from aiohttp.test_utils import unused_port
 from aries_cloudagent.core.in_memory import InMemoryProfile
-from aries_cloudagent.transport.outbound.base import (ConnectionTarget,
-                                                      OutboundMessage,
-                                                      QueuedOutboundMessage)
+from aries_cloudagent.transport.outbound.base import (
+    ConnectionTarget,
+    OutboundMessage,
+    QueuedOutboundMessage,
+)
 from aries_cloudagent.transport.wire_format import BaseWireFormat
 from asynctest import PropertyMock
 from asynctest import TestCase as AsyncTestCase
