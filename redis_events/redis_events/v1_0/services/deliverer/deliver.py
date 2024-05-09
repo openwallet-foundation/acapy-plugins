@@ -1,5 +1,4 @@
 """Redis Outbound Delivery Service."""
-
 import asyncio
 import base64
 import json

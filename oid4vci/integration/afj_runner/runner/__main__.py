@@ -1,5 +1,4 @@
 """Quick test script."""
-
 import asyncio
 from os import getenv
 from urllib.parse import urlencode
