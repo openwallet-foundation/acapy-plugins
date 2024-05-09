@@ -2,6 +2,8 @@ import base64
 import datetime
 import json
 import time
+from unittest import IsolatedAsyncioTestCase
+from unittest.mock import AsyncMock, MagicMock, PropertyMock, patch
 
 import redis
 from aiohttp.test_utils import unused_port
@@ -12,9 +14,6 @@ from aries_cloudagent.transport.outbound.base import (
     QueuedOutboundMessage,
 )
 from aries_cloudagent.transport.wire_format import BaseWireFormat
-from asynctest import PropertyMock
-from asynctest import TestCase as AsyncTestCase
-from asynctest import mock as async_mock
 
 from .. import config as test_config
 from .. import outbound as test_outbound
@@ -84,7 +83,7 @@ TEST_PAYLOAD_DICT = {
 TEST_PAYLOAD_BYTES = (json.dumps(TEST_PAYLOAD_DICT)).encode()
 
 
-class TestRedisOutbound(AsyncTestCase):
+class TestRedisOutbound(IsolatedAsyncioTestCase):
     def setUp(self):
         self.port = unused_port()
         self.session = None
@@ -93,12 +92,12 @@ class TestRedisOutbound(AsyncTestCase):
     async def test_init(self):
         self.profile.context.injector.bind_instance(
             redis.asyncio.RedisCluster,
-            async_mock.MagicMock(
-                ping=async_mock.CoroutineMock(),
+            MagicMock(
+                ping=AsyncMock(),
             ),
         )
         redis_outbound_inst = RedisOutboundQueue(
-            root_profile=self.profile, wire_format=async_mock.MagicMock()
+            root_profile=self.profile, wire_format=MagicMock()
         )
 
         assert redis_outbound_inst
@@ -107,17 +106,17 @@ class TestRedisOutbound(AsyncTestCase):
 
     async def test_init_no_bind_instance(self):
         RedisOutboundQueue.running = PropertyMock(side_effect=[True, True, True, False])
-        with async_mock.patch.object(
+        with patch.object(
             redis.asyncio.RedisCluster,
             "from_url",
-            async_mock.MagicMock(
-                return_value=async_mock.MagicMock(
-                    ping=async_mock.CoroutineMock(),
+            MagicMock(
+                return_value=MagicMock(
+                    ping=AsyncMock(),
                 )
             ),
         ) as mock_redis:
             redis_outbound_inst = RedisOutboundQueue(
-                root_profile=self.profile, wire_format=async_mock.MagicMock()
+                root_profile=self.profile, wire_format=MagicMock()
             )
 
             assert redis_outbound_inst
@@ -125,8 +124,8 @@ class TestRedisOutbound(AsyncTestCase):
             await redis_outbound_inst.stop()
 
     async def test_get_recip_keys_list_for_uid(self):
-        redis = async_mock.MagicMock(
-            hget=async_mock.CoroutineMock(
+        redis = MagicMock(
+            hget=AsyncMock(
                 side_effect=[
                     base64.urlsafe_b64encode(
                         json.dumps(
@@ -151,45 +150,45 @@ class TestRedisOutbound(AsyncTestCase):
         assert (await test_util.get_recip_keys_list_for_uid(redis, "test_uid_2")) == []
 
     async def test_get_new_valid_uid(self):
-        redis = async_mock.MagicMock(
-            get=async_mock.CoroutineMock(
+        redis = MagicMock(
+            get=AsyncMock(
                 side_effect=[
                     None,
                     b"0",
                 ]
             ),
-            set=async_mock.CoroutineMock(),
-            hkeys=async_mock.CoroutineMock(
+            set=AsyncMock(),
+            hkeys=AsyncMock(
                 return_value=[
                     b"test_recip_key_a",
                     b"test_recip_key_b",
                     b"test_recip_key_c",
                 ]
             ),
-            ping=async_mock.CoroutineMock(),
+            ping=AsyncMock(),
         )
         assert (
             await test_util.get_new_valid_uid(redis, to_ignore_uid=b"test_recip_key_b")
         ) == b"test_recip_key_a"
-        redis = async_mock.MagicMock(
-            get=async_mock.CoroutineMock(return_value=b"1"),
-            set=async_mock.CoroutineMock(),
-            hkeys=async_mock.CoroutineMock(
+        redis = MagicMock(
+            get=AsyncMock(return_value=b"1"),
+            set=AsyncMock(),
+            hkeys=AsyncMock(
                 return_value=[
                     b"test_recip_key_a",
                     b"test_recip_key_b",
                     b"test_recip_key_c",
                 ]
             ),
-            ping=async_mock.CoroutineMock(),
+            ping=AsyncMock(),
         )
         assert (
             await test_util.get_new_valid_uid(redis, to_ignore_uid=b"test_recip_key_b")
         ) == b"test_recip_key_c"
-        redis = async_mock.MagicMock(
-            get=async_mock.CoroutineMock(return_value=b"3"),
-            set=async_mock.CoroutineMock(),
-            hkeys=async_mock.CoroutineMock(
+        redis = MagicMock(
+            get=AsyncMock(return_value=b"3"),
+            set=AsyncMock(),
+            hkeys=AsyncMock(
                 side_effect=[
                     [],
                     [
@@ -199,27 +198,25 @@ class TestRedisOutbound(AsyncTestCase):
                     ],
                 ]
             ),
-            ping=async_mock.CoroutineMock(),
+            ping=AsyncMock(),
         )
-        with async_mock.patch.object(
-            test_util.asyncio, "sleep", async_mock.CoroutineMock()
-        ):
+        with patch.object(test_util.asyncio, "sleep", AsyncMock()):
             assert (
                 await test_util.get_new_valid_uid(redis, b"test_recip_key_d")
             ) == b"test_recip_key_a"
 
     async def test_assign_recip_key_to_new_uid(self):
-        redis = async_mock.MagicMock(
-            hset=async_mock.CoroutineMock(),
+        redis = MagicMock(
+            hset=AsyncMock(),
         )
-        with async_mock.patch.object(
+        with patch.object(
             test_util,
             "get_new_valid_uid",
-            async_mock.CoroutineMock(return_value=b"test_uid_a"),
-        ), async_mock.patch.object(
+            AsyncMock(return_value=b"test_uid_a"),
+        ), patch.object(
             test_util,
             "get_recip_keys_list_for_uid",
-            async_mock.CoroutineMock(
+            AsyncMock(
                 return_value=base64.urlsafe_b64encode(
                     json.dumps(
                         [
@@ -238,20 +235,20 @@ class TestRedisOutbound(AsyncTestCase):
             ) == b"test_uid_a"
 
     async def test_reassign_recip_key_to_uid(self):
-        redis = async_mock.MagicMock(
-            hget=async_mock.CoroutineMock(return_value=b"4"),
-            hset=async_mock.CoroutineMock(),
-            hdel=async_mock.CoroutineMock(),
-            hincrby=async_mock.CoroutineMock(),
+        redis = MagicMock(
+            hget=AsyncMock(return_value=b"4"),
+            hset=AsyncMock(),
+            hdel=AsyncMock(),
+            hincrby=AsyncMock(),
         )
-        with async_mock.patch.object(
+        with patch.object(
             test_util,
             "get_new_valid_uid",
-            async_mock.CoroutineMock(return_value=b"test_uid_a"),
-        ), async_mock.patch.object(
+            AsyncMock(return_value=b"test_uid_a"),
+        ), patch.object(
             test_util,
             "get_recip_keys_list_for_uid",
-            async_mock.CoroutineMock(
+            AsyncMock(
                 side_effect=[
                     base64.urlsafe_b64encode(
                         json.dumps(
@@ -280,20 +277,20 @@ class TestRedisOutbound(AsyncTestCase):
                 )
             ) == b"test_uid_a"
         # Missing recip_key from old_list and no old_pending_msg_count
-        redis = async_mock.MagicMock(
-            hget=async_mock.CoroutineMock(return_value=None),
-            hset=async_mock.CoroutineMock(),
-            hdel=async_mock.CoroutineMock(),
-            hincrby=async_mock.CoroutineMock(),
+        redis = MagicMock(
+            hget=AsyncMock(return_value=None),
+            hset=AsyncMock(),
+            hdel=AsyncMock(),
+            hincrby=AsyncMock(),
         )
-        with async_mock.patch.object(
+        with patch.object(
             test_util,
             "get_new_valid_uid",
-            async_mock.CoroutineMock(return_value=b"test_uid_a"),
-        ), async_mock.patch.object(
+            AsyncMock(return_value=b"test_uid_a"),
+        ), patch.object(
             test_util,
             "get_recip_keys_list_for_uid",
-            async_mock.CoroutineMock(
+            AsyncMock(
                 side_effect=[
                     base64.urlsafe_b64encode(
                         json.dumps(
@@ -337,7 +334,7 @@ class TestRedisOutbound(AsyncTestCase):
         self.profile.settings["emit_new_didcomm_mime_type"] = True
         self.profile.context.injector.bind_instance(
             redis.asyncio.RedisCluster,
-            async_mock.MagicMock(),
+            MagicMock(),
         )
         wire_format = BaseWireFormat()
         redis_outbound_inst = RedisOutboundQueue(self.profile)
@@ -356,8 +353,8 @@ class TestRedisOutbound(AsyncTestCase):
             )
         self.profile.context.injector.bind_instance(
             redis.asyncio.RedisCluster,
-            async_mock.MagicMock(
-                rpush=async_mock.CoroutineMock(side_effect=redis.exceptions.RedisError),
+            MagicMock(
+                rpush=AsyncMock(side_effect=redis.exceptions.RedisError),
             ),
         )
         redis_outbound_inst = RedisOutboundQueue(
@@ -372,16 +369,16 @@ class TestRedisOutbound(AsyncTestCase):
     async def test_handle_message(self):
         self.profile.context.injector.bind_instance(
             redis.asyncio.RedisCluster,
-            async_mock.MagicMock(
-                rpush=async_mock.CoroutineMock(side_effect=redis.exceptions.RedisError),
+            MagicMock(
+                rpush=AsyncMock(side_effect=redis.exceptions.RedisError),
             ),
         )
-        with async_mock.patch.object(
+        with patch.object(
             test_outbound,
             "get_config",
-            async_mock.MagicMock(
-                return_value=async_mock.MagicMock(
-                    outbound=async_mock.MagicMock(
+            MagicMock(
+                return_value=MagicMock(
+                    outbound=MagicMock(
                         mediator_mode=False, acapy_outbound_topic="acapy_outbound"
                     )
                 )
@@ -407,24 +404,24 @@ class TestRedisOutbound(AsyncTestCase):
         self.profile.settings["emit_new_didcomm_mime_type"] = True
         self.profile.context.injector.bind_instance(
             redis.asyncio.RedisCluster,
-            async_mock.MagicMock(
-                rpush=async_mock.CoroutineMock(),
+            MagicMock(
+                rpush=AsyncMock(),
             ),
         )
-        with async_mock.patch.object(
+        with patch.object(
             test_outbound,
             "get_config",
-            async_mock.MagicMock(
-                return_value=async_mock.MagicMock(
-                    outbound=async_mock.MagicMock(
+            MagicMock(
+                return_value=MagicMock(
+                    outbound=MagicMock(
                         mediator_mode=True, acapy_outbound_topic="acapy_inbound"
                     )
                 )
             ),
-        ), async_mock.patch.object(
+        ), patch.object(
             test_outbound,
             "process_payload_recip_key",
-            async_mock.CoroutineMock(
+            AsyncMock(
                 return_value=(
                     "acapy_inbound_test_recip_key_a",
                     str.encode(json.dumps({"test": "test"})),
@@ -449,10 +446,10 @@ class TestRedisOutbound(AsyncTestCase):
             )
 
     async def test_process_payload_recip_key_reassign_a(self):
-        redis = async_mock.MagicMock(
-            rpush=async_mock.CoroutineMock(),
-            hexists=async_mock.CoroutineMock(return_value=True),
-            hget=async_mock.CoroutineMock(
+        redis = MagicMock(
+            rpush=AsyncMock(),
+            hexists=AsyncMock(return_value=True),
+            hget=AsyncMock(
                 side_effect=[
                     b"test_uid_a",
                     (
@@ -465,13 +462,13 @@ class TestRedisOutbound(AsyncTestCase):
                     b"0",
                 ]
             ),
-            hincrby=async_mock.CoroutineMock(),
-            hdel=async_mock.CoroutineMock(),
+            hincrby=AsyncMock(),
+            hdel=AsyncMock(),
         )
-        with async_mock.patch.object(
+        with patch.object(
             test_util,
             "get_recip_keys_list_for_uid",
-            async_mock.CoroutineMock(
+            AsyncMock(
                 side_effect=[
                     [
                         "BDg8S6gkvnwDB75v5royCE1XrWn42Spx885aV7cxaNJL",
@@ -481,10 +478,10 @@ class TestRedisOutbound(AsyncTestCase):
                     [],
                 ]
             ),
-        ), async_mock.patch.object(
+        ), patch.object(
             test_util,
             "reassign_recip_key_to_uid",
-            async_mock.CoroutineMock(
+            AsyncMock(
                 side_effect=[
                     b"test_uid_p",
                     b"test_uid_q",
@@ -497,10 +494,10 @@ class TestRedisOutbound(AsyncTestCase):
             )
 
     async def test_process_payload_recip_key_reassign_b(self):
-        redis = async_mock.MagicMock(
-            rpush=async_mock.CoroutineMock(),
-            hexists=async_mock.CoroutineMock(return_value=True),
-            hget=async_mock.CoroutineMock(
+        redis = MagicMock(
+            rpush=AsyncMock(),
+            hexists=AsyncMock(return_value=True),
+            hget=AsyncMock(
                 side_effect=[
                     b"test_uid_a",
                     (
@@ -513,13 +510,13 @@ class TestRedisOutbound(AsyncTestCase):
                     b"0",
                 ]
             ),
-            hincrby=async_mock.CoroutineMock(),
-            hdel=async_mock.CoroutineMock(),
+            hincrby=AsyncMock(),
+            hdel=AsyncMock(),
         )
-        with async_mock.patch.object(
+        with patch.object(
             test_util,
             "get_recip_keys_list_for_uid",
-            async_mock.CoroutineMock(
+            AsyncMock(
                 side_effect=[
                     [
                         "test_recip_key_a",
@@ -529,10 +526,10 @@ class TestRedisOutbound(AsyncTestCase):
                     [],
                 ]
             ),
-        ), async_mock.patch.object(
+        ), patch.object(
             test_util,
             "reassign_recip_key_to_uid",
-            async_mock.CoroutineMock(
+            AsyncMock(
                 side_effect=[
                     b"test_uid_p",
                     b"test_uid_q",
@@ -545,10 +542,10 @@ class TestRedisOutbound(AsyncTestCase):
             )
 
     async def test_process_payload_recip_key_no_last_access(self):
-        redis = async_mock.MagicMock(
-            rpush=async_mock.CoroutineMock(),
-            hexists=async_mock.CoroutineMock(return_value=True),
-            hget=async_mock.CoroutineMock(
+        redis = MagicMock(
+            rpush=AsyncMock(),
+            hexists=AsyncMock(return_value=True),
+            hget=AsyncMock(
                 side_effect=[
                     b"test_uid_a",
                     None,
@@ -557,13 +554,13 @@ class TestRedisOutbound(AsyncTestCase):
                     b"0",
                 ]
             ),
-            hincrby=async_mock.CoroutineMock(),
-            hdel=async_mock.CoroutineMock(),
+            hincrby=AsyncMock(),
+            hdel=AsyncMock(),
         )
-        with async_mock.patch.object(
+        with patch.object(
             test_util,
             "get_recip_keys_list_for_uid",
-            async_mock.CoroutineMock(
+            AsyncMock(
                 side_effect=[
                     [
                         "test_recip_key_a",
@@ -573,10 +570,10 @@ class TestRedisOutbound(AsyncTestCase):
                     ["test_recip_key_d"],
                 ]
             ),
-        ), async_mock.patch.object(
+        ), patch.object(
             test_util,
             "reassign_recip_key_to_uid",
-            async_mock.CoroutineMock(
+            AsyncMock(
                 side_effect=[
                     b"test_uid_p",
                     b"test_uid_p",
@@ -589,23 +586,23 @@ class TestRedisOutbound(AsyncTestCase):
             )
 
     async def test_process_payload_recip_key_assign_new_uid(self):
-        redis = async_mock.MagicMock(
-            rpush=async_mock.CoroutineMock(),
-            hexists=async_mock.CoroutineMock(return_value=False),
-            hget=async_mock.CoroutineMock(
+        redis = MagicMock(
+            rpush=AsyncMock(),
+            hexists=AsyncMock(return_value=False),
+            hget=AsyncMock(
                 return_value=(
                     (datetime.datetime.now() - datetime.timedelta(seconds=5)).strftime(
                         "%Y-%m-%dT%H:%M:%SZ"
                     )
                 ).encode(),
             ),
-            hincrby=async_mock.CoroutineMock(),
-            hdel=async_mock.CoroutineMock(),
+            hincrby=AsyncMock(),
+            hdel=AsyncMock(),
         )
-        with async_mock.patch.object(
+        with patch.object(
             test_util,
             "assign_recip_key_to_new_uid",
-            async_mock.CoroutineMock(return_value=b"test_uid_a"),
+            AsyncMock(return_value=b"test_uid_a"),
         ):
             await test_util.process_payload_recip_key(
                 redis, TEST_PAYLOAD_BYTES, "acapy_inbound"
