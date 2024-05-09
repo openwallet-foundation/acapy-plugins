@@ -9,7 +9,6 @@ license = "Apache-2.0"
 python = "^3.9"
 pytest = "^7.4.0"
 pytest-asyncio = "^0.21.0"
-asynctest = "^0.13.0"
 requests = "^2.31.0"
 pytest-cov = "^2.12.1"
 acapy-client = {git="https://github.com/indicio-tech/acapy-client.git", branch="acapy/main"}
