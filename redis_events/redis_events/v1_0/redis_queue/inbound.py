@@ -1,4 +1,5 @@
 """Inbound transport using Redis."""
+
 import asyncio
 import base64
 import json
@@ -101,8 +102,7 @@ class RedisInboundTransport(BaseInboundTransport):
                         await asyncio.sleep(1)
                         retry_pop_count = retry_pop_count + 1
                         if retry_pop_count > 5:
-                            raise InboundTransportError(
-                                f"Unexpected exception: {err}")
+                            raise InboundTransportError(f"Unexpected exception: {err}")
                 if not msg:
                     await asyncio.sleep(0.2)
                     continue
@@ -118,8 +118,7 @@ class RedisInboundTransport(BaseInboundTransport):
                     plugin_uid,
                     curr_datetime_to_str().encode("utf-8"),
                 )
-                uid_recip_key = f"{plugin_uid.decode()}_{recip_key}".encode(
-                    "utf-8")
+                uid_recip_key = f"{plugin_uid.decode()}_{recip_key}".encode("utf-8")
                 enc_uid_recip_key_count = await self.redis.hget(
                     "uid_recip_key_pending_msg_count", uid_recip_key
                 )
@@ -148,13 +147,13 @@ class RedisInboundTransport(BaseInboundTransport):
                                     if session.profile.settings.get(
                                         "emit_new_didcomm_mime_type"
                                     ):
-                                        response_data[
-                                            "content-type"
-                                        ] = DIDCOMM_V1_MIME_TYPE
+                                        response_data["content-type"] = (
+                                            DIDCOMM_V1_MIME_TYPE
+                                        )
                                     else:
-                                        response_data[
-                                            "content-type"
-                                        ] = DIDCOMM_V0_MIME_TYPE
+                                        response_data["content-type"] = (
+                                            DIDCOMM_V0_MIME_TYPE
+                                        )
                                 else:
                                     response_data["content-type"] = "application/json"
                                     response = response.encode("utf-8")
@@ -170,8 +169,7 @@ class RedisInboundTransport(BaseInboundTransport):
                                     str.encode(json.dumps(message)),
                                 )
                             except RedisError as err:
-                                LOGGER.exception(
-                                    f"Unexpected exception: {err}")
+                                LOGGER.exception(f"Unexpected exception: {err}")
                 except (MessageParseError, WireFormatParseError):
                     LOGGER.exception("Failed to process message")
                     continue

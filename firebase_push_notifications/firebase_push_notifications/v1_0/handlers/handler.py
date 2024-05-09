@@ -1,4 +1,5 @@
 """Handler for push notifications."""
+
 import logging
 
 from aries_cloudagent.messaging.base_handler import (
@@ -20,7 +21,8 @@ class SetDeviceInfoHandler(BaseHandler):
         """Handle set-device-info message."""
         connection_id = context.connection_record.connection_id
         LOGGER.info(
-            f'set-device-info protocol handler called for connection: {connection_id}')
+            f"set-device-info protocol handler called for connection: {connection_id}"
+        )
         assert isinstance(context.message, SetDeviceInfo)
 
         device_token = context.message.device_token

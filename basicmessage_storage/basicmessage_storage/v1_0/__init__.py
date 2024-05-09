@@ -30,9 +30,9 @@ async def setup(context: InjectionContext):
     # acapy should create a separate map for plugin settings
     # add subwallet config, acapy will accept any child under basicmessage-storage
     # but will get filtered with `.config.get_config`
-    ACAPY_LIFECYCLE_CONFIG_FLAG_ARGS_MAP[
-        "basicmessage-storage"
-    ] = "basicmessage_storage"
+    ACAPY_LIFECYCLE_CONFIG_FLAG_ARGS_MAP["basicmessage-storage"] = (
+        "basicmessage_storage"
+    )
 
     event_bus.subscribe(BASIC_MESSAGE_EVENT_PATTERN, basic_message_event_handler)
     LOGGER.info("< basicmessage_storage plugin setup.")

@@ -1,6 +1,5 @@
 """OpenID Connect 4 Verifiable Credential Issuance Client."""
 
-
 import json
 from dataclasses import dataclass
 from typing import Dict, List, Literal, Optional, Union

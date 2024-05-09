@@ -1,4 +1,5 @@
 """Basic in memory queue."""
+
 import base64
 import json
 import logging
@@ -74,9 +75,11 @@ class KafkaOutboundQueue(BaseOutboundTransport):
 
         self.producer = AIOKafkaProducer(
             **self.config.producer.dict(),
-            ssl_context=ssl.create_default_context()
-            if self.config.producer.ssl_required
-            else None,
+            ssl_context=(
+                ssl.create_default_context()
+                if self.config.producer.ssl_required
+                else None
+            ),
         )
         await self.producer.start()
 

@@ -1,4 +1,5 @@
 """Automate setup of Agency + Mediator."""
+
 import asyncio
 from os import getenv
 from typing import Any, Callable, TypeVar

@@ -12,15 +12,17 @@ from oid4vci.jwk_resolver import JwkResolver
 def context():
     """Test AdminRequestContext."""
     context = AdminRequestContext.test_context()
-    context.update_settings({
-        "plugin_config": {
-            "oid4vci": {
-                "endpoint": "http://localhost:8020",
-                "host": "0.0.0.0",
-                "port": 8020,
+    context.update_settings(
+        {
+            "plugin_config": {
+                "oid4vci": {
+                    "endpoint": "http://localhost:8020",
+                    "host": "0.0.0.0",
+                    "port": 8020,
+                }
             }
         }
-    })
+    )
     yield context
 
 

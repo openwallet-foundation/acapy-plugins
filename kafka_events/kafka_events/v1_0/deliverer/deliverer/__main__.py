@@ -1,4 +1,5 @@
 """Kafka consumer of outbound messages from ACA-Py."""
+
 import asyncio
 import signal
 import sys

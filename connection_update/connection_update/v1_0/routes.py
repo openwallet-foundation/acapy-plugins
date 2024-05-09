@@ -1,4 +1,5 @@
 """v1.0 connection update protocol routes."""
+
 import functools
 import logging
 
@@ -19,6 +20,7 @@ LOGGER = logging.getLogger(__name__)
 
 def error_handler(func):
     """Handle connection update errors."""
+
     @functools.wraps(func)
     async def wrapper(request):
         try:

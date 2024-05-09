@@ -78,8 +78,7 @@ class TestRedisEvents(AsyncTestCase):
 
     async def test_setup(self):
         context = async_mock.MagicMock(
-            settings=SETTINGS, inject=async_mock.MagicMock(
-                return_value=MockEventBus())
+            settings=SETTINGS, inject=async_mock.MagicMock(return_value=MockEventBus())
         )
         await setup(context)
 
@@ -92,22 +91,19 @@ class TestRedisEvents(AsyncTestCase):
 
     async def test_on_startup(self):
         self.profile.settings["plugin_config"] = SETTINGS["plugin_config"]
-        test_event = Event(
-            "test_topic", {"rev_reg_id": "mock", "crids": ["mock"]})
+        test_event = Event("test_topic", {"rev_reg_id": "mock", "crids": ["mock"]})
         with async_mock.patch.object(
             redis.asyncio.RedisCluster,
             "from_url",
             async_mock.MagicMock(
-                return_value=async_mock.MagicMock(
-                    ping=async_mock.CoroutineMock())
+                return_value=async_mock.MagicMock(ping=async_mock.CoroutineMock())
             ),
         ):
             await on_startup(self.profile, test_event)
 
     async def test_on_startup_x(self):
         self.profile.settings["plugin_config"] = SETTINGS["plugin_config"]
-        test_event = Event(
-            "test_topic", {"rev_reg_id": "mock", "crids": ["mock"]})
+        test_event = Event("test_topic", {"rev_reg_id": "mock", "crids": ["mock"]})
         with async_mock.patch.object(
             redis.asyncio.RedisCluster,
             "from_url",
@@ -118,8 +114,7 @@ class TestRedisEvents(AsyncTestCase):
 
     async def test_on_shutddown(self):
         self.profile.settings["plugin_config"] = SETTINGS["plugin_config"]
-        test_event = Event(
-            "test_topic", {"rev_reg_id": "mock", "crids": ["mock"]})
+        test_event = Event("test_topic", {"rev_reg_id": "mock", "crids": ["mock"]})
         await on_shutdown(self.profile, test_event)
 
     async def test_handle_event(self):
@@ -138,8 +133,7 @@ class TestRedisEvents(AsyncTestCase):
             },
             topic="acapy::basicmessage::received",
             metadata=async_mock.MagicMock(
-                pattern=async_mock.MagicMock(
-                    pattern="acapy::basicmessage::received")
+                pattern=async_mock.MagicMock(pattern="acapy::basicmessage::received")
             ),
         )
         await handle_event(self.profile, test_event_with_metadata)
@@ -164,8 +158,7 @@ class TestRedisEvents(AsyncTestCase):
                         did="6tb9bVM3SzFRMRxoWJTvp1",
                         endpoint="http://echo:3002",
                         label="test-runner",
-                        recipient_keys=[
-                            "4DBJ4Zp851gjzNtJmmoE97WqVrWN36yZRaGif4AGrxwQ"],
+                        recipient_keys=["4DBJ4Zp851gjzNtJmmoE97WqVrWN36yZRaGif4AGrxwQ"],
                         routing_keys=[],
                         sender_key="4DBJ4Zp851gjzNtJmmoE97WqVrWN36yZRaGif4AGrxwQ",
                     )
@@ -202,8 +195,7 @@ class TestRedisEvents(AsyncTestCase):
                         did="6tb9bVM3SzFRMRxoWJTvp1",
                         endpoint="http://echo:3002",
                         label="test-runner",
-                        recipient_keys=[
-                            "4DBJ4Zp851gjzNtJmmoE97WqVrWN36yZRaGif4AGrxwQ"],
+                        recipient_keys=["4DBJ4Zp851gjzNtJmmoE97WqVrWN36yZRaGif4AGrxwQ"],
                         routing_keys=[],
                         sender_key="4DBJ4Zp851gjzNtJmmoE97WqVrWN36yZRaGif4AGrxwQ",
                     )
@@ -243,8 +235,7 @@ class TestRedisEvents(AsyncTestCase):
             },
             topic="acapy::basicmessage::received",
             metadata=async_mock.MagicMock(
-                pattern=async_mock.MagicMock(
-                    pattern="acapy::basicmessage::received")
+                pattern=async_mock.MagicMock(pattern="acapy::basicmessage::received")
             ),
         )
         await handle_event(self.profile, test_event_with_metadata)

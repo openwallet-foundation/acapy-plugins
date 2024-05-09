@@ -1,4 +1,5 @@
 """Basic in memory queue."""
+
 import base64
 import json
 import logging

@@ -1,4 +1,5 @@
 """Configuration classes for multitenant_provider."""
+
 import logging
 from typing import Any, Mapping
 

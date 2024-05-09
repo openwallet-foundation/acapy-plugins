@@ -1,5 +1,5 @@
-
 """Kafka inbound transport classes."""
+
 import base64
 import json
 import logging
@@ -35,9 +35,11 @@ class KafkaInboundTransport(BaseInboundTransport):
             *self.config.topics,
             bootstrap_servers=self.host,
             **self.config.consumer.dict(),
-            ssl_context=ssl.create_default_context()
-            if self.config.consumer.ssl_required
-            else None,
+            ssl_context=(
+                ssl.create_default_context()
+                if self.config.consumer.ssl_required
+                else None
+            ),
         )
 
     async def start(self):

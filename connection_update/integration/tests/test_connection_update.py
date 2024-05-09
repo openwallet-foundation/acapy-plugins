@@ -28,14 +28,14 @@ def established_connection(bob, alice):
     resp = alice.receive_invite(invite, auto_accept="true")
     yield resp["connection_id"]
 
+
 def test_send_message(bob, alice, established_connection):
     # make sure connection is active...
     time.sleep(2)
 
-    test_alias = 'test-alias'
+    test_alias = "test-alias"
     update_response = alice.connections_update(established_connection, alias=test_alias)
     get_response = alice.get_connection(established_connection)
 
-    assert update_response['alias'] == test_alias
-    assert get_response['alias'] == test_alias
-
+    assert update_response["alias"] == test_alias
+    assert get_response["alias"] == test_alias

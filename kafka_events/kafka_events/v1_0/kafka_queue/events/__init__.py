@@ -46,9 +46,9 @@ async def on_startup(profile: Profile, event: Event):
 
     producer = AIOKafkaProducer(
         **config.producer.dict(),
-        ssl_context=ssl.create_default_context()
-        if config.producer.ssl_required
-        else None,
+        ssl_context=(
+            ssl.create_default_context() if config.producer.ssl_required else None
+        ),
     )
     profile.context.injector.bind_instance(AIOKafkaProducer, producer)
     await producer.start()

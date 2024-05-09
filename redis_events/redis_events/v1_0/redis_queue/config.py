@@ -43,6 +43,7 @@ def _alias_generator(key: str) -> str:
 
 class NoneDefaultModel(BaseModel):
     """Pydantic model that allows None as a default value."""
+
     @validator("*", pre=True)
     def not_none(cls, v, field):
         """If the value is None, return the default value."""
@@ -60,10 +61,12 @@ class NoneDefaultModel(BaseModel):
 
 class ConnectionConfig(BaseModel):
     """Connection configuration model."""
+
     connection_url: str
 
     class Config:
         """Pydantic config."""
+
         alias_generator = _alias_generator
         allow_population_by_field_name = True
 
@@ -75,12 +78,14 @@ class ConnectionConfig(BaseModel):
 
 class EventConfig(NoneDefaultModel):
     """Event configuration model."""
+
     event_topic_maps: Mapping[str, str] = EVENT_TOPIC_MAP
     event_webhook_topic_maps: Mapping[str, str] = EVENT_WEBHOOK_TOPIC_MAP
     deliver_webhook: bool = True
 
     class Config:
         """Pydantic config."""
+
         alias_generator = _alias_generator
         allow_population_by_field_name = True
 
@@ -96,11 +101,13 @@ class EventConfig(NoneDefaultModel):
 
 class InboundConfig(NoneDefaultModel):
     """Inbound configuration model."""
+
     acapy_inbound_topic: str = "acapy_inbound"
     acapy_direct_resp_topic: str = "acapy_inbound_direct_resp"
 
     class Config:
         """Pydantic config."""
+
         alias_generator = _alias_generator
         allow_population_by_field_name = True
 
@@ -115,6 +122,7 @@ class InboundConfig(NoneDefaultModel):
 
 class OutboundConfig(NoneDefaultModel):
     """Outbound configuration model."""
+
     acapy_outbound_topic: str = "acapy_outbound"
     mediator_mode: bool = False
 
@@ -129,6 +137,7 @@ class OutboundConfig(NoneDefaultModel):
 
 class RedisConfig(BaseModel):
     """Redis configuration model."""
+
     event: Optional[EventConfig]
     inbound: Optional[InboundConfig]
     outbound: Optional[OutboundConfig]
@@ -157,8 +166,7 @@ def process_config_dict(config_dict: dict) -> dict:
 def get_config(settings: Mapping[str, Any]) -> RedisConfig:
     """Retrieve producer configuration from settings."""
     try:
-        LOGGER.debug("Constructing config from: %s",
-                     settings.get("plugin_config"))
+        LOGGER.debug("Constructing config from: %s", settings.get("plugin_config"))
         config_dict = settings["plugin_config"].get("redis_queue", {})
         LOGGER.debug("Retrieved: %s", config_dict)
         config_dict = process_config_dict(config_dict)
@@ -168,6 +176,5 @@ def get_config(settings: Mapping[str, Any]) -> RedisConfig:
         config = RedisConfig.default()
 
     LOGGER.debug("Returning config: %s", config.json(indent=2))
-    LOGGER.debug("Returning config(aliases): %s",
-                 config.json(by_alias=True, indent=2))
+    LOGGER.debug("Returning config(aliases): %s", config.json(by_alias=True, indent=2))
     return config

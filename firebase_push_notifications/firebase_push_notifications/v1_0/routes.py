@@ -1,4 +1,5 @@
 """API for Firebase push notifications."""
+
 import logging
 import re
 

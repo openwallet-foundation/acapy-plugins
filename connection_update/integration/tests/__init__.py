@@ -15,9 +15,11 @@ def get(agent: str, path: str, **kwargs):
     """Get."""
     return requests.get(f"{agent}{path}", **kwargs)
 
+
 def post(agent: str, path: str, **kwargs):
     """Post."""
     return requests.post(f"{agent}{path}", **kwargs)
+
 
 def put(agent: str, path: str, **kwargs):
     """Put."""
@@ -79,7 +81,7 @@ class Agent:
             self.url,
             f"/connections/{connection_id}/accept-invitation",
         )
-    
+
     @unwrap_json_response
     @fail_if_not_ok("Failed to send basic message")
     def connections_update(self, connection_id, alias):
@@ -89,7 +91,7 @@ class Agent:
             f"/connections/{connection_id}",
             json={"alias": alias},
         )
-    
+
     @unwrap_json_response
     @fail_if_not_ok("Failed to send basic message")
     def get_connection(self, connection_id):
@@ -120,10 +122,8 @@ class Agent:
             wrapped_post = unwrap_json_response(wrapped_post)
 
         return wrapped_post(self.url, path, **kwargs)
-    
-    def put(
-        self, path: str, return_json: bool = True, fail_with: str = None, **kwargs
-    ):
+
+    def put(self, path: str, return_json: bool = True, fail_with: str = None, **kwargs):
         """Do get to agent endpoint."""
         wrapped_put = put
         if fail_with:

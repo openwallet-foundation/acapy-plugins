@@ -1,4 +1,5 @@
 """Multitenant provider manager."""
+
 import logging
 from datetime import datetime, timezone
 
@@ -79,8 +80,7 @@ class MulittokenHandler:
             wallet_token_record.wallet_key_salt.encode("utf-8"),
         )
         # check the passed in value/hash against the calculated hash.
-        check_input = bcrypt.checkpw(
-            wallet_key.encode("utf-8"), wallet_key_token)
+        check_input = bcrypt.checkpw(wallet_key.encode("utf-8"), wallet_key_token)
         self.logger.debug(
             f"bcrypt.checkpw(wallet_key.encode('utf-8'), wallet_key_token) = {check_input}"  # noqa E501
         )
@@ -151,8 +151,7 @@ class MulittokenHandler:
         iat = datetime.now(tz=timezone.utc)
         exp = iat + config.token_expiry.get_token_expiry_delta()
 
-        jwt_payload = {"wallet_id": wallet_record.wallet_id,
-                       "iat": iat, "exp": exp}
+        jwt_payload = {"wallet_id": wallet_record.wallet_id, "iat": iat, "exp": exp}
         jwt_secret = self.get_profile().settings.get("multitenant.jwt_secret")
 
         if wallet_record.requires_external_key:

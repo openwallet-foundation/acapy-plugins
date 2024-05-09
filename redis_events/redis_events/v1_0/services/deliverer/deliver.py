@@ -1,4 +1,5 @@
 """Redis Outbound Delivery Service."""
+
 import asyncio
 import base64
 import json
@@ -125,8 +126,7 @@ class Deliverer:
                                 }
                             )
                         else:
-                            logging.error(
-                                f"Exceeded max retries for {str(endpoint)}")
+                            logging.error(f"Exceeded max retries for {str(endpoint)}")
                     else:
                         logging.info(f"Message dispatched to {endpoint}")
                 elif endpoint_scheme == "ws":
@@ -169,8 +169,7 @@ class Deliverer:
                 zadd_sent = True
             except (RedisError, RedisClusterException) as err:
                 await asyncio.sleep(1)
-                logging.exception(
-                    f"Unexpected redis client exception (zadd): {err}")
+                logging.exception(f"Unexpected redis client exception (zadd): {err}")
 
     async def process_retries(self):
         """Process retries."""

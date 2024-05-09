@@ -1,4 +1,5 @@
 """Basic Messages Storage API Routes."""
+
 import logging
 import secrets
 from typing import Any, Dict

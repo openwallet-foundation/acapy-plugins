@@ -1,4 +1,5 @@
 """Basic Messages Storage Model classes and schemas."""
+
 from aries_cloudagent.core.profile import ProfileSession
 from aries_cloudagent.messaging.models.base_record import BaseRecord, BaseRecordSchema
 from aries_cloudagent.messaging.valid import (
@@ -63,7 +64,6 @@ class BasicMessageRecord(BaseRecord):
         """Get tags for record."""
         return {"connection_id": self.connection_id, "message_id": self.message_id}
 
-
     async def delete_record(self, session: ProfileSession):
         """Perform connection record deletion actions.
 
@@ -80,7 +80,6 @@ class BasicMessageRecord(BaseRecord):
                 self.RECORD_TYPE,
                 {"message_id": self.message_id},
             )
-
 
     @classmethod
     async def retrieve_by_message_id(

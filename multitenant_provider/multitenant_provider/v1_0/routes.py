@@ -1,4 +1,5 @@
 """Multitenant provider plugin routes."""
+
 import logging
 
 from aiohttp import web

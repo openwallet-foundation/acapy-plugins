@@ -1,4 +1,5 @@
 """Profile manager for multitenancy."""
+
 import logging
 
 from aries_cloudagent.config.base import InjectionError
