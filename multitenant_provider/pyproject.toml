@@ -19,7 +19,7 @@ typing-extensions = "4.5.0"
 aca-py = ["aries-cloudagent"]
 
 [tool.poetry.dev-dependencies]
-ruff = "^0.1.2"
+ruff = "^0.4.3"
 black = "~24.4.2"
 pytest = "^8.2.0"
 pytest-asyncio = "^0.23.5"
