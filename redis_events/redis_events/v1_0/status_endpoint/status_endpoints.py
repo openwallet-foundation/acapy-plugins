@@ -1,4 +1,5 @@
 """FastAPI status endpoints for readiness and liveness checks."""
+
 import logging
 
 import nest_asyncio
