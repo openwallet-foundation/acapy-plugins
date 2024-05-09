@@ -12,7 +12,7 @@ python = "^3.9"
 aries-cloudagent = { version = ">=0.10.3, < 1.0.0", optional = true }
 aiokafka = "^0.10.0"
 ecdsa = "^0.16.1"
-pydantic = "^1.10.14"
+pydantic = "^1.10.15"
 
 [tool.poetry.extras]
 aca-py = ["aries-cloudagent"]
