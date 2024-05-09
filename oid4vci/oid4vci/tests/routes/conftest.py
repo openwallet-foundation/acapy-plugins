@@ -1,8 +1,10 @@
+from unittest.mock import MagicMock
+
+import pytest
 from aries_cloudagent.admin.request_context import AdminRequestContext
 from aries_cloudagent.core.in_memory import InMemoryProfile
 from aries_cloudagent.resolver.did_resolver import DIDResolver
-import pytest
-from unittest.mock import MagicMock
+
 from oid4vci.jwk_resolver import JwkResolver
 
 
@@ -10,15 +12,17 @@ from oid4vci.jwk_resolver import JwkResolver
 def context():
     """Test AdminRequestContext."""
     context = AdminRequestContext.test_context()
-    context.update_settings({
-        "plugin_config": {
-            "oid4vci": {
-                "endpoint": "http://localhost:8020",
-                "host": "0.0.0.0",
-                "port": 8020,
+    context.update_settings(
+        {
+            "plugin_config": {
+                "oid4vci": {
+                    "endpoint": "http://localhost:8020",
+                    "host": "0.0.0.0",
+                    "port": 8020,
+                }
             }
         }
-    })
+    )
     yield context
 
 

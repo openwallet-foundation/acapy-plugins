@@ -1,4 +1,5 @@
 """Testing basic redis stuff."""
+
 import pytest
 
 

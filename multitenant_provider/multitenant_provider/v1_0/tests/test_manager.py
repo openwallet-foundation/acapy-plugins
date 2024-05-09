@@ -1,4 +1,5 @@
 from typing import Optional
+
 import asynctest
 import bcrypt
 import jwt

@@ -1,5 +1,4 @@
 import pytest
-
 from marshmallow import ValidationError
 
 from rpc.v1_0.messages import DRPCResponseMessageSchema

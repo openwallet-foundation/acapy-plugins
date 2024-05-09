@@ -1,4 +1,5 @@
 """Message type for setting device info."""
+
 from aries_cloudagent.messaging.agent_message import AgentMessage, AgentMessageSchema
 from marshmallow import EXCLUDE, fields
 

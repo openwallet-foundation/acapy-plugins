@@ -1,4 +1,5 @@
 """Message type identifiers for push-notifications-fcm v1.0."""
+
 from aries_cloudagent.protocols.didcomm_prefix import DIDCommPrefix
 
 ARIES_PROTOCOL = "push-notifications-fcm/1.0"

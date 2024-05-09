@@ -1,9 +1,10 @@
 """Message handlers for DIDComm RPC v1.0."""
 
 import json
+
 from aries_cloudagent.messaging.base_handler import (
-    BaseResponder,
     BaseHandler,
+    BaseResponder,
     RequestContext,
 )
 from aries_cloudagent.storage.base import BaseStorage

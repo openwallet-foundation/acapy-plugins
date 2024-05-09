@@ -1,9 +1,9 @@
 from unittest.mock import patch
 
+import pytest
 from aiohttp import web
 from aries_cloudagent.admin.request_context import AdminRequestContext
 from aries_cloudagent.core.profile import Profile
-import pytest
 
 from oid4vci import public_routes as test_module
 

@@ -4,11 +4,10 @@ import logging
 from abc import ABC, abstractmethod
 from typing import List, Mapping, Optional, Union
 
-from pydantic import BaseModel, Extra
-
 from aries_cloudagent.config.base import BaseSettings
 from aries_cloudagent.config.plugin_settings import PluginSettings
 from aries_cloudagent.config.settings import Settings
+from pydantic import BaseModel, Extra
 
 LOGGER = logging.getLogger(__name__)
 
@@ -22,6 +21,7 @@ def _alias_generator(key: str) -> str:
 
 class SecurityProtocol(ABC):
     """Base class for security protocol."""
+
     SSL_PROTOCOLS = ("SSL", "SASL_SSL")
 
     @property
@@ -38,10 +38,12 @@ class SecurityProtocol(ABC):
 
 class ProducerConfig(BaseModel, SecurityProtocol):
     """Producer configuration."""
+
     bootstrap_servers: Union[str, List[str]]
 
     class Config:
         """Configuration for producer."""
+
         extra = Extra.allow
         alias_generator = _alias_generator
         allow_population_by_field_name = True
@@ -59,11 +61,13 @@ class ProducerConfig(BaseModel, SecurityProtocol):
 
 class EventsConfig(BaseModel):
     """Events configuration."""
+
     producer: ProducerConfig
     topic_maps: Mapping[str, str]
 
     class Config:
         """Configuration for events."""
+
         alias_generator = _alias_generator
         allow_population_by_field_name = True
 
@@ -83,10 +87,12 @@ class EventsConfig(BaseModel):
 
 class ConsumerConfig(BaseModel, SecurityProtocol):
     """Consumer configuration."""
+
     group_id: str
 
     class Config:
         """Configuration for consumer."""
+
         extra = Extra.allow
         alias_generator = _alias_generator
         allow_population_by_field_name = True
@@ -104,11 +110,13 @@ class ConsumerConfig(BaseModel, SecurityProtocol):
 
 class InboundConfig(BaseModel):
     """Inbound configuration."""
+
     consumer: ConsumerConfig
     topics: List[str]
 
     class Config:
         """Configuration for inbound."""
+
         alias_generator = _alias_generator
         allow_population_by_field_name = True
 
@@ -120,6 +128,7 @@ class InboundConfig(BaseModel):
 
 class OutboundConfig(BaseModel):
     """Outbound configuration."""
+
     producer: ProducerConfig
     topic: str
 
@@ -131,6 +140,7 @@ class OutboundConfig(BaseModel):
 
 class KafkaConfig(BaseModel):
     """Kafka configuration."""
+
     events: Optional[EventsConfig]
     inbound: Optional[InboundConfig]
     outbound: Optional[OutboundConfig]

@@ -26,19 +26,17 @@ class TestRoutes(AsyncTestCase):
     @asynctest.patch.object(ConnRecord, "retrieve_by_id")
     async def test_connections_update_saves_with_alias_from_body(self, mock_retrieve):
         self.request.json = async_mock.CoroutineMock()
-        self.request.json.return_value = {
-            'alias': 'test-alias'
-
-        }
+        self.request.json.return_value = {"alias": "test-alias"}
         self.request.match_info = {"conn_id": self.test_conn_id}
 
         mock_retrieve.return_value = async_mock.CoroutineMock(
-            save=async_mock.CoroutineMock(), alias="", serialize=lambda: {})
+            save=async_mock.CoroutineMock(), alias="", serialize=lambda: {}
+        )
 
         await test_module.connections_update(self.request)
 
         mock_retrieve.return_value.save.assert_called
-        assert mock_retrieve.return_value.alias == 'test-alias'
+        assert mock_retrieve.return_value.alias == "test-alias"
 
     async def test_register(self):
         mock_app = async_mock.MagicMock()

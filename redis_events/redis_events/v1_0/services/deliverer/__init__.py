@@ -7,6 +7,7 @@ from pydantic import BaseModel, PrivateAttr, validator
 
 class NoneDefaultModel(BaseModel):
     """Pydantic model that allows None as a default value."""
+
     @validator("*", pre=True)
     def not_none(cls, v, field):
         """If the value is None, return the default value."""
@@ -24,8 +25,10 @@ class NoneDefaultModel(BaseModel):
 
 class RedisQueuePayload(NoneDefaultModel):
     """Base class for payloads that are sent to the Redis queue."""
+
     class Config:
         """Pydantic config."""
+
         json_encoders = {bytes: lambda v: base64.urlsafe_b64encode(v).decode()}
 
     @classmethod
@@ -41,11 +44,13 @@ class RedisQueuePayload(NoneDefaultModel):
 
 class Service(BaseModel):
     """Service model."""
+
     url: str
 
 
 class OutboundPayload(RedisQueuePayload):
     """Payload to be sent from the Redis queue."""
+
     service: Service
     payload: bytes
     headers: dict = {}
@@ -60,7 +65,7 @@ class OutboundPayload(RedisQueuePayload):
     @validator("payload", pre=True)
     @classmethod
     def decode_payload_to_bytes(cls, v):
-        """Decode payload model to bytes."""""
+        """Decode payload model to bytes.""" ""
         assert isinstance(v, str)
         return base64.urlsafe_b64decode(v)
 

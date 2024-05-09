@@ -1,4 +1,5 @@
 """Inbound relay service agent."""
+
 import asyncio
 import base64
 import json
@@ -12,10 +13,10 @@ from aiohttp import WSMessage, WSMsgType, web
 from redis.asyncio import RedisCluster
 from redis.exceptions import RedisClusterException, RedisError
 
-from redis_events.v1_0.redis_queue.utils import (b64_to_bytes,
-                                                 process_payload_recip_key)
-from redis_events.v1_0.status_endpoint.status_endpoints import \
-    start_status_endpoints_server
+from redis_events.v1_0.redis_queue.utils import b64_to_bytes, process_payload_recip_key
+from redis_events.v1_0.status_endpoint.status_endpoints import (
+    start_status_endpoints_server,
+)
 
 logging.basicConfig(
     format="%(asctime)s | %(levelname)s: %(message)s",
@@ -75,8 +76,7 @@ class Relay:
                     msg_received = True
                 except (RedisError, RedisClusterException) as err:
                     await asyncio.sleep(1)
-                    logging.exception(
-                        f"Unexpected redis client exception: {err}")
+                    logging.exception(f"Unexpected redis client exception: {err}")
             if not msg:
                 await asyncio.sleep(0.2)
                 continue
@@ -124,8 +124,7 @@ class WSRelay(Relay):
         app.add_routes([web.get("/", self.message_handler)])
         runner = web.AppRunner(app)
         await runner.setup()
-        self.site = web.TCPSite(
-            runner, host=self.site_host, port=self.site_port)
+        self.site = web.TCPSite(runner, host=self.site_host, port=self.site_port)
         await self.site.start()
 
     async def message_handler(self, request):
@@ -151,8 +150,7 @@ class WSRelay(Relay):
                     direct_response_request = False
                     transport_dec = message_dict.get("~transport")
                     if transport_dec:
-                        direct_response_mode = transport_dec.get(
-                            "return_route")
+                        direct_response_mode = transport_dec.get("return_route")
                         if direct_response_mode and direct_response_mode != "none":
                             direct_response_request = True
                     txn_id = str(uuid4())
@@ -266,8 +264,7 @@ class HttpRelay(Relay):
         app.add_routes([web.post("/", self.message_handler)])
         runner = web.AppRunner(app)
         await runner.setup()
-        self.site = web.TCPSite(
-            runner, host=self.site_host, port=self.site_port)
+        self.site = web.TCPSite(runner, host=self.site_host, port=self.site_port)
         await self.site.start()
 
     async def invite_handler(self, request):
@@ -320,8 +317,7 @@ class HttpRelay(Relay):
                     response_sent = True
                 except (RedisError, RedisClusterException) as err:
                     await asyncio.sleep(1)
-                    logging.exception(
-                        f"Unexpected redis client exception: {err}")
+                    logging.exception(f"Unexpected redis client exception: {err}")
             try:
                 response_data = await asyncio.wait_for(
                     self.get_direct_responses(
@@ -367,8 +363,7 @@ class HttpRelay(Relay):
                     msg_sent = True
                 except (RedisError, RedisClusterException) as err:
                     await asyncio.sleep(1)
-                    logging.exception(
-                        f"Unexpected redis client exception: {err}")
+                    logging.exception(f"Unexpected redis client exception: {err}")
             return web.Response(status=200)
 
 

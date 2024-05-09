@@ -45,7 +45,9 @@ class TestRoutes(AsyncTestCase):
         mock_session = async_mock.MagicMock()
         mock_session.__aenter__ = async_mock.CoroutineMock(return_value=mock_session)
         self.profile.session = mock_session
-        self.context = AdminRequestContext.test_context(self.session_inject, profile=self.profile)
+        self.context = AdminRequestContext.test_context(
+            self.session_inject, profile=self.profile
+        )
         self.request_dict = {
             "context": self.context,
         }

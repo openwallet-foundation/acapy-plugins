@@ -6,9 +6,11 @@ import time
 import redis
 from aiohttp.test_utils import unused_port
 from aries_cloudagent.core.in_memory import InMemoryProfile
-from aries_cloudagent.transport.outbound.base import (ConnectionTarget,
-                                                      OutboundMessage,
-                                                      QueuedOutboundMessage)
+from aries_cloudagent.transport.outbound.base import (
+    ConnectionTarget,
+    OutboundMessage,
+    QueuedOutboundMessage,
+)
 from aries_cloudagent.transport.wire_format import BaseWireFormat
 from asynctest import PropertyMock
 from asynctest import TestCase as AsyncTestCase
@@ -104,8 +106,7 @@ class TestRedisOutbound(AsyncTestCase):
         await redis_outbound_inst.stop()
 
     async def test_init_no_bind_instance(self):
-        RedisOutboundQueue.running = PropertyMock(
-            side_effect=[True, True, True, False])
+        RedisOutboundQueue.running = PropertyMock(side_effect=[True, True, True, False])
         with async_mock.patch.object(
             redis.asyncio.RedisCluster,
             "from_url",
@@ -323,8 +324,7 @@ class TestRedisOutbound(AsyncTestCase):
 
     def test_recipients_from_packed_message(self):
         assert (
-            ",".join(test_util._recipients_from_packed_message(
-                TEST_PAYLOAD_BYTES))
+            ",".join(test_util._recipients_from_packed_message(TEST_PAYLOAD_BYTES))
             == "BDg8S6gkvnwDB75v5royCE1XrWn42Spx885aV7cxaNJL"
         )
 
@@ -357,8 +357,7 @@ class TestRedisOutbound(AsyncTestCase):
         self.profile.context.injector.bind_instance(
             redis.asyncio.RedisCluster,
             async_mock.MagicMock(
-                rpush=async_mock.CoroutineMock(
-                    side_effect=redis.exceptions.RedisError),
+                rpush=async_mock.CoroutineMock(side_effect=redis.exceptions.RedisError),
             ),
         )
         redis_outbound_inst = RedisOutboundQueue(
@@ -374,8 +373,7 @@ class TestRedisOutbound(AsyncTestCase):
         self.profile.context.injector.bind_instance(
             redis.asyncio.RedisCluster,
             async_mock.MagicMock(
-                rpush=async_mock.CoroutineMock(
-                    side_effect=redis.exceptions.RedisError),
+                rpush=async_mock.CoroutineMock(side_effect=redis.exceptions.RedisError),
             ),
         )
         with async_mock.patch.object(
@@ -389,9 +387,7 @@ class TestRedisOutbound(AsyncTestCase):
                 )
             ),
         ):
-            redis_outbound_inst = RedisOutboundQueue(
-                root_profile=self.profile
-            )
+            redis_outbound_inst = RedisOutboundQueue(root_profile=self.profile)
             q_out_msg = QueuedOutboundMessage(
                 profile=self.profile,
                 message=OutboundMessage(payload="test-message"),
@@ -435,9 +431,7 @@ class TestRedisOutbound(AsyncTestCase):
                 )
             ),
         ):
-            redis_outbound_inst = RedisOutboundQueue(
-                root_profile=self.profile
-            )
+            redis_outbound_inst = RedisOutboundQueue(root_profile=self.profile)
             q_out_msg = QueuedOutboundMessage(
                 profile=self.profile,
                 message=OutboundMessage(payload="test-message"),
@@ -621,10 +615,8 @@ class TestRedisOutbound(AsyncTestCase):
         test_redis_config = test_config.get_config(SETTINGS)
         assert isinstance(test_redis_config.event, test_config.EventConfig)
         assert isinstance(test_redis_config.inbound, test_config.InboundConfig)
-        assert isinstance(test_redis_config.outbound,
-                          test_config.OutboundConfig)
-        assert isinstance(test_redis_config.connection,
-                          test_config.ConnectionConfig)
+        assert isinstance(test_redis_config.outbound, test_config.OutboundConfig)
+        assert isinstance(test_redis_config.connection, test_config.ConnectionConfig)
 
         assert test_redis_config.event.event_topic_maps == {
             "^acapy::webhook::(.*)$": "acapy-webhook-$wallet_id",

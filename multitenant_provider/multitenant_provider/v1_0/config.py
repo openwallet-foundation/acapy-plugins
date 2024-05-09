@@ -1,11 +1,11 @@
 """Configuration classes for multitenant_provider."""
+
 import logging
 from datetime import timedelta
 from typing import Any, Mapping, Optional
 
 from mergedeep import merge
 from pydantic import BaseModel
-
 
 LOGGER = logging.getLogger(__name__)
 
@@ -16,11 +16,13 @@ def _alias_generator(key: str) -> str:
 
 class ManagerConfig(BaseModel):
     """Configuration for the multitenant manager."""
+
     class_name: Optional[str]  # real world, this is a UUID
     always_check_provided_wallet_key: bool = False
 
     class Config:
         """Inner class for configuration."""
+
         alias_generator = _alias_generator
         allow_population_by_field_name = True
 
@@ -36,10 +38,12 @@ class ManagerConfig(BaseModel):
 
 class ErrorsConfig(BaseModel):
     """Configuration for error handling."""
+
     on_unneeded_wallet_key: bool = True
 
     class Config:
         """Inner class for configuration."""
+
         alias_generator = _alias_generator
         allow_population_by_field_name = True
 
@@ -51,11 +55,13 @@ class ErrorsConfig(BaseModel):
 
 class TokenExpiryConfig(BaseModel):
     """Configuration for token expiry."""
+
     units: Optional[str] = "weeks"  # weeks, days, hours, minutes
     amount: int = 52
 
     class Config:
         """Inner class for configuration."""
+
         alias_generator = _alias_generator
         allow_population_by_field_name = True
 
@@ -80,6 +86,7 @@ class TokenExpiryConfig(BaseModel):
 
 class MultitenantProviderConfig(BaseModel):
     """Configuration for the multitenant provider."""
+
     manager: Optional[ManagerConfig]
     errors: Optional[ErrorsConfig]
     token_expiry: Optional[TokenExpiryConfig]
@@ -106,10 +113,8 @@ def process_config_dict(config_dict: dict) -> dict:
 def get_config(settings: Mapping[str, Any]) -> MultitenantProviderConfig:
     """Retrieve configuration from settings."""
     try:
-        LOGGER.debug("Constructing config from: %s",
-                     settings.get("plugin_config"))
-        plugin_config_dict = settings["plugin_config"].get(
-            "multitenant_provider", {})
+        LOGGER.debug("Constructing config from: %s", settings.get("plugin_config"))
+        plugin_config_dict = settings["plugin_config"].get("multitenant_provider", {})
         LOGGER.debug("Retrieved: %s", plugin_config_dict)
         plugin_config_dict = process_config_dict(plugin_config_dict)
         LOGGER.debug("Parsed: %s", plugin_config_dict)
@@ -123,6 +128,5 @@ def get_config(settings: Mapping[str, Any]) -> MultitenantProviderConfig:
         config = MultitenantProviderConfig.default()
 
     LOGGER.debug("Returning config: %s", config.json(indent=2))
-    LOGGER.debug("Returning config(aliases): %s",
-                 config.json(by_alias=True, indent=2))
+    LOGGER.debug("Returning config(aliases): %s", config.json(by_alias=True, indent=2))
     return config

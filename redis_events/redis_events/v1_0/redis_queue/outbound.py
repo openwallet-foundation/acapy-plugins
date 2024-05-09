@@ -1,7 +1,7 @@
 """Basic in memory queue."""
+
 import base64
 import json
-
 import logging
 
 from aries_cloudagent.core.profile import Profile
@@ -14,14 +14,11 @@ from aries_cloudagent.transport.wire_format import (
     DIDCOMM_V0_MIME_TYPE,
     DIDCOMM_V1_MIME_TYPE,
 )
-
 from redis.asyncio import RedisCluster
-from redis.exceptions import RedisError, RedisClusterException
+from redis.exceptions import RedisClusterException, RedisError
 
-from .config import OutboundConfig, ConnectionConfig, get_config
-from .utils import (
-    process_payload_recip_key,
-)
+from .config import ConnectionConfig, OutboundConfig, get_config
+from .utils import process_payload_recip_key
 
 LOGGER = logging.getLogger(__name__)
 

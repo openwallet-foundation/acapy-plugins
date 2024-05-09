@@ -1,7 +1,6 @@
-from marshmallow import ValidationError
 import pytest
-
 from aries_cloudagent.messaging.valid import UUID4_EXAMPLE
+from marshmallow import ValidationError
 
 from rpc.v1_0.messages import DRPCRequestMessageSchema, DRPCResponseMessageSchema
 from rpc.v1_0.routes import DRPCRequestJSONSchema, DRPCResponseJSONSchema
