@@ -37,7 +37,7 @@ def mock_logger():
 
 
 class TestManager(IsolatedAsyncioTestCase):
-    async def setUp(self):
+    async def asyncSetUp(self):
         self.profile = InMemoryProfile.test_profile()
         self.context = self.profile.context
         self.test_conn_id = "connection-id"

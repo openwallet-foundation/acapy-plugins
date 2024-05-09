@@ -13,7 +13,7 @@ from .test_init import MockConfig
 
 
 class TestRoutes(IsolatedAsyncioTestCase):
-    async def setUp(self) -> None:
+    async def asyncSetUp(self) -> None:
         self.session_inject = {}
         self.context = AdminRequestContext.test_context(self.session_inject)
         self.request_dict = {

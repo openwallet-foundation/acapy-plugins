@@ -11,7 +11,7 @@ from ..provider import CustomMultitenantManagerProvider
 
 
 class TestProvider(IsolatedAsyncioTestCase):
-    async def setUp(self) -> None:
+    async def asyncSetUp(self) -> None:
         self.profile = InMemoryProfile.test_profile()
         self.profile.inject = Mock()
         self.profile.inject.return_value = MultitenantProviderConfig(

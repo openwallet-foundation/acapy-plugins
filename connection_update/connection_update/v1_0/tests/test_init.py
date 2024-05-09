@@ -10,7 +10,7 @@ from .. import setup
 
 
 class TestInit(IsolatedAsyncioTestCase):
-    async def setUp(self) -> None:
+    async def asyncSetUp(self) -> None:
         self.session_inject = {}
         self.context = MagicMock()
         self.profile = InMemoryProfile.test_profile()

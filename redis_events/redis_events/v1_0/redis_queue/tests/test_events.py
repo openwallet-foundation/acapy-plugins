@@ -71,7 +71,7 @@ TEST_PAYLOAD_BYTES = (json.dumps(TEST_PAYLOAD_DICT)).encode()
 
 
 class TestRedisEvents(IsolatedAsyncioTestCase):
-    def setUp(self):
+    async def asyncSetUp(self):
         self.port = unused_port()
         self.session = None
         self.profile = InMemoryProfile.test_profile()

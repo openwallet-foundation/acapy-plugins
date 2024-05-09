@@ -90,7 +90,7 @@ TEST_INBOUND_INVALID = b"""{
 
 
 class TestRedisInbound(IsolatedAsyncioTestCase):
-    def setUp(self):
+    async def asyncSetUp(self):
         self.port = unused_port()
         self.session = None
         self.profile = InMemoryProfile.test_profile()

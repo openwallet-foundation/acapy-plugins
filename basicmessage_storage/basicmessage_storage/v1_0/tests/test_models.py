@@ -9,7 +9,7 @@ _id = "mytestid"
 
 
 class TestBasicMessageRecord(IsolatedAsyncioTestCase):
-    async def setUp(self) -> None:
+    async def asyncSetUp(self) -> None:
         self.session = InMemoryProfile.test_session()
 
     async def test_init_creates_record_with_default_parameters(self):
