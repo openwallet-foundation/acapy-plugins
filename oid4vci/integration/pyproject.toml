@@ -13,7 +13,7 @@ pytest-asyncio = "^0.23.5"
 requests = "^2.31.0"
 aries-askar = "^0.3.0"
 did-peer-4 = "^0.1.4"
-aiohttp = "^3.9.2"
+aiohttp = "^3.9.5"
 acapy-controller = {git = "https://github.com/indicio-tech/acapy-minimal-example.git", python = ">=3.10,<4.0"}
 pydantic = {version = "^1.10.2"}
 
