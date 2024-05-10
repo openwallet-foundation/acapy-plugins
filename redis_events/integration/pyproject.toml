@@ -11,7 +11,7 @@ pytest-asyncio = "^0.23.5"
 requests = "^2.31.0"
 aiohttp = "^3.9.5"
 aries-cloudagent = { version = ">=0.10.3, < 1.0.0" }
-fastapi = "^0.111.0"
+fastapi-slim = "^0.111.0"
 nest-asyncio = "^1.5.5"
 pydantic = "^1.10.15"
 redis = "^5.0.4"
