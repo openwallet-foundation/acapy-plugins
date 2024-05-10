@@ -9,7 +9,7 @@ readme = "README.md"
 [tool.poetry.dependencies]
 python = "^3.9"
 pytest = "^8.2.0"
-pytest-asyncio = "^0.23.5"
+pytest-asyncio = "^0.23.6"
 requests = "^2.31.0"
 aries-askar = "^0.3.0"
 did-peer-4 = "^0.1.4"
