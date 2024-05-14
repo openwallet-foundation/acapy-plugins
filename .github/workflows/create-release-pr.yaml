@@ -360,7 +360,7 @@ jobs:
         with:
           author: Release Bot <release-bot@users.noreply.github.com>
           committer: Release Bot <release-bot@users.noreply.github.com>
-          token: ${{ secrets.BOT_PR_PAT }}
+          token: ${{ secrets.GITHUB_TOKEN }}
           commit-message: "Release v${{ steps.prepare_pr.outputs.tag_version }} Upgrades"
           title: "Release for aries-cloudagent v${{ steps.prepare_pr.outputs.tag_version }}"
           body: "${{ steps.prepare_pr.outputs.pr_body }}"
