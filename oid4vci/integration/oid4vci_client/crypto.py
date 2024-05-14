@@ -1,10 +1,10 @@
 """Crypto module for OID4VCI client."""
 
-from abc import ABC, abstractmethod
 import base64
-from dataclasses import dataclass
 import json
 import time
+from abc import ABC, abstractmethod
+from dataclasses import dataclass
 from typing import Generic, TypeVar, Union
 
 from aries_askar import Key, KeyAlg

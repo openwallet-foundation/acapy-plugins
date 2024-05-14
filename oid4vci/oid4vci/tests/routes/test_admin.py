@@ -1,9 +1,10 @@
-from aiohttp import web
 from unittest.mock import AsyncMock
-from aries_cloudagent.admin.request_context import AdminRequestContext
-from oid4vci import routes as test_module
-import pytest
 
+import pytest
+from aiohttp import web
+from aries_cloudagent.admin.request_context import AdminRequestContext
+
+from oid4vci import routes as test_module
 from oid4vci.models.supported_cred import SupportedCredential
 
 

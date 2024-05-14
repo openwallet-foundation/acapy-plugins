@@ -1,12 +1,13 @@
 """Utilities for redis_queue module."""
+
 import asyncio
-import datetime
 import base64
+import datetime
 import json
 import logging
+from typing import List, Union
 
 from redis.asyncio import RedisCluster
-from typing import Union, List
 
 LOGGER = logging.getLogger(__name__)
 
@@ -47,8 +48,7 @@ def _recipients_from_packed_message(packed_message: bytes) -> List[str]:
     except Exception as err:
         raise ValueError("Invalid packed message") from err
 
-    recips_json = b64_to_bytes(
-        wrapper["protected"], urlsafe=True).decode("ascii")
+    recips_json = b64_to_bytes(wrapper["protected"], urlsafe=True).decode("ascii")
     try:
         recips_outer = json.loads(recips_json)
     except Exception as err:
@@ -161,7 +161,7 @@ async def reassign_recip_key_to_uid(
 async def process_payload_recip_key(
     redis: RedisCluster, payload: Union[str, bytes], topic: str
 ):
-    """Process payload and recip_key and return topic and message."""""
+    """Process payload and recip_key and return topic and message.""" ""
     recip_key_in = ",".join(_recipients_from_packed_message(payload))
     recip_key_in_encoded = recip_key_in.encode()
     message = str.encode(
@@ -180,8 +180,7 @@ async def process_payload_recip_key(
     if not last_accessed_map_value:
         stale_uid_check = True
     elif last_accessed_map_value and (
-        get_timedelta_seconds(str_to_datetime(
-            last_accessed_map_value.decode())) >= 15
+        get_timedelta_seconds(str_to_datetime(last_accessed_map_value.decode())) >= 15
     ):
         stale_uid_check = True
     if stale_uid_check:

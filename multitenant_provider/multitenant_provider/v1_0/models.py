@@ -1,4 +1,5 @@
 """Multitenant Provider Wallet Token(s) Record Model."""
+
 from typing import List, Optional
 
 from aries_cloudagent.core.profile import ProfileSession

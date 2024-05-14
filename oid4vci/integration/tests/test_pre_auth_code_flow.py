@@ -1,4 +1,5 @@
 """Quick test script."""
+
 import json
 from os import getenv
 from urllib.parse import urlencode

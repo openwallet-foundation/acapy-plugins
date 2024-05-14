@@ -1,11 +1,12 @@
 import asynctest
-import basicmessage_storage.v1_0 as test_module
-
 from aries_cloudagent.core.event_bus import Event
 from aries_cloudagent.core.in_memory import InMemoryProfile
 from asynctest import TestCase as AsyncTestCase
 from asynctest import mock as async_mock
 from pydantic import BaseModel
+
+import basicmessage_storage.v1_0 as test_module
+
 from .. import basic_message_event_handler, setup
 from ..models import BasicMessageRecord
 

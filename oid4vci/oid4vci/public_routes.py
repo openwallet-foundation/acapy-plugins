@@ -1,14 +1,16 @@
 """Public routes for OID4VCI."""
 
-from dataclasses import dataclass
 import datetime
 import logging
+import uuid
+from dataclasses import dataclass
 from secrets import token_urlsafe
 from typing import Any, Dict, List, Mapping, Optional
-import uuid
 
+import jwt
 from aiohttp import web
 from aiohttp_apispec import docs, form_schema, request_schema, response_schema
+from aries_askar import Key, KeyAlg
 from aries_cloudagent.admin.request_context import AdminRequestContext
 from aries_cloudagent.core.profile import Profile
 from aries_cloudagent.messaging.models.base import BaseModelError
@@ -24,8 +26,6 @@ from aries_cloudagent.wallet.jwt import (
     jwt_verify,
 )
 from aries_cloudagent.wallet.util import b58_to_bytes, b64_to_bytes
-from aries_askar import Key, KeyAlg
-import jwt
 from marshmallow import fields
 from pydid import DIDUrl
 

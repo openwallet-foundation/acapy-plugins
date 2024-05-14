@@ -237,7 +237,9 @@ class TestDRPCRoutes(AsyncTestCase):
         )
 
         self.storage.add_record = async_mock.CoroutineMock()
-        self.storage.update_record = async_mock.CoroutineMock(side_effect=StorageError())
+        self.storage.update_record = async_mock.CoroutineMock(
+            side_effect=StorageError()
+        )
 
         with self.assertRaises(web.HTTPInternalServerError):
             await test_module.drpc_send_request(self.request)

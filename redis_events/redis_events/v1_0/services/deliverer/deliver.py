@@ -1,16 +1,17 @@
 """Redis Outbound Delivery Service."""
-import aiohttp
+
 import asyncio
 import base64
+import json
 import logging
 import signal
-import json
-
 from contextlib import suppress
-from redis.asyncio import RedisCluster
-from redis.exceptions import RedisError, RedisClusterException
-from time import time
 from os import getenv
+from time import time
+
+import aiohttp
+from redis.asyncio import RedisCluster
+from redis.exceptions import RedisClusterException, RedisError
 
 from redis_events.v1_0.status_endpoint.status_endpoints import (
     start_status_endpoints_server,
@@ -125,8 +126,7 @@ class Deliverer:
                                 }
                             )
                         else:
-                            logging.error(
-                                f"Exceeded max retries for {str(endpoint)}")
+                            logging.error(f"Exceeded max retries for {str(endpoint)}")
                     else:
                         logging.info(f"Message dispatched to {endpoint}")
                 elif endpoint_scheme == "ws":
@@ -169,8 +169,7 @@ class Deliverer:
                 zadd_sent = True
             except (RedisError, RedisClusterException) as err:
                 await asyncio.sleep(1)
-                logging.exception(
-                    f"Unexpected redis client exception (zadd): {err}")
+                logging.exception(f"Unexpected redis client exception (zadd): {err}")
 
     async def process_retries(self):
         """Process retries."""

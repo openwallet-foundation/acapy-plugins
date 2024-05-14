@@ -1,13 +1,14 @@
 """Automate setup of Agency + Mediator."""
+
 import asyncio
 from os import getenv
 from typing import Any, Callable, TypeVar
 
 from acapy_client import Client
 from acapy_client.api.connection import (
+    create_invitation,
     get_connection,
     receive_invitation,
-    create_invitation,
 )
 from acapy_client.api.mediation import (
     get_mediation_requests_mediation_id,
@@ -20,6 +21,7 @@ from acapy_client.models.create_invitation_request import CreateInvitationReques
 from acapy_client.models.mediation_create_request import MediationCreateRequest
 from acapy_client.models.mediation_record import MediationRecord
 from acapy_client.models.receive_invitation_request import ReceiveInvitationRequest
+
 """
 1. Create invitation from mediator.
 2. Receive invitation in Agency.

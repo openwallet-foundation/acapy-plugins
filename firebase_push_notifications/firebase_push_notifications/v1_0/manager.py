@@ -1,4 +1,5 @@
 """This module contains the logic for sending push notifications to the user's device using the Firebase Cloud Messaging service."""  # noqa: E501
+
 import json
 import logging
 import os

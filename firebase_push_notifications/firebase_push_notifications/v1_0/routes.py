@@ -1,10 +1,10 @@
 """API for Firebase push notifications."""
+
 import logging
 import re
 
 from aiohttp import web
-from aiohttp_apispec import (docs, match_info_schema, request_schema,
-                             response_schema)
+from aiohttp_apispec import docs, match_info_schema, request_schema, response_schema
 from aries_cloudagent.admin.request_context import AdminRequestContext
 from aries_cloudagent.connections.models.conn_record import ConnRecord
 from aries_cloudagent.core.event_bus import Event, EventBus

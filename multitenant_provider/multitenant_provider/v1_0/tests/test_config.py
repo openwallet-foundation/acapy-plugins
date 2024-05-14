@@ -38,13 +38,7 @@ class TestConfig(AsyncTestCase):
 
     async def test_get_config_with_settings_returns_valid_config(self):
         settings = {
-            'plugin_config': {
-                'multitenant_provider': {
-                    'errors': {
-                        'testing...': True
-                    }
-                }
-            }
+            "plugin_config": {"multitenant_provider": {"errors": {"testing...": True}}}
         }
         config = get_config(settings)
         assert isinstance(config, MultitenantProviderConfig)

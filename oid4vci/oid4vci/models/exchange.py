@@ -1,10 +1,11 @@
 """Exchange record for OID4VCI."""
 
 from typing import Any, Dict, Optional
+
 from aries_cloudagent.core.profile import ProfileSession
 from aries_cloudagent.messaging.models.base_record import (
-    BaseRecordSchema,
     BaseExchangeRecord,
+    BaseRecordSchema,
 )
 from aries_cloudagent.messaging.valid import Uri
 from marshmallow import fields

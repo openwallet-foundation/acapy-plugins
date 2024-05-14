@@ -1,10 +1,10 @@
 """Configuration classes for multitenant_provider."""
+
 import logging
 from typing import Any, Mapping
 
 from mergedeep import merge
 from pydantic import BaseModel
-
 
 LOGGER = logging.getLogger(__name__)
 

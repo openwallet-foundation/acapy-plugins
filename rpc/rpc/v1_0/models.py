@@ -2,12 +2,10 @@
 
 from typing import Any, List, Mapping, Optional, Union
 
-from marshmallow import fields, validate, ValidationError, validates_schema
-
 from aries_cloudagent.core.profile import ProfileSession
 from aries_cloudagent.messaging.models.base import BaseModel, BaseModelSchema
 from aries_cloudagent.messaging.models.base_record import BaseRecord, BaseRecordSchema
-
+from marshmallow import ValidationError, fields, validate, validates_schema
 
 RPC_REQUEST_EXAMPLE = {
     "jsonrpc": "2.0",

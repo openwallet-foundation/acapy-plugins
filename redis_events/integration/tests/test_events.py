@@ -1,10 +1,11 @@
 """Basic Message Tests"""
+
 import json
 import time
 
 import pytest
 
-from . import FABER, ALICE, RELAY, Agent
+from . import ALICE, FABER, RELAY, Agent
 
 
 @pytest.fixture(scope="session")
@@ -62,23 +63,25 @@ async def test_base_redis_keys_are_set(redis):
 
 
 @pytest.mark.asyncio
-async def test_outbound_queue_removes_messages_from_queue_and_deliver_sends_them(faber: Agent, established_connection: str, redis):
+async def test_outbound_queue_removes_messages_from_queue_and_deliver_sends_them(
+    faber: Agent, established_connection: str, redis
+):
     faber.send_message(established_connection, "Hello Alice")
     faber.send_message(established_connection, "Another Alice")
-    messages = faber.retrieve_basicmessages()['results']
-    assert "Hello Alice" in (msg['content'] for msg in messages)
-    assert "Another Alice" in (msg['content'] for msg in messages)
+    messages = faber.retrieve_basicmessages()["results"]
+    assert "Hello Alice" in (msg["content"] for msg in messages)
+    assert "Another Alice" in (msg["content"] for msg in messages)
 
 
 @pytest.mark.asyncio
 async def test_deliverer_pulls_messages_from_queue_and_sends_them(
-    faber: Agent,
-    established_connection: str,
-    redis
+    faber: Agent, established_connection: str, redis
 ):
     test_msg = "eyJjb250ZW50IjogInRlc3QtbXNnIn0="  # {"content": "test-msg"}
     outbound_msg = {
-        "service": {"url": f"{faber.url}/connections/{established_connection}/send-message"},
+        "service": {
+            "url": f"{faber.url}/connections/{established_connection}/send-message"
+        },
         "payload": test_msg,
     }
     await redis.rpush(
@@ -87,9 +90,8 @@ async def test_deliverer_pulls_messages_from_queue_and_sends_them(
     )
 
     time.sleep(5)
-    messages = faber.retrieve_basicmessages()['results']
-    matching_msgs = [
-        msg for msg in messages if msg['content'] == "test-msg"]
+    messages = faber.retrieve_basicmessages()["results"]
+    matching_msgs = [msg for msg in messages if msg["content"] == "test-msg"]
     assert matching_msgs.__len__() == 2  # 1 for sent, 1 for received
     assert await redis.lrange("acapy_outbound", 0, -1) == []
 
@@ -123,7 +125,7 @@ async def test_deliverer_retry_on_failure(
     msg = await redis.blpop("acapy_outbound", 10)
     assert msg
     # check for manual commit of previous message by handling a new message
-    faber.send_message(established_connection, 'test-failed-msg')
+    faber.send_message(established_connection, "test-failed-msg")
     msg_received = False
     retry_pop_count = 0
     while not msg_received:
@@ -135,5 +137,6 @@ async def test_deliverer_retry_on_failure(
             time.sleep(1)
         msg_received = True
 
-    assert "test-failed-msg" in (msg['content']
-                                 for msg in faber.retrieve_basicmessages()['results'])
+    assert "test-failed-msg" in (
+        msg["content"] for msg in faber.retrieve_basicmessages()["results"]
+    )

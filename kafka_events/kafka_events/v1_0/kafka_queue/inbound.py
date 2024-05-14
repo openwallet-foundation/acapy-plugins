@@ -1,5 +1,5 @@
-
 """Kafka inbound transport classes."""
+
 import base64
 import json
 import logging
@@ -9,11 +9,11 @@ from typing import cast
 
 from aiokafka import AIOKafkaConsumer
 from aiokafka.structs import ConsumerRecord
-
 from aries_cloudagent.messaging.error import MessageParseError
-from aries_cloudagent.transport.error import WireFormatParseError, RecipientKeysError
+from aries_cloudagent.transport.error import RecipientKeysError, WireFormatParseError
 from aries_cloudagent.transport.inbound.base import BaseInboundTransport
-from .config import get_config, InboundConfig
+
+from .config import InboundConfig, get_config
 
 LOGGER = logging.getLogger(__name__)
 
@@ -35,9 +35,11 @@ class KafkaInboundTransport(BaseInboundTransport):
             *self.config.topics,
             bootstrap_servers=self.host,
             **self.config.consumer.dict(),
-            ssl_context=ssl.create_default_context()
-            if self.config.consumer.ssl_required
-            else None,
+            ssl_context=(
+                ssl.create_default_context()
+                if self.config.consumer.ssl_required
+                else None
+            ),
         )
 
     async def start(self):

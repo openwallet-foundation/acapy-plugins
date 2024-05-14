@@ -7,8 +7,10 @@ from pydantic import BaseModel, PrivateAttr, validator
 
 class KafkaQueuePayload(BaseModel):
     """Base class for payloads that are sent to the Kafka queue."""
+
     class Config:
         """Configuration class for KafkaQueuePayload."""
+
         json_encoders = {bytes: lambda v: base64.urlsafe_b64encode(v).decode()}
 
     @classmethod
@@ -24,11 +26,13 @@ class KafkaQueuePayload(BaseModel):
 
 class Service(BaseModel):
     """Model for a service that can be called."""
+
     url: str
 
 
 class OutboundPayload(KafkaQueuePayload):
     """Model for a payload that is sent to the Kafka queue."""
+
     service: Service
     payload: bytes
     retries: int = 0

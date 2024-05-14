@@ -2,6 +2,7 @@
 
 from dataclasses import dataclass
 from os import getenv
+
 from aries_cloudagent.config.base import BaseSettings
 from aries_cloudagent.config.settings import Settings
 

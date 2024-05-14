@@ -2,9 +2,9 @@
 
 import logging
 
+import aiohttp_cors
 from aiohttp import web
 from aiohttp_apispec import setup_aiohttp_apispec, validation_middleware
-import aiohttp_cors
 from aries_cloudagent.admin.base_server import BaseAdminServer
 from aries_cloudagent.admin.error import AdminSetupError
 from aries_cloudagent.admin.request_context import AdminRequestContext

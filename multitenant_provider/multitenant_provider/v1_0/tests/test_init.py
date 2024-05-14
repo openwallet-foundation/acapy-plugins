@@ -1,11 +1,11 @@
 from aries_cloudagent.core.event_bus import Event, EventBus
 from aries_cloudagent.core.in_memory import InMemoryProfile
-from asynctest import TestCase as AsyncTestCase
-from asynctest import mock as async_mock
 from aries_cloudagent.core.protocol_registry import ProtocolRegistry
 from aries_cloudagent.multitenant.base import BaseMultitenantManager
+from asynctest import TestCase as AsyncTestCase
+from asynctest import mock as async_mock
 
-from .. import setup, on_startup
+from .. import on_startup, setup
 
 
 class TestInit(AsyncTestCase):
@@ -36,10 +36,10 @@ class TestInit(AsyncTestCase):
         with self.assertRaises(ValueError):
             await setup(self.context)
 
-    async def test_on_startup_injects_base_multi_tenant_provider_when_setting_true(self):
-        self.profile.context.settings = {
-            'multitenant.enabled': True
-        }
+    async def test_on_startup_injects_base_multi_tenant_provider_when_setting_true(
+        self,
+    ):
+        self.profile.context.settings = {"multitenant.enabled": True}
         self.profile.context.injector.bind_instance = async_mock.Mock()
         self.profile.context.injector.bind_provider = async_mock.Mock()
         self.profile.context.inject = async_mock.Mock()
@@ -56,11 +56,8 @@ class TestInit(AsyncTestCase):
             await on_startup(self.profile, event)
 
     async def test_on_startup_raises_error_when_config_false(self):
-        self.profile.context.settings = {
-            'multitenant.enabled': False
-        }
+        self.profile.context.settings = {"multitenant.enabled": False}
         event = Event(topic="test", payload={})
 
         with self.assertRaises(ValueError):
             await on_startup(self.profile, event)
-

@@ -1,4 +1,5 @@
 """HTTP to Kafka Relay."""
+
 import base64
 import json
 import logging
