@@ -12,13 +12,12 @@ on:
     - cron: "0 0 * * *"
 
 
-permissions:
-  contents: write
-
 jobs:
   checks:
     name: "Create Release PR"
-    permissions: write-all
+    permissions:
+      contents: write
+      pull-requests: write
     runs-on: ubuntu-latest
     outputs:
       current_available_version: ${{ steps.current_available_version.outputs.version }}
