@@ -12,13 +12,12 @@ on:
     - cron: "0 0 * * *"
 
 
-permissions:
-  contents: write
-
 jobs:
   checks:
     name: "Create Release PR"
-    permissions: write-all
+    permissions:
+      contents: write
+      pull-requests: write
     runs-on: ubuntu-latest
     outputs:
       current_available_version: ${{ steps.current_available_version.outputs.version }}
@@ -360,7 +359,7 @@ jobs:
         with:
           author: Release Bot <release-bot@users.noreply.github.com>
           committer: Release Bot <release-bot@users.noreply.github.com>
-          token: ${{ secrets.BOT_PR_PAT }}
+          token: ${{ secrets.GITHUB_TOKEN }}
           commit-message: "Release v${{ steps.prepare_pr.outputs.tag_version }} Upgrades"
           title: "Release for aries-cloudagent v${{ steps.prepare_pr.outputs.tag_version }}"
           body: "${{ steps.prepare_pr.outputs.pr_body }}"

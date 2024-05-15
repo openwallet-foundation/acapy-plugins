@@ -5,14 +5,11 @@ on:
     branches: ['main']
     paths: ['*/poetry.lock']
 
-permissions:
-  contents: write
-
 jobs:
-
   checks:
     name: "Create Release"
-    permissions: write-all
+    permissions:
+      contents: write
     runs-on: ubuntu-latest
     outputs:
       should_create_release: ${{ steps.should_create_release.outputs.should_create_release }}
