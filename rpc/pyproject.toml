@@ -1,7 +1,7 @@
 [tool.poetry]
 name = "rpc"
 version = "0.1.0"
-description = ""
+description = " (Supported aries-cloudagent version: 0.12.1) "
 authors = []
 
 [tool.poetry.dependencies]

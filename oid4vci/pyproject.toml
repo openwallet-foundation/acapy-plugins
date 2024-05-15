@@ -1,7 +1,7 @@
 [tool.poetry]
 name = "oid4vci"
 version = "0.1.0"
-description = "oid4vci plugin for acapy."
+description = "oid4vci plugin for acapy. (Supported aries-cloudagent version: 0.12.1) "
 authors = ["Adam Burdett <burdettadam@gmail.com>"]
 readme = "README.md"
 
