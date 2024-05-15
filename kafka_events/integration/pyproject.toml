@@ -17,7 +17,7 @@ aiokafka = "^0.7.1"
 echo-agent = {git = "https://github.com/indicio-tech/echo-agent.git", rev = "4cfaf5f7c88bcc3953fdb0b43885c028413a09dc", extras = ["client"]}
 
 [tool.poetry.dev-dependencies]
-black = "^21.6b0"
+black = "^24.3"
 flake8 = "^3.9.2"
 pre-commit = "^2.13.0"
 
