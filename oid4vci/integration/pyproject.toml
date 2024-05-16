@@ -18,7 +18,7 @@ acapy-controller = {git = "https://github.com/indicio-tech/acapy-minimal-example
 pydantic = "^1.10.15"
 
 [tool.poetry.group.dev.dependencies]
-black = "^23.11.0"
+black = "^24.4.2"
 ruff = "^0.4.4"
 
 [tool.poetry.dev-dependencies]
