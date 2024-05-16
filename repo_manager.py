@@ -22,7 +22,7 @@ class PluginInfo:
         self.description = description
 
 
-class MangagedPoetrySections(str, Enum):
+class ManagedPoetrySections(str, Enum):
     META = "[tool.poetry]"
     DEPS = "[tool.poetry.dependencies]"
     DEV_DEPS = "[tool.poetry.dev-dependencies]"
@@ -102,7 +102,7 @@ def copy_all_common_files_for_new_plugin(info: PluginInfo) -> None:
         replace_plugin_tag(f"./{info.name}/{file.value}", info)
 
 
-def combine_dependenices(plugin_dependencies, global_dependencies) -> None:
+def combine_dependencies(plugin_dependencies, global_dependencies) -> None:
     """Add the plugin dependencies to the global dependencies if they are plugin specific."""
     for p_dep in plugin_dependencies:
         if p_dep.split("=")[0].strip() not in [
@@ -114,7 +114,7 @@ def combine_dependenices(plugin_dependencies, global_dependencies) -> None:
 def is_end_of_section(line: str, current_section: str) -> bool:
     str_line = line.strip()
     return (
-        str_line in [section.value for section in MangagedPoetrySections]
+        str_line in [section.value for section in ManagedPoetrySections]
         and str_line != current_section
     )
 
@@ -136,7 +136,7 @@ def extract_common_sections(filedata: str, sections: dict) -> None:
     filedata = filedata.split("\n")
     for i in range(len(filedata)):
         line = filedata[i]
-        for section in MangagedPoetrySections:
+        for section in ManagedPoetrySections:
             if line.startswith(section.value):
                 i += get_section(i + 1, filedata, sections[section.name], section.value)
 
@@ -177,9 +177,9 @@ def get_and_combine_main_poetry_sections(name: str) -> (dict, dict):
         filedata = file.read()
         extract_common_sections(filedata, plugin_sections)
 
-    combine_dependenices(plugin_sections["DEPS"], global_sections["DEPS"])
-    combine_dependenices(plugin_sections["DEV_DEPS"], global_sections["DEV_DEPS"])
-    combine_dependenices(plugin_sections["INT_DEPS"], global_sections["INT_DEPS"])
+    combine_dependencies(plugin_sections["DEPS"], global_sections["DEPS"])
+    combine_dependencies(plugin_sections["DEV_DEPS"], global_sections["DEV_DEPS"])
+    combine_dependencies(plugin_sections["INT_DEPS"], global_sections["INT_DEPS"])
     return global_sections, plugin_sections
 
 
@@ -190,14 +190,14 @@ def process_main_config_sections(
     with open(f"./{GLOBAL_PLUGIN_DIR}/{TAGGED_FILES.PYPROJECT.value}", "r") as in_file:
         content = in_file.readlines()
 
-    sections = [section.value for section in MangagedPoetrySections]
+    sections = [section.value for section in ManagedPoetrySections]
 
     output = []
     with open(f"./{name}/{TAGGED_FILES.PYPROJECT.value}", "w") as out_file:
         i = 0
         while i < len(content):
-            if content[i].startswith(MangagedPoetrySections.META.value):
-                output.append(MangagedPoetrySections.META.value + "\n")
+            if content[i].startswith(ManagedPoetrySections.META.value):
+                output.append(ManagedPoetrySections.META.value + "\n")
                 [output.append(line + "\n") for line in plugin_sections["META"]]
                 output.append("\n")
                 i += 1
@@ -209,7 +209,7 @@ def process_main_config_sections(
                         content,
                         output,
                         global_sections[
-                            MangagedPoetrySections(content[i].strip()).name
+                            ManagedPoetrySections(content[i].strip()).name
                         ],
                         content[i],
                     )
@@ -233,8 +233,8 @@ def get_and_combine_integration_poetry_sections(name: str) -> tuple[dict, dict]:
         filedata = file.read()
 
     extract_common_sections(filedata, plugin_sections)
-    combine_dependenices(plugin_sections["DEPS"], global_sections["DEPS"])
-    combine_dependenices(plugin_sections["DEV_DEPS"], global_sections["DEV_DEPS"])
+    combine_dependencies(plugin_sections["DEPS"], global_sections["DEPS"])
+    combine_dependencies(plugin_sections["DEV_DEPS"], global_sections["DEV_DEPS"])
 
     return global_sections, plugin_sections
 
@@ -242,20 +242,20 @@ def get_and_combine_integration_poetry_sections(name: str) -> tuple[dict, dict]:
 def process_integration_config_sections(
     name: str, plugin_sections: dict, global_sections: dict
 ) -> None:
-    """Process the integration test config sections and write them to the plugins intergqtion/pyproject.toml file."""
+    """Process the integration test config sections and write them to the plugins integration/pyproject.toml file."""
     with open(
         f"./{GLOBAL_PLUGIN_DIR}/{TAGGED_FILES.PYPROJECT_INTEGRATION.value}", "r"
     ) as in_file:
         content = in_file.readlines()
 
-    sections = [section.value for section in MangagedPoetrySections]
+    sections = [section.value for section in ManagedPoetrySections]
 
     output = []
     with open(f"./{name}/{TAGGED_FILES.PYPROJECT_INTEGRATION.value}", "w") as out_file:
         i = 0
         while i < len(content):
-            if content[i].startswith(MangagedPoetrySections.META.value):
-                output.append(MangagedPoetrySections.META.value + "\n")
+            if content[i].startswith(ManagedPoetrySections.META.value):
+                output.append(ManagedPoetrySections.META.value + "\n")
                 [output.append(line + "\n") for line in plugin_sections["META"]]
                 i += 1
                 output.append("\n")
@@ -267,7 +267,7 @@ def process_integration_config_sections(
                         content,
                         output,
                         global_sections[
-                            MangagedPoetrySections(content[i].strip()).name
+                            ManagedPoetrySections(content[i].strip()).name
                         ],
                         content[i],
                     )
@@ -288,7 +288,7 @@ def replace_global_sections(name: str) -> None:
 
 
 def is_plugin_directory(plugin_name: str) -> bool:
-    # If there is a drirectory which is not a plugin it should be ignored here
+    # If there is a directory which is not a plugin it should be ignored here
     return (
         os.path.isdir(plugin_name)
         and plugin_name != GLOBAL_PLUGIN_DIR
@@ -423,11 +423,11 @@ def main(arg_1=None):
 
     elif selection == "5":
         """
-        Extact the plugins from the RELEASES.md and determine which plugins which can be
+        Extract the plugins from the RELEASES.md and determine which plugins which can be
         upgraded or are new based off of the global aries-cloudagent version.
         """
 
-        # All the pugins. Used to determine which plugins are new.
+        # All the plugins. Used to determine which plugins are new.
         all_plugins = [
             plugin for plugin in os.listdir("./") if is_plugin_directory(plugin)
         ]
