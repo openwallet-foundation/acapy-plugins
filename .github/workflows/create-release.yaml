@@ -12,6 +12,7 @@ jobs:
       contents: write
     runs-on: ubuntu-latest
     outputs:
+      current_global_version: ${{ steps.current_global_version.outputs.version }}
       should_create_release: ${{ steps.should_create_release.outputs.should_create_release }}
       body: ${{ steps.prepare_release.outputs.body }}
       tag: ${{ steps.prepare_release.outputs.tag }}
@@ -28,6 +29,17 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: '3.9'
+      #----------------------------------------------
+      #       Check the latest version from plugins_global lock file
+      #----------------------------------------------
+      - name: Get global aries-cloudagent version from plugins repo
+        id: current_global_version
+        run: |
+          cd plugin_globals
+          lock_version=$(grep -A1 'name = "aries-cloudagent"' poetry.lock | grep -v 'name = "aries-cloudagent"')
+          version=$(grep -oP '(?<=").*?(?=")' <<< "$lock_version")
+          echo current_global_version=$version >> $GITHUB_OUTPUT
+          echo "Global version = $version"
       # ----------------------------------------------
       #       Check if a release should be created
       # ----------------------------------------------
@@ -45,14 +57,22 @@ jobs:
           # Check if any of the changed files are poetry.lock files
           # and if they not match the global poetry.lock file
 
+          # Compare versions
+          current_global_version="${{steps.current_global_version.outputs.current_global_version}}"
+          sem_version () { 
+            echo "$@" | awk -F. '{ printf("%d%03d%03d%03d\n", $1,$2,$3,$4); }'; 
+          }
+
           for file in ${get_changed_files}; do
             if [[ $file == *"/poetry.lock"* ]] && [[ $file != *"integration/poetry.lock"* ]]; then
-              for plugin in ${upgraded_plugins}; do
-                if [[ $file == *"$plugin"* ]]; then
-                  echo "Upgrade Detected for $plugin in file $file"
-                  found_upgrade=true
-                fi
-              done
+              lock_version=$(grep -A1 'name = "aries-cloudagent"' $file | grep -v 'name = "aries-cloudagent"')
+              version=$(grep -oP '(?<=").*?(?=")' <<< "$lock_version")
+              echo "Version = $version"
+              echo "Global Version = $current_global_version"
+              if [[ $(sem_version $current_global_version) -ge $(sem_version $version) ]]; then
+                echo "Upgrade Detected for $plugin in file $file"
+                found_upgrade=true
+              fi
             fi
           done
 
