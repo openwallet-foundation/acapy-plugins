@@ -75,7 +75,7 @@ jobs:
       #       Re-Release Check
       #----------------------------------------------
       - name: Re-Release Check
-        if: ${{ github.event.inputs.re_release == 'true' }}
+        if: github.event.inputs.re_release == 'true'
         run: |
           echo "Re-Release manually requested. Skipping upgrade available check."
       #----------------------------------------------
@@ -83,7 +83,8 @@ jobs:
       #       If the global version is greater than or equal to the remote version, exit
       #----------------------------------------------
       - name: Check if aries-cloudagent upgrade available
-        if: ${{ github.event.inputs.re_release != 'true' }}
+        id: upgrade_available
+        if: github.event.inputs.re_release != 'true'
         run: |
           current_available_version="${{steps.current_available_version.outputs.current_available_version}}"
           echo "Remote version = $current_available_version"
@@ -99,11 +100,13 @@ jobs:
             echo "Version of aries-cloudagent is up to date"
             exit 0
           fi
+            echo available=true >> $GITHUB_OUTPUT
             echo "Detected aries-cloudagent upgrade available..."
       #----------------------------------------------
       #       Update global aries-cloudagent version in lock file
       #----------------------------------------------
       - name: Update global acapy version
+        if: ${{ steps.upgrade_available.outputs.available == 'true' && github.event.inputs.re_release != 'true'}} 
         run: |
           python repo_manager.py 3
           echo "Update global acapy version"
@@ -111,6 +114,7 @@ jobs:
       #       Update all plugins with aries-cloudagent and global and local dependencies
       #----------------------------------------------
       - name: Run global updates
+        if: ${{ steps.upgrade_available.outputs.available == 'true' && github.event.inputs.re_release != 'true'}} 
         run: |
           python repo_manager.py 2
           echo "Upgrade all plugins"
@@ -118,6 +122,7 @@ jobs:
       #       Get all potential upgrades
       #----------------------------------------------
       - name: Get all potential upgrades
+        if: ${{ steps.upgrade_available.outputs.available == 'true' && github.event.inputs.re_release != 'true'}} 
         id: all_potential_upgrades
         run: |
           declare -a potential_upgrades=()
@@ -147,6 +152,7 @@ jobs:
       #----------------------------------------------
       - name: Lint plugins
         id: lint_plugins
+        if: ${{ steps.upgrade_available.outputs.available == 'true' && github.event.inputs.re_release != 'true'}} 
         continue-on-error: true
         run: |
           declare -a failed_plugins=()
@@ -171,6 +177,7 @@ jobs:
       #----------------------------------------------
       - name: Unit Test Plugins
         id: unit_test_plugins
+        if: ${{ steps.upgrade_available.outputs.available == 'true' && github.event.inputs.re_release != 'true'}} 
         continue-on-error: true
         run: |
           declare -a failed_plugins=()
@@ -194,11 +201,13 @@ jobs:
       #       Install docker compose
       # ----------------------------------------------
       - name: Initialize Docker Compose
+        if: ${{ steps.upgrade_available.outputs.available == 'true' && github.event.inputs.re_release != 'true'}} 
         uses: isbang/compose-action@v1.5.1
       # ----------------------------------------------
       #       Collect plugins that fail integration tests
       # ----------------------------------------------
       - name: Integration Test Plugins
+        if: ${{ steps.upgrade_available.outputs.available == 'true' && github.event.inputs.re_release != 'true'}} 
         id: integration_test_plugins
         continue-on-error: true
         run: |
@@ -234,6 +243,7 @@ jobs:
       # ----------------------------------------------
       - name: Prepare Pull Request 
         id: prepare_pr
+        if: ${{ steps.upgrade_available.outputs.available == 'true' && github.event.inputs.re_release != 'true'}} 
         run: |
           echo "Merging failed plugins"
           failed_plugins=()
@@ -355,6 +365,7 @@ jobs:
       #       Create Release PR
       #----------------------------------------------
       - name: Create PR
+        if: ${{ steps.upgrade_available.outputs.available == 'true' && github.event.inputs.re_release != 'true'}} 
         uses: peter-evans/create-pull-request@v6
         with:
           author: Release Bot <release-bot@users.noreply.github.com>
