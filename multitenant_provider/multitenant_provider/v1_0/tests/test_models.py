@@ -1,16 +1,17 @@
-import asynctest
+from unittest import IsolatedAsyncioTestCase
+from unittest.mock import patch
+
 from aries_cloudagent.core.in_memory import InMemoryProfile
 from aries_cloudagent.storage.error import StorageDuplicateError, StorageNotFoundError
-from asynctest import TestCase as AsyncTestCase
 
 from ..models import WalletTokenRecord
 
 
-class TestModels(AsyncTestCase):
-    def setUp(self) -> None:
+class TestModels(IsolatedAsyncioTestCase):
+    async def asyncSetUp(self) -> None:
         self.profile = InMemoryProfile.test_profile()
 
-    @asynctest.patch.object(
+    @patch.object(
         WalletTokenRecord,
         "query",
         return_value=["test-wallet"],
@@ -23,7 +24,7 @@ class TestModels(AsyncTestCase):
         assert mock_query.called
         assert found_token_record == "test-wallet"
 
-    @asynctest.patch.object(
+    @patch.object(
         WalletTokenRecord,
         "query",
         return_value=["test-wallet-1", "test-wallet-2"],
@@ -38,7 +39,7 @@ class TestModels(AsyncTestCase):
             )
             assert mock_query.called
 
-    @asynctest.patch.object(
+    @patch.object(
         WalletTokenRecord,
         "query",
         return_value=[],

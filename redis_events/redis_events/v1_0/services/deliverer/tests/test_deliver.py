@@ -4,12 +4,11 @@ import json
 import os
 import string
 from time import time
+from unittest import IsolatedAsyncioTestCase
+from unittest.mock import AsyncMock, MagicMock, PropertyMock, patch
 
 import aiohttp
 import redis
-from asynctest import PropertyMock
-from asynctest import TestCase as AsyncTestCase
-from asynctest import mock as async_mock
 
 from .. import deliver as test_module
 from ..deliver import Deliverer, main
@@ -158,17 +157,17 @@ test_msg_err_c = (
 )
 
 
-class TestRedisHandler(AsyncTestCase):
+class TestRedisHandler(IsolatedAsyncioTestCase):
     async def test_main(self):
-        with async_mock.patch.object(
+        with patch.object(
             redis.asyncio.RedisCluster,
             "from_url",
-            async_mock.MagicMock(),
-        ) as mock_redis, async_mock.patch.object(
+            MagicMock(),
+        ) as mock_redis, patch.object(
             Deliverer, "process_delivery", autospec=True
-        ), async_mock.patch.object(
+        ), patch.object(
             Deliverer, "process_retries", autospec=True
-        ), async_mock.patch.dict(
+        ), patch.dict(
             os.environ,
             {
                 "REDIS_SERVER_URL": "test",
@@ -177,10 +176,10 @@ class TestRedisHandler(AsyncTestCase):
                 "STATUS_ENDPOINT_PORT": "0.0.0.0",
                 "STATUS_ENDPOINT_API_KEY": "test1234",
             },
-        ), async_mock.patch.object(
-            test_module, "start_status_endpoints_server", async_mock.CoroutineMock()
+        ), patch.object(
+            test_module, "start_status_endpoints_server", AsyncMock()
         ) as mock_status_endpoint:
-            mock_redis.return_value = async_mock.MagicMock()
+            mock_redis.return_value = MagicMock()
             await main()
             mock_status_endpoint.assert_called_once()
 
@@ -188,17 +187,17 @@ class TestRedisHandler(AsyncTestCase):
         with self.assertRaises(SystemExit):
             await main()
 
-        with async_mock.patch.object(
+        with patch.object(
             redis.asyncio.RedisCluster,
             "from_url",
-            async_mock.MagicMock(),
-        ) as mock_redis, async_mock.patch.object(
+            MagicMock(),
+        ) as mock_redis, patch.object(
             Deliverer, "process_delivery", autospec=True
-        ), async_mock.patch.object(
+        ), patch.object(
             Deliverer, "process_retries", autospec=True
-        ), async_mock.patch.object(
-            test_module, "start_status_endpoints_server", async_mock.CoroutineMock()
-        ) as mock_status_endpoint, async_mock.patch.dict(
+        ), patch.object(
+            test_module, "start_status_endpoints_server", AsyncMock()
+        ) as mock_status_endpoint, patch.dict(
             os.environ,
             {
                 "REDIS_SERVER_URL": "test",
@@ -206,17 +205,17 @@ class TestRedisHandler(AsyncTestCase):
         ):
             await main()
             assert mock_status_endpoint.call_count == 0
-        with async_mock.patch.object(
+        with patch.object(
             redis.asyncio.RedisCluster,
             "from_url",
-            async_mock.MagicMock(),
-        ) as mock_redis, async_mock.patch.object(
+            MagicMock(),
+        ) as mock_redis, patch.object(
             Deliverer, "process_delivery", autospec=True
-        ), async_mock.patch.object(
+        ), patch.object(
             Deliverer, "process_retries", autospec=True
-        ), async_mock.patch.object(
-            test_module, "start_status_endpoints_server", async_mock.CoroutineMock()
-        ) as mock_status_endpoint, async_mock.patch.dict(
+        ), patch.object(
+            test_module, "start_status_endpoints_server", AsyncMock()
+        ) as mock_status_endpoint, patch.dict(
             os.environ,
             {
                 "REDIS_SERVER_URL": "test",
@@ -228,19 +227,17 @@ class TestRedisHandler(AsyncTestCase):
             assert mock_status_endpoint.call_count == 0
         sentinel = PropertyMock(return_value=False)
         Deliverer.running = sentinel
-        with async_mock.patch.object(
+        with patch.object(
             redis.asyncio.RedisCluster,
             "from_url",
-            async_mock.MagicMock(
-                ping=async_mock.CoroutineMock(side_effect=redis.exceptions.RedisError)
-            ),
-        ) as mock_redis, async_mock.patch.object(
+            MagicMock(ping=AsyncMock(side_effect=redis.exceptions.RedisError)),
+        ) as mock_redis, patch.object(
             Deliverer, "process_delivery", autospec=True
-        ), async_mock.patch.object(
+        ), patch.object(
             Deliverer, "process_retries", autospec=True
-        ), async_mock.patch.object(
-            test_module, "start_status_endpoints_server", async_mock.CoroutineMock()
-        ) as mock_status_endpoint, async_mock.patch.dict(
+        ), patch.object(
+            test_module, "start_status_endpoints_server", AsyncMock()
+        ) as mock_status_endpoint, patch.dict(
             os.environ,
             {
                 "REDIS_SERVER_URL": "test",
@@ -253,79 +250,77 @@ class TestRedisHandler(AsyncTestCase):
             assert mock_status_endpoint.call_count == 1
 
     async def test_run(self):
-        with async_mock.patch.object(
+        with patch.object(
             redis.asyncio.RedisCluster,
             "from_url",
-            async_mock.MagicMock(),
-        ) as mock_redis, async_mock.patch.object(
-            Deliverer, "process_delivery", async_mock.CoroutineMock()
-        ), async_mock.patch.object(
-            Deliverer, "process_retries", async_mock.CoroutineMock()
+            MagicMock(),
+        ) as mock_redis, patch.object(
+            Deliverer, "process_delivery", AsyncMock()
+        ), patch.object(
+            Deliverer, "process_retries", AsyncMock()
         ):
             Deliverer.running = False
             service = Deliverer("test", "test_topic", "test_retry_topic")
             await service.run()
 
-        with async_mock.patch.object(
+        with patch.object(
             redis.asyncio.RedisCluster,
             "from_url",
-            async_mock.MagicMock(side_effect=redis.exceptions.RedisError),
-        ) as mock_redis, async_mock.patch.object(
-            Deliverer, "process_delivery", async_mock.CoroutineMock()
-        ), async_mock.patch.object(
-            Deliverer, "process_retries", async_mock.CoroutineMock()
+            MagicMock(side_effect=redis.exceptions.RedisError),
+        ) as mock_redis, patch.object(
+            Deliverer, "process_delivery", AsyncMock()
+        ), patch.object(
+            Deliverer, "process_retries", AsyncMock()
         ):
             Deliverer.running = False
             service = Deliverer("test", "test_topic", "test_retry_topic")
             await service.run()
 
     async def test_process_delivery_http(self):
-        with async_mock.patch.object(
+        with patch.object(
             test_module.aiohttp,
             "ClientSession",
-            async_mock.MagicMock(closed=False),
-        ) as mock_session, async_mock.patch.object(
+            MagicMock(closed=False),
+        ) as mock_session, patch.object(
             redis.asyncio.RedisCluster,
             "from_url",
-            async_mock.MagicMock(),
-        ) as mock_redis, async_mock.patch.object(
-            Deliverer, "process_retries", async_mock.CoroutineMock()
+            MagicMock(),
+        ) as mock_redis, patch.object(
+            Deliverer, "process_retries", AsyncMock()
         ):
-            mock_session.return_value = async_mock.MagicMock(
-                post=async_mock.CoroutineMock(
-                    return_value=async_mock.MagicMock(status=200)
-                ),
-                close=async_mock.CoroutineMock(),
+            mock_session.return_value = MagicMock(
+                post=AsyncMock(return_value=MagicMock(status=200)),
+                close=AsyncMock(),
             )
             Deliverer.running = PropertyMock(side_effect=[True, True, True, False])
-            mock_redis.blpop = async_mock.CoroutineMock(
+            mock_redis.blpop = AsyncMock(
                 side_effect=[
                     test_msg_a,
                     test_msg_c,
                     test_msg_d,
                 ]
             )
-            mock_redis.rpush = async_mock.CoroutineMock()
-            mock_redis.zadd = async_mock.CoroutineMock()
+            mock_redis.rpush = AsyncMock()
+            mock_redis.zadd = AsyncMock()
             service = Deliverer("test", "test_topic", "test_retry_topic")
             service.redis = mock_redis
             await service.process_delivery()
 
-        with async_mock.patch.object(
+        with patch.object(
             aiohttp.ClientSession,
             "post",
-            async_mock.CoroutineMock(return_value=async_mock.MagicMock(status=200)),
-        ), async_mock.patch.object(
+            AsyncMock(return_value=MagicMock(status=200)),
+        ), patch.object(
             redis.asyncio.RedisCluster,
             "from_url",
-            async_mock.MagicMock(),
-        ) as mock_redis, async_mock.patch.object(
-            Deliverer, "process_retries", async_mock.CoroutineMock()
+            MagicMock(),
+        ) as mock_redis, patch.object(
+            Deliverer, "process_retries", AsyncMock()
         ):
             Deliverer.running = PropertyMock(
                 side_effect=[True, True, True, True, False]
             )
-            mock_redis.blpop = async_mock.CoroutineMock(
+            mock_redis.blpop = AsyncMock(
                 side_effect=[
                     test_msg_a,
                     None,
@@ -333,33 +328,33 @@ class TestRedisHandler(AsyncTestCase):
                     test_msg_d,
                 ]
             )
-            mock_redis.rpush = async_mock.CoroutineMock()
-            mock_redis.zadd = async_mock.CoroutineMock()
+            mock_redis.rpush = AsyncMock()
+            mock_redis.zadd = AsyncMock()
             service = Deliverer("test", "test_topic", "test_retry_topic")
             service.redis = mock_redis
             await service.process_delivery()
 
     async def test_process_delivery_msg_x(self):
-        with async_mock.patch.object(
+        with patch.object(
             aiohttp.ClientSession,
             "post",
-            async_mock.CoroutineMock(
+            AsyncMock(
                 side_effect=[
                     aiohttp.ClientError,
                     asyncio.TimeoutError,
-                    async_mock.MagicMock(status=400),
-                    async_mock.MagicMock(status=200),
+                    MagicMock(status=400),
+                    MagicMock(status=200),
                 ]
             ),
-        ), async_mock.patch.object(
+        ), patch.object(
             redis.asyncio.RedisCluster,
             "from_url",
-            async_mock.MagicMock(),
+            MagicMock(),
         ) as mock_redis:
             Deliverer.running = PropertyMock(
                 side_effect=[True, True, True, True, False]
             )
-            mock_redis.blpop = async_mock.CoroutineMock(
+            mock_redis.blpop = AsyncMock(
                 side_effect=[
                     test_module.RedisError,
                     test_msg_a,
@@ -368,9 +363,9 @@ class TestRedisHandler(AsyncTestCase):
                     test_msg_err_c,
                 ]
             )
-            mock_redis.ping = async_mock.CoroutineMock()
-            mock_redis.rpush = async_mock.CoroutineMock()
-            mock_redis.zadd = async_mock.CoroutineMock(
+            mock_redis.ping = AsyncMock()
+            mock_redis.rpush = AsyncMock()
+            mock_redis.zadd = AsyncMock(
                 side_effect=[test_module.RedisError, None, None]
             )
             service = Deliverer("test", "test_topic", "test_retry_topic")
@@ -378,98 +373,94 @@ class TestRedisHandler(AsyncTestCase):
             await service.process_delivery()
 
     async def test_process_retries_a(self):
-        with async_mock.patch.object(
+        with patch.object(
             redis.asyncio.RedisCluster,
             "from_url",
-            async_mock.MagicMock(),
+            MagicMock(),
         ) as mock_redis:
             Deliverer.running = PropertyMock(side_effect=[True, True, True, False])
-            mock_redis.zrangebyscore = async_mock.CoroutineMock(
+            mock_redis.zrangebyscore = AsyncMock(
                 side_effect=[
                     test_msg_e,
                     test_msg_e,
                     None,
                 ]
             )
-            mock_redis.zrem = async_mock.CoroutineMock(return_value=1)
-            mock_redis.rpush = async_mock.CoroutineMock()
+            mock_redis.zrem = AsyncMock(return_value=1)
+            mock_redis.rpush = AsyncMock()
             service = Deliverer("test", "test_topic", "test_retry_topic")
             service.retry_timedelay_s = 0.1
             service.redis = mock_redis
             await service.process_retries()
 
     async def test_process_retries_b(self):
-        with async_mock.patch.object(
+        with patch.object(
             redis.asyncio.RedisCluster,
             "from_url",
-            async_mock.MagicMock(),
+            MagicMock(),
         ) as mock_redis:
             Deliverer.running = PropertyMock(side_effect=[True, False])
-            mock_redis.zrangebyscore = async_mock.CoroutineMock(
+            mock_redis.zrangebyscore = AsyncMock(
                 side_effect=[
                     test_module.RedisError,
                     [test_msg_e, test_msg_e, test_msg_e],
                 ]
             )
-            mock_redis.zrem = async_mock.CoroutineMock(
+            mock_redis.zrem = AsyncMock(
                 side_effect=[0, test_module.RedisError, test_msg_e, 0]
             )
-            mock_redis.rpush = async_mock.CoroutineMock(
-                side_effect=[test_module.RedisError, None]
-            )
+            mock_redis.rpush = AsyncMock(side_effect=[test_module.RedisError, None])
             service = Deliverer("test", "test_topic", "test_retry_topic")
             service.retry_timedelay_s = 0.1
             service.redis = mock_redis
             await service.process_retries()
 
     async def test_is_running(self):
-        with async_mock.patch.object(
+        with patch.object(
             redis.asyncio.RedisCluster,
             "from_url",
-            async_mock.MagicMock(),
+            MagicMock(),
         ) as mock_redis:
             sentinel = PropertyMock(return_value=True)
             Deliverer.running = sentinel
             service = Deliverer("test", "test_topic", "test_retry_topic")
-            mock_redis = async_mock.MagicMock(ping=async_mock.CoroutineMock())
+            mock_redis = MagicMock(ping=AsyncMock())
             service.redis = mock_redis
             service.running = True
             assert await service.is_running()
             sentinel = PropertyMock(return_value=False)
             Deliverer.running = sentinel
             service = Deliverer("test", "test_topic", "test_retry_topic")
-            mock_redis = async_mock.MagicMock(ping=async_mock.CoroutineMock())
+            mock_redis = MagicMock(ping=AsyncMock())
             service.redis = mock_redis
             service.running = False
             assert not await service.is_running()
             sentinel = PropertyMock(return_value=True)
             Deliverer.running = sentinel
             service = Deliverer("test", "test_topic", "test_retry_topic")
-            mock_redis = async_mock.MagicMock(
-                ping=async_mock.CoroutineMock(side_effect=redis.exceptions.RedisError)
+            mock_redis = MagicMock(
+                ping=AsyncMock(side_effect=redis.exceptions.RedisError)
             )
             service.redis = mock_redis
             service.running = True
             assert not await service.is_running()
 
     def test_init(self):
-        with async_mock.patch.object(
-            test_module, "__name__", "__main__"
-        ), async_mock.patch.object(
+        with patch.object(test_module, "__name__", "__main__"), patch.object(
             test_module, "signal", autospec=True
-        ), async_mock.patch.object(
+        ), patch.object(
             test_module,
             "asyncio",
-            async_mock.MagicMock(
-                get_event_loop=async_mock.MagicMock(
-                    add_signal_handler=async_mock.MagicMock(),
-                    run_until_complete=async_mock.MagicMock(),
-                    close=async_mock.MagicMock(),
+            MagicMock(
+                get_event_loop=MagicMock(
+                    add_signal_handler=MagicMock(),
+                    run_until_complete=MagicMock(),
+                    close=MagicMock(),
                 ),
-                ensure_future=async_mock.MagicMock(
-                    cancel=async_mock.MagicMock(),
+                ensure_future=MagicMock(
+                    cancel=MagicMock(),
                 ),
-                CancelledError=async_mock.MagicMock(),
+                CancelledError=MagicMock(),
             ),
         ):
             test_module.init()

@@ -1,11 +1,10 @@
 import json
 import os
+from unittest import IsolatedAsyncioTestCase
+from unittest.mock import AsyncMock, MagicMock, PropertyMock, patch
 
 import aiohttp
 import redis
-from asynctest import PropertyMock
-from asynctest import TestCase as AsyncTestCase
-from asynctest import mock as async_mock
 
 from .. import relay as test_module
 from ..relay import HttpRelay, WSRelay
@@ -41,16 +40,16 @@ test_retry_msg_d = str.encode(
 )
 
 
-class TestRedisHTTPHandler(AsyncTestCase):
+class TestRedisHTTPHandler(IsolatedAsyncioTestCase):
     async def test_run(self):
-        with async_mock.patch.object(
+        with patch.object(
             redis.asyncio.RedisCluster,
             "from_url",
-            async_mock.MagicMock(),
-        ) as mock_redis, async_mock.patch.object(
-            HttpRelay, "process_direct_responses", async_mock.CoroutineMock()
-        ), async_mock.patch.object(
-            HttpRelay, "start", async_mock.CoroutineMock()
+            MagicMock(),
+        ) as mock_redis, patch.object(
+            HttpRelay, "process_direct_responses", AsyncMock()
+        ), patch.object(
+            HttpRelay, "start", AsyncMock()
         ):
             HttpRelay.running = False
             relay = HttpRelay(
@@ -58,14 +57,14 @@ class TestRedisHTTPHandler(AsyncTestCase):
             )
             await relay.run()
 
-        with async_mock.patch.object(
+        with patch.object(
             redis.asyncio.RedisCluster,
             "from_url",
-            async_mock.MagicMock(side_effect=redis.exceptions.RedisError),
-        ) as mock_redis, async_mock.patch.object(
-            HttpRelay, "process_direct_responses", async_mock.CoroutineMock()
-        ), async_mock.patch.object(
-            HttpRelay, "start", async_mock.CoroutineMock()
+            MagicMock(side_effect=redis.exceptions.RedisError),
+        ) as mock_redis, patch.object(
+            HttpRelay, "process_direct_responses", AsyncMock()
+        ), patch.object(
+            HttpRelay, "start", AsyncMock()
         ):
             HttpRelay.running = False
             relay = HttpRelay(
@@ -74,25 +73,23 @@ class TestRedisHTTPHandler(AsyncTestCase):
             await relay.run()
 
     async def test_main(self):
-        with async_mock.patch.object(
+        with patch.object(
             redis.asyncio.RedisCluster,
             "from_url",
-            async_mock.MagicMock(),
-        ) as mock_redis, async_mock.patch.object(
-            HttpRelay, "start", async_mock.CoroutineMock()
-        ), async_mock.patch.object(
-            HttpRelay, "process_direct_responses", async_mock.CoroutineMock()
-        ), async_mock.patch.object(
-            HttpRelay, "run", async_mock.CoroutineMock()
-        ), async_mock.patch.object(
-            WSRelay, "start", async_mock.CoroutineMock()
-        ), async_mock.patch.object(
-            WSRelay, "process_direct_responses", async_mock.CoroutineMock()
-        ), async_mock.patch.object(
-            WSRelay, "run", async_mock.CoroutineMock()
-        ), async_mock.patch.object(
-            test_module, "start_status_endpoints_server", async_mock.CoroutineMock()
-        ) as mock_status_endpoint, async_mock.patch.dict(
+            MagicMock(),
+        ) as mock_redis, patch.object(HttpRelay, "start", AsyncMock()), patch.object(
+            HttpRelay, "process_direct_responses", AsyncMock()
+        ), patch.object(
+            HttpRelay, "run", AsyncMock()
+        ), patch.object(
+            WSRelay, "start", AsyncMock()
+        ), patch.object(
+            WSRelay, "process_direct_responses", AsyncMock()
+        ), patch.object(
+            WSRelay, "run", AsyncMock()
+        ), patch.object(
+            test_module, "start_status_endpoints_server", AsyncMock()
+        ) as mock_status_endpoint, patch.dict(
             os.environ,
             {
                 "REDIS_SERVER_URL": "test",
@@ -108,7 +105,7 @@ class TestRedisHTTPHandler(AsyncTestCase):
             await test_module.main()
 
     async def test_main_x(self):
-        with async_mock.patch.dict(
+        with patch.dict(
             os.environ,
             {
                 "REDIS_SERVER_URL": "test",
@@ -120,7 +117,7 @@ class TestRedisHTTPHandler(AsyncTestCase):
             with self.assertRaises(SystemExit):
                 await test_module.main()
 
-        with async_mock.patch.dict(
+        with patch.dict(
             os.environ,
             {
                 "STATUS_ENDPOINT_HOST": "5002",
@@ -132,7 +129,7 @@ class TestRedisHTTPHandler(AsyncTestCase):
             with self.assertRaises(SystemExit):
                 await test_module.main()
 
-        with async_mock.patch.dict(
+        with patch.dict(
             os.environ,
             {
                 "REDIS_SERVER_URL": "test",
@@ -145,27 +142,23 @@ class TestRedisHTTPHandler(AsyncTestCase):
             with self.assertRaises(SystemExit):
                 await test_module.main()
 
-        with async_mock.patch.object(
+        with patch.object(
             redis.asyncio.RedisCluster,
             "from_url",
-            async_mock.MagicMock(
-                ping=async_mock.CoroutineMock(side_effect=redis.exceptions.RedisError)
-            ),
-        ) as mock_redis, async_mock.patch.object(
-            HttpRelay, "start", async_mock.CoroutineMock()
-        ), async_mock.patch.object(
-            HttpRelay, "process_direct_responses", async_mock.CoroutineMock()
-        ), async_mock.patch.object(
-            HttpRelay, "run", async_mock.CoroutineMock()
-        ), async_mock.patch.object(
-            WSRelay, "start", async_mock.CoroutineMock()
-        ), async_mock.patch.object(
-            WSRelay, "process_direct_responses", async_mock.CoroutineMock()
-        ), async_mock.patch.object(
-            WSRelay, "run", async_mock.CoroutineMock()
-        ), async_mock.patch.object(
-            test_module, "start_status_endpoints_server", async_mock.CoroutineMock()
-        ) as mock_status_endpoint, async_mock.patch.dict(
+            MagicMock(ping=AsyncMock(side_effect=redis.exceptions.RedisError)),
+        ) as mock_redis, patch.object(HttpRelay, "start", AsyncMock()), patch.object(
+            HttpRelay, "process_direct_responses", AsyncMock()
+        ), patch.object(
+            HttpRelay, "run", AsyncMock()
+        ), patch.object(
+            WSRelay, "start", AsyncMock()
+        ), patch.object(
+            WSRelay, "process_direct_responses", AsyncMock()
+        ), patch.object(
+            WSRelay, "run", AsyncMock()
+        ), patch.object(
+            test_module, "start_status_endpoints_server", AsyncMock()
+        ) as mock_status_endpoint, patch.dict(
             os.environ,
             {
                 "REDIS_SERVER_URL": "test",
@@ -178,51 +171,51 @@ class TestRedisHTTPHandler(AsyncTestCase):
             await test_module.main()
 
     async def test_stop(self):
-        with async_mock.patch.object(
+        with patch.object(
             redis.asyncio.RedisCluster,
             "from_url",
-            async_mock.MagicMock(),
-        ) as mock_redis, async_mock.patch.object(
+            MagicMock(),
+        ) as mock_redis, patch.object(
             test_module.web,
             "TCPSite",
-            async_mock.MagicMock(stop=async_mock.CoroutineMock()),
+            MagicMock(stop=AsyncMock()),
         ) as mock_site:
-            mock_redis.blpop = async_mock.CoroutineMock()
-            mock_redis.rpush = async_mock.CoroutineMock()
+            mock_redis.blpop = AsyncMock()
+            mock_redis.rpush = AsyncMock()
             sentinel = PropertyMock(side_effect=[True, True, True, False])
             HttpRelay.running = sentinel
             service = HttpRelay(
                 "test", "test", "8080", "direct_resp_topic", "inbound_msg_topic"
             )
-            service.site = async_mock.MagicMock(stop=async_mock.CoroutineMock())
+            service.site = MagicMock(stop=AsyncMock())
             service.redis = mock_redis
             await service.stop()
 
     async def test_start(self):
-        with async_mock.patch.object(
+        with patch.object(
             redis.asyncio.RedisCluster,
             "from_url",
-            async_mock.MagicMock(
-                return_value=async_mock.MagicMock(
-                    ping=async_mock.CoroutineMock(),
+            MagicMock(
+                return_value=MagicMock(
+                    ping=AsyncMock(),
                 )
             ),
-        ) as mock_redis, async_mock.patch.object(
+        ) as mock_redis, patch.object(
             test_module.web,
             "TCPSite",
-            async_mock.MagicMock(
-                return_value=async_mock.MagicMock(
-                    stop=async_mock.CoroutineMock(),
-                    start=async_mock.CoroutineMock(),
+            MagicMock(
+                return_value=MagicMock(
+                    stop=AsyncMock(),
+                    start=AsyncMock(),
                 )
             ),
-        ), async_mock.patch.object(
+        ), patch.object(
             test_module.web.AppRunner,
             "setup",
-            async_mock.CoroutineMock(),
+            AsyncMock(),
         ):
-            mock_redis.blpop = async_mock.CoroutineMock()
-            mock_redis.rpush = async_mock.CoroutineMock()
+            mock_redis.blpop = AsyncMock()
+            mock_redis.rpush = AsyncMock()
             sentinel = PropertyMock(side_effect=[True, True, True, False])
             HttpRelay.running = sentinel
             service = HttpRelay(
@@ -232,12 +225,12 @@ class TestRedisHTTPHandler(AsyncTestCase):
             await service.start()
 
     async def test_process_direct_response(self):
-        with async_mock.patch.object(
+        with patch.object(
             redis.asyncio.RedisCluster,
             "from_url",
-            async_mock.MagicMock(),
+            MagicMock(),
         ) as mock_redis:
-            mock_redis.blpop = async_mock.CoroutineMock(
+            mock_redis.blpop = AsyncMock(
                 side_effect=[
                     (None, test_retry_msg_a),
                     (None, test_retry_msg_b),
@@ -247,7 +240,7 @@ class TestRedisHTTPHandler(AsyncTestCase):
                     (None, test_retry_msg_d),
                 ]
             )
-            mock_redis.ping = async_mock.CoroutineMock()
+            mock_redis.ping = AsyncMock()
             sentinel = PropertyMock(side_effect=[True, True, True, True, True, False])
             HttpRelay.running = sentinel
             service = HttpRelay(
@@ -260,10 +253,10 @@ class TestRedisHTTPHandler(AsyncTestCase):
             assert service.direct_response_txn_request_map != {}
 
     async def test_get_direct_response(self):
-        with async_mock.patch.object(
+        with patch.object(
             redis.asyncio.RedisCluster,
             "from_url",
-            async_mock.MagicMock(),
+            MagicMock(),
         ) as mock_redis:
             sentinel = PropertyMock(side_effect=[True, True, False])
             HttpRelay.running = sentinel
@@ -277,10 +270,10 @@ class TestRedisHTTPHandler(AsyncTestCase):
                 "txn_124": b"test2",
             }
             await service.get_direct_responses("txn_321")
-        with async_mock.patch.object(
+        with patch.object(
             redis.asyncio.RedisCluster,
             "from_url",
-            async_mock.MagicMock(),
+            MagicMock(),
         ) as mock_redis:
             sentinel = PropertyMock(side_effect=[True, False])
             HttpRelay.running = sentinel
@@ -297,9 +290,9 @@ class TestRedisHTTPHandler(AsyncTestCase):
             await service.get_direct_responses("txn_124") == b"test2"
 
     async def test_message_handler(self):
-        mock_request = async_mock.MagicMock(
+        mock_request = MagicMock(
             headers={"content-type": "application/json"},
-            text=async_mock.CoroutineMock(
+            text=AsyncMock(
                 return_value=str.encode(json.dumps({"test": "...."})).decode()
             ),
             host="test",
@@ -307,54 +300,50 @@ class TestRedisHTTPHandler(AsyncTestCase):
         )
         sentinel = PropertyMock(side_effect=[True, False])
         HttpRelay.running = sentinel
-        with async_mock.patch.object(
+        with patch.object(
             redis.asyncio.RedisCluster,
             "from_url",
-            async_mock.MagicMock(),
-        ) as mock_redis, async_mock.patch.object(
+            MagicMock(),
+        ) as mock_redis, patch.object(
             test_module,
             "process_payload_recip_key",
-            async_mock.CoroutineMock(
-                return_value=("acapy_inbound_input_recip_key", async_mock.MagicMock())
-            ),
+            AsyncMock(return_value=("acapy_inbound_input_recip_key", MagicMock())),
         ):
             service = HttpRelay(
                 "test", "test", "8080", "direct_resp_topic", "inbound_msg_topic"
             )
             service.timedelay_s = 0.1
-            mock_redis.blpop = async_mock.CoroutineMock()
-            mock_redis.rpush = async_mock.CoroutineMock()
+            mock_redis.blpop = AsyncMock()
+            mock_redis.rpush = AsyncMock()
             service.redis = mock_redis
             assert (await service.message_handler(mock_request)).status == 200
-        with async_mock.patch.object(
+        with patch.object(
             HttpRelay,
             "get_direct_responses",
-            async_mock.CoroutineMock(
+            AsyncMock(
                 return_value={
                     "response": "eyJ0ZXN0IjogIi4uLiIsICJ0ZXN0MiI6ICJ0ZXN0MiJ9"
                 }
             ),
-        ), async_mock.patch.object(
+        ), patch.object(
             redis.asyncio.RedisCluster,
             "from_url",
-            async_mock.MagicMock(),
-        ) as mock_redis, async_mock.patch.object(
+            MagicMock(),
+        ) as mock_redis, patch.object(
             test_module,
             "process_payload_recip_key",
-            async_mock.CoroutineMock(
-                return_value=("acapy_inbound_input_recip_key", async_mock.MagicMock())
-            ),
+            AsyncMock(return_value=("acapy_inbound_input_recip_key", MagicMock())),
         ):
             service = HttpRelay(
                 "test", "test", "8080", "direct_resp_topic", "inbound_msg_topic"
             )
             service.timedelay_s = 0.1
-            mock_redis.blpop = async_mock.CoroutineMock()
-            mock_redis.rpush = async_mock.CoroutineMock()
+            mock_redis.blpop = AsyncMock()
+            mock_redis.rpush = AsyncMock()
             service.redis = mock_redis
-            mock_request = async_mock.MagicMock(
+            mock_request = MagicMock(
                 headers={"content-type": "..."},
-                read=async_mock.CoroutineMock(
+                read=AsyncMock(
                     return_value=str.encode(
                         json.dumps(
                             {"test": "....", "~transport": {"return_route": "..."}}
@@ -365,31 +354,29 @@ class TestRedisHTTPHandler(AsyncTestCase):
                 remote="test",
             )
             assert (await service.message_handler(mock_request)).status == 200
-        with async_mock.patch.object(
+        with patch.object(
             HttpRelay,
             "get_direct_responses",
-            async_mock.CoroutineMock(side_effect=test_module.asyncio.TimeoutError),
-        ), async_mock.patch.object(
+            AsyncMock(side_effect=test_module.asyncio.TimeoutError),
+        ), patch.object(
             redis.asyncio.RedisCluster,
             "from_url",
-            async_mock.MagicMock(),
-        ) as mock_redis, async_mock.patch.object(
+            MagicMock(),
+        ) as mock_redis, patch.object(
             test_module,
             "process_payload_recip_key",
-            async_mock.CoroutineMock(
-                return_value=("acapy_inbound_input_recip_key", async_mock.MagicMock())
-            ),
+            AsyncMock(return_value=("acapy_inbound_input_recip_key", MagicMock())),
         ):
             service = HttpRelay(
                 "test", "test", "8080", "direct_resp_topic", "inbound_msg_topic"
             )
             service.timedelay_s = 0.1
-            mock_redis.blpop = async_mock.CoroutineMock()
-            mock_redis.rpush = async_mock.CoroutineMock()
+            mock_redis.blpop = AsyncMock()
+            mock_redis.rpush = AsyncMock()
             service.redis = mock_redis
-            mock_request = async_mock.MagicMock(
+            mock_request = MagicMock(
                 headers={"content-type": "..."},
-                read=async_mock.CoroutineMock(
+                read=AsyncMock(
                     return_value=json.dumps(
                         {
                             "content-type": "application/json",
@@ -404,33 +391,29 @@ class TestRedisHTTPHandler(AsyncTestCase):
             assert (await service.message_handler(mock_request)).status == 200
 
     async def test_message_handler_x(self):
-        with async_mock.patch.object(
+        with patch.object(
             HttpRelay,
             "get_direct_responses",
-            async_mock.CoroutineMock(side_effect=test_module.asyncio.TimeoutError),
-        ), async_mock.patch.object(
+            AsyncMock(side_effect=test_module.asyncio.TimeoutError),
+        ), patch.object(
             redis.asyncio.RedisCluster,
             "from_url",
-            async_mock.MagicMock(),
-        ) as mock_redis, async_mock.patch.object(
+            MagicMock(),
+        ) as mock_redis, patch.object(
             test_module,
             "process_payload_recip_key",
-            async_mock.CoroutineMock(
-                return_value=("acapy_inbound_input_recip_key", async_mock.MagicMock())
-            ),
+            AsyncMock(return_value=("acapy_inbound_input_recip_key", MagicMock())),
         ):
             service = HttpRelay(
                 "test", "test", "8080", "direct_resp_topic", "inbound_msg_topic"
             )
             service.timedelay_s = 0.1
-            mock_redis.blpop = async_mock.CoroutineMock()
-            mock_redis.rpush = async_mock.CoroutineMock(
-                side_effect=[test_module.RedisError, None]
-            )
+            mock_redis.blpop = AsyncMock()
+            mock_redis.rpush = AsyncMock(side_effect=[test_module.RedisError, None])
             service.redis = mock_redis
-            mock_request = async_mock.MagicMock(
+            mock_request = MagicMock(
                 headers={"content-type": "..."},
-                read=async_mock.CoroutineMock(
+                read=AsyncMock(
                     return_value=str.encode(
                         json.dumps(
                             {"test": "....", "~transport": {"return_route": "..."}}
@@ -446,46 +429,42 @@ class TestRedisHTTPHandler(AsyncTestCase):
                 "test", "test", "8080", "direct_resp_topic", "inbound_msg_topic"
             )
             service.timedelay_s = 0.1
-            mock_redis.blpop = async_mock.CoroutineMock()
-            mock_redis.rpush = async_mock.CoroutineMock(
-                side_effect=[test_module.RedisError, None]
-            )
+            mock_redis.blpop = AsyncMock()
+            mock_redis.rpush = AsyncMock(side_effect=[test_module.RedisError, None])
             service.redis = mock_redis
-            mock_request = async_mock.MagicMock(
+            mock_request = MagicMock(
                 headers={"content-type": "..."},
-                read=async_mock.CoroutineMock(
-                    return_value=str.encode(json.dumps({"test": "...."}))
-                ),
+                read=AsyncMock(return_value=str.encode(json.dumps({"test": "...."}))),
                 host="test",
                 remote="test",
             )
             await service.message_handler(mock_request)
 
     async def test_invite_handler(self):
-        with async_mock.patch.object(
+        with patch.object(
             redis.asyncio.RedisCluster,
             "from_url",
-            async_mock.MagicMock(),
+            MagicMock(),
         ) as mock_redis:
             service = HttpRelay(
                 "test", "test", "8080", "direct_resp_topic", "inbound_msg_topic"
             )
             service.redis = mock_redis
-            await service.invite_handler(async_mock.MagicMock(query={"c_i": ".."}))
-            await service.invite_handler(async_mock.MagicMock(query={}))
+            await service.invite_handler(MagicMock(query={"c_i": ".."}))
+            await service.invite_handler(MagicMock(query={}))
 
     async def test_is_running(self):
-        with async_mock.patch.object(
+        with patch.object(
             redis.asyncio.RedisCluster,
             "from_url",
-            async_mock.MagicMock(),
+            MagicMock(),
         ) as mock_redis:
             sentinel = PropertyMock(return_value=True)
             HttpRelay.running = sentinel
             service = HttpRelay(
                 "test", "test", "8080", "direct_resp_topic", "inbound_msg_topic"
             )
-            mock_redis = async_mock.MagicMock(ping=async_mock.CoroutineMock())
+            mock_redis = MagicMock(ping=AsyncMock())
             service.redis = mock_redis
             service.running = True
             assert await service.is_running()
@@ -494,7 +473,7 @@ class TestRedisHTTPHandler(AsyncTestCase):
             service = HttpRelay(
                 "test", "test", "8080", "direct_resp_topic", "inbound_msg_topic"
             )
-            mock_redis = async_mock.MagicMock(ping=async_mock.CoroutineMock())
+            mock_redis = MagicMock(ping=AsyncMock())
             service.redis = mock_redis
             service.running = False
             assert not await service.is_running()
@@ -503,24 +482,24 @@ class TestRedisHTTPHandler(AsyncTestCase):
             service = HttpRelay(
                 "test", "test", "8080", "direct_resp_topic", "inbound_msg_topic"
             )
-            mock_redis = async_mock.MagicMock(
-                ping=async_mock.CoroutineMock(side_effect=redis.exceptions.RedisError)
+            mock_redis = MagicMock(
+                ping=AsyncMock(side_effect=redis.exceptions.RedisError)
             )
             service.redis = mock_redis
             service.running = True
             assert not await service.is_running()
 
 
-class TestRedisWSHandler(AsyncTestCase):
+class TestRedisWSHandler(IsolatedAsyncioTestCase):
     async def test_run(self):
-        with async_mock.patch.object(
+        with patch.object(
             redis.asyncio.RedisCluster,
             "from_url",
-            async_mock.MagicMock(),
-        ) as mock_redis, async_mock.patch.object(
-            WSRelay, "process_direct_responses", async_mock.CoroutineMock()
-        ), async_mock.patch.object(
-            WSRelay, "start", async_mock.CoroutineMock()
+            MagicMock(),
+        ) as mock_redis, patch.object(
+            WSRelay, "process_direct_responses", AsyncMock()
+        ), patch.object(
+            WSRelay, "start", AsyncMock()
         ):
             WSRelay.running = False
             relay = WSRelay(
@@ -528,14 +507,14 @@ class TestRedisWSHandler(AsyncTestCase):
             )
             await relay.run()
 
-        with async_mock.patch.object(
+        with patch.object(
             redis.asyncio.RedisCluster,
             "from_url",
-            async_mock.MagicMock(side_effect=redis.exceptions.RedisError),
-        ) as mock_redis, async_mock.patch.object(
-            WSRelay, "process_direct_responses", async_mock.CoroutineMock()
-        ), async_mock.patch.object(
-            WSRelay, "start", async_mock.CoroutineMock()
+            MagicMock(side_effect=redis.exceptions.RedisError),
+        ) as mock_redis, patch.object(
+            WSRelay, "process_direct_responses", AsyncMock()
+        ), patch.object(
+            WSRelay, "start", AsyncMock()
         ):
             WSRelay.running = False
             relay = WSRelay(
@@ -544,62 +523,62 @@ class TestRedisWSHandler(AsyncTestCase):
             await relay.run()
 
     async def test_stop(self):
-        with async_mock.patch.object(
+        with patch.object(
             redis.asyncio.RedisCluster,
             "from_url",
-            async_mock.MagicMock(),
-        ) as mock_redis, async_mock.patch.object(
+            MagicMock(),
+        ) as mock_redis, patch.object(
             test_module.web,
             "TCPSite",
-            async_mock.MagicMock(stop=async_mock.CoroutineMock()),
+            MagicMock(stop=AsyncMock()),
         ) as mock_site:
-            mock_redis.blpop = async_mock.CoroutineMock()
-            mock_redis.rpush = async_mock.CoroutineMock()
+            mock_redis.blpop = AsyncMock()
+            mock_redis.rpush = AsyncMock()
             sentinel = PropertyMock(side_effect=[True, True, True, False])
             WSRelay.running = sentinel
             service = WSRelay(
                 "test", "test", "8080", "direct_resp_topic", "inbound_msg_topic"
             )
-            service.site = async_mock.MagicMock(stop=async_mock.CoroutineMock())
+            service.site = MagicMock(stop=AsyncMock())
             service.redis = mock_redis
             await service.stop()
 
     async def test_start(self):
-        with async_mock.patch.object(
+        with patch.object(
             redis.asyncio.RedisCluster,
             "from_url",
-            async_mock.MagicMock(),
-        ) as mock_redis, async_mock.patch.object(
+            MagicMock(),
+        ) as mock_redis, patch.object(
             test_module.web,
             "TCPSite",
-            async_mock.MagicMock(
-                return_value=async_mock.MagicMock(
-                    stop=async_mock.CoroutineMock(),
-                    start=async_mock.CoroutineMock(),
+            MagicMock(
+                return_value=MagicMock(
+                    stop=AsyncMock(),
+                    start=AsyncMock(),
                 )
             ),
-        ), async_mock.patch.object(
+        ), patch.object(
             test_module.web.AppRunner,
             "setup",
-            async_mock.CoroutineMock(),
+            AsyncMock(),
         ):
             sentinel = PropertyMock(side_effect=[True, True, True, False])
             WSRelay.running = sentinel
             service = WSRelay(
                 "test", "test", "8080", "direct_resp_topic", "inbound_msg_topic"
             )
-            mock_redis.blpop = async_mock.CoroutineMock()
-            mock_redis.rpush = async_mock.CoroutineMock()
+            mock_redis.blpop = AsyncMock()
+            mock_redis.rpush = AsyncMock()
             service.redis = mock_redis
             await service.start()
 
     async def test_process_direct_response(self):
-        with async_mock.patch.object(
+        with patch.object(
             redis.asyncio.RedisCluster,
             "from_url",
-            async_mock.MagicMock(),
+            MagicMock(),
         ) as mock_redis:
-            mock_redis.blpop = async_mock.CoroutineMock(
+            mock_redis.blpop = AsyncMock(
                 side_effect=[
                     (None, test_retry_msg_a),
                     (None, test_retry_msg_b),
@@ -608,7 +587,7 @@ class TestRedisWSHandler(AsyncTestCase):
                     (None, test_retry_msg_d),
                 ]
             )
-            mock_redis.ping = async_mock.CoroutineMock()
+            mock_redis.ping = AsyncMock()
             sentinel = PropertyMock(side_effect=[True, True, True, True, False])
             WSRelay.running = sentinel
             service = WSRelay(
@@ -621,10 +600,10 @@ class TestRedisWSHandler(AsyncTestCase):
             assert service.direct_response_txn_request_map != {}
 
     async def test_get_direct_response(self):
-        with async_mock.patch.object(
+        with patch.object(
             redis.asyncio.RedisCluster,
             "from_url",
-            async_mock.MagicMock(),
+            MagicMock(),
         ) as mock_redis:
             sentinel = PropertyMock(side_effect=[True, True, False])
             WSRelay.running = sentinel
@@ -638,10 +617,10 @@ class TestRedisWSHandler(AsyncTestCase):
                 "txn_124": b"test2",
             }
             await service.get_direct_responses("txn_321")
-        with async_mock.patch.object(
+        with patch.object(
             redis.asyncio.RedisCluster,
             "from_url",
-            async_mock.MagicMock(),
+            MagicMock(),
         ) as mock_redis:
             sentinel = PropertyMock(side_effect=[True, False])
             WSRelay.running = sentinel
@@ -658,75 +637,73 @@ class TestRedisWSHandler(AsyncTestCase):
             await service.get_direct_responses("txn_124") == b"test2"
 
     async def test_message_handler_a(self):
-        mock_request = async_mock.MagicMock(
+        mock_request = MagicMock(
             host="test",
             remote="test",
         )
-        mock_msg = async_mock.MagicMock(
+        mock_msg = MagicMock(
             type=aiohttp.WSMsgType.TEXT.value,
             data=str.encode(
                 json.dumps({"test": "....", "~transport": {"return_route": "..."}})
             ),
         )
 
-        with async_mock.patch.object(
+        with patch.object(
             test_module.web.WebSocketResponse,
             "prepare",
-            async_mock.CoroutineMock(),
-        ), async_mock.patch.object(
+            AsyncMock(),
+        ), patch.object(
             test_module.web.WebSocketResponse,
             "receive",
-            async_mock.CoroutineMock(),
-        ), async_mock.patch.object(
+            AsyncMock(),
+        ), patch.object(
             test_module.web.WebSocketResponse,
             "closed",
             PropertyMock(side_effect=[False, False, True, False]),
-        ), async_mock.patch.object(
+        ), patch.object(
             test_module.web.WebSocketResponse,
             "close",
-            async_mock.CoroutineMock(),
-        ), async_mock.patch.object(
+            AsyncMock(),
+        ), patch.object(
             test_module.web.WebSocketResponse,
             "exception",
-            async_mock.MagicMock(),
-        ), async_mock.patch.object(
+            MagicMock(),
+        ), patch.object(
             test_module.web.WebSocketResponse,
             "send_bytes",
-            async_mock.CoroutineMock(),
-        ), async_mock.patch.object(
+            AsyncMock(),
+        ), patch.object(
             test_module.web.WebSocketResponse,
             "send_str",
-            async_mock.CoroutineMock(),
-        ), async_mock.patch.object(
+            AsyncMock(),
+        ), patch.object(
             test_module.asyncio,
             "get_event_loop",
-            async_mock.MagicMock(
-                return_value=async_mock.MagicMock(
-                    run_until_complete=async_mock.MagicMock(),
-                    create_task=async_mock.MagicMock(
-                        return_value=async_mock.MagicMock(
-                            done=async_mock.MagicMock(return_value=True),
-                            result=async_mock.MagicMock(return_value=mock_msg),
+            MagicMock(
+                return_value=MagicMock(
+                    run_until_complete=MagicMock(),
+                    create_task=MagicMock(
+                        return_value=MagicMock(
+                            done=MagicMock(return_value=True),
+                            result=MagicMock(return_value=mock_msg),
                         )
                     ),
                 )
             ),
-        ) as mock_get_event_loop, async_mock.patch.object(
-            test_module.asyncio, "wait", async_mock.CoroutineMock()
-        ) as mock_wait, async_mock.patch.object(
+        ) as mock_get_event_loop, patch.object(
+            test_module.asyncio, "wait", AsyncMock()
+        ) as mock_wait, patch.object(
             WSRelay,
             "get_direct_responses",
             autospec=True,
-        ) as mock_get_direct_responses, async_mock.patch.object(
+        ) as mock_get_direct_responses, patch.object(
             redis.asyncio.RedisCluster,
             "from_url",
-            async_mock.MagicMock(),
-        ) as mock_redis, async_mock.patch.object(
+            MagicMock(),
+        ) as mock_redis, patch.object(
             test_module,
             "process_payload_recip_key",
-            async_mock.CoroutineMock(
-                return_value=("acapy_inbound_input_recip_key", async_mock.MagicMock())
-            ),
+            AsyncMock(return_value=("acapy_inbound_input_recip_key", MagicMock())),
         ):
             mock_get_direct_responses.return_value = {
                 "response": "eyJ0ZXN0IjogIi4uLiIsICJ0ZXN0MiI6ICJ0ZXN0MiJ9"
@@ -735,79 +712,77 @@ class TestRedisWSHandler(AsyncTestCase):
                 "test", "test", "8080", "direct_resp_topic", "inbound_msg_topic"
             )
             service.timedelay_s = 0.1
-            mock_redis.blpop = async_mock.CoroutineMock()
-            mock_redis.rpush = async_mock.CoroutineMock()
+            mock_redis.blpop = AsyncMock()
+            mock_redis.rpush = AsyncMock()
             service.redis = mock_redis
             await service.message_handler(mock_request)
 
     async def test_message_handler_b(self):
-        mock_request = async_mock.MagicMock(
+        mock_request = MagicMock(
             host="test",
             remote="test",
         )
-        mock_msg = async_mock.MagicMock(
+        mock_msg = MagicMock(
             type=aiohttp.WSMsgType.TEXT.value,
             data=json.dumps({"test": "....", "~transport": {"return_route": "..."}}),
         )
 
-        with async_mock.patch.object(
+        with patch.object(
             test_module.web.WebSocketResponse,
             "prepare",
-            async_mock.CoroutineMock(),
-        ), async_mock.patch.object(
+            AsyncMock(),
+        ), patch.object(
             test_module.web.WebSocketResponse,
             "receive",
-            async_mock.CoroutineMock(),
-        ), async_mock.patch.object(
+            AsyncMock(),
+        ), patch.object(
             test_module.web.WebSocketResponse,
             "closed",
             PropertyMock(side_effect=[False, False, True, False]),
-        ), async_mock.patch.object(
+        ), patch.object(
             test_module.web.WebSocketResponse,
             "close",
-            async_mock.CoroutineMock(),
-        ), async_mock.patch.object(
+            AsyncMock(),
+        ), patch.object(
             test_module.web.WebSocketResponse,
             "exception",
-            async_mock.MagicMock(),
-        ), async_mock.patch.object(
+            MagicMock(),
+        ), patch.object(
             test_module.web.WebSocketResponse,
             "send_bytes",
-            async_mock.CoroutineMock(),
-        ), async_mock.patch.object(
+            AsyncMock(),
+        ), patch.object(
             test_module.web.WebSocketResponse,
             "send_str",
-            async_mock.CoroutineMock(),
-        ), async_mock.patch.object(
+            AsyncMock(),
+        ), patch.object(
             test_module.asyncio,
             "get_event_loop",
-            async_mock.MagicMock(
-                return_value=async_mock.MagicMock(
-                    run_until_complete=async_mock.MagicMock(),
-                    create_task=async_mock.MagicMock(
-                        return_value=async_mock.MagicMock(
-                            done=async_mock.MagicMock(return_value=True),
-                            result=async_mock.MagicMock(return_value=mock_msg),
+            MagicMock(
+                return_value=MagicMock(
+                    run_until_complete=MagicMock(),
+                    create_task=MagicMock(
+                        return_value=MagicMock(
+                            done=MagicMock(return_value=True),
+                            result=MagicMock(return_value=mock_msg),
                         )
                     ),
                 )
             ),
-        ) as mock_get_event_loop, async_mock.patch.object(
-            test_module.asyncio, "wait", async_mock.CoroutineMock()
-        ) as mock_wait, async_mock.patch.object(
+        ) as mock_get_event_loop, patch.object(
+            test_module.asyncio, "wait", AsyncMock()
+        ) as mock_wait, patch.object(
             WSRelay,
             "get_direct_responses",
             autospec=True,
-        ) as mock_get_direct_responses, async_mock.patch.object(
+        ) as mock_get_direct_responses, patch.object(
             redis.asyncio.RedisCluster,
             "from_url",
-            async_mock.MagicMock(),
-        ) as mock_redis, async_mock.patch.object(
+            MagicMock(),
+        ) as mock_redis, patch.object(
             test_module,
             "process_payload_recip_key",
-            async_mock.CoroutineMock(
-                return_value=("acapy_inbound_input_recip_key", async_mock.MagicMock())
-            ),
+            AsyncMock(return_value=("acapy_inbound_input_recip_key", MagicMock())),
         ):
             mock_get_direct_responses.return_value = {
                 "response": "eyJ0ZXN0IjogIi4uLiIsICJ0ZXN0MiI6ICJ0ZXN0MiJ9"
@@ -816,231 +791,225 @@ class TestRedisWSHandler(AsyncTestCase):
                 "test", "test", "8080", "direct_resp_topic", "inbound_msg_topic"
             )
             service.timedelay_s = 0.1
-            mock_redis.blpop = async_mock.CoroutineMock()
-            mock_redis.rpush = async_mock.CoroutineMock()
+            mock_redis.blpop = AsyncMock()
+            mock_redis.rpush = AsyncMock()
             service.redis = mock_redis
             await service.message_handler(mock_request)
 
     async def test_message_handler_c(self):
-        mock_request = async_mock.MagicMock(
+        mock_request = MagicMock(
             host="test",
             remote="test",
         )
-        mock_msg = async_mock.MagicMock(
+        mock_msg = MagicMock(
             type=aiohttp.WSMsgType.TEXT.value,
             data=json.dumps({"test": "...."}),
         )
 
-        with async_mock.patch.object(
+        with patch.object(
             test_module.web.WebSocketResponse,
             "prepare",
-            async_mock.CoroutineMock(),
-        ), async_mock.patch.object(
+            AsyncMock(),
+        ), patch.object(
             test_module.web.WebSocketResponse,
             "receive",
-            async_mock.CoroutineMock(),
-        ), async_mock.patch.object(
+            AsyncMock(),
+        ), patch.object(
             test_module.web.WebSocketResponse,
             "closed",
             PropertyMock(side_effect=[False, False, True, False]),
-        ), async_mock.patch.object(
+        ), patch.object(
             test_module.web.WebSocketResponse,
             "close",
-            async_mock.CoroutineMock(),
-        ), async_mock.patch.object(
+            AsyncMock(),
+        ), patch.object(
             test_module.web.WebSocketResponse,
             "exception",
-            async_mock.MagicMock(),
-        ), async_mock.patch.object(
+            MagicMock(),
+        ), patch.object(
             test_module.web.WebSocketResponse,
             "send_bytes",
-            async_mock.CoroutineMock(),
-        ), async_mock.patch.object(
+            AsyncMock(),
+        ), patch.object(
             test_module.web.WebSocketResponse,
             "send_str",
-            async_mock.CoroutineMock(),
-        ), async_mock.patch.object(
+            AsyncMock(),
+        ), patch.object(
             test_module.asyncio,
             "get_event_loop",
-            async_mock.MagicMock(
-                return_value=async_mock.MagicMock(
-                    run_until_complete=async_mock.MagicMock(),
-                    create_task=async_mock.MagicMock(
-                        return_value=async_mock.MagicMock(
-                            done=async_mock.MagicMock(return_value=True),
-                            result=async_mock.MagicMock(return_value=mock_msg),
+            MagicMock(
+                return_value=MagicMock(
+                    run_until_complete=MagicMock(),
+                    create_task=MagicMock(
+                        return_value=MagicMock(
+                            done=MagicMock(return_value=True),
+                            result=MagicMock(return_value=mock_msg),
                         )
                     ),
                 )
             ),
-        ) as mock_get_event_loop, async_mock.patch.object(
-            test_module.asyncio, "wait", async_mock.CoroutineMock()
-        ) as mock_wait, async_mock.patch.object(
+        ) as mock_get_event_loop, patch.object(
+            test_module.asyncio, "wait", AsyncMock()
+        ) as mock_wait, patch.object(
             WSRelay,
             "get_direct_responses",
             autospec=True,
-        ) as mock_get_direct_responses, async_mock.patch.object(
+        ) as mock_get_direct_responses, patch.object(
             redis.cluster.RedisCluster,
             "from_url",
-            async_mock.MagicMock(),
-        ) as mock_redis, async_mock.patch.object(
+            MagicMock(),
+        ) as mock_redis, patch.object(
             test_module,
             "process_payload_recip_key",
-            async_mock.CoroutineMock(
-                return_value=("acapy_inbound_input_recip_key", async_mock.MagicMock())
-            ),
+            AsyncMock(return_value=("acapy_inbound_input_recip_key", MagicMock())),
         ):
             service = WSRelay(
                 "test", "test", "8080", "direct_resp_topic", "inbound_msg_topic"
             )
             service.timedelay_s = 0.1
-            mock_redis.blpop = async_mock.CoroutineMock()
-            mock_redis.rpush = async_mock.CoroutineMock()
+            mock_redis.blpop = AsyncMock()
+            mock_redis.rpush = AsyncMock()
             service.redis = mock_redis
             await service.message_handler(mock_request)
 
     async def test_message_handler_x(self):
-        mock_request = async_mock.MagicMock(
+        mock_request = MagicMock(
             host="test",
             remote="test",
         )
-        mock_msg = async_mock.MagicMock(
+        mock_msg = MagicMock(
             type=aiohttp.WSMsgType.TEXT.value,
             data=json.dumps({"test": "....", "~transport": {"return_route": "..."}}),
         )
 
-        with async_mock.patch.object(
+        with patch.object(
             test_module.web.WebSocketResponse,
             "prepare",
-            async_mock.CoroutineMock(),
-        ), async_mock.patch.object(
+            AsyncMock(),
+        ), patch.object(
             test_module.web.WebSocketResponse,
             "receive",
-            async_mock.CoroutineMock(),
-        ), async_mock.patch.object(
+            AsyncMock(),
+        ), patch.object(
             test_module.web.WebSocketResponse,
             "closed",
             PropertyMock(side_effect=[False, False, True, False]),
-        ), async_mock.patch.object(
+        ), patch.object(
             test_module.web.WebSocketResponse,
             "close",
-            async_mock.CoroutineMock(),
-        ), async_mock.patch.object(
+            AsyncMock(),
+        ), patch.object(
             test_module.web.WebSocketResponse,
             "exception",
-            async_mock.MagicMock(),
-        ), async_mock.patch.object(
+            MagicMock(),
+        ), patch.object(
             test_module.web.WebSocketResponse,
             "send_bytes",
-            async_mock.CoroutineMock(),
-        ), async_mock.patch.object(
+            AsyncMock(),
+        ), patch.object(
             test_module.web.WebSocketResponse,
             "send_str",
-            async_mock.CoroutineMock(),
-        ), async_mock.patch.object(
+            AsyncMock(),
+        ), patch.object(
             test_module.asyncio,
             "get_event_loop",
-            async_mock.MagicMock(
-                return_value=async_mock.MagicMock(
-                    run_until_complete=async_mock.MagicMock(),
-                    create_task=async_mock.MagicMock(
-                        return_value=async_mock.MagicMock(
-                            done=async_mock.MagicMock(return_value=True),
-                            result=async_mock.MagicMock(return_value=mock_msg),
+            MagicMock(
+                return_value=MagicMock(
+                    run_until_complete=MagicMock(),
+                    create_task=MagicMock(
+                        return_value=MagicMock(
+                            done=MagicMock(return_value=True),
+                            result=MagicMock(return_value=mock_msg),
                         )
                     ),
                 )
             ),
-        ) as mock_get_event_loop, async_mock.patch.object(
-            test_module.asyncio, "wait", async_mock.CoroutineMock()
-        ) as mock_wait, async_mock.patch.object(
+        ) as mock_get_event_loop, patch.object(
+            test_module.asyncio, "wait", AsyncMock()
+        ) as mock_wait, patch.object(
             WSRelay,
             "get_direct_responses",
             autospec=True,
-        ) as mock_get_direct_responses, async_mock.patch.object(
+        ) as mock_get_direct_responses, patch.object(
             redis.asyncio.RedisCluster,
             "from_url",
-            async_mock.MagicMock(),
-        ) as mock_redis, async_mock.patch.object(
+            MagicMock(),
+        ) as mock_redis, patch.object(
             test_module,
             "process_payload_recip_key",
-            async_mock.CoroutineMock(
-                return_value=("acapy_inbound_input_recip_key", async_mock.MagicMock())
-            ),
+            AsyncMock(return_value=("acapy_inbound_input_recip_key", MagicMock())),
         ):
             mock_get_direct_responses.side_effect = test_module.asyncio.TimeoutError
             service = WSRelay(
                 "test", "test", "8080", "direct_resp_topic", "inbound_msg_topic"
             )
             service.timedelay_s = 0.1
-            mock_redis.blpop = async_mock.CoroutineMock()
-            mock_redis.rpush = async_mock.CoroutineMock()
+            mock_redis.blpop = AsyncMock()
+            mock_redis.rpush = AsyncMock()
             service.redis = mock_redis
             await service.message_handler(mock_request)
 
-        mock_msg = async_mock.MagicMock(
+        mock_msg = MagicMock(
             type=aiohttp.WSMsgType.TEXT.value,
             data=json.dumps({"test": "....", "~transport": {"return_route": "..."}}),
         )
 
-        with async_mock.patch.object(
+        with patch.object(
             test_module.web.WebSocketResponse,
             "prepare",
-            async_mock.CoroutineMock(),
-        ), async_mock.patch.object(
+            AsyncMock(),
+        ), patch.object(
             test_module.web.WebSocketResponse,
             "receive",
-            async_mock.CoroutineMock(),
-        ), async_mock.patch.object(
+            AsyncMock(),
+        ), patch.object(
             test_module.web.WebSocketResponse,
             "closed",
             PropertyMock(side_effect=[False, False, True, False]),
-        ), async_mock.patch.object(
+        ), patch.object(
             test_module.web.WebSocketResponse,
             "close",
-            async_mock.CoroutineMock(),
-        ), async_mock.patch.object(
+            AsyncMock(),
+        ), patch.object(
             test_module.web.WebSocketResponse,
             "exception",
-            async_mock.MagicMock(),
-        ), async_mock.patch.object(
+            MagicMock(),
+        ), patch.object(
             test_module.web.WebSocketResponse,
             "send_bytes",
-            async_mock.CoroutineMock(),
-        ), async_mock.patch.object(
+            AsyncMock(),
+        ), patch.object(
             test_module.web.WebSocketResponse,
             "send_str",
-            async_mock.CoroutineMock(),
-        ), async_mock.patch.object(
+            AsyncMock(),
+        ), patch.object(
             test_module.asyncio,
             "get_event_loop",
-            async_mock.MagicMock(
-                return_value=async_mock.MagicMock(
-                    run_until_complete=async_mock.MagicMock(),
-                    create_task=async_mock.MagicMock(
-                        return_value=async_mock.MagicMock(
-                            done=async_mock.MagicMock(return_value=True),
-                            result=async_mock.MagicMock(return_value=mock_msg),
+            MagicMock(
+                return_value=MagicMock(
+                    run_until_complete=MagicMock(),
+                    create_task=MagicMock(
+                        return_value=MagicMock(
+                            done=MagicMock(return_value=True),
+                            result=MagicMock(return_value=mock_msg),
                         )
                     ),
                 )
             ),
-        ) as mock_get_event_loop, async_mock.patch.object(
-            test_module.asyncio, "wait", async_mock.CoroutineMock()
-        ) as mock_wait, async_mock.patch.object(
+        ) as mock_get_event_loop, patch.object(
+            test_module.asyncio, "wait", AsyncMock()
+        ) as mock_wait, patch.object(
             WSRelay,
             "get_direct_responses",
             autospec=True,
-        ) as mock_get_direct_responses, async_mock.patch.object(
+        ) as mock_get_direct_responses, patch.object(
             redis.asyncio.RedisCluster,
             "from_url",
-            async_mock.MagicMock(),
-        ) as mock_redis, async_mock.patch.object(
+            MagicMock(),
+        ) as mock_redis, patch.object(
             test_module,
             "process_payload_recip_key",
-            async_mock.CoroutineMock(
-                return_value=("acapy_inbound_input_recip_key", async_mock.MagicMock())
-            ),
+            AsyncMock(return_value=("acapy_inbound_input_recip_key", MagicMock())),
         ):
             mock_get_direct_responses.return_value = {
                 "response": "eyJ0ZXN0IjogIi4uLiIsICJ0ZXN0MiI6ICJ0ZXN0MiJ9"
@@ -1049,238 +1018,228 @@ class TestRedisWSHandler(AsyncTestCase):
                 "test", "test", "8080", "direct_resp_topic", "inbound_msg_topic"
             )
             service.timedelay_s = 0.1
-            mock_redis.blpop = async_mock.CoroutineMock()
-            mock_redis.rpush = async_mock.CoroutineMock(
-                side_effect=[test_module.RedisError, None]
-            )
+            mock_redis.blpop = AsyncMock()
+            mock_redis.rpush = AsyncMock(side_effect=[test_module.RedisError, None])
             service.redis = mock_redis
             await service.message_handler(mock_request)
 
-        mock_msg = async_mock.MagicMock(
+        mock_msg = MagicMock(
             type=aiohttp.WSMsgType.ERROR.value,
             data=json.dumps({"test": "...."}),
         )
 
-        with async_mock.patch.object(
+        with patch.object(
             test_module.web.WebSocketResponse,
             "prepare",
-            async_mock.CoroutineMock(),
-        ), async_mock.patch.object(
+            AsyncMock(),
+        ), patch.object(
             test_module.web.WebSocketResponse,
             "receive",
-            async_mock.CoroutineMock(),
-        ), async_mock.patch.object(
+            AsyncMock(),
+        ), patch.object(
             test_module.web.WebSocketResponse,
             "closed",
             PropertyMock(side_effect=[False, False, True, True]),
-        ), async_mock.patch.object(
+        ), patch.object(
             test_module.web.WebSocketResponse,
             "close",
-            async_mock.CoroutineMock(),
-        ), async_mock.patch.object(
+            AsyncMock(),
+        ), patch.object(
             test_module.web.WebSocketResponse,
             "exception",
-            async_mock.MagicMock(),
-        ), async_mock.patch.object(
+            MagicMock(),
+        ), patch.object(
             test_module.web.WebSocketResponse,
             "send_bytes",
-            async_mock.CoroutineMock(),
-        ), async_mock.patch.object(
+            AsyncMock(),
+        ), patch.object(
             test_module.web.WebSocketResponse,
             "send_str",
-            async_mock.CoroutineMock(),
-        ), async_mock.patch.object(
+            AsyncMock(),
+        ), patch.object(
             test_module.asyncio,
             "get_event_loop",
-            async_mock.MagicMock(
-                return_value=async_mock.MagicMock(
-                    run_until_complete=async_mock.MagicMock(),
-                    create_task=async_mock.MagicMock(
-                        return_value=async_mock.MagicMock(
-                            done=async_mock.MagicMock(return_value=True),
-                            result=async_mock.MagicMock(return_value=mock_msg),
+            MagicMock(
+                return_value=MagicMock(
+                    run_until_complete=MagicMock(),
+                    create_task=MagicMock(
+                        return_value=MagicMock(
+                            done=MagicMock(return_value=True),
+                            result=MagicMock(return_value=mock_msg),
                         )
                     ),
                 )
             ),
-        ) as mock_get_event_loop, async_mock.patch.object(
-            test_module.asyncio, "wait", async_mock.CoroutineMock()
-        ) as mock_wait, async_mock.patch.object(
+        ) as mock_get_event_loop, patch.object(
+            test_module.asyncio, "wait", AsyncMock()
+        ) as mock_wait, patch.object(
             redis.asyncio.RedisCluster,
             "from_url",
-            async_mock.MagicMock(),
-        ) as mock_redis, async_mock.patch.object(
+            MagicMock(),
+        ) as mock_redis, patch.object(
             test_module,
             "process_payload_recip_key",
-            async_mock.CoroutineMock(
-                return_value=("acapy_inbound_input_recip_key", async_mock.MagicMock())
-            ),
+            AsyncMock(return_value=("acapy_inbound_input_recip_key", MagicMock())),
         ):
             service = WSRelay(
                 "test", "test", "8080", "direct_resp_topic", "inbound_msg_topic"
             )
             service.timedelay_s = 0.1
-            mock_redis.blpop = async_mock.CoroutineMock()
-            mock_redis.rpush = async_mock.CoroutineMock()
+            mock_redis.blpop = AsyncMock()
+            mock_redis.rpush = AsyncMock()
             service.redis = mock_redis
             await service.message_handler(mock_request)
 
-        mock_msg = async_mock.MagicMock(
+        mock_msg = MagicMock(
             type="invlaid",
             data=json.dumps({"test": "...."}),
         )
 
-        with async_mock.patch.object(
+        with patch.object(
             test_module.web.WebSocketResponse,
             "prepare",
-            async_mock.CoroutineMock(),
-        ), async_mock.patch.object(
+            AsyncMock(),
+        ), patch.object(
             test_module.web.WebSocketResponse,
             "receive",
-            async_mock.CoroutineMock(),
-        ), async_mock.patch.object(
+            AsyncMock(),
+        ), patch.object(
             test_module.web.WebSocketResponse,
             "closed",
             PropertyMock(side_effect=[False, False, True, True]),
-        ), async_mock.patch.object(
+        ), patch.object(
             test_module.web.WebSocketResponse,
             "close",
-            async_mock.CoroutineMock(),
-        ), async_mock.patch.object(
+            AsyncMock(),
+        ), patch.object(
             test_module.web.WebSocketResponse,
             "exception",
-            async_mock.MagicMock(),
-        ), async_mock.patch.object(
+            MagicMock(),
+        ), patch.object(
             test_module.web.WebSocketResponse,
             "send_bytes",
-            async_mock.CoroutineMock(),
-        ), async_mock.patch.object(
+            AsyncMock(),
+        ), patch.object(
             test_module.web.WebSocketResponse,
             "send_str",
-            async_mock.CoroutineMock(),
-        ), async_mock.patch.object(
+            AsyncMock(),
+        ), patch.object(
             test_module.asyncio,
             "get_event_loop",
-            async_mock.MagicMock(
-                return_value=async_mock.MagicMock(
-                    run_until_complete=async_mock.MagicMock(),
-                    create_task=async_mock.MagicMock(
-                        return_value=async_mock.MagicMock(
-                            done=async_mock.MagicMock(return_value=True),
-                            result=async_mock.MagicMock(return_value=mock_msg),
+            MagicMock(
+                return_value=MagicMock(
+                    run_until_complete=MagicMock(),
+                    create_task=MagicMock(
+                        return_value=MagicMock(
+                            done=MagicMock(return_value=True),
+                            result=MagicMock(return_value=mock_msg),
                         )
                     ),
                 )
             ),
-        ) as mock_get_event_loop, async_mock.patch.object(
-            test_module.asyncio, "wait", async_mock.CoroutineMock()
-        ) as mock_wait, async_mock.patch.object(
+        ) as mock_get_event_loop, patch.object(
+            test_module.asyncio, "wait", AsyncMock()
+        ) as mock_wait, patch.object(
             redis.asyncio.RedisCluster,
             "from_url",
-            async_mock.MagicMock(),
-        ) as mock_redis, async_mock.patch.object(
+            MagicMock(),
+        ) as mock_redis, patch.object(
             test_module,
             "process_payload_recip_key",
-            async_mock.CoroutineMock(
-                return_value=("acapy_inbound_input_recip_key", async_mock.MagicMock())
-            ),
+            AsyncMock(return_value=("acapy_inbound_input_recip_key", MagicMock())),
         ):
             service = WSRelay(
                 "test", "test", "8080", "direct_resp_topic", "inbound_msg_topic"
             )
             service.timedelay_s = 0.1
-            mock_redis.blpop = async_mock.CoroutineMock()
-            mock_redis.rpush = async_mock.CoroutineMock()
+            mock_redis.blpop = AsyncMock()
+            mock_redis.rpush = AsyncMock()
             service.redis = mock_redis
             await service.message_handler(mock_request)
 
-        mock_msg = async_mock.MagicMock(
+        mock_msg = MagicMock(
             type=aiohttp.WSMsgType.TEXT.value,
             data=json.dumps({"test": "...."}),
         )
 
-        with async_mock.patch.object(
+        with patch.object(
             test_module.web.WebSocketResponse,
             "prepare",
-            async_mock.CoroutineMock(),
-        ), async_mock.patch.object(
+            AsyncMock(),
+        ), patch.object(
             test_module.web.WebSocketResponse,
             "receive",
-            async_mock.CoroutineMock(),
-        ), async_mock.patch.object(
+            AsyncMock(),
+        ), patch.object(
             test_module.web.WebSocketResponse,
             "closed",
             PropertyMock(side_effect=[False, False, True, False]),
-        ), async_mock.patch.object(
+        ), patch.object(
             test_module.web.WebSocketResponse,
             "close",
-            async_mock.CoroutineMock(),
-        ), async_mock.patch.object(
+            AsyncMock(),
+        ), patch.object(
             test_module.web.WebSocketResponse,
             "exception",
-            async_mock.MagicMock(),
-        ), async_mock.patch.object(
+            MagicMock(),
+        ), patch.object(
             test_module.web.WebSocketResponse,
             "send_bytes",
-            async_mock.CoroutineMock(),
-        ), async_mock.patch.object(
+            AsyncMock(),
+        ), patch.object(
             test_module.web.WebSocketResponse,
             "send_str",
-            async_mock.CoroutineMock(),
-        ), async_mock.patch.object(
+            AsyncMock(),
+        ), patch.object(
             test_module.asyncio,
             "get_event_loop",
-            async_mock.MagicMock(
-                return_value=async_mock.MagicMock(
-                    run_until_complete=async_mock.MagicMock(),
-                    create_task=async_mock.MagicMock(
-                        return_value=async_mock.MagicMock(
-                            done=async_mock.MagicMock(return_value=True),
-                            result=async_mock.MagicMock(return_value=mock_msg),
+            MagicMock(
+                return_value=MagicMock(
+                    run_until_complete=MagicMock(),
+                    create_task=MagicMock(
+                        return_value=MagicMock(
+                            done=MagicMock(return_value=True),
+                            result=MagicMock(return_value=mock_msg),
                         )
                     ),
                 )
             ),
-        ) as mock_get_event_loop, async_mock.patch.object(
-            test_module.asyncio, "wait", async_mock.CoroutineMock()
-        ) as mock_wait, async_mock.patch.object(
+        ) as mock_get_event_loop, patch.object(
+            test_module.asyncio, "wait", AsyncMock()
+        ) as mock_wait, patch.object(
             test_module.asyncio,
             "wait_for",
-            async_mock.CoroutineMock(return_value=b"{}"),
-        ) as mock_wait_for, async_mock.patch.object(
+            AsyncMock(return_value=b"{}"),
+        ) as mock_wait_for, patch.object(
             redis.asyncio.RedisCluster,
             "from_url",
-            async_mock.MagicMock(),
-        ) as mock_redis, async_mock.patch.object(
+            MagicMock(),
+        ) as mock_redis, patch.object(
             test_module,
             "process_payload_recip_key",
-            async_mock.CoroutineMock(
-                return_value=("acapy_inbound_input_recip_key", async_mock.MagicMock())
-            ),
+            AsyncMock(return_value=("acapy_inbound_input_recip_key", MagicMock())),
         ):
             service = WSRelay(
                 "test", "test", "8080", "direct_resp_topic", "inbound_msg_topic"
             )
             service.timedelay_s = 0.1
-            mock_redis.blpop = async_mock.CoroutineMock()
-            mock_redis.rpush = async_mock.CoroutineMock(
-                side_effect=[test_module.RedisError, None]
-            )
+            mock_redis.blpop = AsyncMock()
+            mock_redis.rpush = AsyncMock(side_effect=[test_module.RedisError, None])
             service.redis = mock_redis
             await service.message_handler(mock_request)
 
     async def test_is_running(self):
-        with async_mock.patch.object(
+        with patch.object(
             redis.asyncio.RedisCluster,
             "from_url",
-            async_mock.MagicMock(),
+            MagicMock(),
         ) as mock_redis:
             sentinel = PropertyMock(return_value=True)
             WSRelay.running = sentinel
             service = WSRelay(
                 "test", "test", "8080", "direct_resp_topic", "inbound_msg_topic"
             )
-            mock_redis = async_mock.MagicMock(ping=async_mock.CoroutineMock())
+            mock_redis = MagicMock(ping=AsyncMock())
             service.redis = mock_redis
             service.running = True
             assert await service.is_running()
@@ -1289,7 +1248,7 @@ class TestRedisWSHandler(AsyncTestCase):
             service = WSRelay(
                 "test", "test", "8080", "direct_resp_topic", "inbound_msg_topic"
             )
-            mock_redis = async_mock.MagicMock(ping=async_mock.CoroutineMock())
+            mock_redis = MagicMock(ping=AsyncMock())
             service.redis = mock_redis
             service.running = False
             assert not await service.is_running()
@@ -1298,8 +1257,8 @@ class TestRedisWSHandler(AsyncTestCase):
             service = WSRelay(
                 "test", "test", "8080", "direct_resp_topic", "inbound_msg_topic"
             )
-            mock_redis = async_mock.MagicMock(
-                ping=async_mock.CoroutineMock(side_effect=redis.exceptions.RedisError)
+            mock_redis = MagicMock(
+                ping=AsyncMock(side_effect=redis.exceptions.RedisError)
             )
             service.redis = mock_redis
             service.running = True
@@ -1311,23 +1270,21 @@ class TestRedisWSHandler(AsyncTestCase):
         ) == b'{"test": "...", "test2": "test2"}'
 
     def test_init(self):
-        with async_mock.patch.object(
-            test_module, "__name__", "__main__"
-        ), async_mock.patch.object(
+        with patch.object(test_module, "__name__", "__main__"), patch.object(
             test_module, "signal", autospec=True
-        ), async_mock.patch.object(
+        ), patch.object(
             test_module,
             "asyncio",
-            async_mock.MagicMock(
-                get_event_loop=async_mock.MagicMock(
-                    add_signal_handler=async_mock.MagicMock(),
-                    run_until_complete=async_mock.MagicMock(),
-                    close=async_mock.MagicMock(),
+            MagicMock(
+                get_event_loop=MagicMock(
+                    add_signal_handler=MagicMock(),
+                    run_until_complete=MagicMock(),
+                    close=MagicMock(),
                 ),
-                ensure_future=async_mock.MagicMock(
-                    cancel=async_mock.MagicMock(),
+                ensure_future=MagicMock(
+                    cancel=MagicMock(),
                 ),
-                CancelledError=async_mock.MagicMock(),
+                CancelledError=MagicMock(),
             ),
         ):
             test_module.init()

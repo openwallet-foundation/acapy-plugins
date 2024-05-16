@@ -1,5 +1,7 @@
 import json
 from copy import deepcopy
+from unittest import IsolatedAsyncioTestCase
+from unittest.mock import AsyncMock, MagicMock, patch
 
 import redis
 from aiohttp.test_utils import unused_port
@@ -8,8 +10,6 @@ from aries_cloudagent.core.event_bus import Event, EventWithMetadata, MockEventB
 from aries_cloudagent.core.in_memory import InMemoryProfile
 from aries_cloudagent.transport.error import TransportError
 from aries_cloudagent.transport.outbound.message import OutboundMessage
-from asynctest import TestCase as AsyncTestCase
-from asynctest import mock as async_mock
 from redis.asyncio import RedisCluster
 
 from .. import events as test_module
@@ -70,44 +70,40 @@ TEST_PAYLOAD_DICT = {
 TEST_PAYLOAD_BYTES = (json.dumps(TEST_PAYLOAD_DICT)).encode()
 
 
-class TestRedisEvents(AsyncTestCase):
-    def setUp(self):
+class TestRedisEvents(IsolatedAsyncioTestCase):
+    async def asyncSetUp(self):
         self.port = unused_port()
         self.session = None
         self.profile = InMemoryProfile.test_profile()
 
     async def test_setup(self):
-        context = async_mock.MagicMock(
-            settings=SETTINGS, inject=async_mock.MagicMock(return_value=MockEventBus())
+        context = MagicMock(
+            settings=SETTINGS, inject=MagicMock(return_value=MockEventBus())
         )
         await setup(context)
 
     async def test_setup_x(self):
-        context = async_mock.MagicMock(
-            settings=SETTINGS, inject=async_mock.MagicMock(return_value=None)
-        )
+        context = MagicMock(settings=SETTINGS, inject=MagicMock(return_value=None))
         with self.assertRaises(ValueError):
             await setup(context)
 
     async def test_on_startup(self):
         self.profile.settings["plugin_config"] = SETTINGS["plugin_config"]
         test_event = Event("test_topic", {"rev_reg_id": "mock", "crids": ["mock"]})
-        with async_mock.patch.object(
+        with patch.object(
             redis.asyncio.RedisCluster,
             "from_url",
-            async_mock.MagicMock(
-                return_value=async_mock.MagicMock(ping=async_mock.CoroutineMock())
-            ),
+            MagicMock(return_value=MagicMock(ping=AsyncMock())),
         ):
             await on_startup(self.profile, test_event)
 
     async def test_on_startup_x(self):
         self.profile.settings["plugin_config"] = SETTINGS["plugin_config"]
         test_event = Event("test_topic", {"rev_reg_id": "mock", "crids": ["mock"]})
-        with async_mock.patch.object(
+        with patch.object(
             redis.asyncio.RedisCluster,
             "from_url",
-            async_mock.MagicMock(side_effect=redis.exceptions.RedisError),
+            MagicMock(side_effect=redis.exceptions.RedisError),
         ):
             with self.assertRaises(TransportError):
                 await on_startup(self.profile, test_event)
@@ -122,18 +118,18 @@ class TestRedisEvents(AsyncTestCase):
         self.profile.settings["wallet.id"] = "test_wallet_id"
         self.profile.context.injector.bind_instance(
             RedisCluster,
-            async_mock.MagicMock(
-                rpush=async_mock.CoroutineMock(),
+            MagicMock(
+                rpush=AsyncMock(),
             ),
         )
-        test_event_with_metadata = async_mock.MagicMock(
+        test_event_with_metadata = MagicMock(
             payload={
                 "state": "test_state",
                 "test": "test",
             },
             topic="acapy::basicmessage::received",
-            metadata=async_mock.MagicMock(
-                pattern=async_mock.MagicMock(pattern="acapy::basicmessage::received")
+            metadata=MagicMock(
+                pattern=MagicMock(pattern="acapy::basicmessage::received")
             ),
         )
         await handle_event(self.profile, test_event_with_metadata)
@@ -165,8 +161,8 @@ class TestRedisEvents(AsyncTestCase):
                 ],
                 to_session_only=False,
             ),
-            metadata=async_mock.MagicMock(
-                pattern=async_mock.MagicMock(
+            metadata=MagicMock(
+                pattern=MagicMock(
                     pattern="acapy::outbound-message::queued_for_delivery"
                 )
             ),
@@ -202,8 +198,8 @@ class TestRedisEvents(AsyncTestCase):
                 ],
                 to_session_only=False,
             ),
-            metadata=async_mock.MagicMock(
-                pattern=async_mock.MagicMock(
+            metadata=MagicMock(
+                pattern=MagicMock(
                     pattern="acapy::outbound-message::queued_for_delivery"
                 )
             ),
@@ -224,45 +220,41 @@ class TestRedisEvents(AsyncTestCase):
         ]
         self.profile.context.injector.bind_instance(
             RedisCluster,
-            async_mock.MagicMock(
-                rpush=async_mock.CoroutineMock(),
+            MagicMock(
+                rpush=AsyncMock(),
             ),
         )
-        test_event_with_metadata = async_mock.MagicMock(
+        test_event_with_metadata = MagicMock(
             payload={
                 "state": "test_state",
                 "test": "test",
             },
             topic="acapy::basicmessage::received",
-            metadata=async_mock.MagicMock(
-                pattern=async_mock.MagicMock(pattern="acapy::basicmessage::received")
+            metadata=MagicMock(
+                pattern=MagicMock(pattern="acapy::basicmessage::received")
             ),
         )
         await handle_event(self.profile, test_event_with_metadata)
 
     async def test_handle_event_x(self):
         self.profile.settings["emit_new_didcomm_mime_type"] = False
-        with async_mock.patch.object(
+        with patch.object(
             test_module,
             "redis_setup",
-            async_mock.CoroutineMock(
-                return_value=async_mock.MagicMock(
-                    rpush=async_mock.CoroutineMock(
-                        side_effect=redis.exceptions.RedisError
-                    ),
+            AsyncMock(
+                return_value=MagicMock(
+                    rpush=AsyncMock(side_effect=redis.exceptions.RedisError),
                 )
             ),
         ):
-            test_event_with_metadata = async_mock.MagicMock(
+            test_event_with_metadata = MagicMock(
                 payload={
                     "state": "test_state",
                     "test": "test",
                 },
                 topic="acapy::basicmessage::received",
-                metadata=async_mock.MagicMock(
-                    pattern=async_mock.MagicMock(
-                        pattern="acapy::basicmessage::received"
-                    )
+                metadata=MagicMock(
+                    pattern=MagicMock(pattern="acapy::basicmessage::received")
                 ),
             )
             await handle_event(self.profile, test_event_with_metadata)

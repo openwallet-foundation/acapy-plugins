@@ -1,12 +1,12 @@
 import json
+from unittest import IsolatedAsyncioTestCase
+from unittest.mock import AsyncMock, MagicMock, patch
 
 from aiohttp import web
 from aries_cloudagent.admin.request_context import AdminRequestContext
 from aries_cloudagent.messaging.models.base import BaseModelError
 from aries_cloudagent.storage.error import StorageError, StorageNotFoundError
 from aries_cloudagent.storage.record import StorageRecord
-from asynctest import TestCase as AsyncTestCase
-from asynctest import mock as async_mock
 
 import rpc.v1_0.routes as test_module
 from rpc.v1_0.models import DRPCRecord, DRPCRecordSchema
@@ -38,19 +38,19 @@ class MockConnRecord:
         self.is_ready = is_ready
 
 
-class TestDRPCRoutes(AsyncTestCase):
-    def setUp(self):
+class TestDRPCRoutes(IsolatedAsyncioTestCase):
+    async def asyncSetUp(self):
         self.session_inject = {}
 
-        self.storage = async_mock.MagicMock()
+        self.storage = MagicMock()
         self.session_inject[test_module.BaseStorage] = self.storage
 
         self.context = AdminRequestContext.test_context(self.session_inject)
         self.request_dict = {
             "context": self.context,
-            "outbound_message_router": async_mock.CoroutineMock(),
+            "outbound_message_router": AsyncMock(),
         }
-        self.request = async_mock.MagicMock(
+        self.request = MagicMock(
             app={},
             match_info={},
             query={},
@@ -58,14 +58,14 @@ class TestDRPCRoutes(AsyncTestCase):
         )
 
     async def test_get_empty_drpc_record_list(self):
-        self.storage.find_all_records = async_mock.CoroutineMock(return_value=[])
+        self.storage.find_all_records = AsyncMock(return_value=[])
 
-        with async_mock.patch.object(test_module.web, "json_response") as mock_response:
+        with patch.object(test_module.web, "json_response") as mock_response:
             await test_module.drpc_get_records(self.request)
             mock_response.assert_called_once_with({"results": []})
 
     async def test_get_drpc_record_list(self):
-        self.storage.find_all_records = async_mock.CoroutineMock(
+        self.storage.find_all_records = AsyncMock(
             return_value=[
                 StorageRecord(
                     DRPCRecord.RECORD_TYPE,
@@ -81,7 +81,7 @@ class TestDRPCRoutes(AsyncTestCase):
             ]
         )
 
-        with async_mock.patch.object(test_module.web, "json_response") as mock_response:
+        with patch.object(test_module.web, "json_response") as mock_response:
             await test_module.drpc_get_records(self.request)
             mock_response.assert_called_once_with(
                 {
@@ -97,7 +97,7 @@ class TestDRPCRoutes(AsyncTestCase):
             )
 
     async def test_get_drpc_record_list_by_state(self):
-        self.storage.find_all_records = async_mock.CoroutineMock(
+        self.storage.find_all_records = AsyncMock(
             return_value=[
                 StorageRecord(
                     DRPCRecord.RECORD_TYPE,
@@ -127,7 +127,7 @@ class TestDRPCRoutes(AsyncTestCase):
             ]
         )
 
-        with async_mock.patch.object(test_module.web, "json_response") as mock_response:
+        with patch.object(test_module.web, "json_response") as mock_response:
             self.request.query = {
                 "connection_id": "test-connection-id",
                 "thread_id": "test-thread-id",
@@ -148,7 +148,7 @@ class TestDRPCRoutes(AsyncTestCase):
             )
 
     async def test_get_drpc_record_by_id(self):
-        self.storage.get_record = async_mock.CoroutineMock(
+        self.storage.get_record = AsyncMock(
             return_value=StorageRecord(
                 DRPCRecord.RECORD_TYPE,
                 json.dumps(
@@ -162,7 +162,7 @@ class TestDRPCRoutes(AsyncTestCase):
             )
         )
 
-        with async_mock.patch.object(test_module.web, "json_response") as mock_response:
+        with patch.object(test_module.web, "json_response") as mock_response:
             self.request.match_info = {"record_id": "test-record-id"}
             await test_module.drpc_get_record(self.request)
             mock_response.assert_called_once_with(
@@ -174,14 +174,14 @@ class TestDRPCRoutes(AsyncTestCase):
                 }
             )
 
-    @async_mock.patch.object(
+    @patch.object(
         test_module.ConnRecord,
         "retrieve_by_id",
         side_effect=StorageNotFoundError(),
     )
     async def test_http_not_found_thrown_on_connection_not_found_error(self, *_):
         self.request.match_info = {"conn_id": "test-connection-id"}
-        self.request.json = async_mock.CoroutineMock(
+        self.request.json = AsyncMock(
             return_value={
                 "request": test_rpc_request,
                 "response": test_rpc_response,
@@ -189,8 +189,8 @@ class TestDRPCRoutes(AsyncTestCase):
             }
         )
 
-        self.storage.add_record = async_mock.CoroutineMock()
-        self.storage.update_record = async_mock.CoroutineMock()
+        self.storage.add_record = AsyncMock()
+        self.storage.update_record = AsyncMock()
 
         with self.assertRaises(web.HTTPNotFound):
             await test_module.drpc_send_request(self.request)
@@ -198,28 +198,26 @@ class TestDRPCRoutes(AsyncTestCase):
         with self.assertRaises(web.HTTPNotFound):
             await test_module.drpc_send_response(self.request)
 
-    @async_mock.patch.object(
+    @patch.object(
         test_module.ConnRecord,
         "retrieve_by_id",
         return_value=MockConnRecord("test-connection-id", True),
     )
     async def test_http_internal_server_error_thrown_on_add_storage_error(self, *_):
         self.request.match_info = {"conn_id": "test-connection-id"}
-        self.request.json = async_mock.CoroutineMock(
-            return_value={"request": test_rpc_request}
-        )
+        self.request.json = AsyncMock(return_value={"request": test_rpc_request})
 
-        self.storage.add_record = async_mock.CoroutineMock(side_effect=StorageError())
+        self.storage.add_record = AsyncMock(side_effect=StorageError())
 
         with self.assertRaises(web.HTTPInternalServerError):
             await test_module.drpc_send_request(self.request)
 
-    @async_mock.patch.object(
+    @patch.object(
         test_module.ConnRecord,
         "retrieve_by_id",
         return_value=MockConnRecord("test-connection-id", True),
     )
-    @async_mock.patch.object(
+    @patch.object(
         test_module.DRPCRecord,
         "retrieve_by_connection_and_thread",
         return_value=DRPCRecordSchema().load(
@@ -228,7 +226,7 @@ class TestDRPCRoutes(AsyncTestCase):
     )
     async def test_http_internal_server_error_thrown_on_update_storage_error(self, *_):
         self.request.match_info = {"conn_id": "test-connection-id"}
-        self.request.json = async_mock.CoroutineMock(
+        self.request.json = AsyncMock(
             return_value={
                 "request": test_rpc_request,
                 "response": test_rpc_response,
@@ -236,10 +234,8 @@ class TestDRPCRoutes(AsyncTestCase):
             }
         )
 
-        self.storage.add_record = async_mock.CoroutineMock()
-        self.storage.update_record = async_mock.CoroutineMock(
-            side_effect=StorageError()
-        )
+        self.storage.add_record = AsyncMock()
+        self.storage.update_record = AsyncMock(side_effect=StorageError())
 
         with self.assertRaises(web.HTTPInternalServerError):
             await test_module.drpc_send_request(self.request)
@@ -247,37 +243,37 @@ class TestDRPCRoutes(AsyncTestCase):
         with self.assertRaises(web.HTTPInternalServerError):
             await test_module.drpc_send_response(self.request)
 
-    @async_mock.patch.object(
+    @patch.object(
         test_module.ConnRecord,
         "retrieve_by_id",
         return_value=MockConnRecord("test-connection-id", True),
     )
-    @async_mock.patch.object(
+    @patch.object(
         test_module.DRPCRecord,
         "retrieve_by_connection_and_thread",
         side_effect=StorageNotFoundError(),
     )
     async def test_http_not_found_thrown_on_drpc_record_not_found_error(self, *_):
         self.request.match_info = {"conn_id": "test-connection-id"}
-        self.request.json = async_mock.CoroutineMock(
+        self.request.json = AsyncMock(
             return_value={
                 "response": test_rpc_response,
                 "thread_id": "test-thread-id",
             }
         )
 
-        self.storage.update_record = async_mock.CoroutineMock()
+        self.storage.update_record = AsyncMock()
 
         with self.assertRaises(web.HTTPNotFound):
             await test_module.drpc_send_response(self.request)
 
-    @async_mock.patch.object(
+    @patch.object(
         test_module.DRPCRecord,
         "from_storage",
         side_effect=BaseModelError(),
     )
     async def test_http_internal_server_error_thrown_on_drpc_get_records(self, *_):
-        self.storage.find_all_records = async_mock.CoroutineMock(
+        self.storage.find_all_records = AsyncMock(
             return_value=[
                 StorageRecord(
                     DRPCRecord.RECORD_TYPE,
@@ -296,7 +292,7 @@ class TestDRPCRoutes(AsyncTestCase):
         with self.assertRaises(web.HTTPInternalServerError):
             await test_module.drpc_get_records(self.request)
 
-    @async_mock.patch.object(
+    @patch.object(
         test_module.DRPCRecord,
         "from_storage",
         side_effect=BaseModelError(),
@@ -304,7 +300,7 @@ class TestDRPCRoutes(AsyncTestCase):
     async def test_http_not_found_thrown_on_drpc_get_record(self, *_):
         self.request.match_info = {"record_id": "test-record-id"}
 
-        self.storage.get_record = async_mock.CoroutineMock(
+        self.storage.get_record = AsyncMock(
             return_value=StorageRecord(
                 DRPCRecord.RECORD_TYPE,
                 json.dumps(

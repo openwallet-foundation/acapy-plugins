@@ -1,13 +1,12 @@
 import base64
 import json
+from unittest import IsolatedAsyncioTestCase
+from unittest.mock import AsyncMock, MagicMock, PropertyMock, patch
 
 import redis
 from aiohttp.test_utils import unused_port
 from aries_cloudagent.core.in_memory import InMemoryProfile
 from aries_cloudagent.messaging.error import MessageParseError
-from asynctest import PropertyMock
-from asynctest import TestCase as AsyncTestCase
-from asynctest import mock as async_mock
 
 from .. import inbound as test_inbound
 from ..inbound import RedisInboundTransport
@@ -90,15 +89,15 @@ TEST_INBOUND_INVALID = b"""{
 }"""
 
 
-class TestRedisInbound(AsyncTestCase):
-    def setUp(self):
+class TestRedisInbound(IsolatedAsyncioTestCase):
+    async def asyncSetUp(self):
         self.port = unused_port()
         self.session = None
         self.profile = InMemoryProfile.test_profile()
 
     async def test_init(self):
         self.profile.context.injector.bind_instance(
-            redis.asyncio.RedisCluster, async_mock.MagicMock()
+            redis.asyncio.RedisCluster, MagicMock()
         )
         RedisInboundTransport.running = PropertyMock(
             side_effect=[True, True, True, False]
@@ -106,19 +105,17 @@ class TestRedisInbound(AsyncTestCase):
         redis_inbound_inst = RedisInboundTransport(
             "0.0.0.0",
             self.port,
-            async_mock.CoroutineMock(
-                return_value=async_mock.MagicMock(
-                    receive=async_mock.CoroutineMock(),
-                    wait_response=async_mock.CoroutineMock(
+            AsyncMock(
+                return_value=MagicMock(
+                    receive=AsyncMock(),
+                    wait_response=AsyncMock(
                         side_effect=[
                             b"test_response_1",
                             "test_response_2",
                             MessageParseError,
                         ]
                     ),
-                    profile=async_mock.MagicMock(
-                        settings={"emit_new_didcomm_mime_type": True}
-                    ),
+                    profile=MagicMock(settings={"emit_new_didcomm_mime_type": True}),
                 )
             ),
             root_profile=self.profile,
@@ -130,26 +127,26 @@ class TestRedisInbound(AsyncTestCase):
         RedisInboundTransport.running = PropertyMock(
             side_effect=[True, True, True, False]
         )
-        with async_mock.patch.object(
+        with patch.object(
             redis.asyncio.RedisCluster,
             "from_url",
-            async_mock.MagicMock(),
+            MagicMock(),
         ) as mock_redis:
-            mock_redis = async_mock.MagicMock(ping=async_mock.CoroutineMock())
+            mock_redis = MagicMock(ping=AsyncMock())
             redis_inbound_inst = RedisInboundTransport(
                 "0.0.0.0",
                 self.port,
-                async_mock.CoroutineMock(
-                    return_value=async_mock.MagicMock(
-                        receive=async_mock.CoroutineMock(),
-                        wait_response=async_mock.CoroutineMock(
+                AsyncMock(
+                    return_value=MagicMock(
+                        receive=AsyncMock(),
+                        wait_response=AsyncMock(
                             side_effect=[
                                 b"test_response_1",
                                 "test_response_2",
                                 MessageParseError,
                             ]
                         ),
-                        profile=async_mock.MagicMock(
+                        profile=MagicMock(
                             settings={"emit_new_didcomm_mime_type": True}
                         ),
                     )
@@ -163,10 +160,10 @@ class TestRedisInbound(AsyncTestCase):
         self.profile.settings["emit_new_didcomm_mime_type"] = False
         self.profile.context.injector.bind_instance(
             redis.asyncio.RedisCluster,
-            async_mock.MagicMock(
-                hset=async_mock.CoroutineMock(),
-                ping=async_mock.CoroutineMock(),
-                hget=async_mock.CoroutineMock(
+            MagicMock(
+                hset=AsyncMock(),
+                ping=AsyncMock(),
+                hget=AsyncMock(
                     side_effect=[
                         base64.urlsafe_b64encode(
                             json.dumps(
@@ -199,7 +196,7 @@ class TestRedisInbound(AsyncTestCase):
                         None,
                     ]
                 ),
-                blpop=async_mock.CoroutineMock(
+                blpop=AsyncMock(
                     side_effect=[
                         (None, TEST_INBOUND_MSG_DIRECT_RESPONSE),
                         (None, TEST_INBOUND_MSG_A),
@@ -212,14 +209,10 @@ class TestRedisInbound(AsyncTestCase):
                         (None, TEST_INBOUND_MSG_DIRECT_RESPONSE),
                     ]
                 ),
-                rpush=async_mock.CoroutineMock(
-                    side_effect=[redis.exceptions.RedisError, None]
-                ),
+                rpush=AsyncMock(side_effect=[redis.exceptions.RedisError, None]),
             ),
         )
-        with async_mock.patch.object(
-            test_inbound.asyncio, "sleep", async_mock.CoroutineMock()
-        ):
+        with patch.object(test_inbound.asyncio, "sleep", AsyncMock()):
             RedisInboundTransport.running = PropertyMock(
                 side_effect=[
                     True,
@@ -231,10 +224,10 @@ class TestRedisInbound(AsyncTestCase):
             redis_inbound_inst = RedisInboundTransport(
                 "0.0.0.0",
                 self.port,
-                async_mock.CoroutineMock(
-                    return_value=async_mock.MagicMock(
-                        receive=async_mock.CoroutineMock(),
-                        wait_response=async_mock.CoroutineMock(
+                AsyncMock(
+                    return_value=MagicMock(
+                        receive=AsyncMock(),
+                        wait_response=AsyncMock(
                             side_effect=[
                                 b"test_response_1",
                                 "test_response_2",
@@ -254,10 +247,10 @@ class TestRedisInbound(AsyncTestCase):
         self.profile.settings["emit_new_didcomm_mime_type"] = True
         self.profile.context.injector.bind_instance(
             redis.asyncio.RedisCluster,
-            async_mock.MagicMock(
-                hset=async_mock.CoroutineMock(),
-                ping=async_mock.CoroutineMock(),
-                hget=async_mock.CoroutineMock(
+            MagicMock(
+                hset=AsyncMock(),
+                ping=AsyncMock(),
+                hget=AsyncMock(
                     side_effect=[
                         redis.exceptions.RedisError,
                         redis.exceptions.RedisError,
@@ -277,7 +270,7 @@ class TestRedisInbound(AsyncTestCase):
                         b"1",
                     ]
                 ),
-                blpop=async_mock.CoroutineMock(
+                blpop=AsyncMock(
                     side_effect=[
                         (None, b'{"test": "test"}'),
                         (None, TEST_INBOUND_MSG_DIRECT_RESPONSE),
@@ -289,12 +282,10 @@ class TestRedisInbound(AsyncTestCase):
                         redis.exceptions.RedisError,
                     ]
                 ),
-                rpush=async_mock.CoroutineMock(),
+                rpush=AsyncMock(),
             ),
         )
-        with async_mock.patch.object(
-            test_inbound.asyncio, "sleep", async_mock.CoroutineMock()
-        ):
+        with patch.object(test_inbound.asyncio, "sleep", AsyncMock()):
             RedisInboundTransport.running = PropertyMock(
                 side_effect=[
                     True,
@@ -310,10 +301,10 @@ class TestRedisInbound(AsyncTestCase):
             redis_inbound_inst = RedisInboundTransport(
                 "0.0.0.0",
                 self.port,
-                async_mock.CoroutineMock(
-                    return_value=async_mock.MagicMock(
-                        receive=async_mock.CoroutineMock(),
-                        wait_response=async_mock.CoroutineMock(
+                AsyncMock(
+                    return_value=MagicMock(
+                        receive=AsyncMock(),
+                        wait_response=AsyncMock(
                             side_effect=[
                                 b"test_response_1",
                             ]

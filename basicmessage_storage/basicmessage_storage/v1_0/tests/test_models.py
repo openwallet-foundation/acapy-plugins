@@ -1,14 +1,15 @@
-import asynctest
+from unittest import IsolatedAsyncioTestCase
+from unittest.mock import patch
+
 from aries_cloudagent.core.in_memory import InMemoryProfile
-from asynctest import TestCase as AsyncTestCase
 
 from ..models import BasicMessageRecord
 
 _id = "mytestid"
 
 
-class TestBasicMessageRecord(AsyncTestCase):
-    async def setUp(self) -> None:
+class TestBasicMessageRecord(IsolatedAsyncioTestCase):
+    async def asyncSetUp(self) -> None:
         self.session = InMemoryProfile.test_session()
 
     async def test_init_creates_record_with_default_parameters(self):
@@ -32,7 +33,7 @@ class TestBasicMessageRecord(AsyncTestCase):
             for x in [_locale, _content, _sent_time, BasicMessageRecord.STATE_SENT]
         )
 
-    @asynctest.patch.object(BasicMessageRecord, "retrieve_by_tag_filter")
+    @patch.object(BasicMessageRecord, "retrieve_by_tag_filter")
     async def test_retrieve_by_message_id_calls_retrieve_by_tag_filter_with_correct_args(
         self, mock_retrieve
     ):
