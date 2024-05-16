@@ -1,6 +1,7 @@
 import os
 import re
 import shutil
+import subprocess
 import sys
 from copy import deepcopy
 from enum import Enum
@@ -295,6 +296,13 @@ def is_plugin_directory(plugin_name: str) -> bool:
     )
 
 
+def update_all_poetry_locks():
+    for root, _, files in os.walk("."):
+        if "poetry.lock" in files:
+            print(f"Updating poetry.lock in {root}")
+            subprocess.run(["poetry", "lock"], cwd=root)
+
+
 def main(arg_1=None):
 
     options = """
@@ -304,7 +312,8 @@ def main(arg_1=None):
         (3) Upgrade plugin_global dependencies 
         (4) Update plugins description with supported aries-cloudagent version
         (5) Get the plugins that upgraded since last release
-        (6) Exit \n\nInput:  """
+        (6) Update all poetry.lock files
+        (7) Exit \n\nInput:  """
 
     if arg_1:
         selection = arg_1
@@ -473,6 +482,9 @@ def main(arg_1=None):
 
         print(output)
     elif selection == "6":
+        print("Updating all poetry.lock files in nested directories...")
+        update_all_poetry_locks()
+    elif selection == "7":
         print("Exiting...")
         exit(0)
     else:
