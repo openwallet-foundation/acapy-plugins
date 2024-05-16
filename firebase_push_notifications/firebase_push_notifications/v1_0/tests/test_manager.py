@@ -2,7 +2,7 @@ import logging
 import os
 from datetime import timedelta
 from unittest import IsolatedAsyncioTestCase
-from unittest.mock import patch, Mock
+from unittest.mock import Mock, patch
 
 import pytest
 from aries_cloudagent.core.in_memory import InMemoryProfile
