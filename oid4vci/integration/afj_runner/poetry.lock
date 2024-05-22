@@ -112,13 +112,13 @@ frozenlist = ">=1.1.0"
 
 [[package]]
 name = "async-selective-queue"
-version = "0.1.0.post0"
+version = "0.1.1"
 description = "Async queue with selective retrieval"
 optional = false
-python-versions = ">=3.7,<4.0"
+python-versions = "<4.0,>=3.9"
 files = [
-    {file = "async-selective-queue-0.1.0.post0.tar.gz", hash = "sha256:7562355d643f3c9a09c7d96181f4bb57a83146e0beb76ad4112698b3be830726"},
-    {file = "async_selective_queue-0.1.0.post0-py3-none-any.whl", hash = "sha256:6e490c9d7b41b700b720161375dc3f4b79b4d6de65e4efb3057a615a85f49602"},
+    {file = "async_selective_queue-0.1.1-py3-none-any.whl", hash = "sha256:b06af83a09d0fbfc1ac115f68e7e6b879823de71a1749e4a439f44903ae9cfb7"},
+    {file = "async_selective_queue-0.1.1.tar.gz", hash = "sha256:f59e78ef1703a8781ecd1fff103f4692b3fb8885419430b7c735ee45e5909632"},
 ]
 
 [[package]]
@@ -689,4 +689,4 @@ multidict = ">=4.0"
 [metadata]
 lock-version = "2.0"
 python-versions = "^3.9"
-content-hash = "9726bce9f5d700fec0ce23f85921f2ff10080709e946d551d4ac5e8a62f30834"
+content-hash = "e1260de1f47823f7fce0b1d7ce0dc65e35ff452d747175c885096fdf93d75404"

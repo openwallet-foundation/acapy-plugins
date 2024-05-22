@@ -8,7 +8,7 @@ readme = "README.md"
 
 [tool.poetry.dependencies]
 python = "^3.9"
-async-selective-queue = "^0.1.0.post0"
+async-selective-queue = "^0.1.1"
 jsonrpc-api-proxy-client = { git = "https://github.com/Indicio-tech/json-rpc-api-proxy.git", subdirectory = "clients/python" }
 controller = {git = "https://github.com/Indicio-tech/acapy-minimal-example.git"}
 
