@@ -350,7 +350,7 @@ async def issue_cred(request: web.Request):
     if not pop.holder_kid:
         raise web.HTTPBadRequest(reason="No kid in proof; required for jwt_vc_json")
     
-    #note: some wallets require that the "jti" and "id" are a uri - i.e. Animo Paradym wallet
+    #note: some wallets require that the "jti" and "id" are a uri -i.e. Animo Paradym wallet
     payload = {
         "vc": {
             **(supported.vc_additional_data or {}),
