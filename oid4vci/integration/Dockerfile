@@ -1,4 +1,4 @@
-FROM python:3.10-slim-bookworm AS base
+FROM python:3.12-slim-bookworm AS base
 WORKDIR /usr/src/app
 
 ENV POETRY_VERSION=1.5.0
