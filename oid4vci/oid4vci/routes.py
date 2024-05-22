@@ -523,7 +523,7 @@ async def register(app: web.Application):
                 allow_head=False,
             ),
             web.delete(
-                "/oid4vci/exchange-supported/records/{cred_sup_id}",
+                "/oid4vci/exchange-supported/records/{supported_cred_id}",
                 supported_credential_remove,
             ),
         ]
