@@ -302,8 +302,17 @@ def update_all_poetry_locks():
             print(f"Updating poetry.lock in {root}")
             subprocess.run(["poetry", "lock"], cwd=root)
 
+def upgrade_library_in_all_plugins(library: str = None):
+    if library is None:
+        library = input("Enter the library to upgrade: ")
 
-def main(arg_1=None):
+    for plugin_name in os.listdir("./"):
+        if is_plugin_directory(plugin_name):
+            os.system(f"cd {plugin_name} && poetry update {library} && cd ..")
+    os.system(f"cd plugin_globals && poetry update {library} && cd ..")
+
+
+def main(arg_1=None, arg_2=None):
 
     options = """
         What would you like to do? 
@@ -313,7 +322,8 @@ def main(arg_1=None):
         (4) Update plugins description with supported aries-cloudagent version
         (5) Get the plugins that upgraded since last release
         (6) Update all poetry.lock files
-        (7) Exit \n\nInput:  """
+        (7) Upgrade a specific library in all plugins
+        (8) Exit \n\nInput:  """
 
     if arg_1:
         selection = arg_1
@@ -485,6 +495,9 @@ def main(arg_1=None):
         print("Updating all poetry.lock files in nested directories...")
         update_all_poetry_locks()
     elif selection == "7":
+        print("Upgrading a specific library in all plugins...")
+        upgrade_library_in_all_plugins(arg_2)
+    elif selection == "8":
         print("Exiting...")
         exit(0)
     else:
@@ -494,6 +507,6 @@ def main(arg_1=None):
 
 if __name__ == "__main__":
     try:
-        main(sys.argv[1])
+        main(sys.argv[1], sys.argv[2] if len(sys.argv) > 2 else None)
     except Exception:
         main()
