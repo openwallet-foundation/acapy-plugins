@@ -6,13 +6,13 @@
     "dockerfile": "Dockerfile",
     "context": "..",
     "args": {
-      "VARIANT": "3.9-bullseye",
-      "POETRY_VERSION": "1.7.1"
+      "VARIANT": "3.12-bullseye",
+      "POETRY_VERSION": "1.8.3"
     }
   },
   "customizations": {
     "vscode": {
-      "extensions": ["ms-python.python", "ms-python.vscode-pylance"],
+      "extensions": ["ms-python.python", "ms-python.vscode-pylance", "charliermarsh.ruff"],
       "settings": {
         "python.testing.pytestArgs": ["./multitenant_provider", "--no-cov"],
         "python.testing.unittestEnabled": false,
@@ -21,11 +21,20 @@
         "editor.defaultFormatter": null,
         "editor.formatOnSave": false, // enable per language
         "[python]": {
-          "editor.formatOnSave": true
+          "editor.formatOnSave": true,
+          "editor.codeActionsOnSave": {
+              "source.fixAll": true,
+              "source.organizeImports": true
+            },
+          "editor.defaultFormatter": "charliermarsh.ruff",
+          "ruff.organizeImports": true
         },
-        "python.formatting.provider": "black",
-        "python.formatting.blackPath": "/usr/local/py-utils/bin/black",
-        "python.formatting.blackArgs": []
+        "ruff.codeAction.fixViolation": {
+            "enable": true
+        },
+        "ruff.fixAll": true,
+        "ruff.format.args": ["--config=./pyproject.toml"],
+        "ruff.lint.args": ["--config=./pyproject.toml"]
       }
     }
   },

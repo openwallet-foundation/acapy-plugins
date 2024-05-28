@@ -12,6 +12,7 @@ from aiohttp_apispec import (
     request_schema,
     response_schema,
 )
+from aries_cloudagent.admin.decorators.auth import tenant_authentication
 from aries_cloudagent.admin.request_context import AdminRequestContext
 from aries_cloudagent.messaging.models.base import BaseModelError
 from aries_cloudagent.messaging.models.openapi import OpenAPISchema
@@ -73,6 +74,7 @@ class ExchangeRecordListSchema(OpenAPISchema):
 )
 @querystring_schema(ExchangeRecordQuerySchema())
 @response_schema(ExchangeRecordListSchema(), 200)
+@tenant_authentication
 async def list_exchange_records(request: web.BaseRequest):
     """Request handler for searching exchange records.
 
@@ -151,6 +153,7 @@ class ExchangeRecordCreateRequestSchema(OpenAPISchema):
 )
 @request_schema(ExchangeRecordCreateRequestSchema())
 @response_schema(OID4VCIExchangeRecordSchema())
+@tenant_authentication
 async def exchange_create(request: web.Request):
     """Request handler for creating a credential from attr values.
 
@@ -220,6 +223,7 @@ class ExchangeRecordIDMatchSchema(OpenAPISchema):
 )
 @match_info_schema(ExchangeRecordIDMatchSchema())
 @response_schema(OID4VCIExchangeRecordSchema())
+@tenant_authentication
 async def exchange_delete(request: web.Request):
     """Request handler for removing an exchange record."""
 
@@ -277,6 +281,7 @@ class CredOfferSchema(OpenAPISchema):
 @docs(tags=["oid4vci"], summary="Get a credential offer")
 @querystring_schema(CredOfferQuerySchema())
 @response_schema(CredOfferSchema(), 200)
+@tenant_authentication
 async def get_cred_offer(request: web.BaseRequest):
     """Endpoint to retrieve an OpenID4VCI compliant offer.
 
@@ -388,6 +393,7 @@ class SupportedCredCreateRequestSchema(OpenAPISchema):
 @docs(tags=["oid4vci"], summary="Register a Oid4vci credential")
 @request_schema(SupportedCredCreateRequestSchema())
 @response_schema(SupportedCredentialSchema())
+@tenant_authentication
 async def supported_credential_create(request: web.Request):
     """Request handler for creating a credential supported record."""
     context = request["context"]
@@ -436,6 +442,7 @@ class SupportedCredentialListSchema(OpenAPISchema):
 )
 @querystring_schema(SupportedCredentialQuerySchema())
 @response_schema(SupportedCredentialListSchema(), 200)
+@tenant_authentication
 async def supported_credential_list(request: web.BaseRequest):
     """Request handler for searching credential supported records.
 
@@ -486,6 +493,7 @@ class SupportedCredentialMatchSchema(OpenAPISchema):
 )
 @match_info_schema(SupportedCredentialMatchSchema())
 @response_schema(SupportedCredentialSchema())
+@tenant_authentication
 async def supported_credential_remove(request: web.Request):
     """Request handler for removing an credential supported record."""
 

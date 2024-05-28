@@ -43,6 +43,7 @@ class Oid4vciServer(BaseAdminServer):
             host: Host to listen on
             port: Port to listen on
             context: The application context instance
+            root_profile: The root profile instance
         """
         self.app = None
         self.host = host

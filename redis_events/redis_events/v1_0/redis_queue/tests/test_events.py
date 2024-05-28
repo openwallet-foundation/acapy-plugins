@@ -3,7 +3,8 @@ from copy import deepcopy
 from unittest import IsolatedAsyncioTestCase
 from unittest.mock import AsyncMock, MagicMock, patch
 
-import redis
+from redis import asyncio as redis_asyncio
+from redis import exceptions as redis_exceptions
 from aiohttp.test_utils import unused_port
 from aries_cloudagent.connections.models.connection_target import ConnectionTarget
 from aries_cloudagent.core.event_bus import Event, EventWithMetadata, MockEventBus
@@ -74,7 +75,9 @@ class TestRedisEvents(IsolatedAsyncioTestCase):
     async def asyncSetUp(self):
         self.port = unused_port()
         self.session = None
-        self.profile = InMemoryProfile.test_profile()
+        self.profile = InMemoryProfile.test_profile({
+            "plugin_config": SETTINGS["plugin_config"],
+        })
 
     async def test_setup(self):
         context = MagicMock(
@@ -88,34 +91,34 @@ class TestRedisEvents(IsolatedAsyncioTestCase):
             await setup(context)
 
     async def test_on_startup(self):
-        self.profile.settings["plugin_config"] = SETTINGS["plugin_config"]
         test_event = Event("test_topic", {"rev_reg_id": "mock", "crids": ["mock"]})
         with patch.object(
-            redis.asyncio.RedisCluster,
+            redis_asyncio.RedisCluster,
             "from_url",
             MagicMock(return_value=MagicMock(ping=AsyncMock())),
         ):
             await on_startup(self.profile, test_event)
 
     async def test_on_startup_x(self):
-        self.profile.settings["plugin_config"] = SETTINGS["plugin_config"]
         test_event = Event("test_topic", {"rev_reg_id": "mock", "crids": ["mock"]})
         with patch.object(
-            redis.asyncio.RedisCluster,
+            redis_asyncio.RedisCluster,
             "from_url",
-            MagicMock(side_effect=redis.exceptions.RedisError),
+            MagicMock(side_effect=redis_exceptions.RedisError),
         ):
             with self.assertRaises(TransportError):
                 await on_startup(self.profile, test_event)
 
     async def test_on_shutddown(self):
-        self.profile.settings["plugin_config"] = SETTINGS["plugin_config"]
         test_event = Event("test_topic", {"rev_reg_id": "mock", "crids": ["mock"]})
         await on_shutdown(self.profile, test_event)
 
     async def test_handle_event(self):
-        self.profile.settings["emit_new_didcomm_mime_type"] = True
-        self.profile.settings["wallet.id"] = "test_wallet_id"
+        self.profile = InMemoryProfile.test_profile({
+            "plugin_config": SETTINGS["plugin_config"],
+            "emit_new_didcomm_mime_type": True,
+            "wallet.id": "test_wallet_id",
+        })
         self.profile.context.injector.bind_instance(
             RedisCluster,
             MagicMock(
@@ -137,18 +140,18 @@ class TestRedisEvents(IsolatedAsyncioTestCase):
             topic="acapy::outbound-message::queued_for_delivery",
             payload=OutboundMessage(
                 connection_id="503a4f71-89f1-4bb2-b20d-e74c685ba325",
-                enc_payload=None,
-                endpoint=None,
+                enc_payload="",
+                endpoint="",
                 payload="""
                     {"@type": "did:sov:BzCbsNYhMrjHiqZDTUASHg;spec/basicmessage/1.0/message", "@id": 
                     "99bf771c-93e4-4482-8ab9-45080927f67c", "content": "test", "sent_time": 
                     "2022-09-01T20:15:23.719131Z"}
                 """,
-                reply_session_id=None,
+                reply_session_id="",
                 reply_thread_id="99bf771c-93e4-4482-8ab9-45080927f67c",
-                reply_to_verkey=None,
-                reply_from_verkey=None,
-                target=None,
+                reply_to_verkey="",
+                reply_from_verkey="",
+                target=ConnectionTarget(),
                 target_list=[
                     ConnectionTarget(
                         did="6tb9bVM3SzFRMRxoWJTvp1",
@@ -179,13 +182,13 @@ class TestRedisEvents(IsolatedAsyncioTestCase):
                 """.encode(
                     "utf-8"
                 ),
-                endpoint=None,
-                payload=None,
-                reply_session_id=None,
+                endpoint="",
+                payload="{}",
+                reply_session_id="",
                 reply_thread_id="99bf771c-93e4-4482-8ab9-45080927f67c",
-                reply_to_verkey=None,
-                reply_from_verkey=None,
-                target=None,
+                reply_to_verkey="",
+                reply_from_verkey="",
+                target=ConnectionTarget(),
                 target_list=[
                     ConnectionTarget(
                         did="6tb9bVM3SzFRMRxoWJTvp1",
@@ -211,13 +214,15 @@ class TestRedisEvents(IsolatedAsyncioTestCase):
         test_settings["plugin_config"]["redis_queue"]["event"] = {
             "deliver_webhook": True
         }
-        self.profile.settings["plugin_config"] = test_settings["plugin_config"]
-        self.profile.settings["emit_new_didcomm_mime_type"] = True
-        self.profile.settings["wallet.id"] = "test_wallet_id"
-        self.profile.settings["admin.webhook_urls"] = [
-            "http://0.0.0.0:9000#test_api_key_a",
-            "ws://0.0.0.0:9001",
-        ]
+        self.profile = InMemoryProfile.test_profile({
+            "plugin_config": test_settings["plugin_config"],
+            "emit_new_didcomm_mime_type": True,
+            "wallet.id": "test_wallet_id",
+            "admin.webhook_urls": [
+                "http://0.0.0.0:9000#test_api_key_a",
+                "ws://0.0.0.0:9001",
+            ]
+        })
         self.profile.context.injector.bind_instance(
             RedisCluster,
             MagicMock(
@@ -237,13 +242,16 @@ class TestRedisEvents(IsolatedAsyncioTestCase):
         await handle_event(self.profile, test_event_with_metadata)
 
     async def test_handle_event_x(self):
-        self.profile.settings["emit_new_didcomm_mime_type"] = False
+        self.profile = InMemoryProfile.test_profile({
+            "plugin_config": SETTINGS["plugin_config"],
+            "emit_new_didcomm_mime_type": False,
+        })
         with patch.object(
             test_module,
             "redis_setup",
             AsyncMock(
                 return_value=MagicMock(
-                    rpush=AsyncMock(side_effect=redis.exceptions.RedisError),
+                    rpush=AsyncMock(side_effect=redis_exceptions.RedisError),
                 )
             ),
         ):

@@ -1,4 +1,7 @@
-FROM python:3.9-slim-bullseye AS base
+FROM python:3.12-slim-bullseye AS base
+WORKDIR /usr/src/app
+
+# Install and configure poetry
 USER root
 
 # Install jwt_vc_json plugin
@@ -22,7 +25,7 @@ COPY oid4vci/pyproject.toml oid4vci/poetry.lock oid4vci/README.md ./
 RUN poetry install --without dev --all-extras
 USER $user
 
-FROM python:3.9-bullseye
+FROM python:3.12-bullseye
 
 WORKDIR /usr/src/app
 COPY --from=base /usr/src/app/.venv /usr/src/app/.venv

@@ -49,6 +49,9 @@ class SupportedCredential(BaseRecord):
             display (Optional[List[Dict]]): Display characteristics of the credential.
             format_data (Optional[Dict]): Format sepcific attributes; e.g.
                 credentialSubject for jwt_vc_json
+            vc_additional_data (Optional[Dict]): Additional data to include in the
+                Verifiable Credential.
+            kwargs: Keyword arguments to allow generic initialization of the record.
         """
         super().__init__(supported_cred_id, **kwargs)
         self.format = format

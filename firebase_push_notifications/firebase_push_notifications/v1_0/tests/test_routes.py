@@ -5,6 +5,7 @@ from aiohttp import web
 from aries_cloudagent.admin.request_context import AdminRequestContext
 from aries_cloudagent.connections.models.conn_record import ConnRecord
 from aries_cloudagent.core.event_bus import MockEventBus
+from aries_cloudagent.core.in_memory.profile import InMemoryProfile
 from aries_cloudagent.storage.error import StorageNotFoundError
 
 from .. import routes as test_module
@@ -13,13 +14,20 @@ from .. import routes as test_module
 class TestRoutes(IsolatedAsyncioTestCase):
     async def asyncSetUp(self) -> None:
         self.session_inject = {}
-        self.context = AdminRequestContext.test_context(self.session_inject)
+        self.profile = InMemoryProfile.test_profile(
+            settings={
+                "admin.admin_api_key": "admin_api_key",
+                "admin.admin_insecure_mode": False,
+            }
+        )
+        self.context = AdminRequestContext.test_context(self.session_inject, self.profile)
         self.request_dict = {"context": self.context}
         self.request = MagicMock(
             app={},
             match_info={},
             query={},
             __getitem__=lambda _, k: self.request_dict[k],
+            headers={"x-api-key": "admin_api_key"}
         )
 
     async def test_register_events_subscribes_to_event_bus(self):
