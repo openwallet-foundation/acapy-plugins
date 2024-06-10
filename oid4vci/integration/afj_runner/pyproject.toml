@@ -14,7 +14,7 @@ controller = {git = "https://github.com/Indicio-tech/acapy-minimal-example.git"}
 
 [tool.poetry.group.dev.dependencies]
 black = "^24.4.2"
-ruff = "^0.4.4"
+ruff = "^0.4.8"
 
 [tool.ruff]
 select = ["E", "F", "C", "D"]
