@@ -9,7 +9,7 @@ license = "Apache-2.0"
 python = "^3.9"
 pytest = "^8.2.0"
 pytest-asyncio = "~0.23.7"
-requests = "^2.32.1"
+requests = "^2.32.3"
 pytest-cov = "^5.0.0"
 acapy-client = {git="https://github.com/indicio-tech/acapy-client.git", branch="acapy/main"}
 aiokafka = "^0.7.1"
