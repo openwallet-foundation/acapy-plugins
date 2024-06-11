@@ -18,7 +18,7 @@ aca-py = ["aries-cloudagent"]
 [tool.poetry.dev-dependencies]
 ruff = "^0.4.4"
 black = "~24.4.2"
-pytest = "^8.2.0"
+pytest = "^8.2.2"
 pytest-asyncio = "~0.23.7"
 pytest-cov = "^5.0.0"
 pytest-ruff = "^0.3.2"
