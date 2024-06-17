@@ -6,7 +6,7 @@ authors = ["Shaanjot Gill <gill.shaanjots@gmail.com>"]
 
 [tool.poetry.dependencies]
 python = "^3.9"
-redis = "^5.0.4"
+redis = "^5.0.6"
 aiohttp = "^3.9.5"
 fastapi-slim = "^0.111.0"
 uvicorn = "^0.29.0"
