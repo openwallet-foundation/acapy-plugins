@@ -13,7 +13,7 @@ aiohttp = "^3.9.5"
 aries-cloudagent = { version = ">=0.10.3, < 1.0.0" }
 fastapi-slim = "^0.111.0"
 nest-asyncio = "^1.5.5"
-pydantic = "^1.10.15"
+pydantic = "^1.10.17"
 redis = "^5.0.4"
 uvicorn = "^0.29.0"
 
