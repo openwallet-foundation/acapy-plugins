@@ -19,7 +19,7 @@ pydantic = "^1.10.15"
 
 [tool.poetry.group.dev.dependencies]
 black = "^24.4.2"
-ruff = "^0.4.4"
+ruff = "^0.5.0"
 
 [tool.poetry.dev-dependencies]
 
