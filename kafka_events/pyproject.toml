@@ -29,7 +29,7 @@ pre-commit = "^2.12.1"
 rope = "^1.13.0"
 
 [tool.poetry.group.integration.dependencies]
-aries-askar = { version = "~0.3.0" }
+aries-askar = { version = "~0.3.2" }
 indy-credx = { version = "~1.1.1" }
 indy-vdr = { version = "~0.4.1" }
 ursa-bbs-signatures = { version = "~1.0.1" }
