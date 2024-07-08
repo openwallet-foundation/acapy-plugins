@@ -24,7 +24,7 @@ pytest-cov = "^5.0.0"
 pytest-ruff = "^0.3.2"
 
 [tool.poetry.group.integration.dependencies]
-aries-askar = { version = "~0.3.0" }
+aries-askar = { version = "~0.3.2" }
 indy-credx = { version = "~1.1.1" }
 indy-vdr = { version = "~0.4.1" }
 ursa-bbs-signatures = { version = "~1.0.1" }
