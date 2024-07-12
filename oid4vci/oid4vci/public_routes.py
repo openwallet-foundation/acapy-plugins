@@ -86,6 +86,8 @@ async def credential_issuer_metadata(request: web.Request):
         ],
     }
 
+    LOGGER.debug("METADATA: %s", metadata)
+
     return web.json_response(metadata)
 
 
@@ -333,7 +335,8 @@ async def issue_cred(request: web.Request):
     current_time_unix_timestamp = int(current_time.timestamp())
     formatted_time = current_time.strftime("%Y-%m-%dT%H:%M:%SZ")
 
-    cred_id = str(uuid.uuid4())
+    # cred_id = str(uuid.uuid4())
+    cred_id = "https://example.com/1"
     if "proof" not in body:
         raise web.HTTPBadRequest(reason="proof is required for jwt_vc_json")
     if ex_record.nonce is None:
@@ -349,20 +352,20 @@ async def issue_cred(request: web.Request):
 
     if not pop.holder_kid:
         raise web.HTTPBadRequest(reason="No kid in proof; required for jwt_vc_json")
-    
-    #note: Some wallets require that the "jti" and "id" are a uri
+
+    # note: Some wallets require that the "jti" and "id" are a uri
     payload = {
         "vc": {
             **(supported.vc_additional_data or {}),
             "id": cred_id,
-            "issuer": ex_record.verification_method,
+            "issuer": ex_record.issuer_id,
             "issuanceDate": formatted_time,
             "credentialSubject": {
                 **(ex_record.credential_subject or {}),
                 "id": pop.holder_kid,
             },
         },
-        "iss": ex_record.verification_method,
+        "iss": ex_record.issuer_id,
         "nbf": current_time_unix_timestamp,
         "jti": cred_id,
         "sub": pop.holder_kid,

@@ -186,10 +186,16 @@ async def exchange_create(request: web.Request):
         if not verification_method:
             raise ValueError("Could not determine verification method from DID")
 
+    if did:
+        issuer_id = did
+    else:
+        issuer_id = verification_method.split("#")[0]
+
     record = OID4VCIExchangeRecord(
         **body,
         state=OID4VCIExchangeRecord.STATE_CREATED,
         verification_method=verification_method,
+        issuer_id=issuer_id,
     )
     LOGGER.debug(f"Created exchange record: {record}")
 
