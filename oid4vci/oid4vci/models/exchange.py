@@ -38,6 +38,7 @@ class OID4VCIExchangeRecord(BaseExchangeRecord):
         supported_cred_id: str,
         credential_subject: Dict[str, Any],
         verification_method: str,
+        issuer_id: str,
         nonce: Optional[str] = None,
         pin: Optional[str] = None,
         code: Optional[str] = None,
@@ -49,6 +50,7 @@ class OID4VCIExchangeRecord(BaseExchangeRecord):
         self.supported_cred_id = supported_cred_id
         self.credential_subject = credential_subject  # (received from submit)
         self.verification_method = verification_method
+        self.issuer_id = issuer_id
         self.nonce = nonce  # in offer
         self.pin = pin  # (when relevant)
         self.code = code
@@ -68,6 +70,7 @@ class OID4VCIExchangeRecord(BaseExchangeRecord):
                 "supported_cred_id",
                 "credential_subject",
                 "verification_method",
+                "issuer_id",
                 "nonce",
                 "pin",
                 "code",
@@ -114,6 +117,14 @@ class OID4VCIExchangeRecordSchema(BaseRecordSchema):
                 "did:key:z6Mkgg342Ycpuk263R9d8Aq6MUaxPn1DDeHyGo38EefXmgDL#z6Mkgg34"
                 "2Ycpuk263R9d8Aq6MUaxPn1DDeHyGo38EefXmgDL"
             ),
+        },
+    )
+    issuer_id = fields.Str(
+        required=True,
+        validate=Uri(),
+        metadata={
+            "description": "Information used to identify the issuer",
+            "example": ("did:key:z6Mkgg342Ycpuk263R9d8Aq6MUaxPn1DDeHyGo38EefXmgDL"),
         },
     )
     nonce = fields.Str(
