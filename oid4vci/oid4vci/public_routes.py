@@ -2,7 +2,6 @@
 
 import datetime
 import logging
-import uuid
 from dataclasses import dataclass
 from secrets import token_urlsafe
 from typing import Any, Dict, List, Mapping, Optional
