@@ -161,7 +161,7 @@ class OpenID4VCIClient:
     async def receive_offer(self, offer_in: Union[str, dict], holder_did: str):
         """Receive an offer."""
         if isinstance(offer_in, str):
-            parsed = dict(parse_qsl(urlparse(offer_in).netloc))
+            parsed = dict(parse_qsl(urlparse(offer_in).query))
             offer_in = json.loads(parsed["credential_offer"])
             assert isinstance(offer_in, dict)
 
