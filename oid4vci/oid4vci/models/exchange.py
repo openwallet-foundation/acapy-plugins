@@ -20,7 +20,7 @@ class OID4VCIExchangeRecord(BaseExchangeRecord):
         schema_class = "OID4VCIExchangeRecordSchema"
 
     RECORD_TYPE = "oid4vci"
-    EVENT_NAMESPACE = "oid4vci"
+    # EVENT_NAMESPACE = "oid4vci"
     RECORD_TOPIC = "oid4vci"
     RECORD_ID_NAME = "exchange_id"
     STATE_CREATED = "created"

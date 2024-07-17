@@ -14,7 +14,8 @@ class SupportedCredential(BaseRecord):
 
         schema_class = "SupportedCredentialSchema"
 
-    EVENT_NAMESPACE = "oid4vci"
+    #EVENT_NAMESPACE = "oid4vci"
+    RECORD_TOPIC = "oid4vci"
     RECORD_ID_NAME = "supported_cred_id"
     RECORD_TYPE = "supported_cred"
     TAG_NAMES = {"identifier", "format"}

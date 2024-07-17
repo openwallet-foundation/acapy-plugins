@@ -3,8 +3,8 @@ services:
   issuer:
     image: oid4vci
     build: 
-      dockerfile: docker/Dockerfile
-      context: ..
+      dockerfile: oid4vci/docker/Dockerfile
+      context: ../..
     ports:
       - "3000:3000"
       - "3001:3001"
@@ -17,6 +17,7 @@ services:
       OID4VCI_HOST: 0.0.0.0
       OID4VCI_PORT: 8081
       OID4VCI_ENDPOINT: "http://issuer:8081"
+      OID4VCI_CRED_HANDLER: '{"jwt_vc_json": "jwt_vc_json.v1_0"}'
     command: >
       start
         --inbound-transport http 0.0.0.0 3000
@@ -33,6 +34,7 @@ services:
         --log-level debug
         --debug-webhooks
         --plugin oid4vci
+        --plugin jwt_vs_json
     healthcheck:
       test: curl -s -o /dev/null -w '%{http_code}' "http://localhost:3001/status/live" | grep "200" > /dev/null
       start_period: 30s
@@ -52,3 +54,4 @@ services:
     depends_on:
       issuer:
         condition: service_healthy
+        

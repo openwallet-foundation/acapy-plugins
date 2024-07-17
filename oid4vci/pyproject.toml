@@ -15,9 +15,12 @@ aiohttp = "^3.9.5"
 aries-askar = "~0.3.0"
 aiohttp-cors = "^0.7.0"
 marshmallow = "^3.20.1"
+jwt-vc-json = {path = "../jwt_vc_json", optional = true}
 
 [tool.poetry.extras]
 aca-py = ["aries-cloudagent"]
+# Credential format handler plugins
+plugins = ["jwt-vc-json"]
 
 [tool.poetry.dev-dependencies]
 ruff = "^0.5.0"

@@ -142,6 +142,8 @@ The Plugin expects the following configuration options. These options can either
     - Port used for the OpenID4VCI public server
 - `OID4VCI_ENDPOINT` or `oid4vci.endpoint`
     - `credential_issuer` endpoint, seen in the Credential Offer
+- `OID4VCI_CRED_HANDLER` or `oid4vci.cred_handler`
+    - Dict of credential handlers. e.g. `{"jwt_vc_json": "jwt_vc_json.v1_0"}`
 
 ### Creating Supported Credential Records
 
