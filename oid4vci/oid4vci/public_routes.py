@@ -5,6 +5,7 @@ import logging
 from dataclasses import dataclass
 from secrets import token_urlsafe
 from typing import Any, Dict, List, Mapping, Optional
+import uuid
 
 import jwt
 from aiohttp import web
@@ -334,8 +335,7 @@ async def issue_cred(request: web.Request):
     current_time_unix_timestamp = int(current_time.timestamp())
     formatted_time = current_time.strftime("%Y-%m-%dT%H:%M:%SZ")
 
-    # cred_id = str(uuid.uuid4())
-    cred_id = "https://example.com/1"
+    cred_id = f"urn:uuid:{str(uuid.uuid4())}"
     if "proof" not in body:
         raise web.HTTPBadRequest(reason="proof is required for jwt_vc_json")
     if ex_record.nonce is None:
