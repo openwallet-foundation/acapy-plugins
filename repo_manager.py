@@ -5,6 +5,7 @@ import subprocess
 import sys
 from copy import deepcopy
 from enum import Enum
+from pathlib import Path
 from typing import Optional
 
 GLOBAL_PLUGIN_DIR = "plugin_globals"
@@ -289,10 +290,12 @@ def replace_global_sections(name: str) -> None:
 
 def is_plugin_directory(plugin_name: str) -> bool:
     # If there is a directory which is not a plugin it should be ignored here
+    lite_plugins = Path('lite_plugins').read_text().splitlines()
     return (
         os.path.isdir(plugin_name)
         and plugin_name != GLOBAL_PLUGIN_DIR
         and not plugin_name.startswith(".")
+        and plugin_name not in lite_plugins
     )
 
 
@@ -302,10 +305,7 @@ def update_all_poetry_locks():
             print(f"Updating poetry.lock in {root}")
             subprocess.run(["poetry", "lock"], cwd=root)
 
-def upgrade_library_in_all_plugins(library: str = None):
-    if library is None:
-        library = input("Enter the library to upgrade: ")
-        
+def upgrade_library_in_all_plugins(library: str = None):        
     for root, _, files in os.walk("."):
         if "poetry.lock" in files:
             with open(f"{root}/poetry.lock", "r") as file:

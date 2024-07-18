@@ -54,6 +54,35 @@ jobs:
             done
           done
 
+          # Remove any lite plugins from the changed_dirs array
+          readarray -t lite_plugin_array < lite_plugins
+
+          echo "${changed_dirs[@]}"
+          echo "${lite_plugin_array[@]}"
+          # Function to remove items in array2 from array1
+          remove_items() {
+              local -n source_array=$1
+              local -n remove_array=$2
+              local temp_array=()
+
+              for item in "${source_array[@]}"; do
+                  skip=false
+                  for remove_item in "${remove_array[@]}"; do
+                      if [[ "$item" == "$remove_item" ]]; then
+                          skip=true
+                          break
+                      fi
+                  done
+                  if ! $skip; then
+                      temp_array+=("$item")
+                  fi
+              done
+
+              source_array=("${temp_array[@]}")
+          }
+
+          remove_items changed_dirs lite_plugin_array
+
           echo "changed-plugins=${changed_dirs[*]}" >> $GITHUB_OUTPUT
 
       #----------------------------------------------
