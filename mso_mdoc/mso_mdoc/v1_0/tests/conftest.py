@@ -1,5 +1,4 @@
 import pytest
-from unittest.mock import MagicMock
 
 from aries_cloudagent.admin.request_context import AdminRequestContext
 
@@ -16,7 +15,7 @@ def body():
         "proof": {
             "proof_type": "jwt",
             "jwt": "eyJhbGciOiJFUzI1NiIsImp3ayI6eyJjcnYiOiJQLTI1NiIsImt0eSI6IkVDIiwieCI6IkJHVU5OTlpFSm9Cd05UU25NOW93WGVCdTBOTFJEVjR4d1llTm9kMVpxQUEiLCJ5IjoiZjlJTVhQS2xlU0FGb2tRdTc1Qlk3Nkl0QWpjVUxHWDlCeVZ0ZFVINEs0YyJ9LCJ0eXAiOiJvcGVuaWQ0dmNpLXByb29mK2p3dCJ9.eyJpYXQiOjE3MjA3MzMxMTAsImV4cCI6MTcyMDczNDkxMCwiYXVkIjoiaHR0cHM6Ly9vaWQ0dmNpLnN0Zy5uZ3Jvay5pbyIsIm5vbmNlIjoiWWM4em9odk9XREFTVzh6QnA5Y1MxZyIsImlzcyI6ImRpZDprZXk6NjZhVVVobzhQdjNVaU16ZHBxdUFGVHJWa01DeEpocUJTN3BVdjFqQzhleHdFZ2FndVRNUEppa3NlV2N1U0RqYUtlMzZKanM3cnlVWnZKQVp4UGZZVUVKIn0.1ozjqUDtYzBecSEln9dANpSNBXNxEkws2ZWWaYim5B07QmlELi0nvoh3ooUUeu4Q_7ru_FXjQCIM7xgAVCrbxw",
-        }
+        },
     }
 
 
@@ -100,9 +99,9 @@ def payload():
                 "given_name": "John",
                 "birth_date": "1990-03-31",
                 "document_number": "DJ123-45678-90123",
-                "un_distinguishing_sign": "CDN"
+                "un_distinguishing_sign": "CDN",
             }
-        }
+        },
     }
 
 

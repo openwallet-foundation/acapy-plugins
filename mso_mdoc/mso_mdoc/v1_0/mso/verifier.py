@@ -33,6 +33,7 @@ class MsoVerifier:
                 return list(self.object.uhdr.values())
 
     def attest_public_key(self) -> None:
+        """Asstest public key."""
         LOGGER.warning(
             "TODO: in next releases. "
             "The certificate is to be considered as untrusted, this release "
