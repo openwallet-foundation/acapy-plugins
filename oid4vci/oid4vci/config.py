@@ -36,7 +36,9 @@ class Config:
         host = plugin_settings.get("host") or getenv("OID4VCI_HOST")
         port = int(plugin_settings.get("port") or getenv("OID4VCI_PORT", "0"))
         endpoint = plugin_settings.get("endpoint") or getenv("OID4VCI_ENDPOINT")
-        cred_handler = plugin_settings.get("cred_handler") or getenv("OID4VCI_CRED_HANDLER")
+        cred_handler = plugin_settings.get("cred_handler") or getenv(
+            "OID4VCI_CRED_HANDLER"
+        )
 
         if not host:
             raise ConfigError("host", "OID4VCI_HOST")
