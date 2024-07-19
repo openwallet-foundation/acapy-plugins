@@ -4,12 +4,12 @@ import logging
 import json
 import re
 
-from aiohttp import web
 from aries_cloudagent.admin.request_context import AdminRequestContext
 
 from oid4vci.models.exchange import OID4VCIExchangeRecord
 from oid4vci.models.supported_cred import SupportedCredential
-from oid4vci.public_routes import PopResult, ICredProcessor
+from oid4vci.pop_result import PopResult
+from oid4vci.cred_processor import ICredProcessor, CredIssueError
 
 from .mdoc import mso_mdoc_sign
 
@@ -29,7 +29,7 @@ class CredProcessor(ICredProcessor):
     ):
         """Return signed credential in COBR format."""
         if body.get("doctype") != supported.format_data.get("doctype"):
-            raise web.HTTPBadRequest(reason="Requested types does not match offer.")
+            raise CredIssueError("Requested doctype does not match offer.")
 
         try:
             headers = {
@@ -47,7 +47,7 @@ class CredProcessor(ICredProcessor):
                 context.profile, headers, payload, did, verification_method
             )
             mso_mdoc = mso_mdoc[2:-1] if mso_mdoc.startswith("b'") else None
-        except ValueError as err:
-            raise web.HTTPBadRequest(reason="Failed to issue credential") from err
+        except Exception as ex:
+            raise CredIssueError("Failed to issue credential") from ex
 
         return mso_mdoc

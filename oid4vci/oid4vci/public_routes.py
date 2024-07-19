@@ -2,10 +2,8 @@
 
 import datetime
 import logging
-from dataclasses import dataclass
 from secrets import token_urlsafe
-from typing import Any, Dict, List, Mapping, Optional
-from abc import ABC, abstractmethod
+from typing import Any, Dict, List, Optional
 
 import jwt
 from aiohttp import web
@@ -33,6 +31,8 @@ from pydid import DIDUrl
 from .config import Config
 from .models.exchange import OID4VCIExchangeRecord
 from .models.supported_cred import SupportedCredential
+from .pop_result import PopResult
+from .cred_processor import CredIssueError
 
 LOGGER = logging.getLogger(__name__)
 PRE_AUTHORIZED_CODE_GRANT_TYPE = "urn:ietf:params:oauth:grant-type:pre-authorized_code"
@@ -223,17 +223,6 @@ async def key_material_for_kid(profile: Profile, kid: str):
     raise web.HTTPBadRequest(reason="Unsupported verification method type")
 
 
-@dataclass
-class PopResult:
-    """Result from proof of posession."""
-
-    headers: Mapping[str, Any]
-    payload: Mapping[str, Any]
-    verified: bool
-    holder_kid: Optional[str]
-    holder_jwk: Optional[Dict[str, Any]]
-
-
 async def handle_proof_of_posession(
     profile: Profile, proof: Dict[str, Any], nonce: str
 ):
@@ -298,31 +287,6 @@ class IssueCredentialRequestSchema(OpenAPISchema):
     proof = fields.Dict(metadata={"description": ""})
 
 
-class ICredProcessor(ABC):
-    """Returns singed credential payload."""
-
-    @abstractmethod
-    def issue_cred(
-        self,
-        body: any,
-        supported: SupportedCredential,
-        ex_record: OID4VCIExchangeRecord,
-        pop: PopResult,
-        context: AdminRequestContext,
-    ):
-        """Method signature.
-
-        Args:
-            body: any
-            supported: SupportedCredential
-            ex_record: OID4VCIExchangeRecord
-            pop: PopResult
-            context: AdminRequestContext
-        Returns:
-            encoded: signed credential payload.
-        """
-
-
 @docs(tags=["oid4vci"], summary="Issue a credential")
 @request_schema(IssueCredentialRequestSchema())
 async def issue_cred(request: web.Request):
@@ -380,9 +344,13 @@ async def issue_cred(request: web.Request):
         raise web.HTTPInternalServerError(
             reason=f"No handler to process {supported.format} credential."
         )
-    credential = await handler.cred_processor.issue_cred(
-        body, supported, ex_record, pop, context
-    )
+
+    try:
+        credential = await handler.cred_processor.issue_cred(
+            body, supported, ex_record, pop, context
+        )
+    except CredIssueError as e:
+        raise web.HTTPBadRequest(reason=e.message)
 
     async with context.session() as session:
         ex_record.state = OID4VCIExchangeRecord.STATE_ISSUED

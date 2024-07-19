@@ -4,13 +4,14 @@ import datetime
 import logging
 import uuid
 
-from aiohttp import web
 from aries_cloudagent.admin.request_context import AdminRequestContext
 from aries_cloudagent.wallet.jwt import jwt_sign
 
 from oid4vci.models.exchange import OID4VCIExchangeRecord
 from oid4vci.models.supported_cred import SupportedCredential
-from oid4vci.public_routes import types_are_subset, PopResult, ICredProcessor
+from oid4vci.public_routes import types_are_subset
+from oid4vci.pop_result import PopResult
+from oid4vci.cred_processor import ICredProcessor, CredIssueError
 
 LOGGER = logging.getLogger(__name__)
 
@@ -28,7 +29,7 @@ class CredProcessor(ICredProcessor):
     ):
         """Return signed credential in JWT format."""
         if not types_are_subset(body.get("types"), supported.format_data.get("types")):
-            raise web.HTTPBadRequest(reason="Requested types does not match offer.")
+            raise CredIssueError("Requested types does not match offer.")
 
         current_time = datetime.datetime.now(datetime.timezone.utc)
         current_time_unix_timestamp = int(current_time.timestamp())
