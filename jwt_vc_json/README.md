@@ -1,7 +1,7 @@
-### Description:
+# JWT_VC_JSON credential format plugin
 
-< Replace with information about the reason this plugin was produced and a brief overview of the features >
+This plugin provides `jwt_vc_json` credential support for the OID4VCI plugin. It acts as a module, dynamically loaded by the OID4VCI plugin, takes input parameters, and constructs and signs `jwt_vc_json` credentials.
 
-### Configuration:
+## Configuration:
 
-< Replace this section with an outline of configuation options and basic defaults for deploying the plugin >
+No configuration is required for this plugin.
