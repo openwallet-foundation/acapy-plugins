@@ -12,7 +12,7 @@ python = "^3.9"
 aries-cloudagent = { version = ">=0.10.3, < 1.0.0", optional = true }
 marshmallow = "^3.20.1"
 google-auth = "^2.31.0"
-google-api-python-client = "^2.134.0"
+google-api-python-client = "^2.137.0"
 requests = "^2.31.0"
 
 [tool.poetry.extras]
