@@ -284,20 +284,27 @@ def replace_global_sections(name: str) -> None:
     """
     global_sections, plugin_sections = get_and_combine_main_poetry_sections(name)
     process_main_config_sections(name, plugin_sections, global_sections)
-    global_sections, plugin_sections = get_and_combine_integration_poetry_sections(name)
-    process_integration_config_sections(name, plugin_sections, global_sections)
+    if is_plugin_directory(name, True):
+        global_sections, plugin_sections = get_and_combine_integration_poetry_sections(name)
+        process_integration_config_sections(name, plugin_sections, global_sections)
 
 
-def is_plugin_directory(plugin_name: str) -> bool:
+def is_plugin_directory(plugin_name: str, exclude_lite_plugins: bool = False) -> bool:
     # If there is a directory which is not a plugin it should be ignored here
-    lite_plugins = Path('lite_plugins').read_text().splitlines()
+    if exclude_lite_plugins:
+        lite_plugins = Path('lite_plugins').read_text().splitlines()
+        return (
+            os.path.isdir(plugin_name)
+            and plugin_name != GLOBAL_PLUGIN_DIR
+            and not plugin_name.startswith(".")
+            and plugin_name not in lite_plugins
+        )
     return (
         os.path.isdir(plugin_name)
         and plugin_name != GLOBAL_PLUGIN_DIR
         and not plugin_name.startswith(".")
-        and plugin_name not in lite_plugins
     )
-
+    
 
 def update_all_poetry_locks():
     for root, _, files in os.walk("."):
@@ -367,9 +374,11 @@ def main(arg_1=None, arg_2=None):
                 print(f"Updating common poetry sections in {plugin_name}\n")
                 replace_global_sections(plugin_name)
                 os.system(f"cd {plugin_name} && rm poetry.lock && poetry lock")
-                os.system(
-                    f"cd {plugin_name}/integration && rm poetry.lock && poetry lock"
-                )
+                # Don't update lite plugin integration files (They don't have any)
+                if is_plugin_directory(plugin_name, True):
+                    os.system(
+                        f"cd {plugin_name}/integration && rm poetry.lock && poetry lock"
+                    )
 
     elif selection == "3":
         # Upgrade plugin globals lock file
