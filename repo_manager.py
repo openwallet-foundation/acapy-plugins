@@ -6,7 +6,7 @@ import sys
 from copy import deepcopy
 from enum import Enum
 from pathlib import Path
-from typing import Optional
+from typing import Optional, Tuple
 
 GLOBAL_PLUGIN_DIR = "plugin_globals"
 
@@ -165,7 +165,7 @@ def get_section_output(
     return j - i
 
 
-def get_and_combine_main_poetry_sections(name: str) -> (dict, dict):
+def get_and_combine_main_poetry_sections(name: str) -> Tuple[dict, dict]:
     """Get the global main sections and combine them with the plugin specific sections."""
     global_sections = deepcopy(sections)
     plugin_sections = deepcopy(sections)
