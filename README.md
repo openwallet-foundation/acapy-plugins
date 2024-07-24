@@ -15,6 +15,16 @@ A script was developed to help with maitenance of the repo called `repo_manager.
 Run `python repo_manager.py` and you will be met with 2 options.
  - (1) Is used for starting or adding a new plugin. It will generate all the common scaffolding for a plugin which has the expected format.
  - (2) Is used for updating and changing common poetry dependencies and configurations. It takes the poetry sections in the `pyproject.toml` files from the `plugin_globals` directory and combines them with the local plugin poetry sections. For the dependencies the common will be overridden by the globals. The other config sections will be replaced by the global configs. Then the lock files will be removed and re-installed.
+ - (3) Is used for updating the plugin versions in the `plugin_globals` directory. It will update the versions of the plugins in the `plugin_globals` directory to the latest version on the main branch of the plugin repo. It will also update the `plugin_globals` directory to the latest version on the main branch of the plugin repo.
+ - (4) This option is used by the CI/CD release pipeline. It updates the release notes and the individual plugins with a new version of aries_cloudagent.
+ - (5) This option is also used by the CI/CD release pipeline. It gets any plugins that have succeeded the tests after a new version of aries_cloudagent has been released if their changes were not reverted than the plugin has been updated to the new version of aries_cloudagent.
+ - (6) This option will run a general update for all poetry lock files in all plugins.
+ - (7) This option is used for upgrading a particular library for all plugins. It's useful for when you don't want to do a general upgrade for every library. 
+
+## Lite plugins
+
+Sometimes is desirable to have a plugin that doesn't need integration tests or extra scaffholding. However, we need a way to avoid these plugins running integration tests in the CI/CD pipeline. To do this, we can simply add the plugin name to the `lite_plugins` file. Which is a line seperated list of plugin names.
+```
 
 ## Plugin Documentation
 

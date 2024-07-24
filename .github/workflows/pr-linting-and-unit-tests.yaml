@@ -71,7 +71,7 @@ jobs:
         run: |
           for dir in ${{ steps.changed-plugins.outputs.changed-plugins }}; do
             cd $dir
-            poetry install --no-interaction --no-root --extras "aca-py"
+            poetry install --no-interaction --no-root --all-extras
             cd ..
           done
       #----------------------------------------------
