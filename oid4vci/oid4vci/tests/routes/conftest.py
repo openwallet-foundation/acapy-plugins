@@ -19,6 +19,7 @@ def context():
                     "endpoint": "http://localhost:8020",
                     "host": "0.0.0.0",
                     "port": 8020,
+                    "cred_handler": '{"jwt_vc_json": "jwt_vc_json.v1_0"}',
                 }
             }
         }

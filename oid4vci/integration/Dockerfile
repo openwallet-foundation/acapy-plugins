@@ -17,5 +17,6 @@ RUN poetry install --only main
 COPY sphereon_wrapper/* sphereon_wrapper/
 COPY credo_wrapper/* credo_wrapper/
 COPY tests/* tests/
+COPY oid4vci_client/* oid4vci_client/
 
 ENTRYPOINT ["poetry", "run", "pytest"]

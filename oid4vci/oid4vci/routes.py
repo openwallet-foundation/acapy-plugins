@@ -131,13 +131,11 @@ class ExchangeRecordCreateRequestSchema(OpenAPISchema):
             "description": "Identifier used to identify credential supported record",
         },
     )
-    credential_subject = (
-        fields.Dict(
-            required=True,
-            metadata={
-                "description": "desired claim and value in credential",
-            },
-        ),
+    credential_subject = fields.Dict(
+        required=True,
+        metadata={
+            "description": "desired claim and value in credential",
+        },
     )
     pin = fields.Str(
         required=False,

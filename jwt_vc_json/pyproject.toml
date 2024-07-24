@@ -1,9 +1,8 @@
 [tool.poetry]
-name = "oid4vci"
+name = "jwt_vc_json"
 version = "0.1.0"
-description = "oid4vci plugin for acapy. (Supported aries-cloudagent version: 0.12.1) "
-authors = ["Adam Burdett <burdettadam@gmail.com>"]
-readme = "README.md"
+description = "jwt_vc_json credential handler plugin"
+authors = []
 
 [tool.poetry.dependencies]
 python = "^3.9"
@@ -11,24 +10,20 @@ python = "^3.9"
 # Define ACA-Py as an optional/extra dependancy so it can be
 # explicitly installed with the plugin if desired.
 aries-cloudagent = { version = ">=0.10.3, < 1.0.0", optional = true }
-aiohttp = "^3.9.5"
-aries-askar = "~0.3.0"
-aiohttp-cors = "^0.7.0"
-marshmallow = "^3.20.1"
-jwt-vc-json = {path = "../jwt_vc_json", optional = true}
+oid4vci = { path = "../oid4vci", optional = true, develop = true }
 
 [tool.poetry.extras]
 aca-py = ["aries-cloudagent"]
-# Credential format handler plugins
-plugins = ["jwt-vc-json"]
+oid4vci = ["oid4vci"]
 
 [tool.poetry.dev-dependencies]
-ruff = "^0.5.4"
+ruff = "^0.5.0"
 black = "~24.4.2"
-pytest = "^8.3.1"
-pytest-asyncio = "^0.23.8"
+pytest = "^8.2.0"
+pytest-asyncio = "~0.23.7"
 pytest-cov = "^5.0.0"
-pytest-ruff = "^0.4.1"
+pytest-ruff = "^0.3.2"
+setuptools = "^70.3.0"
 
 [tool.poetry.group.integration.dependencies]
 aries-askar = { version = "~0.3.0" }
@@ -57,11 +52,11 @@ ignore = [
 "**/{tests}/*" = ["F841", "D", "E501"]
 
 [tool.pytest.ini_options]
-testpaths = "oid4vci"
+testpaths = "jwt_vc_json"
 addopts = """
     -p no:warnings
     --quiet --junitxml=./.test-reports/junit.xml
-    --cov-config .coveragerc --cov=oid4vci --cov-report term --cov-report xml
+    --cov-config .coveragerc --cov=jwt_vc_json --cov-report term --cov-report xml
 """
 markers = []
 junit_family = "xunit1"
@@ -91,4 +86,3 @@ output = ".test-reports/coverage.xml"
 [build-system]
 requires = ["setuptools", "poetry-core>=1.2"]
 build-backend = "poetry.core.masonry.api"
-

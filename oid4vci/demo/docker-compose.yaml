@@ -20,6 +20,7 @@ services:
       TUNNEL_ENDPOINT: http://ngrok:4040
       OID4VCI_HOST: 0.0.0.0
       OID4VCI_PORT: 8081
+      OID4VCI_CRED_HANDLER: '{"jwt_vc_json": "jwt_vc_json.v1_0"}'
     entrypoint: >
       /bin/sh -c '/entrypoint.sh aca-py "$$@"' --
     command: >

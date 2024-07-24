@@ -2,10 +2,8 @@
 
 import datetime
 import logging
-from dataclasses import dataclass
 from secrets import token_urlsafe
-from typing import Any, Dict, List, Mapping, Optional
-import uuid
+from typing import Any, Dict, List, Optional
 
 import jwt
 from aiohttp import web
@@ -17,6 +15,7 @@ from aries_cloudagent.messaging.models.base import BaseModelError
 from aries_cloudagent.messaging.models.openapi import OpenAPISchema
 from aries_cloudagent.resolver.did_resolver import DIDResolver
 from aries_cloudagent.storage.error import StorageError, StorageNotFoundError
+from aries_cloudagent.utils.classloader import ClassLoader, ModuleLoadError
 from aries_cloudagent.wallet.base import WalletError
 from aries_cloudagent.wallet.error import WalletNotFoundError
 from aries_cloudagent.wallet.jwt import (
@@ -32,6 +31,8 @@ from pydid import DIDUrl
 from .config import Config
 from .models.exchange import OID4VCIExchangeRecord
 from .models.supported_cred import SupportedCredential
+from .pop_result import PopResult
+from .cred_processor import CredIssueError
 
 LOGGER = logging.getLogger(__name__)
 PRE_AUTHORIZED_CODE_GRANT_TYPE = "urn:ietf:params:oauth:grant-type:pre-authorized_code"
@@ -222,17 +223,6 @@ async def key_material_for_kid(profile: Profile, kid: str):
     raise web.HTTPBadRequest(reason="Unsupported verification method type")
 
 
-@dataclass
-class PopResult:
-    """Result from proof of posession."""
-
-    headers: Mapping[str, Any]
-    payload: Mapping[str, Any]
-    verified: bool
-    holder_kid: Optional[str]
-    holder_jwk: Optional[Dict[str, Any]]
-
-
 async def handle_proof_of_posession(
     profile: Profile, proof: Dict[str, Any], nonce: str
 ):
@@ -317,31 +307,28 @@ async def issue_cred(request: web.Request):
             supported = await SupportedCredential.retrieve_by_id(
                 session, ex_record.supported_cred_id
             )
+        config = Config.from_settings(context.settings)
+        handler_name = config.cred_handler[supported.format]
     except (StorageError, BaseModelError, StorageNotFoundError) as err:
         raise web.HTTPBadRequest(reason=err.roll_up) from err
 
-    if supported.format != "jwt_vc_json":
-        raise web.HTTPUnprocessableEntity(reason="Only jwt_vc_json is supported.")
-    if supported.format_data is None:
-        LOGGER.error("No format_data for supported credential of format jwt_vc_json")
-        raise web.HTTPInternalServerError()
-
-    if supported.format != body.get("format"):
-        raise web.HTTPBadRequest(reason="Requested format does not match offer.")
-    if not types_are_subset(body.get("types"), supported.format_data.get("types")):
-        raise web.HTTPBadRequest(reason="Requested types does not match offer.")
-
-    current_time = datetime.datetime.now(datetime.timezone.utc)
-    current_time_unix_timestamp = int(current_time.timestamp())
-    formatted_time = current_time.strftime("%Y-%m-%dT%H:%M:%SZ")
-
-    cred_id = f"urn:uuid:{str(uuid.uuid4())}"
-    if "proof" not in body:
-        raise web.HTTPBadRequest(reason="proof is required for jwt_vc_json")
     if ex_record.nonce is None:
         raise web.HTTPBadRequest(
             reason="Invalid exchange; no offer created for this request"
         )
+
+    if supported.format != body.get("format"):
+        raise web.HTTPBadRequest(reason="Requested format does not match offer.")
+
+    if handler_name is None:
+        raise web.HTTPUnprocessableEntity(reason=f"{supported.format} is supported.")
+
+    if supported.format_data is None:
+        LOGGER.error(f"No format_data for supported credential {supported.format}.")
+        raise web.HTTPInternalServerError()
+
+    if "proof" not in body:
+        raise web.HTTPBadRequest(reason=f"proof is required for {supported.format}")
 
     pop = await handle_proof_of_posession(
         context.profile, body["proof"], ex_record.nonce
@@ -349,30 +336,21 @@ async def issue_cred(request: web.Request):
     if not pop.verified:
         raise web.HTTPBadRequest(reason="Invalid proof")
 
-    if not pop.holder_kid:
-        raise web.HTTPBadRequest(reason="No kid in proof; required for jwt_vc_json")
+    try:
+        handler = ClassLoader.load_module(handler_name)
+        LOGGER.debug(f"Loaded module: {handler_name}")
+    except ModuleLoadError as e:
+        LOGGER.error(f"Error loading handler module: {e}")
+        raise web.HTTPInternalServerError(
+            reason=f"No handler to process {supported.format} credential."
+        )
 
-    # note: Some wallets require that the "jti" and "id" are a uri
-    payload = {
-        "vc": {
-            **(supported.vc_additional_data or {}),
-            "id": cred_id,
-            "issuer": ex_record.issuer_id,
-            "issuanceDate": formatted_time,
-            "credentialSubject": {
-                **(ex_record.credential_subject or {}),
-                "id": pop.holder_kid,
-            },
-        },
-        "iss": ex_record.issuer_id,
-        "nbf": current_time_unix_timestamp,
-        "jti": cred_id,
-        "sub": pop.holder_kid,
-    }
-
-    jws = await jwt_sign(
-        context.profile, {}, payload, verification_method=ex_record.verification_method
-    )
+    try:
+        credential = await handler.cred_processor.issue_cred(
+            body, supported, ex_record, pop, context
+        )
+    except CredIssueError as e:
+        raise web.HTTPBadRequest(reason=e.message)
 
     async with context.session() as session:
         ex_record.state = OID4VCIExchangeRecord.STATE_ISSUED
@@ -384,8 +362,8 @@ async def issue_cred(request: web.Request):
 
     return web.json_response(
         {
-            "format": "jwt_vc_json",
-            "credential": jws,
+            "format": supported.format,
+            "credential": credential,
         }
     )
 
