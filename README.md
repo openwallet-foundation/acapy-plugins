@@ -24,7 +24,6 @@ Run `python repo_manager.py` and you will be met with 2 options.
 ## Lite plugins
 
 Sometimes is desirable to have a plugin that doesn't need integration tests or extra scaffholding. However, we need a way to avoid these plugins running integration tests in the CI/CD pipeline. To do this, we can simply add the plugin name to the `lite_plugins` file. Which is a line seperated list of plugin names.
-```
 
 ## Plugin Documentation
 
