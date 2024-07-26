@@ -1,4 +1,4 @@
-"""Basic Messages Storage API Routes."""
+"""Admin API Routes."""
 
 import logging
 import secrets
@@ -29,9 +29,14 @@ from aries_cloudagent.wallet.jwt import nym_to_did
 from marshmallow import fields
 from marshmallow.validate import OneOf
 
+from oid4vci.models.presentation_definition import OID4VPPresDef
+from oid4vci.models.request import OID4VPRequest
+
 from .config import Config
 from .models.exchange import OID4VCIExchangeRecord, OID4VCIExchangeRecordSchema
 from .models.supported_cred import SupportedCredential, SupportedCredentialSchema
+
+from urllib.parse import quote
 
 SPEC_URI = (
     "https://openid.net/specs/openid-4-verifiable-credential-issuance-1_0-11.html"
@@ -514,6 +519,137 @@ async def supported_credential_remove(request: web.Request):
     return web.json_response(record.serialize())
 
 
+class CreateOID4VPResponseSchema(OpenAPISchema):
+    """Response schema for creating an OID4VP Request."""
+
+    request_uri = fields.Str(
+        required=True,
+        metadata={
+            "description": "URI for the holder to resolve the request",
+        },
+    )
+
+    request = fields.Nested(
+        OID4VPRequest, required=True, metadata={"descripton": "The created request"}
+    )
+
+
+class CreateOID4VPRequestSchema(OpenAPISchema):
+    """Request schema for creating an OID4VP Request."""
+
+    pres_def_id = fields.Str(
+        required=True,
+        metadata={
+            "description": "Identifier used to identify presentation definition",
+        },
+    )
+
+    vp_formats = fields.Dict(
+        required=True,
+        metadata={
+            "description": "Expected presentation formats from the holder",
+        },
+    )
+
+
+@docs(
+    tags=["oid4vp"],
+    summary="Create an OID4VP Request.",
+)
+@request_schema(CreateOID4VPRequestSchema)
+@response_schema(CreateOID4VPResponseSchema)
+async def create_oid4vp_request(request: web.Request):
+    """Create an OID4VP Request."""
+
+    context: AdminRequestContext = request["context"]
+    body = await request.json()
+
+    async with context.session() as session:
+        record = OID4VPRequest(
+            pres_def_id=body["pres_def_id"], vp_formats=body["vp_formats"]
+        )
+        await record.save(session=session)
+
+    config = Config.from_settings(context.settings)
+    request_uri = quote(f"{config.endpoint}/oid4vp/request/{record._id}")
+    full_uri = f"openid://?request_uri={request_uri}"
+
+    return web.json_response(
+        {
+            "request_uri": full_uri,
+            "request": record.serialize(),
+        }
+    )
+
+
+# PRES DEF will look similar ^^
+
+
+class CreateOID4VPPresDefResponseSchema(OpenAPISchema):
+    """Response schema for creating an OID4VP PresDef."""
+
+    request_uri = fields.Str(
+        required=True,
+        metadata={
+            "description": "URI for the holder to resolve the request",
+        },
+    )
+
+    pres_def = fields.Nested(
+        OID4VPPresDef,
+        required=True,
+        metadata={"descripton": "The created presentation definition"},
+    )
+
+
+class CreateOID4VPPresDefRequestSchema(OpenAPISchema):
+    """Request schema for creating an OID4VP PresDef."""
+
+    pres_def_id = fields.Str(
+        required=True,
+        metadata={
+            "description": "Identifier used to identify presentation definition",
+        },
+    )
+
+    pres_def = fields.Dict(
+        required=True,
+        metadata={
+            "description": "The presentation definition",
+        },
+    )
+
+
+@docs(
+    tags=["oid4vp"],
+    summary="Create an OID4VP Request.",
+)
+@request_schema(CreateOID4VPPresDefRequestSchema)
+@response_schema(CreateOID4VPPresDefResponseSchema)
+async def create_oid4vp_pres_def(request: web.Request):
+    """Create an OID4VP Request."""
+
+    context: AdminRequestContext = request["context"]
+    body = await request.json()
+
+    async with context.session() as session:
+        record = OID4VPPresDef(
+            pres_def=body["pres_def"],
+        )
+        await record.save(session=session)
+
+    config = Config.from_settings(context.settings)
+    request_uri = quote(f"{config.endpoint}/oid4vp/request/{record._id}")
+    full_uri = f"openid://?request_uri={request_uri}"
+
+    return web.json_response(
+        {
+            "request_uri": full_uri,
+            "request": record.serialize(),
+        }
+    )
+
+
 async def register(app: web.Application):
     """Register routes."""
     app.add_routes(
@@ -538,6 +674,8 @@ async def register(app: web.Application):
                 "/oid4vci/exchange-supported/records/{supported_cred_id}",
                 supported_credential_remove,
             ),
+            web.post("/oid4vci/request", create_oid4vp_request),
+            web.post("/oid4vci/presentation-definition", create_oid4vp_pres_def),
         ]
     )
 
