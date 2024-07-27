@@ -30,7 +30,7 @@ from marshmallow import fields
 from marshmallow.validate import OneOf
 
 from oid4vci.models.presentation_definition import OID4VPPresDef
-from oid4vci.models.request import OID4VPRequest
+from oid4vci.models.request import OID4VPRequest, OID4VPRequestSchema
 
 from .config import Config
 from .models.exchange import OID4VCIExchangeRecord, OID4VCIExchangeRecordSchema
@@ -519,7 +519,7 @@ async def supported_credential_remove(request: web.Request):
     return web.json_response(record.serialize())
 
 
-class CreateOID4VPResponseSchema(OpenAPISchema):
+class CreateOID4VPReqResponseSchema(OpenAPISchema):
     """Response schema for creating an OID4VP Request."""
 
     request_uri = fields.Str(
@@ -530,15 +530,17 @@ class CreateOID4VPResponseSchema(OpenAPISchema):
     )
 
     request = fields.Nested(
-        OID4VPRequest, required=True, metadata={"descripton": "The created request"}
+        OID4VPRequestSchema,
+        required=True,
+        metadata={"descripton": "The created request"},
     )
 
 
-class CreateOID4VPRequestSchema(OpenAPISchema):
+class CreateOID4VPReqRequestSchema(OpenAPISchema):
     """Request schema for creating an OID4VP Request."""
 
     pres_def_id = fields.Str(
-        required=True,
+        required=False,
         metadata={
             "description": "Identifier used to identify presentation definition",
         },
@@ -556,8 +558,8 @@ class CreateOID4VPRequestSchema(OpenAPISchema):
     tags=["oid4vp"],
     summary="Create an OID4VP Request.",
 )
-@request_schema(CreateOID4VPRequestSchema)
-@response_schema(CreateOID4VPResponseSchema)
+@request_schema(CreateOID4VPReqRequestSchema)
+@response_schema(CreateOID4VPReqResponseSchema)
 async def create_oid4vp_request(request: web.Request):
     """Create an OID4VP Request."""
 
@@ -582,21 +584,10 @@ async def create_oid4vp_request(request: web.Request):
     )
 
 
-# PRES DEF will look similar ^^
-
-
 class CreateOID4VPPresDefResponseSchema(OpenAPISchema):
     """Response schema for creating an OID4VP PresDef."""
 
-    request_uri = fields.Str(
-        required=True,
-        metadata={
-            "description": "URI for the holder to resolve the request",
-        },
-    )
-
-    pres_def = fields.Nested(
-        OID4VPPresDef,
+    pres_def = fields.Dict(
         required=True,
         metadata={"descripton": "The created presentation definition"},
     )
@@ -605,12 +596,12 @@ class CreateOID4VPPresDefResponseSchema(OpenAPISchema):
 class CreateOID4VPPresDefRequestSchema(OpenAPISchema):
     """Request schema for creating an OID4VP PresDef."""
 
-    pres_def_id = fields.Str(
-        required=True,
-        metadata={
-            "description": "Identifier used to identify presentation definition",
-        },
-    )
+    # pres_def_id = fields.Str(
+    #     required=True,
+    #     metadata={
+    #         "description": "Identifier used to identify presentation definition",
+    #     },
+    # )
 
     pres_def = fields.Dict(
         required=True,
@@ -622,12 +613,12 @@ class CreateOID4VPPresDefRequestSchema(OpenAPISchema):
 
 @docs(
     tags=["oid4vp"],
-    summary="Create an OID4VP Request.",
+    summary="Create an OID4VP Presentation Definition.",
 )
 @request_schema(CreateOID4VPPresDefRequestSchema)
 @response_schema(CreateOID4VPPresDefResponseSchema)
 async def create_oid4vp_pres_def(request: web.Request):
-    """Create an OID4VP Request."""
+    """Create an OID4VP Presentation Definition."""
 
     context: AdminRequestContext = request["context"]
     body = await request.json()
@@ -638,14 +629,10 @@ async def create_oid4vp_pres_def(request: web.Request):
         )
         await record.save(session=session)
 
-    config = Config.from_settings(context.settings)
-    request_uri = quote(f"{config.endpoint}/oid4vp/request/{record._id}")
-    full_uri = f"openid://?request_uri={request_uri}"
-
     return web.json_response(
         {
-            "request_uri": full_uri,
-            "request": record.serialize(),
+            "pres_def": record.serialize(),
+            "pres_def_id": record.pres_def_id,
         }
     )
 
@@ -674,8 +661,8 @@ async def register(app: web.Application):
                 "/oid4vci/exchange-supported/records/{supported_cred_id}",
                 supported_credential_remove,
             ),
-            web.post("/oid4vci/request", create_oid4vp_request),
-            web.post("/oid4vci/presentation-definition", create_oid4vp_pres_def),
+            web.post("/oid4vp/request", create_oid4vp_request),
+            web.post("/oid4vp/presentation-definition", create_oid4vp_pres_def),
         ]
     )
 

@@ -7,8 +7,8 @@ services:
     # DOCKER_DEFAULT_PLATFORM=linux/amd64 docker build -f ./docker/Dockerfile --tag oid4vci .
     image: oid4vci
     build:
-      dockerfile: docker/Dockerfile
-      context: ..
+      dockerfile: oid4vci/docker/Dockerfile
+      context: ../..
     ports:
       - "3000:3000"
       - "3001:3001"

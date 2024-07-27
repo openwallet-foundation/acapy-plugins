@@ -1,23 +1,39 @@
 """Public routes for OID4VCI."""
 
 import datetime
+import json
 import logging
 from secrets import token_urlsafe
+import time
 from typing import Any, Dict, List, Optional
+import uuid
 
+from base58 import b58decode
 import jwt
 from aiohttp import web
-from aiohttp_apispec import docs, form_schema, request_schema, response_schema
+from aiohttp_apispec import (
+    docs,
+    form_schema,
+    match_info_schema,
+    request_schema,
+    response_schema,
+)
 from aries_askar import Key, KeyAlg
 from aries_cloudagent.admin.request_context import AdminRequestContext
-from aries_cloudagent.core.profile import Profile
+from aries_cloudagent.core.profile import Profile, ProfileSession
 from aries_cloudagent.messaging.models.base import BaseModelError
 from aries_cloudagent.messaging.models.openapi import OpenAPISchema
 from aries_cloudagent.resolver.did_resolver import DIDResolver
 from aries_cloudagent.storage.error import StorageError, StorageNotFoundError
 from aries_cloudagent.utils.classloader import ClassLoader, ModuleLoadError
-from aries_cloudagent.wallet.base import WalletError
+from aries_cloudagent.wallet.base import WalletError, BaseWallet
 from aries_cloudagent.wallet.error import WalletNotFoundError
+from aries_cloudagent.wallet.key_type import ED25519
+from aries_cloudagent.wallet.util import bytes_to_b64
+from aries_cloudagent.wallet.did_info import DIDInfo
+from aries_cloudagent.storage.base import BaseStorage, StorageRecord
+
+
 from aries_cloudagent.wallet.jwt import (
     JWTVerifyResult,
     b64_to_dict,
@@ -27,6 +43,10 @@ from aries_cloudagent.wallet.jwt import (
 from aries_cloudagent.wallet.util import b58_to_bytes, b64_to_bytes
 from marshmallow import fields
 from pydid import DIDUrl
+
+from oid4vci.jwk import DID_JWK
+from oid4vci.models.presentation_definition import OID4VPPresDef
+from oid4vci.models.request import OID4VPRequest
 
 from .config import Config
 from .models.exchange import OID4VCIExchangeRecord
@@ -366,6 +386,140 @@ async def issue_cred(request: web.Request):
             "credential": credential,
         }
     )
+
+
+class OID4VPRequestIDMatchSchema(OpenAPISchema):
+    """Path parameters and validators for request taking request id."""
+
+    request_id = fields.Str(
+        required=True,
+        metadata={
+            "description": "OID4VP Request identifier",
+        },
+    )
+
+
+async def _retrieve_default_did(session: ProfileSession) -> Optional[DIDInfo]:
+    """Retrieve default DID from the store.
+
+    Args:
+        session: An active profile session
+
+    Returns:
+        Optional[DIDInfo]: retrieved DID info or None if not found
+
+    """
+    storage = session.inject(BaseStorage)
+    wallet = session.inject(BaseWallet)
+    try:
+        record = await storage.get_record(
+            record_type="OID4VP.default",
+            record_id="OID4VP.default",
+        )
+        info = json.loads(record.value)
+        info.update(record.tags)
+        did_info = await wallet.get_local_did(record.tags["did"])
+
+        return did_info
+    except StorageNotFoundError:
+        return None
+
+
+async def _create_default_did(session: ProfileSession) -> DIDInfo:
+    """Create default DID.
+
+    Args:
+        session: An active profile session
+
+    Returns:
+        DIDInfo: created default DID info
+
+    """
+    wallet = session.inject(BaseWallet)
+    storage = session.inject(BaseStorage)
+    key = await wallet.create_key(ED25519)
+    jwk = Key.from_public_bytes(KeyAlg.ED25519, b58decode(key.verkey)).get_jwk_public()
+
+    did_jwk = f"did:jwk:{bytes_to_b64(jwk.encode(), urlsafe=True, pad=False)}"
+
+    did_info = DIDInfo(did_jwk, key.verkey, {}, DID_JWK, ED25519)
+    info = await wallet.store_did(did_info)
+
+    record = StorageRecord(
+        type="OID4VP.default",
+        value=json.dumps({"verkey": info.verkey, "metadata": info.metadata}),
+        tags={"did": info.did},
+        id="OID4VP.default",
+    )
+    await storage.add_record(record)
+    return info
+
+
+async def retrieve_or_create_did_jwk(session: ProfileSession):
+    """Retrieve default did:jwk info, or create it."""
+
+    key = await _retrieve_default_did(session)
+    if key:
+        return key
+
+    return await _create_default_did(session)
+
+
+@docs(tags=["oid4vp"], summary="Retrive OID4VP authorization request token")
+@match_info_schema(OID4VPRequestIDMatchSchema())
+async def get_request(request: web.Request):
+    """."""
+    context: AdminRequestContext = request["context"]
+    request_id = request.match_info["request_id"]
+
+    try:
+        async with context.session() as session:
+            record = await OID4VPRequest.retrieve_by_id(session, request_id)
+            await record.delete_record(session)
+            pres_def = await OID4VPPresDef.retrieve_by_id(session, record.pres_def_id)
+            jwk = await retrieve_or_create_did_jwk(session)
+
+    except StorageNotFoundError as err:
+        raise web.HTTPNotFound(reason=err.roll_up) from err
+    except (StorageError, BaseModelError) as err:
+        raise web.HTTPBadRequest(reason=err.roll_up) from err
+
+    now = int(time.time())
+    config = Config.from_settings(context.settings)
+    payload = {
+        "iss": jwk.did,
+        "sub": jwk.did,
+        "iat": now,
+        "nbf": now,
+        "exp": now + 120,
+        "jti": str(uuid.uuid4()),
+        "client_id": config.endpoint,
+        "response_uri": f"{config.endpoint}/oid4vp/response/{request_id}",
+        "state": request_id,
+        "nonce": token_urlsafe(),
+        "id_token_signing_alg_values_supported": ["ES256", "EdDSA"],
+        "request_object_signing_alg_values_supported": ["ES256", "EdDSA"],
+        "response_types_supported": ["id_token", "vp_token"],
+        "scopes_supported": ["openid", "vp_token"],
+        "subject_types_supported": ["pairwise"],
+        "subject_syntax_types_supported": ["did:web", "did:jwk"],
+        "vp_formats": record.vp_formats,
+        "response_type": "vp_token",
+        "response_mode": "direct_post",
+        "scope": "vp_token",
+        "presentation_definition": pres_def.serialize(),
+    }
+
+    headers = {
+        "alg": "EdDSA",
+        "kid": f"{jwk.did}#0",
+    }
+
+    token = await jwt_sign(
+        profile=context.profile, payload=payload, headers=headers, did=jwk.did
+    )
+
+    return web.Response(text=token)
 
 
 async def register(app: web.Application):
