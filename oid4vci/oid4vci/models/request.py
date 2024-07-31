@@ -14,7 +14,8 @@ class OID4VPRequest(BaseRecord):
         schema_class = "OID4VPRequestSchema"
 
     RECORD_ID_NAME = "request_id"
-    TAG_NAMES = {"pred_def_id"}
+    RECORD_TYPE = "oid4vp"
+    TAG_NAMES = {"pres_def_id"}
 
     def __init__(
         self,

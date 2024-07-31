@@ -8,7 +8,9 @@ from marshmallow import fields
 class OID4VPPresDef(BaseRecord):
     """OID4VP Presentation."""
 
+    RECORD_TYPE = "oid4vp"
     RECORD_ID_NAME = "pres_def_id"
+    RECORD_TOPIC = "oid4vp"
 
     class Meta:
         """OID4VP Presentation Metadata."""
