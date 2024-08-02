@@ -1,7 +1,7 @@
 [tool.poetry]
 name = "jwt_vc_json"
 version = "0.1.0"
-description = "jwt_vc_json credential handler plugin"
+description = "jwt_vc_json credential handler plugin (Supported aries-cloudagent version: 0.12.2) "
 authors = []
 
 [tool.poetry.dependencies]

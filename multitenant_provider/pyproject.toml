@@ -1,7 +1,7 @@
 [tool.poetry]
 name = "multitenant_provider"
 version = "0.1.0"
-description = " (Supported aries-cloudagent version: 0.12.1) "
+description = " (Supported aries-cloudagent version: 0.12.2) "
 authors = ["Jason Sherman <tools@usingtechnolo.gy>"]
 
 [tool.poetry.dependencies]
