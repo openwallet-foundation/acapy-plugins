@@ -535,5 +535,6 @@ async def register(app: web.Application):
             # Spec: https://identity.foundation/.well-known/resources/did-configuration/
             web.post("/token", token),
             web.post("/credential", issue_cred),
+            web.get("/oid4vp/request/{id}", get_request),
         ]
     )
