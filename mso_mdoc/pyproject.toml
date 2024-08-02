@@ -1,7 +1,7 @@
 [tool.poetry]
 name = "mso_mdoc"
 version = "0.1.0"
-description = ""
+description = " (Supported aries-cloudagent version: 0.12.2) "
 authors = []
 
 [tool.poetry.dependencies]
