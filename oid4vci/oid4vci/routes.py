@@ -29,6 +29,7 @@ from aries_cloudagent.wallet.jwt import nym_to_did
 from marshmallow import fields
 from marshmallow.validate import OneOf
 
+from oid4vci.models.presentation import OID4VPPresentation
 from oid4vci.models.presentation_definition import OID4VPPresDef
 from oid4vci.models.request import OID4VPRequest, OID4VPRequestSchema
 
@@ -596,13 +597,6 @@ class CreateOID4VPPresDefResponseSchema(OpenAPISchema):
 class CreateOID4VPPresDefRequestSchema(OpenAPISchema):
     """Request schema for creating an OID4VP PresDef."""
 
-    # pres_def_id = fields.Str(
-    #     required=True,
-    #     metadata={
-    #         "description": "Identifier used to identify presentation definition",
-    #     },
-    # )
-
     pres_def = fields.Dict(
         required=True,
         metadata={
@@ -615,8 +609,8 @@ class CreateOID4VPPresDefRequestSchema(OpenAPISchema):
     tags=["oid4vp"],
     summary="Create an OID4VP Presentation Definition.",
 )
-@request_schema(CreateOID4VPPresDefRequestSchema)
-@response_schema(CreateOID4VPPresDefResponseSchema)
+@request_schema(CreateOID4VPPresDefRequestSchema())
+@response_schema(CreateOID4VPPresDefResponseSchema())
 async def create_oid4vp_pres_def(request: web.Request):
     """Create an OID4VP Presentation Definition."""
 
@@ -635,6 +629,141 @@ async def create_oid4vp_pres_def(request: web.Request):
             "pres_def_id": record.pres_def_id,
         }
     )
+
+
+class OID4VPPresQuerySchema(OpenAPISchema):
+    """Parameters and validators for presentations list query."""
+
+    presentation_id = fields.UUID(
+        required=False,
+        metadata={"description": "Filter by presentation identifier."},
+    )
+    pres_def_id = fields.Str(
+        required=False,
+        metadata={"description": "Filter by presentation definition identifier."},
+    )
+    state = fields.Str(
+        required=False,
+        validate=OneOf(OID4VPPresentation.STATES),
+        metadata={"description": "Filter by presentation state."},
+    )
+
+
+class OID4VPPresListSchema(OpenAPISchema):
+    """Result schema for an presentations query."""
+
+    results = fields.Nested(
+        OID4VCIExchangeRecordSchema(),
+        many=True,
+        metadata={"description": "Presentations"},
+    )
+
+
+@docs(
+    tags=["oid4vp"],
+    summary="Fetch all Presentations.",
+)
+@querystring_schema(OID4VPPresQuerySchema())
+@response_schema(OID4VPPresListSchema())
+async def list_oid4vp_presentations(request: web.Request):
+    """Request handler for searching presentations."""
+
+    context: AdminRequestContext = request["context"]
+
+    try:
+        async with context.profile.session() as session:
+            if presentation_id := request.query.get("presentation_id"):
+                record = await OID4VPPresentation.retrieve_by_id(
+                    session, presentation_id
+                )
+                results = [record.serialize()]
+            else:
+                filter_ = {
+                    attr: value
+                    for attr in ("pres_def_id", "state")
+                    if (value := request.query.get(attr))
+                }
+                records = await OID4VCIExchangeRecord.query(
+                    session=session, tag_filter=filter_
+                )
+                results = [record.serialize() for record in records]
+    except (StorageError, BaseModelError, StorageNotFoundError) as err:
+        raise web.HTTPBadRequest(reason=err.roll_up) from err
+    return web.json_response({"results": results})
+
+
+class PresentationIDMatchSchema(OpenAPISchema):
+    """Path parameters and validators for request taking presentation id."""
+
+    presentation_id = fields.Str(
+        required=True,
+        metadata={
+            "description": "Presentation identifier",
+        },
+    )
+
+
+class GetOID4VPPresResponseSchema(OpenAPISchema):
+    """Request handler for returning a single presentation."""
+
+    presentation_id = fields.Str(
+        required=True,
+        metadata={
+            "description": "Presentation identifier",
+        },
+    )
+
+    status = fields.Str(
+        required=True,
+        metadata={
+            "description": "Status of the presentation",
+        },
+        validate=OneOf(
+            [
+                "request-created",
+                "request-retrieved",
+                "presentation-received",
+                "presentation-invalid",
+                "presentation-valid",
+            ]
+        ),
+    )
+
+    errors = fields.List(
+        fields.Str(
+            required=False,
+            metadata={
+                "description": "Errors raised during validation.",
+            },
+        )
+    )
+
+    verified_claims = fields.Dict(
+        required=False,
+        metadata={
+            "description": "Any claims verified in the presentation.",
+        },
+    )
+
+
+@match_info_schema(PresentationIDMatchSchema())
+@response_schema(GetOID4VPPresResponseSchema())
+async def get_oid4vp_pres_by_id(request: web.Request):
+    """Request handler for retrieving a presentation."""
+
+    context: AdminRequestContext = request["context"]
+    presentation_id = request.match_info["presentation_id"]
+
+    try:
+        async with context.session() as session:
+            record = await OID4VPPresentation.retrieve_by_id(session, presentation_id)
+
+    except StorageNotFoundError as err:
+        raise web.HTTPNotFound(reason=err.roll_up) from err
+    except (StorageError, BaseModelError) as err:
+        raise web.HTTPBadRequest(reason=err.roll_up) from err
+
+    return web.json_response(record.serialize())
 
 
 async def register(app: web.Application):
@@ -663,6 +792,8 @@ async def register(app: web.Application):
             ),
             web.post("/oid4vp/request", create_oid4vp_request),
             web.post("/oid4vp/presentation-definition", create_oid4vp_pres_def),
+            web.get("/oid4vp/presentations", list_oid4vp_presentations),
+            web.get("/oid4vp/presentation/{id}", get_oid4vp_pres_by_id),
         ]
     )
 
