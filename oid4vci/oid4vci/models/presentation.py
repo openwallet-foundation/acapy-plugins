@@ -13,6 +13,7 @@ class OID4VPPresentation(BaseRecord):
     PRESENTATION_RECEIVED = "presentation-received"
     PRESENTATION_INVALID = "presentation-invalid"
     PRESENTATION_VALID = "presentation-valid"
+    RECORD_TOPIC = "oid4vp"
     STATES = (
         REQUEST_CREATED,
         REQUEST_RETRIEVED,
@@ -31,7 +32,7 @@ class OID4VPPresentation(BaseRecord):
 
     def __init__(
         self,
-        id: str,
+        presentation_id: str,
         state: str,
         pres_def_id: str,
         errors: List[str],
@@ -40,7 +41,7 @@ class OID4VPPresentation(BaseRecord):
     ) -> None:
         """Initialize an OID4VP Presentation instance."""
 
-        super().__init__(id, state)
+        super().__init__(presentation_id, state)
 
         self.pres_def_id = pres_def_id
         self.errors = errors
