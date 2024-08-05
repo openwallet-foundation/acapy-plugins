@@ -202,7 +202,7 @@ jobs:
       # ----------------------------------------------
       - name: Initialize Docker Compose
         if: ${{ steps.upgrade_available.outputs.available == 'true' && github.event.inputs.re_release != 'true'}} 
-        uses: isbang/compose-action@v1.5.1
+        uses: isbang/compose-action@v2.0.1
       # ----------------------------------------------
       #       Collect plugins that fail integration tests
       # ----------------------------------------------
