@@ -58,6 +58,9 @@ app.use(express.static("public"));
 const events = new EventEmitter();
 const exchangeCache = new NodeCache({ stdTTL: 300, checkperiod: 400 });
 
+const API_BASE_URL = `http://${process.env.ISSUER_HOST ?? "localhost"}:3001`;
+const API_KEY = "thisistheplace";
+
 app.get("/", (req, res) => {
 	res.render("index", {"registrationId": uuidv4()});
 });
@@ -71,7 +74,10 @@ app.get("/present", (req, res) => {
 	res.render("presentation", {"page": "present", "registrationId": uuidv4()});
 });
 
-app.post("/present/create", async (req, res) => {
+app.post("/present/create", (req, res, next) => {
+	create_presentation(req, res).catch(next);
+});
+async function create_presentation(req, res) {
 	//res.status(404).send("");
 	const presentationDefinition = {"pres_def": {
 		"id": "demo-profile",
@@ -147,9 +153,6 @@ app.post("/present/create", async (req, res) => {
 
 	events.emit(`r${req.body.registrationId}`, {type: "message", message: "Received credential data."});
 
-	const API_BASE_URL = "http://localhost:3001";
-	const API_KEY = "thisistheplace";
-
 	const presentationDefinitionUrl = () =>
 		`${API_BASE_URL}/oid4vp/presentation-definition`;
 	const presentationRequestUrl = () => `${API_BASE_URL}/oid4vp/request`;
@@ -174,6 +177,7 @@ app.post("/present/create", async (req, res) => {
 		headers: commonHeaders,
 		body: JSON.stringify(presentationDefinition),
 	});
+	logger.warn(presentationDefinitionUrl());
 	const presentationDefinitionData = await fetchApiData(
 		presentationDefinitionUrl(),
 		presentationDefinitionOptions()
@@ -214,7 +218,7 @@ app.post("/present/create", async (req, res) => {
 	qrcode = qrcode.substring(qrcode.indexOf('?>')+2,qrcode.length)
 	res.setHeader('Content-Type', 'text/html; charset=utf-8');
 	res.send(qrcode);
-});
+}
 
 
 app.get("/stream/issue/:id", (req, res) => {
@@ -265,15 +269,15 @@ app.get("/stream/issue/:id", (req, res) => {
 	});
 });
 
-app.post("/issue", async (req, res) => {
+app.post("/issue", (req, res, next) => {
+	issue_credential(req, res).catch(next);
+});
+async function issue_credential(req, res) {
 	res.status(200).send("");
 	//events.emit(`r${req.body.registrationId}`, req.body);
 	//return;
 	//res.send(`Success!<br /><pre><code>${JSON.stringify(req.body)}</code></pre>`);
 	events.emit(`r${req.body.registrationId}`, {type: "message", message: "Received credential data."});
-
-	const API_BASE_URL = "http://localhost:3001";
-	const API_KEY = "thisistheplace";
 
 	const exchangeCreateUrl = `${API_BASE_URL}/oid4vci/exchange/create`;
 	const createCredentialSupportedUrl = () =>
@@ -468,7 +472,7 @@ app.post("/issue", async (req, res) => {
 
 
 	res.send(`Success!<br /><pre><code>${JSON.stringify(req.body)}</code></pre>`);
-});
+}
 
 //*
 app.listen(3000, () => {

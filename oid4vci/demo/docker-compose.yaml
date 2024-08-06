@@ -84,4 +84,5 @@ services:
       - ./frontend2/:/app/:z # Mount the local ./src directory into the container for development
     environment:
       - NODE_ENV=development # Set NODE_ENV to 'development'
+      - ISSUER_HOST=issuer
       - WDS_SOCKET_PORT=0
