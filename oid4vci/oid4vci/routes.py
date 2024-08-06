@@ -29,7 +29,7 @@ from aries_cloudagent.wallet.jwt import nym_to_did
 from marshmallow import fields
 from marshmallow.validate import OneOf
 
-from oid4vci.models.presentation import OID4VPPresentation
+from oid4vci.models.presentation import OID4VPPresentation, OID4VPPresentationSchema
 from oid4vci.models.presentation_definition import OID4VPPresDef
 from oid4vci.models.request import OID4VPRequest, OID4VPRequestSchema
 
@@ -766,6 +766,26 @@ async def get_oid4vp_pres_by_id(request: web.Request):
     return web.json_response(record.serialize())
 
 
+@match_info_schema(PresentationIDMatchSchema())
+@response_schema(OID4VPPresentationSchema())
+async def oid4vp_pres_remove(request: web.Request):
+    """Request handler for removing a presentation."""
+
+    context: AdminRequestContext = request["context"]
+    presentation_id = request.match_info["presentation_id"]
+
+    try:
+        async with context.session() as session:
+            record = await OID4VPPresentation.retrieve_by_id(session, presentation_id)
+            await record.delete_record(session)
+    except StorageNotFoundError as err:
+        raise web.HTTPNotFound(reason=err.roll_up) from err
+    except (StorageError, BaseModelError) as err:
+        raise web.HTTPBadRequest(reason=err.roll_up) from err
+
+    return web.json_response(record.serialize())
+
+
 async def register(app: web.Application):
     """Register routes."""
     app.add_routes(
@@ -794,6 +814,7 @@ async def register(app: web.Application):
             web.post("/oid4vp/presentation-definition", create_oid4vp_pres_def),
             web.get("/oid4vp/presentations", list_oid4vp_presentations),
             web.get("/oid4vp/presentation/{id}", get_oid4vp_pres_by_id),
+            web.delete("/oid4vp/presentation/{id}", oid4vp_pres_remove),
         ]
     )
 
