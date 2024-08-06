@@ -12,14 +12,14 @@ services:
     ports:
       - "3000:3000"
       - "3001:3001"
-      - "8081:8081"
+      - "8082:8082"
     volumes:
       - ../docker/entrypoint.sh:/entrypoint.sh:ro,z
     environment:
       RUST_LOG: warn
       TUNNEL_ENDPOINT: http://ngrok:4040
       OID4VCI_HOST: 0.0.0.0
-      OID4VCI_PORT: 8081
+      OID4VCI_PORT: 8082
       OID4VCI_CRED_HANDLER: '{"jwt_vc_json": "jwt_vc_json.v1_0"}'
     entrypoint: >
       /bin/sh -c '/entrypoint.sh aca-py "$$@"' --
@@ -66,7 +66,7 @@ services:
       - "4040:4040"
     environment:
       - NGROK_AUTHTOKEN=${NGROK_AUTHTOKEN}
-    command: ["http", "issuer:8081"]
+    command: ["http", "issuer:8082"]
     healthcheck:
       test: /bin/bash -c "</dev/tcp/ngrok/4040"
       interval: 3s
@@ -74,14 +74,14 @@ services:
       start_period: 5s
       retries: 5
 
-  react-app:
+  demo-app:
     build:
-      dockerfile: frontend/Dockerfile
+      dockerfile: frontend2/Dockerfile
       context: .
     ports:
       - "3002:3000"
     volumes:
-      - ./frontend/src:/app/src:z # Mount the local ./src directory into the container for development
+      - ./frontend2/:/app/:z # Mount the local ./src directory into the container for development
     environment:
       - NODE_ENV=development # Set NODE_ENV to 'development'
       - WDS_SOCKET_PORT=0

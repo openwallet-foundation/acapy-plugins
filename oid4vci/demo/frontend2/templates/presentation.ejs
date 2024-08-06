@@ -1,0 +1,75 @@
+<div>
+	<div class="w3-row">
+		<div class="w3-col m6 l6">
+			<button
+					class="w3-btn w3-blue"
+					hx-post="/present/create"
+					hx-target="#presentation"
+					hx-swap="innerhtml"
+					>
+					Create Presentation
+			</button>
+		</div>
+		<div class="w3-col m6 l6" id="presentation">
+			<form
+					class="w3-container"
+					hx-post="/register"
+					hx-target="#registration-form"
+					hx-swap="innerhtml"
+					>
+				<input type="hidden" id="registrationId" name="registrationId" value="<%= registrationId %>">
+				<label
+						class="w3-text-gray"
+						for="fname"
+						>
+					First Name
+				</label>
+				<input
+						class="w3-input"
+						name="fname"
+						placeholder="First Name"
+						value="Sally"
+						></input>
+				<label
+						class="w3-text-gray"
+						for="lname"
+						>
+					Last Name
+				</label>
+				<input
+						class="w3-input"
+						name="lname"
+						placeholder="Last Name"
+						value="Sparrow"
+						></input>
+				<label
+						class="w3-text-gray"
+						for="email"
+						>
+					Email
+				</label>
+				<input
+						class="w3-input"
+						name="email"
+						placeholder="Email"
+						value="SallySparrow@example.com"
+						></input>
+				<button
+						class="w3-block w3-btn w3-green"
+						type="submit"
+						>
+					Register
+				</button>
+			</form>
+		</div>
+	</div>
+</div>
+<div id="navigation" hx-swap-oob="innerhtml">
+  <%- include('navigation.ejs') %>
+</div>
+<div id="content-header" hx-swap-oob="innerhtml">
+  <h1 class="w3-jumbo"><b>Admin Credential Proof</b></h1>
+  <h1 class="w3-xxxlarge w3-text-green"><b>Present Credential</b></h1>
+  <hr style="width:50px;border:5px solid green" class="w3-round">
+</div>
+
