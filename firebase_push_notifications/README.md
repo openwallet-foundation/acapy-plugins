@@ -1,6 +1,6 @@
 ### Description:
 
-Only to be used with a medaitor agent.
+Only to be used with a mediator agent.
 
 Allows mobile agents to send firebase tokens to the mediator service. The mediator service creates a connection with the firebase server and will relay push notifications to the mobile agent on mediator forwarding events on the event_bus.
 
@@ -72,6 +72,5 @@ FIREBASE_NOTIFICATION_BODY=Please open your wallet
 FIREBASE_SERVICE_ACCOUNT={ flattend service account json }
 ```
 
-* If `USE_FIREBASE_PLUGIN` is false it will not load the plugin.
 * `FIREBASE_PROJECT_ID` can be found in the firebase console
 * `FIREBASE_NOTIFICATION_TITLE` and `FIREBASE_NOTIFICATION_BODY` is the information displayed in the push notification
