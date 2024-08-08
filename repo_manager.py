@@ -182,6 +182,7 @@ def get_and_combine_main_poetry_sections(name: str) -> Tuple[dict, dict]:
     combine_dependencies(plugin_sections["EXTRAS"], global_sections["EXTRAS"])
     combine_dependencies(plugin_sections["DEV_DEPS"], global_sections["DEV_DEPS"])
     combine_dependencies(plugin_sections["INT_DEPS"], global_sections["INT_DEPS"])
+    combine_dependencies(plugin_sections["PYTEST"], global_sections["PYTEST"])
     return global_sections, plugin_sections
 
 
