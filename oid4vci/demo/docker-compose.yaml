@@ -76,14 +76,13 @@ services:
 
   demo-app:
     build:
-      dockerfile: frontend2/Dockerfile
-      context: .
+      context: ./frontend2
     ports:
       - "3002:3000"
     volumes:
-      - ./frontend2/:/app/:z # Mount the local ./src directory into the container for development
+      - ./frontend2/index.js:/app/index.js:z
+      - ./frontend2/templates:/app/templates:z
     environment:
       - NODE_ENV=development # Set NODE_ENV to 'development'
-      - ISSUER_HOST=issuer
       - WDS_SOCKET_PORT=0
       - API_BASE_URL=http://issuer:3001

@@ -58,13 +58,8 @@ app.use(express.static("public"));
 const events = new EventEmitter();
 const exchangeCache = new NodeCache({ stdTTL: 300, checkperiod: 400 });
 
-<<<<<<< HEAD
-const API_BASE_URL = `http://${process.env.ISSUER_HOST ?? "localhost"}:3001`;
-const API_KEY = "thisistheplace";
-=======
 const API_BASE_URL = process.env.API_BASE_URL || "http://localhost:3001";
 const API_KEY = process.env.API_KEY;
->>>>>>> 762e60a (feat: (WIP) did jwk work, etc.)
 
 app.get("/", (req, res) => {
 	res.render("index", {"registrationId": uuidv4()});
@@ -295,7 +290,6 @@ async function issue_credential(req, res) {
 	};
 	const commonHeaders = {
 		accept: "application/json",
-		
 		"Content-Type": "application/json",
 	};
 	if (API_KEY) {

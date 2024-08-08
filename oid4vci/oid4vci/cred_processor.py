@@ -1,6 +1,7 @@
 """CredProcessor interface and exception."""
 
 from abc import ABC, abstractmethod
+from typing import Any
 
 from aries_cloudagent.core.error import BaseError
 from aries_cloudagent.admin.request_context import AdminRequestContext
@@ -16,12 +17,12 @@ class ICredProcessor(ABC):
     @abstractmethod
     def issue_cred(
         self,
-        body: any,
+        body: Any,
         supported: SupportedCredential,
         ex_record: OID4VCIExchangeRecord,
         pop: PopResult,
         context: AdminRequestContext,
-    ):
+    ) -> Any:
         """Method signature.
 
         Args:

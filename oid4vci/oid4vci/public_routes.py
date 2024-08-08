@@ -8,8 +8,6 @@ import time
 from typing import Any, Dict, List, Optional
 import uuid
 
-from base58 import b58decode
-import jwt
 from aiohttp import web
 from aiohttp_apispec import (
     docs,
@@ -23,37 +21,29 @@ from aries_cloudagent.admin.request_context import AdminRequestContext
 from aries_cloudagent.core.profile import Profile, ProfileSession
 from aries_cloudagent.messaging.models.base import BaseModelError
 from aries_cloudagent.messaging.models.openapi import OpenAPISchema
-from aries_cloudagent.resolver.did_resolver import DIDResolver
+from aries_cloudagent.storage.base import BaseStorage, StorageRecord
 from aries_cloudagent.storage.error import StorageError, StorageNotFoundError
 from aries_cloudagent.utils.classloader import ClassLoader, ModuleLoadError
-from aries_cloudagent.wallet.base import WalletError, BaseWallet
+from aries_cloudagent.wallet.base import BaseWallet, WalletError
+from aries_cloudagent.wallet.did_info import DIDInfo
 from aries_cloudagent.wallet.error import WalletNotFoundError
+from aries_cloudagent.wallet.jwt import JWTVerifyResult, b64_to_dict
 from aries_cloudagent.wallet.key_type import ED25519
 from aries_cloudagent.wallet.util import bytes_to_b64
-from aries_cloudagent.wallet.did_info import DIDInfo
-from aries_cloudagent.storage.base import BaseStorage, StorageRecord
-
-
-from aries_cloudagent.wallet.jwt import (
-    JWTVerifyResult,
-    b64_to_dict,
-    jwt_sign,
-)
-from oid4vci.jwt import jwt_verify
-from aries_cloudagent.wallet.util import b58_to_bytes, b64_to_bytes
+from aries_cloudagent.wallet.util import b64_to_bytes
+from base58 import b58decode
 from marshmallow import fields
-from pydid import DIDUrl
 
 from oid4vci.jwk import DID_JWK
-from oid4vci.models.presentation import OID4VPPresentation
+from oid4vci.jwt import jwt_sign, jwt_verify, key_material_for_kid
 from oid4vci.models.presentation_definition import OID4VPPresDef
 from oid4vci.models.request import OID4VPRequest
 
 from .config import Config
+from .cred_processor import CredIssueError
 from .models.exchange import OID4VCIExchangeRecord
 from .models.supported_cred import SupportedCredential
 from .pop_result import PopResult
-from .cred_processor import CredIssueError
 
 LOGGER = logging.getLogger(__name__)
 PRE_AUTHORIZED_CODE_GRANT_TYPE = "urn:ietf:params:oauth:grant-type:pre-authorized_code"
@@ -78,9 +68,7 @@ class CredentialIssuerMetadataSchema(OpenAPISchema):
     )
     authorization_server = fields.Str(
         required=False,
-        metadata={
-            "description": "The authorization server endpoint. Currently ignored."
-        },
+        metadata={"description": "The authorization server endpoint. Currently ignored."},
     )
     batch_credential_endpoint = fields.Str(
         required=False,
@@ -157,9 +145,7 @@ async def token(request: web.Request):
 
     payload = {
         "id": record.exchange_id,
-        "exp": (
-            datetime.datetime.utcnow() + datetime.timedelta(seconds=EXPIRES_IN)
-        ).timestamp(),
+        "exp": int(time.time()) + EXPIRES_IN,
     }
     async with context.profile.session() as session:
         try:
@@ -218,35 +204,7 @@ async def check_token(
     return result
 
 
-async def key_material_for_kid(profile: Profile, kid: str):
-    """Resolve key material for a kid."""
-    try:
-        DIDUrl(kid)
-    except ValueError as exc:
-        raise web.HTTPBadRequest(reason="Invalid kid; DID URL expected") from exc
-
-    resolver = profile.inject(DIDResolver)
-    vm = await resolver.dereference_verification_method(profile, kid)
-    if vm.type == "JsonWebKey2020" and vm.public_key_jwk:
-        return Key.from_jwk(vm.public_key_jwk)
-    if vm.type == "Ed25519VerificationKey2018" and vm.public_key_base58:
-        key_bytes = b58_to_bytes(vm.public_key_base58)
-        return Key.from_public_bytes(KeyAlg.ED25519, key_bytes)
-    if vm.type == "Ed25519VerificationKey2020" and vm.public_key_multibase:
-        key_bytes = b58_to_bytes(vm.public_key_multibase[1:])
-        if len(key_bytes) == 32:
-            pass
-        elif len(key_bytes) == 34:
-            # Trim off the multicodec header, if present
-            key_bytes = key_bytes[2:]
-        return Key.from_public_bytes(KeyAlg.ED25519, key_bytes)
-
-    raise web.HTTPBadRequest(reason="Unsupported verification method type")
-
-
-async def handle_proof_of_posession(
-    profile: Profile, proof: Dict[str, Any], nonce: str
-):
+async def handle_proof_of_posession(profile: Profile, proof: Dict[str, Any], nonce: str):
     """Handle proof of posession."""
     encoded_headers, encoded_payload, encoded_signature = proof["jwt"].split(".", 3)
     headers = b64_to_dict(encoded_headers)
@@ -255,7 +213,10 @@ async def handle_proof_of_posession(
         raise web.HTTPBadRequest(reason="Invalid proof: wrong typ.")
 
     if "kid" in headers:
-        key = await key_material_for_kid(profile, headers["kid"])
+        try:
+            key = await key_material_for_kid(profile, headers["kid"])
+        except ValueError as exc:
+            raise web.HTTPBadRequest(reason="Invalid kid") from exc
     elif "jwk" in headers:
         key = Key.from_jwk(headers["jwk"])
     elif "x5c" in headers:
@@ -351,9 +312,7 @@ async def issue_cred(request: web.Request):
     if "proof" not in body:
         raise web.HTTPBadRequest(reason=f"proof is required for {supported.format}")
 
-    pop = await handle_proof_of_posession(
-        context.profile, body["proof"], ex_record.nonce
-    )
+    pop = await handle_proof_of_posession(context.profile, body["proof"], ex_record.nonce)
     if not pop.verified:
         raise web.HTTPBadRequest(reason="Invalid proof")
 
@@ -380,6 +339,8 @@ async def issue_cred(request: web.Request):
         # Exchange is completed, record can be cleaned up
         # But we'll leave it to the controller
         # await ex_record.delete_record(session)
+
+    LOGGER.debug("Credential: %s", credential)
 
     return web.json_response(
         {
@@ -439,7 +400,11 @@ async def _create_default_did(session: ProfileSession) -> DIDInfo:
     wallet = session.inject(BaseWallet)
     storage = session.inject(BaseStorage)
     key = await wallet.create_key(ED25519)
-    jwk = Key.from_public_bytes(KeyAlg.ED25519, b58decode(key.verkey)).get_jwk_public()
+    jwk = json.loads(
+        Key.from_public_bytes(KeyAlg.ED25519, b58decode(key.verkey)).get_jwk_public()
+    )
+    jwk["use"] = "sig"
+    jwk = json.dumps(jwk)
 
     did_jwk = f"did:jwk:{bytes_to_b64(jwk.encode(), urlsafe=True, pad=False)}"
 
@@ -512,7 +477,6 @@ async def get_request(request: web.Request):
     }
 
     headers = {
-        "alg": "EdDSA",
         "kid": f"{jwk.did}#0",
         "typ": "oauth-authz-req+jwt",
     }

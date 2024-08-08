@@ -1,5 +1,6 @@
 """Admin API Routes."""
 
+import json
 import logging
 import secrets
 from typing import Any, Dict
@@ -847,9 +848,11 @@ async def create_did_jwk(request: web.Request):
             key.get_jwk_thumbprint(),
             key,
         )
+        jwk = json.loads(key.get_jwk_public())
+        jwk["use"] = "sig"
 
         did = "did:jwk:" + bytes_to_b64(
-            key.get_jwk_public().encode(), urlsafe=True, pad=False
+            json.dumps(jwk).encode(), urlsafe=True, pad=False
         )
 
         did_info = DIDInfo(

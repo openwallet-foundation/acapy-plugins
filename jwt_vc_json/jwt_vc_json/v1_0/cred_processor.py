@@ -2,16 +2,18 @@
 
 import datetime
 import logging
+from typing import Any
 import uuid
 
 from aries_cloudagent.admin.request_context import AdminRequestContext
-from aries_cloudagent.wallet.jwt import jwt_sign
 
 from oid4vci.models.exchange import OID4VCIExchangeRecord
 from oid4vci.models.supported_cred import SupportedCredential
 from oid4vci.public_routes import types_are_subset
 from oid4vci.pop_result import PopResult
 from oid4vci.cred_processor import ICredProcessor, CredIssueError
+from oid4vci.jwt import jwt_sign
+from pydid import DIDUrl
 
 LOGGER = logging.getLogger(__name__)
 
@@ -21,12 +23,12 @@ class CredProcessor(ICredProcessor):
 
     async def issue_cred(
         self,
-        body: any,
+        body: Any,
         supported: SupportedCredential,
         ex_record: OID4VCIExchangeRecord,
         pop: PopResult,
         context: AdminRequestContext,
-    ):
+    ) -> Any:
         """Return signed credential in JWT format."""
         if not types_are_subset(body.get("types"), supported.format_data.get("types")):
             raise CredIssueError("Requested types does not match offer.")
@@ -37,6 +39,14 @@ class CredProcessor(ICredProcessor):
         cred_id = str(uuid.uuid4())
 
         # note: Some wallets require that the "jti" and "id" are a uri
+        if pop.holder_kid and pop.holder_kid.startswith("did:"):
+            subject = DIDUrl(pop.holder_kid).did
+        elif pop.holder_jwk:
+            # TODO implement this
+            raise ValueError("Unsupported pop holder value")
+        else:
+            raise ValueError("Unsupported pop holder value")
+
         payload = {
             "vc": {
                 **(supported.vc_additional_data or {}),
@@ -45,13 +55,13 @@ class CredProcessor(ICredProcessor):
                 "issuanceDate": formatted_time,
                 "credentialSubject": {
                     **(ex_record.credential_subject or {}),
-                    "id": pop.holder_kid,
+                    "id": subject,
                 },
             },
             "iss": ex_record.issuer_id,
             "nbf": current_time_unix_timestamp,
             "jti": f"urn:uuid:{cred_id}",
-            "sub": pop.holder_kid,
+            "sub": subject,
         }
 
         jws = await jwt_sign(

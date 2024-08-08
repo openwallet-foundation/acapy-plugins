@@ -1,53 +1,111 @@
 """."""
 
-from aries_askar import Key, AskarError
+from typing import Any, Dict, Mapping, Optional
+from aries_askar import Key, KeyAlg
 from aries_cloudagent.core.profile import Profile
-from aries_cloudagent.wallet.jwt import JWTVerifyResult, BadJWSHeaderError
+from aries_cloudagent.wallet.base import BaseWallet
+from aries_cloudagent.wallet.jwt import BaseVerificationKeyStrategy, JWTVerifyResult, BadJWSHeaderError, dict_to_b64, did_lookup_name, nym_to_did
 from aries_cloudagent.wallet.jwt import b64_to_dict, b64_to_bytes
-from aries_cloudagent.resolver.did_resolver import DIDResolver
-from pydid import Resource, VerificationMethod
+from aries_cloudagent.resolver.did_resolver import DIDResolver, DIDUrl
+from aries_cloudagent.wallet.key_type import ED25519
+from aries_cloudagent.wallet.util import b58_to_bytes, bytes_to_b64
+
+from oid4vci.jwk import P256
 
 
-def key_from_verification_method(vm: VerificationMethod) -> Key:
-    """Create a Key instance from a DID Document Verification Method."""
+async def key_material_for_kid(profile: Profile, kid: str):
+    """Resolve key material for a kid."""
+    DIDUrl(kid)
 
-    if vm.type == "JsonWebKey2020":
-        jwk = vm.public_key_jwk
-        if not jwk:
-            raise ValueError("JWK verification method missing key")
-        try:
-            key = Key.from_jwk(jwk)
-        except AskarError as err:
-            raise ValueError("Invalid JWK") from err
-        return key
+    resolver = profile.inject(DIDResolver)
+    vm = await resolver.dereference_verification_method(profile, kid)
+    if vm.type == "JsonWebKey2020" and vm.public_key_jwk:
+        return Key.from_jwk(vm.public_key_jwk)
+    if vm.type == "Ed25519VerificationKey2018" and vm.public_key_base58:
+        key_bytes = b58_to_bytes(vm.public_key_base58)
+        return Key.from_public_bytes(KeyAlg.ED25519, key_bytes)
+    if vm.type == "Ed25519VerificationKey2020" and vm.public_key_multibase:
+        key_bytes = b58_to_bytes(vm.public_key_multibase[1:])
+        if len(key_bytes) == 32:
+            pass
+        elif len(key_bytes) == 34:
+            # Trim off the multicodec header, if present
+            key_bytes = key_bytes[2:]
+        return Key.from_public_bytes(KeyAlg.ED25519, key_bytes)
 
+    raise ValueError("Unsupported verification method type")
+
+
+async def jwt_sign(
+    profile: Profile,
+    headers: Dict[str, Any],
+    payload: Mapping[str, Any],
+    did: Optional[str] = None,
+    verification_method: Optional[str] = None,
+) -> str:
+    """Create a signed JWT given headers, payload, and signing DID or DID URL."""
+    if verification_method is None:
+        if did is None:
+            raise ValueError("did or verificationMethod required.")
+
+        did = nym_to_did(did)
+
+        verkey_strat = profile.inject(BaseVerificationKeyStrategy)
+        verification_method = await verkey_strat.get_verification_method_id_for_did(
+            did, profile
+        )
+        if not verification_method:
+            raise ValueError("Could not determine verification method from DID")
     else:
-        raise ValueError("Unsupported verification method type")
+        # We look up keys by did for now
+        did = DIDUrl.parse(verification_method).did
+        if not did:
+            raise ValueError("DID URL must be absolute")
+
+    encoded_payload = dict_to_b64(payload)
+
+    if not headers.get("typ", None):
+        headers["typ"] = "JWT"
+    headers = {
+        **headers,
+        "kid": verification_method,
+    }
+
+    async with profile.session() as session:
+        wallet = session.inject(BaseWallet)
+        did_info = await wallet.get_local_did(did_lookup_name(did))
+
+        did_info = await wallet.get_local_did(did_lookup_name(did))
+        if did_info.key_type == ED25519:
+            headers["alg"] = "EdDSA",
+        elif did_info.key_type == P256:
+            headers["alg"] = "ES256"
+        else:
+            raise ValueError("Unable to determine JWT signing alg")
+
+        encoded_headers = dict_to_b64(headers)
+        sig_bytes = await wallet.sign_message(
+            f"{encoded_headers}.{encoded_payload}".encode(), did_info.verkey
+        )
+
+    sig = bytes_to_b64(sig_bytes, urlsafe=True, pad=False)
+    return f"{encoded_headers}.{encoded_payload}.{sig}"
 
 
 async def jwt_verify(profile: Profile, jwt: str) -> JWTVerifyResult:
     """Verify a JWT and return the headers and payload."""
     encoded_headers, encoded_payload, encoded_signature = jwt.split(".", 3)
     headers = b64_to_dict(encoded_headers)
-    if "alg" not in headers or headers["alg"] != "EdDSA" or "kid" not in headers:
-        raise BadJWSHeaderError(
-            "Invalid JWS header parameters for Ed25519Signature2018."
-        )
-
     payload = b64_to_dict(encoded_payload)
     verification_method = headers["kid"]
     decoded_signature = b64_to_bytes(encoded_signature, urlsafe=True)
 
-    resolver = profile.inject(DIDResolver)
-    vmethod: Resource = await resolver.dereference(
-        profile,
-        verification_method,
-    )
-
-    if not isinstance(vmethod, VerificationMethod):
-        raise TypeError("Dereferenced resource is not a verification method")
-
-    key = key_from_verification_method(vmethod)
+    key = await key_material_for_kid(profile, verification_method)
+    alg = headers.get("alg")
+    if alg == "EdDSA" and key.algorithm != KeyAlg.ED25519:
+        raise BadJWSHeaderError("Expected ed25519 key")
+    elif alg == "ES256" and key.algorithm != KeyAlg.P256:
+        raise BadJWSHeaderError("Expected p256 key")
 
     valid = key.verify_signature(
         f"{encoded_headers}.{encoded_payload}".encode(),
