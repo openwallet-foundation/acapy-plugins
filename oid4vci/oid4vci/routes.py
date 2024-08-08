@@ -26,9 +26,18 @@ from aries_cloudagent.wallet.default_verification_key_strategy import (
     BaseVerificationKeyStrategy,
 )
 from aries_cloudagent.wallet.jwt import nym_to_did
+from aries_cloudagent.wallet.base import BaseWallet
+from aries_cloudagent.wallet.key_type import KeyTypes
+from aries_cloudagent.askar.profile import AskarProfileSession
+from aries_cloudagent.wallet.util import bytes_to_b64
+from aries_cloudagent.wallet.did_info import DIDInfo
+
+from aries_askar import Key, KeyAlg
+
 from marshmallow import fields
 from marshmallow.validate import OneOf
 
+from oid4vci.jwk import DID_JWK, P256
 from oid4vci.models.presentation import OID4VPPresentation, OID4VPPresentationSchema
 from oid4vci.models.presentation_definition import OID4VPPresDef
 from oid4vci.models.request import OID4VPRequest, OID4VPRequestSchema
@@ -786,6 +795,76 @@ async def oid4vp_pres_remove(request: web.Request):
     return web.json_response(record.serialize())
 
 
+class CreateDIDJWKRequestSchema(OpenAPISchema):
+    """Request schema for creating a did:jwk."""
+
+    key_type = fields.Str(
+        required=True,
+        metadata={
+            "description": "Type of key",
+        },
+        validate=OneOf(
+            [
+                "ed25519",
+                "p256",
+            ]
+        ),
+    )
+
+
+class CreateDIDJWKResponseSchema(OpenAPISchema):
+    """Response schema for creating a did:jwk."""
+
+    did = fields.Str(
+        required=True,
+        metadata={
+            "description": "The created did:jwk",
+        },
+    )
+
+
+@request_schema(CreateDIDJWKRequestSchema())
+@response_schema(CreateDIDJWKResponseSchema())
+async def create_did_jwk(request: web.Request):
+    """Route for creating a did:jwk."""
+
+    context: AdminRequestContext = request["context"]
+    body = await request.json()
+    key_type = body["key_type"]
+    key_types = context.inject(KeyTypes)
+
+    async with context.session() as session:
+        wallet = session.inject(BaseWallet)
+        key_type_instance = key_types.from_key_type(key_type)
+
+        if not key_type_instance:
+            raise web.HTTPBadRequest(reason="Invalid key type")
+
+        assert isinstance(session, AskarProfileSession)
+        key = Key.generate(KeyAlg(key_type_instance.key_type))
+
+        await session.handle.insert_key(
+            key.get_jwk_thumbprint(),
+            key,
+        )
+
+        did = "did:jwk:" + bytes_to_b64(
+            key.get_jwk_public().encode(), urlsafe=True, pad=False
+        )
+
+        did_info = DIDInfo(
+            did=did,
+            verkey=key.get_jwk_thumbprint(),
+            metadata={},
+            method=DID_JWK,
+            key_type=P256,
+        )
+
+        await wallet.store_did(did_info)
+
+        return web.json_response({"did": did})
+
+
 async def register(app: web.Application):
     """Register routes."""
     app.add_routes(
@@ -813,8 +892,9 @@ async def register(app: web.Application):
             web.post("/oid4vp/request", create_oid4vp_request),
             web.post("/oid4vp/presentation-definition", create_oid4vp_pres_def),
             web.get("/oid4vp/presentations", list_oid4vp_presentations),
-            web.get("/oid4vp/presentation/{id}", get_oid4vp_pres_by_id),
-            web.delete("/oid4vp/presentation/{id}", oid4vp_pres_remove),
+            web.get("/oid4vp/presentation/{request_id}", get_oid4vp_pres_by_id),
+            web.delete("/oid4vp/presentation/{presentation_id}", oid4vp_pres_remove),
+            web.post("/did/jwk/create", create_did_jwk),
         ]
     )
 

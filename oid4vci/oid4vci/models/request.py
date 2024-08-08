@@ -21,13 +21,14 @@ class OID4VPRequest(BaseRecord):
     def __init__(
         self,
         *,
-        id: Optional[str] = None,
+        request_id: Optional[str] = None,
         pres_def_id: str,
         vp_formats: Dict[str, Any],
+        **kwargs,
     ) -> None:
         """Initialize a OID4VPRequest instance."""
 
-        super().__init__(id)
+        super().__init__(request_id, **kwargs)
 
         self.pres_def_id = pres_def_id
         self.vp_formats = vp_formats

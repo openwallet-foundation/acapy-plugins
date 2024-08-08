@@ -31,7 +31,7 @@ services:
         --admin 0.0.0.0 3001
         --admin-insecure-mode
         --webhook-url http://webhook-listener:8080
-        --genesis-url https://raw.githubusercontent.com/Indicio-tech/indicio-network/main/genesis_files/pool_transactions_testnet_genesis
+        --no-ledger
         --wallet-type askar
         --emit-new-didcomm-prefix
         --wallet-storage-type default
@@ -86,3 +86,4 @@ services:
       - NODE_ENV=development # Set NODE_ENV to 'development'
       - ISSUER_HOST=issuer
       - WDS_SOCKET_PORT=0
+      - API_BASE_URL=http://issuer:3001

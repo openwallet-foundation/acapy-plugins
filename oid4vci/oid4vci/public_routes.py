@@ -38,13 +38,14 @@ from aries_cloudagent.wallet.jwt import (
     JWTVerifyResult,
     b64_to_dict,
     jwt_sign,
-    jwt_verify,
 )
+from oid4vci.jwt import jwt_verify
 from aries_cloudagent.wallet.util import b58_to_bytes, b64_to_bytes
 from marshmallow import fields
 from pydid import DIDUrl
 
 from oid4vci.jwk import DID_JWK
+from oid4vci.models.presentation import OID4VPPresentation
 from oid4vci.models.presentation_definition import OID4VPPresDef
 from oid4vci.models.request import OID4VPRequest
 
@@ -203,9 +204,9 @@ async def check_token(
     if scheme.lower() != "bearer":
         raise web.HTTPUnauthorized()  # Invalid authentication credentials
 
-    jwt_header = jwt.get_unverified_header(cred)
-    if "did:key:" not in jwt_header["kid"]:
-        raise web.HTTPUnauthorized()  # Invalid authentication credentials
+    # jwt_header = jwt.get_unverified_header(cred)
+    # if "did:key:" not in jwt_header["kid"]:
+    #     raise web.HTTPUnauthorized()  # Invalid authentication credentials
 
     result = await jwt_verify(profile, cred)
     if not result.valid:
@@ -468,7 +469,7 @@ async def retrieve_or_create_did_jwk(session: ProfileSession):
 @docs(tags=["oid4vp"], summary="Retrive OID4VP authorization request token")
 @match_info_schema(OID4VPRequestIDMatchSchema())
 async def get_request(request: web.Request):
-    """."""
+    """Get an OID4VP Request token."""
     context: AdminRequestContext = request["context"]
     request_id = request.match_info["request_id"]
 
@@ -507,19 +508,84 @@ async def get_request(request: web.Request):
         "response_type": "vp_token",
         "response_mode": "direct_post",
         "scope": "vp_token",
-        "presentation_definition": pres_def.serialize(),
+        "presentation_definition": pres_def.pres_def,
     }
 
     headers = {
         "alg": "EdDSA",
         "kid": f"{jwk.did}#0",
+        "typ": "oauth-authz-req+jwt",
     }
 
     token = await jwt_sign(
-        profile=context.profile, payload=payload, headers=headers, did=jwk.did
+        profile=context.profile,
+        payload=payload,
+        headers=headers,
+        verification_method=f"{jwk.did}#0",
     )
 
+    LOGGER.debug("TOKEN: %s", token)
+
     return web.Response(text=token)
+
+
+class OID4VPPresentationIDMatchSchema(OpenAPISchema):
+    """Path parameters and validators for request taking request id."""
+
+    presentation_id = fields.Str(
+        required=True,
+        metadata={
+            "description": "OID4VP Presentation identifier",
+        },
+    )
+
+
+# async def verify_presentation(
+#     self,
+#     resolver: DIDResolver,
+#     store: AStore,
+#     submission: PresentatinSubmission,
+#     vp_token: str,
+# ):
+#     """Verify a received presentation."""
+
+#     # LOGGER.debug("Got: %s %s", submission, vp_token)
+#     # vp_result = await jwt.verify(resolver, vp_token)
+#     # if not vp_result.verified:
+#     #     raise OpenId4VpError("Presentation failed")
+
+#     # async with store.session() as session:
+#     #     pres_def_entry = await session.fetch(
+#     #         "presentation_definitions", submission.definition_id
+#     #     )
+#     #     if not pres_def_entry:
+#     #         raise OpenId4VpError(
+#     #             f"Definition with id {submission.definition_id} not found"
+#     #         )
+#     #     pres_def = PresentationDefinition.model_validate(pres_def_entry.value_json)
+
+#     # evaluator = PresentationExchangeEvaluator.compile(pres_def)
+#     # result = await evaluator.verify(resolver, submission, vp_result.payload)
+#     # return result
+
+
+# @docs(tags=["oid4vp"], summary="Provide OID4VP presentation")
+# @match_info_schema(OID4VPPresentationIDMatchSchema())
+# async def post_response(request: web.Request):
+#     """."""
+#     context: AdminRequestContext = request["context"]
+#     presentation_id = request.match_info["presentation_id"]
+
+#     try:
+#         async with context.session() as session:
+#             record = await verify_presentation()
+#             await record.save(session)
+#             pres_def = await OID4VPPresDef.retrieve_by_id(session, record.pres_def_id)
+#             jwk = await retrieve_or_create_did_jwk(session)
+#     except StorageNotFoundError as err:
+#         raise web.HTTPNotFound(reason=err.roll_up) from err
+#     except (StorageError, BaseModelError) as err:
+#         raise web.HTTPBadRequest(reason=err.roll_up) from err
 
 
 async def register(app: web.Application):
@@ -535,6 +601,6 @@ async def register(app: web.Application):
             # Spec: https://identity.foundation/.well-known/resources/did-configuration/
             web.post("/token", token),
             web.post("/credential", issue_cred),
-            web.get("/oid4vp/request/{id}", get_request),
+            web.get("/oid4vp/request/{request_id}", get_request),
         ]
     )

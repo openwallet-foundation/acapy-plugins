@@ -58,8 +58,13 @@ app.use(express.static("public"));
 const events = new EventEmitter();
 const exchangeCache = new NodeCache({ stdTTL: 300, checkperiod: 400 });
 
+<<<<<<< HEAD
 const API_BASE_URL = `http://${process.env.ISSUER_HOST ?? "localhost"}:3001`;
 const API_KEY = "thisistheplace";
+=======
+const API_BASE_URL = process.env.API_BASE_URL || "http://localhost:3001";
+const API_KEY = process.env.API_KEY;
+>>>>>>> 762e60a (feat: (WIP) did jwk work, etc.)
 
 app.get("/", (req, res) => {
 	res.render("index", {"registrationId": uuidv4()});
@@ -85,22 +90,22 @@ async function create_presentation(req, res) {
 		"format": {
 			"jwt_vc_json": {
 				"alg": [
-					"EdDSA"
+					"ES256"
 				]
 			},
 			"jwt_vp_json": {
 				"alg": [
-					"EdDSA"
+					"ES256"
 				]
 			},
 			"jwt_vc": {
 				"alg": [
-					"EdDSA"
+					"ES256"
 				]
 			},
 			"jwt_vp": {
 				"alg": [
-					"EdDSA"
+					"ES256"
 				]
 			}
 		},
@@ -283,17 +288,19 @@ async function issue_credential(req, res) {
 	const createCredentialSupportedUrl = () =>
 		`${API_BASE_URL}/oid4vci/credential-supported/create`;
 	const credentialOfferUrl = `${API_BASE_URL}/oid4vci/credential-offer`;
-	const createDidUrl = `${API_BASE_URL}/wallet/did/create`;
+	const createDidUrl = `${API_BASE_URL}/did/jwk/create`;
 
 	const headers = {
 		accept: "application/json",
 	};
-
 	const commonHeaders = {
 		accept: "application/json",
-		"X-API-KEY": API_KEY,
+		
 		"Content-Type": "application/json",
 	};
+	if (API_KEY) {
+		commonHeaders["X-API-KEY"] =  API_KEY;
+	}
 
 
 	const { fname: firstName, lname: lastName, email } = req.body
@@ -374,7 +381,7 @@ async function issue_credential(req, res) {
 		method: "POST",
 		headers: commonHeaders,
 		body: JSON.stringify({
-			method: "key",
+			key_type: "p256",
 		}),
 	});
 
@@ -391,7 +398,7 @@ async function issue_credential(req, res) {
 	events.emit(`r${req.body.registrationId}`, {type: "message", message: "Creating DID."});
 	const didData = await fetchApiData(createDidUrl, createDidOptions());
 
-	const { did } = didData.result;
+	const { did } = didData;
 	events.emit(`r${req.body.registrationId}`, {type: "message", message: `Created DID: ${did}`});
 
 	logger.info(did);
@@ -403,7 +410,7 @@ async function issue_credential(req, res) {
 	events.emit(`r${req.body.registrationId}`, {type: "message", message: "Generating Credential Exchange."});
 	const exchangeResponse = await axios.post(exchangeCreateUrl, {
 		credential_subject: { name: firstName, lastname: lastName, email },
-		did,
+		verification_method: did+"#0",
 		supported_cred_id: supportedCredId,
 	});
 

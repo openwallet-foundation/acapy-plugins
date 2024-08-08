@@ -20,12 +20,13 @@ class OID4VPPresDef(BaseRecord):
     def __init__(
         self,
         *,
-        id: Optional[str] = None,
+        pres_def_id: Optional[str] = None,
         pres_def: Dict[str, Any],
+        **kwargs,
     ) -> None:
         """Initialize an OID4VP Presentation instance."""
 
-        super().__init__(id)
+        super().__init__(pres_def_id, **kwargs)
 
         self.pres_def = pres_def
 

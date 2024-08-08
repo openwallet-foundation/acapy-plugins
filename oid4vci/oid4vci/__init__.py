@@ -6,9 +6,11 @@ from aries_cloudagent.config.injection_context import InjectionContext
 from aries_cloudagent.core.event_bus import Event, EventBus
 from aries_cloudagent.core.profile import Profile
 from aries_cloudagent.wallet.did_method import DIDMethods
+from aries_cloudagent.wallet.key_type import KeyTypes
+
 from aries_cloudagent.core.util import SHUTDOWN_EVENT_PATTERN, STARTUP_EVENT_PATTERN
 from aries_cloudagent.resolver.did_resolver import DIDResolver
-from .jwk import DID_JWK
+from .jwk import DID_JWK, P256
 
 
 from .config import Config
@@ -29,6 +31,9 @@ async def setup(context: InjectionContext):
 
     methods = context.inject(DIDMethods)
     methods.register(DID_JWK)
+
+    key_types = context.inject(KeyTypes)
+    key_types.register(P256)
 
 
 async def startup(profile: Profile, event: Event):

@@ -38,10 +38,11 @@ class OID4VPPresentation(BaseRecord):
         errors: List[str],
         verified_claims: Dict[str, Any],
         verified: bool,
+        **kwargs,
     ) -> None:
         """Initialize an OID4VP Presentation instance."""
 
-        super().__init__(presentation_id, state)
+        super().__init__(presentation_id, state, **kwargs)
 
         self.pres_def_id = pres_def_id
         self.errors = errors
