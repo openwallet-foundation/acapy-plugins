@@ -20,6 +20,8 @@ black = "^24.4.2"
 flake8 = "^3.9.2"
 pre-commit = "^2.13.0"
 
+[tool.pytest.ini_options]
+
 [build-system]
 requires = ["poetry-core>=1.0.0"]
 build-backend = "poetry.core.masonry.api"
