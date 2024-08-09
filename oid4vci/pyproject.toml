@@ -16,6 +16,8 @@ aries-askar = "~0.3.0"
 aiohttp-cors = "^0.7.0"
 marshmallow = "^3.20.1"
 jwt-vc-json = {path = "../jwt_vc_json", optional = true}
+jsonschema = "^4.23.0"
+jsonpath = "^0.82.2"
 
 [tool.poetry.extras]
 aca-py = ["aries-cloudagent"]
