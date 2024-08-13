@@ -29,23 +29,26 @@ docker compose down -v  # Clean up
 If you're using Apple Silicon, you may have to separately build the image with the appropriate platform flag (from the `demo` directory):
 
 ```sh
-$ DOCKER_DEFAULT_PLATFORM=linux/amd64 docker build -f ../docker/Dockerfile --tag oid4vci ..
+DOCKER_DEFAULT_PLATFORM=linux/amd64 docker build -f ../docker/Dockerfile --tag oid4vci ..
 ```
 
 ### Demo Flow
 
 Navigate to `http://localhost:3002` in your browser. You will start at the registration page.
 
-#### 1. Admin Registration Page
+1. Admin Registration Page
+
 - Demonstrates the issuer's process of registering a new OID4VCI credential type.
 - Utilizes the admin API to create a supported credential record for issuance tracking.
 - In a production environment, this process is dynamic, but for the demo, it's simplified to a single button click.
 
-#### 2. Input Form Page
-- Illustrates the user's initiation of an interaction with an issuer to request a credential.
-- The data submited here will end up in the issued credential.
+1. Input Form Page
 
-#### 3. Credential Offer Page
+- Illustrates the user's initiation of an interaction with an issuer to request a credential.
+- The data submitted here will end up in the issued credential.
+
+3. Credential Offer Page
+
 - Presents a credential offer in the form of a QR code.
 - The Input Form Page uses the admin API to create an exchange record, tracking user information, OID4VCI token, codes, pins, and credential subjects.
 - Scan the QR code using the Sphereon Wallet app.
@@ -53,22 +56,26 @@ Navigate to `http://localhost:3002` in your browser. You will start at the regis
 - The OID4VCI plugin determines the credential subjects based on the exchange record.
 
 ### Note
+
 In a production environment, the described processes would be more dynamic and involve additional security measures. This demo provides a streamlined representation for clarity and ease of understanding.
-    
+
 ## Architecture
 
-![oid4vci-component](docs/images/oid4vci-component.png)
+![oid4vci-component](https://raw.githubusercontent.com/hyperledger/aries-acapy-plugins/main/oid4vci/docs/images/oid4vci-component.png)
 
 ### Public Routes
+
 ACA-Py provides a pluggable mechanism for registering routes for consumption by the controller, the Admin API. This Admin Server makes it trivial to extend the controller from plugins. ACA-Py does not, however, provide a similar mechanism for publicly accessible HTTP Endpoints. Generally speaking, the only public endpoint ACA-Py provides is the DIDComm Messaging endpoint. The OpenID4VCI protocol requires endpoints that are publicly accessible to present and exchange tokens for credentials. This Plugin accomplishes this by starting a separate [aiohttp server](https://docs.aiohttp.org/en/stable/index.html) (similar to how the Admin server is separate from the DIDComm messaging server) and publishes the OpenID4VCI endpoints through this separate server.
 
 Details of the endpoints can be found at `/api/docs` or in the [OpenId4VCI Specification][oid4vci].
 
 ### Admin Routes
+
 The plugin exposes Admin API routes for consumption by the Controller to facilitate Credential Issuance over OpenID4VCI. The Admin API Routes can be found under `/api/docs` of the Admin Server in the `oid4vci` section.
 
-### Records 
-The plugin adds two records to acapy, `OID4VCIExchangeRecord` and `SupportedCredential`. The exchange record keeps track of user data use during the exchange. The supported credential record keeps track of information a issuer needs to issue a credential.
+### Records
+
+The plugin adds two records to ACA-Py, `OID4VCIExchangeRecord` and `SupportedCredential`. The exchange record keeps track of user data use during the exchange. The supported credential record keeps track of information a issuer needs to issue a credential.
 
 ### How it works
 
@@ -130,8 +137,8 @@ end
 end
 ```
 
-
 ## Usage
+
 ### Configuration
 
 The Plugin expects the following configuration options. These options can either be set by environment variable (`OID4VCI_*`) or by plugin config value (`-o oid4vci.*`).

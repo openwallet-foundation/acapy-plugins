@@ -1,6 +1,8 @@
-### Description:
+# Redis Events
 
-This plugin provides mechansim to persists both inbound and outbound messages, deliver messages and webhooks, and dispatch events.
+## Description
+
+This plugin provides mechanism to persist both inbound and outbound messages, deliver messages and webhooks, and dispatch events.
 
 For receiving inbound messages, you have an option to either setup a mediator or a relay [supports [direct response](https://github.com/hyperledger/aries-rfcs/tree/main/features/0092-transport-return-route#aries-rfc-0092-transports-return-route)].
 
@@ -33,15 +35,11 @@ For the outbound scenario:
 
 The code for the Deliverer and Relay processes are in the `redis_events.v1_0.services.deliverer` and `redis_events.v1_0.services.redis_relay` directories, respectively. The `redis_events.v1_0.status_endpoint` directory contains code for health endpoints that is used by both of these processes.
 
-The `docker` directory contains a dockerfile (and instructions) for running aca-py with the redis plugin.
+The `docker` [directory](https://github.com/hyperledger/aries-acapy-plugins/blob/main/redis_events/docker) contains a dockerfile (and instructions) for running ACA-Py with the redis plugin.
 
-#### Documentation
+## Configuration
 
-Design - Covered in ./redis_queue/README.md
-
-### Configuration:
-
-The redis plugin is configured using an external yaml file. An example yaml configuration is:
+The redis events plugin is configured using an external yaml file. An example yaml configuration is:
 
 ```yaml
 redis_queue:
@@ -109,19 +107,19 @@ Events:
 - `event.event_webhook_topic_maps`: Event to webhook topic map
 - `event.deliver_webhook`: When set to true, this will deliver webhooks to endpoints specified in `admin.webhook_urls`. By default, set to true.
 
-#### Plugin deployment
+### Plugin deployment
 
 Once the plugin config is defined, it is possible to deploy the plugin inside ACA-Py.
 
 ```shell
-$ aca-py start \
+aca-py start \
     --plugin redis_events.v1_0.redis_queue.events \
     --plugin-config plugins-config.yaml \
     -it redis_events.v1_0.redis_queue.inbound redis 0 -ot redis_events.v1_0.redis_queue.outbound
     # ... the remainder of your startup arguments
 ```
 
-#### Status Endpoints
+### Status Endpoints
 
 `Relay` and `Deliverer` service have the following service endpoints available:
 
@@ -130,14 +128,14 @@ $ aca-py start \
 
 The configuration for the endpoint service can be provided as following for `relay` and `deliverer`. The API KEY should be provided in the header with `access_token` as key name.
 
-```
+```yaml
 environment:
     - STATUS_ENDPOINT_HOST=0.0.0.0
     - STATUS_ENDPOINT_PORT=7001
     - STATUS_ENDPOINT_API_KEY=test_api_key_1
 ```
 
-#### Basic Flow Diagrams
+### Basic Flow Diagrams
 
 Relay:
 
