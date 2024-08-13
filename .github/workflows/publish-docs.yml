@@ -34,7 +34,9 @@ jobs:
         run: |
           # Run a script to prepare all the files that have to be moved/updated to publish cleanly
           ./setupDocs.sh
-          [ "$VERSION" == "main" ] && ALIAS=latest
+          # Not really needed, but used in case we do want versions published in the future
+          VERSION=main
+          ALIAS=latest
           echo $VERSION $ALIAS
           mike deploy --push --update-aliases $VERSION $ALIAS
           mike set-default latest
