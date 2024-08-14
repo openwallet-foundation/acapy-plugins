@@ -404,10 +404,10 @@ def main(arg_1=None, arg_2=None):
                     global_version = re.findall(r'"([^"]*)"', next_line)
                     break
         # Create and output the markdown release notes
-        msg = f"""### Release v{global_version[0]}\n##### The latest supported versions of aries-cloudagent for each plugin are as follows:\n"""
+        msg = f"""## ACA-Py Release {global_version[0]}\n"""
         print(msg)
         # Markdown table header
-        print("| Plugin Name | Supported aries-cloudagent version |")
+        print("| Plugin Name | Supported ACA-Py Release |")
         print("| --- | --- |")
         for plugin_name in sorted(os.listdir("./")):
             if is_plugin_directory(plugin_name):
@@ -443,9 +443,8 @@ def main(arg_1=None, arg_2=None):
                 with open(f"./{plugin_name}/pyproject.toml", "w") as file:
                     file.write(filedata)
                 print(f"|{plugin_name} | {version[0]}|")
-
-        print("***")
-        print(" - ")
+        
+        print("\n")
 
     elif selection == "5":
         """
@@ -470,14 +469,14 @@ def main(arg_1=None, arg_2=None):
         with open("RELEASES.md", "r") as file:
             last_releases = []
             for line in file:
-                if f"### Release v{global_version[0]}" in line:
+                if f"## ACA-Py Release {global_version[0]}" in line:
                     line = next(file)
                     line = next(file)
                     line = next(file)
-                    while "***" not in line:
+                    while "### Plugins Upgraded" not in line:
                         if (
                             line
-                            != "| Plugin Name | Supported aries-cloudagent version |\n"
+                            != "| Plugin Name | Supported ACA-Py Release |\n"
                             and line != "| --- | --- |\n"
                         ):
                             last_releases.append(line.strip())
@@ -491,9 +490,12 @@ def main(arg_1=None, arg_2=None):
 
         # Get all released plugins and the plugins not on the global version
         for item in last_releases:
-            released_plugins.append(item.split("|")[1].strip())
-            if item.split("|")[2].strip() == global_version[0]:
-                plugins_on_old_release.append(item.split("|")[1].strip())
+            split_item = item.split("|")
+            if len(split_item) > 1:
+                released_plugins.append(split_item[1].strip())
+                
+                if split_item[2].strip() == global_version[0]:
+                    plugins_on_old_release.append(split_item[1].strip())
 
         # If there is releases in the RELEASES.md file then look for new plugins and add them to plugins on old release
         if last_releases:

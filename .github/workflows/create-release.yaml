@@ -125,11 +125,11 @@ jobs:
           body=$(python repo_manager.py 4)
           body=${body/v$version/v$release_tag}
           upgraded_plugins=($(python repo_manager.py 5))
-          details=$(printf '#### Plugins upgraded this release: \n\t - ')
+          details=$(printf '### Plugins Upgraded For ACA-Py Release %s \n - ' '$version')
           count=${#upgraded_plugins[*]}
           for i in $(seq 0 "$(("$count" - 2))" );
           do
-              details=$(printf '%s %s \n\t - ' "$details" "${upgraded_plugins[$i]}")
+              details=$(printf '%s %s \n - ' "$details" "${upgraded_plugins[$i]}")
           done
           details=$(printf '%s %s \n' "$details" "${upgraded_plugins[$count - 1]}")
 

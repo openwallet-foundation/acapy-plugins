@@ -187,7 +187,7 @@ jobs:
               continue
             fi
             cd $current_folder
-            poetry install --no-interaction --no-root --extras "aca-py"
+            poetry install --no-interaction --no-root --all-extras
             if poetry run pytest; then
               echo "plugin $current_folder passed unit test check"
             else
@@ -213,9 +213,24 @@ jobs:
         run: |
           trap 'echo "integration_test_exit_code=$?" >> "$GITHUB_OUTPUT"' EXIT
           declare -a failed_plugins=()
+
+          # lite plugins should be skipped during integration tests
+          readarray -t lite_plugin_array < lite_plugins
+
+          elementIn () {
+            local e match="$1"
+            shift
+            for e; do [[ "$e" == "$match" ]] && return 0; done
+            return 1
+          }
+
           for dir in ./*/; do
             current_folder=$(basename "$dir")
-            if [[ $current_folder == "plugin_globals" ]]; then
+            # Skip plugin_globals and lite plugins
+            if [[ "$current_folder" == "plugin_globals" ]] ; then
+              continue
+            fi
+            if elementIn "$current_folder" "${lite_plugin_array[@]}"; then
               continue
             fi
             cd $current_folder/integration
@@ -310,6 +325,10 @@ jobs:
           fi
 
           # Update the RELEASES.md file with the release notes
+          # Remove the Plugin Release Status heading
+          sed -i '/# Plugin Release Status/d' RELEASES.md 
+          # Add a marker for the insertion of the upgraded plugins section
+          body=$(printf '%s \n*' "${body}")
           echo "$body" | cat - RELEASES.md > temp && mv temp RELEASES.md
 
           # Check if there are any upgrades
@@ -333,25 +352,32 @@ jobs:
 
           # Update the release notes with the upgraded plugins. 
           # For replacing with the sed command we need to double escape the newline and tab characters.
-          details=$(printf '#### Plugins upgraded this release: \n\t - ')
-          double_escape_details=$(printf '#### Plugins upgraded this release: \\n\\t - ')
+          details=$(printf '\n### Plugins Upgraded For ACA-Py Release %s \n - ' "$release_version")
+          double_escape_details=$(printf '\\n### Plugins Upgraded For ACA-Py Release %s \\n - ' "$release_version")
 
-          # For replacing the first occurence of ' - ' with the details
+          # For replacing the first occurence of '*' with the details
           count=${#upgraded_plugins[*]}
           for i in $(seq 0 "$(("$count" - 2))" );
           do
-              details=$(printf '%s %s \n\t - ' "$details" "${upgraded_plugins[$i]}")
-              double_escape_details=$(printf '%s %s \\n\\t - ' "$double_escape_details" "${upgraded_plugins[$i]}")
+              details=$(printf '%s %s \n - ' "$details" "${upgraded_plugins[$i]}")
+              double_escape_details=$(printf '%s %s \\n - ' "$double_escape_details" "${upgraded_plugins[$i]}")
           done
           details=$(printf '%s %s \n' "$details" "${upgraded_plugins[$count - 1]}")
           double_escape_details=$(printf '%s %s \n' "$double_escape_details" "${upgraded_plugins[$count - 1]}")
 
-          # Replace the first occurence of ' - ' with the details
-          sed -i "0,/\s\-\s/s// - $(printf '%s ' ${double_escape_details})/" RELEASES.md
+          # Replace the first occurence of '*' with the details
+          sed -i "0,/*/s//$(printf '%s ' ${double_escape_details})/" RELEASES.md
 
           # Replace the release version with the release tag
           sed -i "0,/v$release_version/{s/v$release_version/v$tag_version/}" RELEASES.md
           body=${body/v$release_version/v$tag_version}
+
+          # Add the heading for the Plugin Release Status and RELEASES.md
+          heading="# Plugin Release Status"
+          # Remove the * insertion marker from the body
+          body=$(echo "$body" | sed 's/\*//g')
+          body=$(printf '%s\n%s' "${heading}" "${body}")
+          printf '%s\n%s\n' "${heading}" "$(cat RELEASES.md)" > RELEASES.md
 
           # Prepare the PR body
           EOF=$(dd if=/dev/urandom bs=15 count=1 status=none | base64)
