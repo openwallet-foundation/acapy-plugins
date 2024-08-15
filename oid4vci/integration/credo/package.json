@@ -16,7 +16,7 @@
     "@credo-ts/askar": "^0.5.6",
     "@credo-ts/core": "^0.5.6",
     "@credo-ts/node": "^0.5.6",
-    "@credo-ts/openid4vc": "^0.5.6",
+    "@credo-ts/openid4vc": "^0.5.9",
     "@hyperledger/aries-askar-nodejs": "^0.2.0",
     "json-rpc-api-proxy": "github:Indicio-tech/json-rpc-api-proxy"
   },
