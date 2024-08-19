@@ -216,56 +216,52 @@ cached-property = ">=1.5.2,<1.6.0"
 [[package]]
 name = "aries-cloudagent"
 version = "1.0.0"
-description = "Hyperledger Aries Cloud Agent Python (ACA-Py) is a foundation for building decentralized identity applications and services running in non-mobile environments. "
+description = "Hyperledger Aries Cloud Agent Python (ACA-Py) is a foundation for building decentralized identity applications and services running in non-mobile environments."
 optional = true
-python-versions = "^3.12"
-files = []
-develop = false
+python-versions = "<4.0,>=3.12"
+files = [
+    {file = "aries_cloudagent-1.0.0-py3-none-any.whl", hash = "sha256:807ce84090d607bd6a595a3e8d0a3935f6c9a24bcddaa189a4e32dd65adb2b80"},
+    {file = "aries_cloudagent-1.0.0.tar.gz", hash = "sha256:2ab701357d38c9ae1922157a0449340c447dd97eab68d178b09d3a13b2d6276d"},
+]
 
 [package.dependencies]
-aiohttp = "~3.10.4"
-aiohttp-apispec-acapy = "~3.0.2"
-aiohttp-cors = "~0.7.0"
-apispec = "^6.6.0"
-async-timeout = "~4.0.2"
-base58 = "~2.1.0"
-ConfigArgParse = "~1.7"
-deepmerge = "~0.3.0"
-did-peer-2 = "^0.1.2"
-did-peer-4 = "^0.1.4"
-ecdsa = "~0.19.0"
+aiohttp = ">=3.10.3,<3.11.0"
+aiohttp-apispec-acapy = ">=3.0.2,<3.1.0"
+aiohttp-cors = ">=0.7.0,<0.8.0"
+apispec = ">=6.6.0,<7.0.0"
+async-timeout = ">=4.0.2,<4.1.0"
+base58 = ">=2.1.0,<2.2.0"
+ConfigArgParse = ">=1.7,<1.8"
+deepmerge = ">=0.3.0,<0.4.0"
+did-peer-2 = ">=0.1.2,<0.2.0"
+did-peer-4 = ">=0.1.4,<0.2.0"
+ecdsa = ">=0.19.0,<0.20.0"
 jsonpath-ng = "1.6.1"
-Markdown = "~3.6"
+Markdown = ">=3.6,<3.7"
 markupsafe = "2.1.5"
-marshmallow = "~3.21.3"
-nest_asyncio = "~1.6.0"
-packaging = "~23.2"
-portalocker = "~2.10.1"
+marshmallow = ">=3.21.3,<3.22.0"
+nest_asyncio = ">=1.6.0,<1.7.0"
+packaging = ">=23.2,<23.3"
+portalocker = ">=2.10.1,<2.11.0"
 prompt_toolkit = ">=2.0.9,<2.1.0"
-pydid = "^0.5.1"
-pyjwt = "~2.9.0"
-pyld = "^2.0.4"
-pynacl = "~1.5.0"
-python-dateutil = "~2.8.1"
-python-json-logger = "~2.0.7"
-pyyaml = "~6.0.2"
+pydid = ">=0.5.1,<0.6.0"
+pyjwt = ">=2.9.0,<2.10.0"
+pyld = ">=2.0.4,<3.0.0"
+pynacl = ">=1.5.0,<1.6.0"
+python-dateutil = ">=2.8.1,<2.9.0"
+python-json-logger = ">=2.0.7,<2.1.0"
+pyyaml = ">=6.0.2,<6.1.0"
 qrcode = {version = ">=6.1,<7.0", extras = ["pil"]}
-requests = "~2.32.3"
+requests = ">=2.32.3,<2.33.0"
 rlp = "4.0.1"
-sd-jwt = "^0.10.3"
-unflatten = "~0.1"
-uuid_utils = "^0.9.0"
+sd-jwt = ">=0.10.3,<0.11.0"
+unflatten = ">=0.1,<0.2"
+uuid_utils = ">=0.9.0,<0.10.0"
 
 [package.extras]
 askar = ["anoncreds (==0.2.0)", "aries-askar (>=0.3.2,<0.4.0)", "indy-credx (>=1.1.1,<1.2.0)", "indy-vdr (>=0.4.0,<0.5.0)"]
 bbs = ["ursa-bbs-signatures (>=1.0.1,<1.1.0)"]
 didcommv2 = ["didcomm-messaging (>=0.1.1a0,<0.2.0)"]
-
-[package.source]
-type = "git"
-url = "https://github.com/hyperledger/aries-cloudagent-python.git"
-reference = "HEAD"
-resolved_reference = "29b9042014d1015f7d998232cd8fd9be12f2ff04"
 
 [[package]]
 name = "async-timeout"
@@ -1547,7 +1543,7 @@ aries-askar = "~0.3.0"
 marshmallow = "^3.20.1"
 
 [package.extras]
-aca-py = ["aries-cloudagent @ git+https://github.com/hyperledger/aries-cloudagent-python.git"]
+aca-py = ["aries-cloudagent (>=1.0.0,<1.1.0)"]
 plugins = ["jwt-vc-json @ file:///home/jamie/Forks/aries-acapy-plugins/jwt_vc_json"]
 
 [package.source]
@@ -2544,4 +2540,4 @@ oid4vci = ["oid4vci"]
 [metadata]
 lock-version = "2.0"
 python-versions = "^3.12"
-content-hash = "f464ce56546aad9312cbd396bc9805a6aa6204d7b8f05a4f49bb3eca3f19362d"
+content-hash = "fe1c405b72328b16201facffc4d868c4ee4564d6173c8337171a1ae360b96be7"

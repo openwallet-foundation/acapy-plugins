@@ -9,7 +9,7 @@ python = "^3.12"
 
 # Define ACA-Py as an optional/extra dependancy so it can be
 # explicitly installed with the plugin if desired.
-aries-cloudagent = { git = "https://github.com/hyperledger/aries-cloudagent-python.git", optional = true }
+aries-cloudagent = { version = "~1.0.0", optional = true }
 aiohttp = "^3.9.5"
 fastapi-slim = "^0.111.0"
 nest-asyncio = "^1.5.5"
