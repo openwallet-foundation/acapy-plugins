@@ -5,6 +5,7 @@ import logging
 
 from aiohttp import web
 from aiohttp_apispec import docs, match_info_schema, request_schema, response_schema
+from aries_cloudagent.admin.decorators.auth import tenant_authentication
 from aries_cloudagent.admin.request_context import AdminRequestContext
 from aries_cloudagent.connections.models.conn_record import ConnRecord, ConnRecordSchema
 from aries_cloudagent.messaging.models.base import BaseModelError
@@ -55,6 +56,7 @@ class UpdateConnectionRequestSchema(OpenAPISchema):
 @match_info_schema(ConnectionsConnIdMatchInfoSchema())
 @request_schema(UpdateConnectionRequestSchema)
 @response_schema(ConnRecordSchema(), 200, description="")
+@tenant_authentication
 @error_handler
 async def connections_update(request: web.BaseRequest):
     """Update data for a connection record."""

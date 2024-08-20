@@ -116,9 +116,7 @@ async def assign_recip_key_to_new_uid(redis: RedisCluster, recip_key: str):
     return new_uid
 
 
-async def reassign_recip_key_to_uid(
-    redis: RedisCluster, old_uid: bytes, recip_key: str
-):
+async def reassign_recip_key_to_uid(redis: RedisCluster, old_uid: bytes, recip_key: str):
     """Reassign recip_key from old_uid to a new plugin UID."""
     new_uid = await get_new_valid_uid(redis, old_uid)
     recip_key_encoded = recip_key.encode("utf-8")
@@ -161,7 +159,7 @@ async def reassign_recip_key_to_uid(
 async def process_payload_recip_key(
     redis: RedisCluster, payload: Union[str, bytes], topic: str
 ):
-    """Process payload and recip_key and return topic and message.""" ""
+    """Process payload and recip_key and return topic and message."""
     recip_key_in = ",".join(_recipients_from_packed_message(payload))
     recip_key_in_encoded = recip_key_in.encode()
     message = str.encode(

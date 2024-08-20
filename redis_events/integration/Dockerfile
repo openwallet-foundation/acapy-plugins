@@ -1,4 +1,4 @@
-FROM python:3.9-slim AS base
+FROM python:3.12-slim AS base
 WORKDIR /usr/src/app
 
 # Install and configure poetry
@@ -19,12 +19,13 @@ ARG install_flags='--with integration --extras aca-py'
 RUN poetry install ${install_flags}
 USER $user
 
-FROM python:3.9-bullseye
+FROM python:3.12-bullseye
 WORKDIR /usr/src/app
 COPY --from=base /usr/src/app/.venv /usr/src/app/.venv
 ENV PATH="/usr/src/app/.venv/bin:$PATH"
 
-RUN pip install git+https://github.com/hyperledger/aries-acapy-plugins@main#subdirectory=basicmessage_storage
+# TODO: install from 1.0.0 tag when available
+RUN pip install git+https://github.com/jamshale/aries-acapy-plugins@v1.0.0-plugins#subdirectory=basicmessage_storage
 
 COPY redis_events/ redis_events/
 COPY docker/*.yml ./

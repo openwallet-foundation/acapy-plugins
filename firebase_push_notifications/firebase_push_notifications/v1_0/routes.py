@@ -5,6 +5,7 @@ import re
 
 from aiohttp import web
 from aiohttp_apispec import docs, match_info_schema, request_schema, response_schema
+from aries_cloudagent.admin.decorators.auth import tenant_authentication
 from aries_cloudagent.admin.request_context import AdminRequestContext
 from aries_cloudagent.connections.models.conn_record import ConnRecord
 from aries_cloudagent.core.event_bus import Event, EventBus
@@ -72,6 +73,7 @@ class SendResponseSchema(OpenAPISchema):
 )
 @request_schema(SendRequestSchema())
 @response_schema(SendResponseSchema(), 200, description="")
+@tenant_authentication
 async def send_push_notification(request: web.BaseRequest):
     """Send a push notification to the device of the connection."""
     connection_id = request.match_info["conn_id"]
@@ -93,6 +95,7 @@ class SetDeviceResponseSchema(OpenAPISchema):
 @match_info_schema(BasicConnIdMatchInfoSchema())
 @request_schema(SetDeviceInfoSchema())
 @response_schema(SetDeviceResponseSchema(), 200, description="")
+@tenant_authentication
 async def set_connection_device_info(request: web.BaseRequest):
     """Set device info of the connection."""
     context: AdminRequestContext = request["context"]

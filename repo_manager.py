@@ -30,7 +30,7 @@ class ManagedPoetrySections(str, Enum):
     INT_DEPS = "[tool.poetry.group.integration.dependencies]"
     RUFF = "[tool.ruff]"
     RUFF_LINT = "[tool.ruff.lint]"
-    RUFF_FILES = "[tool.ruff.per-file-ignores]"
+    RUFF_FILES = "[tool.ruff.lint.per-file-ignores]"
     PYTEST = "[tool.pytest.ini_options]"
     COVERAGE = "[tool.coverage.run]"
     COVERAGE_REPORT = "[tool.coverage.report]"

@@ -3,7 +3,7 @@
 import logging
 from typing import Any, Mapping, Optional
 
-from pydantic import BaseModel, validator
+from pydantic import BaseModel
 
 LOGGER = logging.getLogger(__name__)
 
@@ -41,24 +41,6 @@ def _alias_generator(key: str) -> str:
     return key.replace("_", "-")
 
 
-class NoneDefaultModel(BaseModel):
-    """Pydantic model that allows None as a default value."""
-
-    @validator("*", pre=True)
-    def not_none(cls, v, field):
-        """If the value is None, return the default value."""
-        if all(
-            (
-                # Cater for the occasion where field.default in (0, False)
-                getattr(field, "default", None) is not None,
-                v is None,
-            )
-        ):
-            return field.default
-        else:
-            return v
-
-
 class ConnectionConfig(BaseModel):
     """Connection configuration model."""
 
@@ -68,7 +50,7 @@ class ConnectionConfig(BaseModel):
         """Pydantic config."""
 
         alias_generator = _alias_generator
-        allow_population_by_field_name = True
+        populate_by_name = True
 
     @classmethod
     def default(cls):
@@ -76,7 +58,7 @@ class ConnectionConfig(BaseModel):
         return cls(connection_url="redis://default:test1234@172.28.0.103:6379")
 
 
-class EventConfig(NoneDefaultModel):
+class EventConfig(BaseModel):
     """Event configuration model."""
 
     event_topic_maps: Mapping[str, str] = EVENT_TOPIC_MAP
@@ -87,7 +69,7 @@ class EventConfig(NoneDefaultModel):
         """Pydantic config."""
 
         alias_generator = _alias_generator
-        allow_population_by_field_name = True
+        populate_by_name = True
 
     @classmethod
     def default(cls):
@@ -99,7 +81,7 @@ class EventConfig(NoneDefaultModel):
         )
 
 
-class InboundConfig(NoneDefaultModel):
+class InboundConfig(BaseModel):
     """Inbound configuration model."""
 
     acapy_inbound_topic: str = "acapy_inbound"
@@ -109,7 +91,7 @@ class InboundConfig(NoneDefaultModel):
         """Pydantic config."""
 
         alias_generator = _alias_generator
-        allow_population_by_field_name = True
+        populate_by_name = True
 
     @classmethod
     def default(cls):
@@ -120,7 +102,7 @@ class InboundConfig(NoneDefaultModel):
         )
 
 
-class OutboundConfig(NoneDefaultModel):
+class OutboundConfig(BaseModel):
     """Outbound configuration model."""
 
     acapy_outbound_topic: str = "acapy_outbound"
@@ -138,10 +120,15 @@ class OutboundConfig(NoneDefaultModel):
 class RedisConfig(BaseModel):
     """Redis configuration model."""
 
-    event: Optional[EventConfig]
-    inbound: Optional[InboundConfig]
-    outbound: Optional[OutboundConfig]
+    event: Optional[EventConfig] = EventConfig.default()
+    inbound: Optional[InboundConfig] = InboundConfig.default()
+    outbound: Optional[OutboundConfig] = OutboundConfig.default()
     connection: ConnectionConfig
+
+    class Config:
+        """Pydantic config."""
+
+        validate_assignment = True
 
     @classmethod
     def default(cls):
@@ -175,6 +162,8 @@ def get_config(settings: Mapping[str, Any]) -> RedisConfig:
         LOGGER.warning("Using default configuration")
         config = RedisConfig.default()
 
-    LOGGER.debug("Returning config: %s", config.json(indent=2))
-    LOGGER.debug("Returning config(aliases): %s", config.json(by_alias=True, indent=2))
+    LOGGER.debug("Returning config: %s", config.model_dump_json(indent=2))
+    LOGGER.debug(
+        "Returning config(aliases): %s", config.model_dump_json(by_alias=True, indent=2)
+    )
     return config

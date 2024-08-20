@@ -22,7 +22,7 @@ class BasicMessageStorageConfig(BaseModel):
         """Inner class for configuration."""
 
         alias_generator = _alias_generator
-        allow_population_by_field_name = True
+        populate_by_name = True
 
     @classmethod
     def default(cls):
@@ -33,7 +33,7 @@ class BasicMessageStorageConfig(BaseModel):
 
 def process_config_dict(config_dict: dict) -> dict:
     """Remove any keys that are not in the config class."""
-    _filter = BasicMessageStorageConfig.default().dict().keys()
+    _filter = BasicMessageStorageConfig.default().model_dump().keys()
     for key, value in config_dict.items():
         if key in _filter:
             config_dict[key] = value
@@ -57,7 +57,7 @@ def get_config(settings: Mapping[str, Any]) -> BasicMessageStorageConfig:
         tenant_plugin_config_dict = process_config_dict(tenant_plugin_config_dict)
         LOGGER.debug("Parsed (global): %s", global_plugin_config_dict)
         LOGGER.debug("Parsed (tenant): %s", tenant_plugin_config_dict)
-        default_config = BasicMessageStorageConfig.default().dict()
+        default_config = BasicMessageStorageConfig.default().model_dump()
         LOGGER.debug("Default Config: %s", default_config)
         config_dict = merge(
             {}, default_config, global_plugin_config_dict, tenant_plugin_config_dict
@@ -68,6 +68,8 @@ def get_config(settings: Mapping[str, Any]) -> BasicMessageStorageConfig:
         LOGGER.warning("Using default configuration")
         config = BasicMessageStorageConfig.default()
 
-    LOGGER.debug("Returning config: %s", config.json(indent=2))
-    LOGGER.debug("Returning config(aliases): %s", config.json(by_alias=True, indent=2))
+    LOGGER.debug("Returning config: %s", config.model_dump_json(indent=2))
+    LOGGER.debug(
+        "Returning config(aliases): %s", config.model_dump_json(by_alias=True, indent=2)
+    )
     return config

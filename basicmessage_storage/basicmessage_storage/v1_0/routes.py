@@ -12,6 +12,7 @@ from aiohttp_apispec import (
     request_schema,
     response_schema,
 )
+from aries_cloudagent.admin.decorators.auth import tenant_authentication
 from aries_cloudagent.admin.request_context import AdminRequestContext
 from aries_cloudagent.messaging.models.base import BaseModelError
 from aries_cloudagent.messaging.models.openapi import OpenAPISchema
@@ -102,6 +103,7 @@ class BasicMessageListQueryStringSchema(OpenAPISchema):
 @match_info_schema(BasicConnIdMatchInfoSchema())
 @request_schema(SendMessageSchema())
 @response_schema(BasicMessageModuleResponseSchema(), 200, description="")
+@tenant_authentication
 @error_handler
 async def plugin_connections_send_message(request: web.BaseRequest):
     """Request handler for sending a basic message to a connection.
@@ -150,6 +152,7 @@ async def plugin_connections_send_message(request: web.BaseRequest):
 )
 @querystring_schema(BasicMessageListQueryStringSchema())
 @response_schema(BasicMessageListSchema(), 200, description="")
+@tenant_authentication
 @error_handler
 async def all_messages_list(request: web.BaseRequest):
     """Request handler for searching basic message records from All agents/connections.
@@ -193,6 +196,7 @@ async def all_messages_list(request: web.BaseRequest):
 )
 @match_info_schema(BasicMessageIdMatchInfoSchema())
 @response_schema(DeleteResponseSchema(), 200, description="")
+@tenant_authentication
 @error_handler
 async def delete_message(request: web.BaseRequest):
     """Request handler for searching basic message record by id.

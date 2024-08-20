@@ -4,6 +4,7 @@ from unittest.mock import AsyncMock, MagicMock, patch
 
 from aiohttp import web
 from aries_cloudagent.admin.request_context import AdminRequestContext
+from aries_cloudagent.core.in_memory import InMemoryProfile
 from aries_cloudagent.messaging.models.base import BaseModelError
 from aries_cloudagent.storage.error import StorageError, StorageNotFoundError
 from aries_cloudagent.storage.record import StorageRecord
@@ -44,8 +45,14 @@ class TestDRPCRoutes(IsolatedAsyncioTestCase):
 
         self.storage = MagicMock()
         self.session_inject[test_module.BaseStorage] = self.storage
+        self.profile = InMemoryProfile.test_profile(
+            settings={
+                "admin.admin_api_key": "admin_api_key",
+                "admin.admin_insecure_mode": False,
+            }
+        )
 
-        self.context = AdminRequestContext.test_context(self.session_inject)
+        self.context = AdminRequestContext.test_context(self.session_inject, self.profile)
         self.request_dict = {
             "context": self.context,
             "outbound_message_router": AsyncMock(),
@@ -55,6 +62,7 @@ class TestDRPCRoutes(IsolatedAsyncioTestCase):
             match_info={},
             query={},
             __getitem__=lambda _, key: self.request_dict[key],
+            headers={"x-api-key": "admin_api_key"}
         )
 
     async def test_get_empty_drpc_record_list(self):

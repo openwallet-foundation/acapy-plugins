@@ -39,6 +39,7 @@ class RedisInboundTransport(BaseInboundTransport):
             host: Host to listen on
             port: Port to listen on
             create_session: Method to create a new inbound session
+            kwargs: Additional keyword arguments for the transport
 
         """
         super().__init__("redis", create_session, **kwargs)

@@ -5,11 +5,11 @@ description = "jwt_vc_json credential handler plugin (Supported aries-cloudagent
 authors = []
 
 [tool.poetry.dependencies]
-python = "^3.9"
+python = "^3.12"
 
 # Define ACA-Py as an optional/extra dependancy so it can be
 # explicitly installed with the plugin if desired.
-aries-cloudagent = { version = ">=0.10.3, < 1.0.0", optional = true }
+aries-cloudagent = { version = "~1.0.0", optional = true }
 oid4vci = { path = "../oid4vci", optional = true, develop = true }
 
 [tool.poetry.extras]
@@ -18,7 +18,6 @@ oid4vci = ["oid4vci"]
 
 [tool.poetry.dev-dependencies]
 ruff = "^0.5.4"
-black = "~24.4.2"
 pytest = "^8.3.1"
 pytest-asyncio = "^0.23.8"
 pytest-cov = "^5.0.0"
@@ -29,7 +28,6 @@ setuptools = "^70.3.0"
 aries-askar = { version = "~0.3.0" }
 indy-credx = { version = "~1.1.1" }
 indy-vdr = { version = "~0.4.1" }
-ursa-bbs-signatures = { version = "~1.0.1" }
 python3-indy = { version = "^1.11.1" }
 anoncreds = { version = "0.2.0" }
 

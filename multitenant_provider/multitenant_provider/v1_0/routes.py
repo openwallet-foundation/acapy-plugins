@@ -4,6 +4,7 @@ import logging
 
 from aiohttp import web
 from aiohttp_apispec import docs, request_schema, response_schema
+from aries_cloudagent.admin.decorators.auth import admin_authentication
 from aries_cloudagent.admin.request_context import AdminRequestContext
 from aries_cloudagent.multitenant.admin.routes import (
     CreateWalletRequestSchema,
@@ -33,6 +34,7 @@ class PluginCreateWalletRequestSchema(CreateWalletRequestSchema):
 
         Args:
             data: The data to validate
+            kwargs: Additional keyword arguments
 
         Raises:
             ValidationError: If any of the fields do not validate
@@ -51,6 +53,7 @@ class PluginCreateWalletRequestSchema(CreateWalletRequestSchema):
 )
 @request_schema(PluginCreateWalletRequestSchema)
 @response_schema(CreateWalletResponseSchema(), 200, description="")
+@admin_authentication
 async def plugin_wallet_create(request: web.BaseRequest):
     """Request handler for adding a new subwallet for handling by the agent.
 
@@ -69,6 +72,7 @@ async def plugin_wallet_create(request: web.BaseRequest):
 )
 @request_schema(CreateWalletTokenRequestSchema)
 @response_schema(CreateWalletTokenResponseSchema(), 200, description="")
+@admin_authentication
 async def plugin_wallet_create_token(request: web.BaseRequest):
     """Request handler for creating an authorization token for a specific subwallet.
 

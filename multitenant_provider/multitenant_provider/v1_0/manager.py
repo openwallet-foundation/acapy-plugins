@@ -9,12 +9,12 @@ from aries_cloudagent.askar.profile import AskarProfile
 from aries_cloudagent.config.injection_context import InjectionContext
 from aries_cloudagent.core.error import BaseError
 from aries_cloudagent.core.profile import Profile
-from aries_cloudagent.multitenant.askar_profile_manager import (
-    AskarProfileMultitenantManager,
-)
 from aries_cloudagent.multitenant.base import MultitenantManagerError
 from aries_cloudagent.multitenant.error import WalletKeyMissingError
 from aries_cloudagent.multitenant.manager import MultitenantManager
+from aries_cloudagent.multitenant.single_wallet_askar_manager import (
+    SingleWalletAskarMultitenantManager,
+)
 from aries_cloudagent.storage.error import StorageError
 from aries_cloudagent.wallet.models.wallet_record import WalletRecord
 
@@ -162,9 +162,7 @@ class MulittokenHandler:
 
         if config.manager.always_check_provided_wallet_key:
             # if a wallet key was passed in, we need to check it
-            if wallet_key and not self.check_wallet_key(
-                wallet_token_record, wallet_key
-            ):
+            if wallet_key and not self.check_wallet_key(wallet_token_record, wallet_key):
                 raise WalletKeyMismatchError()
 
         encoded = jwt.encode(jwt_payload, jwt_secret, algorithm="HS256")
@@ -304,7 +302,7 @@ class BasicMultitokenMultitenantManager(MultitenantManager):
         return wallet_record
 
 
-class AskarMultitokenMultitenantManager(AskarProfileMultitenantManager):
+class AskarMultitokenMultitenantManager(SingleWalletAskarMultitenantManager):
     """Askar multitenant manager for multitenant provider."""
 
     def __init__(self, profile: Profile, multitenant_profile: AskarProfile = None):

@@ -7,16 +7,16 @@ license = "Apache-2.0"
 readme = "README.md"
 
 [tool.poetry.dependencies]
-python = "^3.9"
-pytest = "^8.2.0"
+python = "^3.12"
+pytest = "^8.2.2"
 pytest-asyncio = "~0.23.7"
-requests = "^2.31.0"
+requests = "^2.32.0"
 aries-askar = "^0.3.0"
 did-peer-4 = "^0.1.4"
 aiohttp = "^3.9.5"
 acapy-controller = {git = "https://github.com/indicio-tech/acapy-minimal-example.git", python = ">=3.10,<4.0"}
-pydantic = "^1.10.15"
 jsonrpc-api-proxy-client = {git = "https://github.com/Indicio-tech/json-rpc-api-proxy.git", rev = "main", subdirectory = "clients/python"}
+pydantic = "~2.7.0"
 
 [tool.poetry.group.dev.dependencies]
 black = "^24.4.2"

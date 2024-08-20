@@ -5,11 +5,10 @@ description = ""
 authors = []
 
 [tool.poetry.dependencies]
-python = "^3.9"
-pytest = "^8.2.0"
+python = "^3.12"
+pytest = "^8.2.2"
 pytest-asyncio = "~0.23.7"
-requests = "^2.31.0"
-aries-cloudagent = { version = ">=0.10.3, < 1.0.0" }
+requests = "^2.32.0"
 
 [tool.poetry.dev-dependencies]
 

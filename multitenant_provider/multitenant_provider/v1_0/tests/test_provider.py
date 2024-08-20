@@ -14,9 +14,7 @@ class TestProvider(IsolatedAsyncioTestCase):
     async def asyncSetUp(self) -> None:
         self.profile = InMemoryProfile.test_profile()
         self.profile.inject = Mock()
-        self.profile.inject.return_value = MultitenantProviderConfig(
-            manager={"class_name": "test-class-name"}
-        )
+        self.profile.inject.return_value = MultitenantProviderConfig.default()
 
     @patch.object(ClassLoader, "load_class")
     async def test_provide_loads_manager(self, mock_class_loader):
@@ -26,9 +24,7 @@ class TestProvider(IsolatedAsyncioTestCase):
         assert result["test-class-name"] == "manager"
 
     @patch.object(ClassLoader, "load_class")
-    async def test_provide_raises_error_when_loading_class_fails(
-        self, mock_class_loader
-    ):
+    async def test_provide_raises_error_when_loading_class_fails(self, mock_class_loader):
         mock_class_loader.return_value = lambda _: (_ for _ in ()).throw(
             ClassNotFoundError("test-message")
         )
