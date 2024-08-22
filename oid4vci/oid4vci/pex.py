@@ -1,7 +1,7 @@
 """Presentation Exchange evaluation."""
 
 from dataclasses import dataclass, field
-from typing import Any, Dict, List, Optional, Sequence, Union
+from typing import Any, Dict, List, Mapping, Optional, Sequence, Union
 
 from aries_cloudagent.core.profile import Profile
 from aries_cloudagent.messaging.models.base import BaseModel, BaseModelSchema
@@ -102,12 +102,10 @@ class PresentationSubmissionSchema(BaseModelSchema):
 
     id = fields.Str(
         required=False,
-        validate=UUID4_VALIDATE,
         metadata={"description": "ID", "example": UUID4_EXAMPLE},
     )
     definition_id = fields.Str(
         required=False,
-        validate=UUID4_VALIDATE,
         metadata={"description": "DefinitionID", "example": UUID4_EXAMPLE},
     )
     descriptor_maps = fields.List(
@@ -147,6 +145,7 @@ class ConstraintFieldEvaluator:
         self,
         paths: Sequence[JSONPath],
         filter: Optional[FilterEvaluator] = None,
+        # TODO Add `name`
     ):
         """Initialize the constraint field evaluator."""
         self.paths = paths
@@ -200,7 +199,9 @@ class DescriptorEvaluator:
         self._field_constraints = field_constraints
 
     @classmethod
-    def compile(cls, descriptor: Union[dict, InputDescriptors]) -> "DescriptorEvaluator":
+    def compile(
+        cls, descriptor: Union[dict, InputDescriptors]
+    ) -> "DescriptorEvaluator":
         """Compile an input descriptor."""
         if isinstance(descriptor, dict):
             descriptor = InputDescriptors.deserialize(descriptor)
@@ -222,7 +223,7 @@ class DescriptorEvaluator:
             matched = constraint.match(value)
             if matched is None:
                 raise DescriptorMatchFailed("Failed to match descriptor to submission")
-            matched_fields[matched.full_path] = matched.value
+            matched_fields[str(matched.full_path)] = matched.value
         return matched_fields
 
 
@@ -265,7 +266,7 @@ class PresentationExchangeEvaluator:
         self,
         profile: Profile,
         submission: Union[dict, PresentationSubmission],
-        presentation: dict,
+        presentation: Mapping[str, Any],
     ) -> VerifyResult:
         """Check if a submission matches the definition."""
         if isinstance(submission, dict):
