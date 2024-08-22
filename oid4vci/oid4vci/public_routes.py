@@ -17,6 +17,7 @@ from aiohttp_apispec import (
     response_schema,
 )
 from aries_askar import Key, KeyAlg
+
 from aries_cloudagent.admin.request_context import AdminRequestContext
 from aries_cloudagent.core.profile import Profile, ProfileSession
 from aries_cloudagent.messaging.models.base import BaseModelError
@@ -31,13 +32,20 @@ from aries_cloudagent.wallet.jwt import JWTVerifyResult, b64_to_dict
 from aries_cloudagent.wallet.key_type import ED25519
 from aries_cloudagent.wallet.util import bytes_to_b64
 from aries_cloudagent.wallet.util import b64_to_bytes
+from aries_cloudagent.protocols.present_proof.dif.pres_exch import (
+    PresentationDefinition,
+)
+
 from base58 import b58decode
 from marshmallow import fields
 
+
 from oid4vci.jwk import DID_JWK
 from oid4vci.jwt import jwt_sign, jwt_verify, key_material_for_kid
+from oid4vci.models.presentation import OID4VPPresentation
 from oid4vci.models.presentation_definition import OID4VPPresDef
 from oid4vci.models.request import OID4VPRequest
+from oid4vci.pex import PresentationExchangeEvaluator, PresentationSubmission
 
 from .config import Config
 from .cred_processor import CredIssueError
@@ -68,7 +76,9 @@ class CredentialIssuerMetadataSchema(OpenAPISchema):
     )
     authorization_server = fields.Str(
         required=False,
-        metadata={"description": "The authorization server endpoint. Currently ignored."},
+        metadata={
+            "description": "The authorization server endpoint. Currently ignored."
+        },
     )
     batch_credential_endpoint = fields.Str(
         required=False,
@@ -204,7 +214,9 @@ async def check_token(
     return result
 
 
-async def handle_proof_of_posession(profile: Profile, proof: Dict[str, Any], nonce: str):
+async def handle_proof_of_posession(
+    profile: Profile, proof: Dict[str, Any], nonce: str
+):
     """Handle proof of posession."""
     encoded_headers, encoded_payload, encoded_signature = proof["jwt"].split(".", 3)
     headers = b64_to_dict(encoded_headers)
@@ -312,7 +324,9 @@ async def issue_cred(request: web.Request):
     if "proof" not in body:
         raise web.HTTPBadRequest(reason=f"proof is required for {supported.format}")
 
-    pop = await handle_proof_of_posession(context.profile, body["proof"], ex_record.nonce)
+    pop = await handle_proof_of_posession(
+        context.profile, body["proof"], ex_record.nonce
+    )
     if not pop.verified:
         raise web.HTTPBadRequest(reason="Invalid proof")
 
@@ -442,6 +456,13 @@ async def get_request(request: web.Request):
         async with context.session() as session:
             record = await OID4VPRequest.retrieve_by_id(session, request_id)
             await record.delete_record(session)
+
+            pres = await OID4VPPresentation.retrieve_by_request_id(
+                session=session, request_id=request_id
+            )
+            pres.state = OID4VPPresentation.REQUEST_RETRIEVED
+            await pres.save(session=session, reason="Retrieved presentation request")
+
             pres_def = await OID4VPPresDef.retrieve_by_id(session, record.pres_def_id)
             jwk = await retrieve_or_create_did_jwk(session)
 
@@ -460,8 +481,8 @@ async def get_request(request: web.Request):
         "exp": now + 120,
         "jti": str(uuid.uuid4()),
         "client_id": config.endpoint,
-        "response_uri": f"{config.endpoint}/oid4vp/response/{request_id}",
-        "state": request_id,
+        "response_uri": f"{config.endpoint}/oid4vp/response/{pres.presentation_id}",
+        "state": pres.presentation_id,
         "nonce": token_urlsafe(),
         "id_token_signing_alg_values_supported": ["ES256", "EdDSA"],
         "request_object_signing_alg_values_supported": ["ES256", "EdDSA"],
@@ -504,52 +525,104 @@ class OID4VPPresentationIDMatchSchema(OpenAPISchema):
     )
 
 
-# async def verify_presentation(
-#     self,
-#     resolver: DIDResolver,
-#     store: AStore,
-#     submission: PresentatinSubmission,
-#     vp_token: str,
-# ):
-#     """Verify a received presentation."""
+class PostOID4VPResponseSchema(OpenAPISchema):
+    """Schema for ..."""
 
-#     # LOGGER.debug("Got: %s %s", submission, vp_token)
-#     # vp_result = await jwt.verify(resolver, vp_token)
-#     # if not vp_result.verified:
-#     #     raise OpenId4VpError("Presentation failed")
+    presentation_submission = fields.Str(required=True, metadata={"description": ""})
 
-#     # async with store.session() as session:
-#     #     pres_def_entry = await session.fetch(
-#     #         "presentation_definitions", submission.definition_id
-#     #     )
-#     #     if not pres_def_entry:
-#     #         raise OpenId4VpError(
-#     #             f"Definition with id {submission.definition_id} not found"
-#     #         )
-#     #     pres_def = PresentationDefinition.model_validate(pres_def_entry.value_json)
+    vp_token = fields.Str(
+        required=True,
+        metadata={
+            "description": "",
+        },
+    )
 
-#     # evaluator = PresentationExchangeEvaluator.compile(pres_def)
-#     # result = await evaluator.verify(resolver, submission, vp_result.payload)
-#     # return result
+    state = fields.Str(
+        required=False, metadata={"description": "State describing the presentation"}
+    )
 
 
-# @docs(tags=["oid4vp"], summary="Provide OID4VP presentation")
-# @match_info_schema(OID4VPPresentationIDMatchSchema())
-# async def post_response(request: web.Request):
-#     """."""
-#     context: AdminRequestContext = request["context"]
-#     presentation_id = request.match_info["presentation_id"]
+async def verify_presentation(
+    profile: Profile,
+    submission: PresentationSubmission,
+    vp_token: str,
+    pres_def_id: str,
+):
+    """Verify a received presentation."""
 
-#     try:
-#         async with context.session() as session:
-#             record = await verify_presentation()
-#             await record.save(session)
-#             pres_def = await OID4VPPresDef.retrieve_by_id(session, record.pres_def_id)
-#             jwk = await retrieve_or_create_did_jwk(session)
-#     except StorageNotFoundError as err:
-#         raise web.HTTPNotFound(reason=err.roll_up) from err
-#     except (StorageError, BaseModelError) as err:
-#         raise web.HTTPBadRequest(reason=err.roll_up) from err
+    LOGGER.debug("Got: %s %s", submission, vp_token)
+
+    vp_result = await jwt_verify(profile, vp_token)
+    if not vp_result.valid:
+        raise ValueError("Presentation failed")
+
+    async with profile.session() as session:
+
+        pres_def_entry = await OID4VPPresDef.retrieve_by_id(
+            session,
+            pres_def_id,
+        )
+
+        pres_def = PresentationDefinition.deserialize(pres_def_entry.pres_def)
+
+    evaluator = PresentationExchangeEvaluator.compile(pres_def)
+    result = await evaluator.verify(profile, submission, vp_result.payload)
+    return result
+
+
+@docs(tags=["oid4vp"], summary="Provide OID4VP presentation")
+@match_info_schema(OID4VPPresentationIDMatchSchema())
+@form_schema(PostOID4VPResponseSchema())
+async def post_response(request: web.Request):
+    """."""
+    context: AdminRequestContext = request["context"]
+    presentation_id = request.match_info["presentation_id"]
+
+    form = await request.post()
+
+    raw_submission = form.get("presentation_submission")
+    assert isinstance(raw_submission, str)
+    presentation_submission = PresentationSubmission.from_json(raw_submission)
+
+    vp_token = form.get("vp_token")
+    state = form.get("state")
+
+    if state and state != presentation_id:
+        raise web.HTTPBadRequest(reason="`state` must match the presentation id")
+
+    async with context.session() as session:
+        record = await OID4VPPresentation.retrieve_by_id(session, presentation_id)
+
+    try:
+        assert isinstance(vp_token, str)
+
+        verify_result = await verify_presentation(
+            profile=context.profile,
+            submission=presentation_submission,
+            vp_token=vp_token,
+            pres_def_id=record.pres_def_id,
+        )
+
+    except StorageNotFoundError as err:
+        raise web.HTTPNotFound(reason=err.roll_up) from err
+    except (StorageError, BaseModelError) as err:
+        raise web.HTTPBadRequest(reason=err.roll_up) from err
+
+    async with context.session() as session:
+
+        if not verify_result.verified:
+            assert verify_result.details
+            record.errors = [verify_result.details]
+
+        record.verified = verify_result.verified
+        record.matched_credentials = verify_result.descriptor_id_to_claims
+
+        await record.save(
+            session,
+            reason=f"Presentation verified: {verify_result.verified}",
+        )
+
+        return web.Response(status=200)
 
 
 async def register(app: web.Application):
@@ -566,5 +639,6 @@ async def register(app: web.Application):
             web.post("/token", token),
             web.post("/credential", issue_cred),
             web.get("/oid4vp/request/{request_id}", get_request),
+            web.post("/oid4vp/response/{presentation_id}", post_response),
         ]
     )
