@@ -80,7 +80,7 @@ app.post("/present/create", (req, res, next) => {
 async function create_presentation(req, res) {
 	//res.status(404).send("");
 	const presentationDefinition = {"pres_def": {
-		"id": "demo-profile",
+		"id": uuidv4(),
 		"purpose": "Present basic profile info",
 		"format": {
 			"jwt_vc_json": {
