@@ -578,19 +578,26 @@ async def create_oid4vp_request(request: web.Request):
     body = await request.json()
 
     async with context.session() as session:
-        record = OID4VPRequest(
+        req_record = OID4VPRequest(
             pres_def_id=body["pres_def_id"], vp_formats=body["vp_formats"]
         )
-        await record.save(session=session)
+        await req_record.save(session=session)
+
+        pres_record = OID4VPPresentation(
+            pres_def_id=body["pres_def_id"],
+            state=OID4VPPresentation.REQUEST_CREATED,
+            request_id=req_record.request_id,
+        )
+        await pres_record.save(session=session)
 
     config = Config.from_settings(context.settings)
-    request_uri = quote(f"{config.endpoint}/oid4vp/request/{record._id}")
+    request_uri = quote(f"{config.endpoint}/oid4vp/request/{req_record._id}")
     full_uri = f"openid://?request_uri={request_uri}"
 
     return web.json_response(
         {
             "request_uri": full_uri,
-            "request": record.serialize(),
+            "request": req_record.serialize(),
         }
     )
 
