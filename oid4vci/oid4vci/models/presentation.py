@@ -1,6 +1,7 @@
 """Presentation model for OID4VP."""
 
-from typing import Any, Dict, List
+from typing import Any, Dict, List, Optional
+from aries_cloudagent.core.profile import ProfileSession
 from aries_cloudagent.messaging.models.base_record import BaseRecord, BaseRecordSchema
 from marshmallow import fields
 
@@ -14,6 +15,7 @@ class OID4VPPresentation(BaseRecord):
     PRESENTATION_INVALID = "presentation-invalid"
     PRESENTATION_VALID = "presentation-valid"
     RECORD_TOPIC = "oid4vp"
+    RECORD_TYPE = "oid4vp"
     STATES = (
         REQUEST_CREATED,
         REQUEST_RETRIEVED,
@@ -23,7 +25,7 @@ class OID4VPPresentation(BaseRecord):
     )
 
     RECORD_ID_NAME = "presentation_id"
-    TAG_NAMES = {"pres_def_id", "state"}
+    TAG_NAMES = {"pres_def_id", "state", "request_id"}
 
     class Meta:
         """OID4VP Presentation Metadata."""
@@ -32,12 +34,14 @@ class OID4VPPresentation(BaseRecord):
 
     def __init__(
         self,
-        presentation_id: str,
+        *,
+        presentation_id: Optional[str] = None,
         state: str,
         pres_def_id: str,
-        errors: List[str],
-        verified_claims: Dict[str, Any],
-        verified: bool,
+        errors: Optional[List[str]] = None,
+        matched_credentials: Optional[Dict[str, Any]] = None,
+        verified: Optional[bool] = None,
+        request_id: str,
         **kwargs,
     ) -> None:
         """Initialize an OID4VP Presentation instance."""
@@ -46,8 +50,9 @@ class OID4VPPresentation(BaseRecord):
 
         self.pres_def_id = pres_def_id
         self.errors = errors
-        self.verified_claims = verified_claims
+        self.matched_credentials = matched_credentials
         self.verified = verified
+        self.request_id = request_id
 
     @property
     def presentation_id(self) -> str:
@@ -61,10 +66,20 @@ class OID4VPPresentation(BaseRecord):
             prop: getattr(self, prop)
             for prop in (
                 "errors",
-                "verified_claims",
+                "matched_credentials",
                 "verified",
             )
         }
+
+    @classmethod
+    async def retrieve_by_request_id(
+        cls, session: ProfileSession, request_id: str
+    ) -> "OID4VPPresentation":
+        """Retrieve a Presentation by Request ID."""
+
+        return await cls.retrieve_by_tag_filter(
+            session=session, tag_filter={"request_id": request_id}
+        )
 
 
 class OID4VPPresentationSchema(BaseRecordSchema):
@@ -89,6 +104,13 @@ class OID4VPPresentationSchema(BaseRecordSchema):
         },
     )
 
+    request_id = fields.Str(
+        required=True,
+        metadata={
+            "description": "Identifier used to identify presentation request",
+        },
+    )
+
     errors = fields.List(
         fields.Str,
         required=False,
@@ -97,7 +119,7 @@ class OID4VPPresentationSchema(BaseRecordSchema):
         },
     )
 
-    verified_claims = fields.Dict(
+    matched_credentials = fields.Dict(
         required=False,
         metadata={
             "description": "Verified claims from the presentation, if present",
@@ -105,7 +127,7 @@ class OID4VPPresentationSchema(BaseRecordSchema):
     )
 
     verified = fields.Bool(
-        required=True,
+        required=False,
         metadata={
             "description": "Whether or not the presentation was successfully verified"
         },
