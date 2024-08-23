@@ -76,12 +76,12 @@ services:
 
   demo-app:
     build:
-      context: ./frontend2
+      context: ./frontend
     ports:
       - "3002:3000"
     volumes:
-      - ./frontend2/index.js:/app/index.js:z
-      - ./frontend2/templates:/app/templates:z
+      - ./frontend/index.js:/app/index.js:z
+      - ./frontend/templates:/app/templates:z
     environment:
       - NODE_ENV=development # Set NODE_ENV to 'development'
       - WDS_SOCKET_PORT=0
