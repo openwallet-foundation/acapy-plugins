@@ -2,7 +2,6 @@
 
 from dataclasses import dataclass
 from os import getenv
-from typing import List
 
 from aries_cloudagent.config.base import BaseSettings
 from aries_cloudagent.config.settings import Settings
@@ -26,7 +25,6 @@ class Config:
     host: str
     port: int
     endpoint: str
-    cred_handlers: List[str]
 
     @classmethod
     def from_settings(cls, settings: BaseSettings) -> "Config":
@@ -36,9 +34,6 @@ class Config:
         host = plugin_settings.get("host") or getenv("OID4VCI_HOST")
         port = int(plugin_settings.get("port") or getenv("OID4VCI_PORT", "0"))
         endpoint = plugin_settings.get("endpoint") or getenv("OID4VCI_ENDPOINT")
-        cred_handler = plugin_settings.get("cred_handler") or getenv(
-            "OID4VCI_CRED_HANDLER"
-        )
 
         if not host:
             raise ConfigError("host", "OID4VCI_HOST")
@@ -46,9 +41,5 @@ class Config:
             raise ConfigError("port", "OID4VCI_PORT")
         if not endpoint:
             raise ConfigError("endpoint", "OID4VCI_ENDPOINT")
-        if not cred_handler:
-            raise ConfigError("cred_handler", "OID4VCI_CRED_HANDLER")
 
-        cred_handlers = cred_handler.split(" ")
-
-        return cls(host, port, endpoint, cred_handlers)
+        return cls(host, port, endpoint)

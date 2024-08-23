@@ -17,7 +17,6 @@ services:
       OID4VCI_HOST: 0.0.0.0
       OID4VCI_PORT: 8081
       OID4VCI_ENDPOINT: "http://issuer:8081"
-      OID4VCI_CRED_HANDLER: '{"jwt_vc_json": "jwt_vc_json"}'
     command: >
       start
         --inbound-transport http 0.0.0.0 3000

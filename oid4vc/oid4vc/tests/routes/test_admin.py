@@ -2,22 +2,15 @@ from unittest.mock import AsyncMock, MagicMock
 
 import pytest
 from aries_cloudagent.admin.request_context import AdminRequestContext
-from aries_cloudagent.core.in_memory.profile import InMemoryProfile
 
 from oid4vc import routes as test_module
 from oid4vc.models.supported_cred import SupportedCredential
 
 
 @pytest.mark.asyncio
-async def test_credential_supported_create():
+async def test_credential_supported_create(context: AdminRequestContext):
     """Test credential_supported_create endpoint."""
 
-    profile = InMemoryProfile.test_profile(
-        settings={
-            "admin.admin_insecure_mode": True,
-        }
-    )
-    context = AdminRequestContext.test_context({}, profile)
     request_dict = {
         "context": context,
         "outbound_message_router": AsyncMock(),
