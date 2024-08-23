@@ -1,4 +1,4 @@
-# Integration testing for OID4VCI Plugin
+# Integration testing for OID4VC Plugin
 
 ## Integration Tests
 

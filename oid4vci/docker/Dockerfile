@@ -20,8 +20,8 @@ ENV PATH="/opt/poetry/bin:$PATH"
 RUN poetry config virtualenvs.in-project true
 
 # Setup project
-RUN mkdir oid4vci && touch oid4vci/__init__.py
-COPY oid4vci/pyproject.toml oid4vci/poetry.lock oid4vci/README.md ./
+RUN mkdir oid4vc && touch oid4vc/__init__.py
+COPY oid4vc/pyproject.toml oid4vc/poetry.lock oid4vc/README.md ./
 RUN poetry install --without dev --all-extras
 USER $user
 
@@ -31,8 +31,8 @@ WORKDIR /usr/src/app
 COPY --from=base /usr/src/app/.venv /usr/src/app/.venv
 ENV PATH="/usr/src/app/.venv/bin:$PATH"
 RUN apt-get update && apt-get install -y curl jq && apt-get clean
-COPY oid4vci/oid4vci/ oid4vci/
-COPY oid4vci/docker/*.yml ./
+COPY oid4vc/oid4vc/ oid4vc/
+COPY oid4vc/docker/*.yml ./
 
 ENTRYPOINT ["/bin/bash", "-c", "aca-py \"$@\"", "--"]
 CMD ["start", "--arg-file", "default.yml"]

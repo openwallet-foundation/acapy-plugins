@@ -1,4 +1,4 @@
-"""Public routes for OID4VCI."""
+"""Public routes for OID4VC."""
 
 import datetime
 import json

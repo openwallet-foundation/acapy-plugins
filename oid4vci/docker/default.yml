@@ -1,5 +1,5 @@
 auto-provision: true
-label: oid4vci
+label: oid4vc
 
 # Admin
 admin: [ 0.0.0.0, 3001 ]
@@ -16,7 +16,7 @@ endpoint:
 
 # plugins
 plugin:
-  - oid4vci
+  - oid4vc
 
 #config
 genesis-url: https://indy.igrant.io/genesis

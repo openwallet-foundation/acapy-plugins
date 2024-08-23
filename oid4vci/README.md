@@ -19,7 +19,7 @@ This repository showcases a simplified demonstration of the OID4VCI (OpenID for 
 First, you'll have to get your authtoken from ngrok. Note this value down.
 
 ```shell
-cd oid4vci/demo
+cd oid4vc/demo
 docker compose build
 echo "NGROK_AUTHTOKEN=<PASTE YOUR AUTHTOKEN HERE>" > .env
 docker compose up
@@ -29,7 +29,7 @@ docker compose down -v  # Clean up
 If you're using Apple Silicon, you may have to separately build the image with the appropriate platform flag (from the `demo` directory):
 
 ```sh
-DOCKER_DEFAULT_PLATFORM=linux/amd64 docker build -f ../docker/Dockerfile --tag oid4vci ..
+DOCKER_DEFAULT_PLATFORM=linux/amd64 docker build -f ../docker/Dockerfile --tag oid4vc ..
 ```
 
 ### Demo Flow
@@ -50,7 +50,7 @@ Navigate to `http://localhost:3002` in your browser. You will start at the regis
 3. Credential Offer Page
 
 - Presents a credential offer in the form of a QR code.
-- The Input Form Page uses the admin API to create an exchange record, tracking user information, OID4VCI token, codes, pins, and credential subjects.
+- The Input Form Page uses the admin API to create an exchange record, tracking user information, OID4VC token, codes, pins, and credential subjects.
 - Scan the QR code using the Sphereon Wallet app.
 - The Sphereon Wallet follows the OID4VCI flow, requesting an authentication token and using it to obtain a credential.
 - The OID4VCI plugin determines the credential subjects based on the exchange record.

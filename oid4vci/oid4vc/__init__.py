@@ -1,4 +1,4 @@
-"""OID4VCI plugin."""
+"""OID4VC plugin."""
 
 import logging
 

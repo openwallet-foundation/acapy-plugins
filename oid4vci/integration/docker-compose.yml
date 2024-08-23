@@ -1,9 +1,9 @@
 version: "3"
 services:
   issuer:
-    image: oid4vci
+    image: oid4vc
     build: 
-      dockerfile: oid4vci/docker/Dockerfile
+      dockerfile: oid4vc/docker/Dockerfile
       context: ../..
     ports:
       - "3000:3000"
@@ -11,7 +11,7 @@ services:
       - "8081:8081"
     volumes:
       - ../docker/entrypoint.sh:/entrypoint.sh:ro,z
-      - ../oid4vci:/usr/src/app/oid4vci:z
+      - ../oid4vc:/usr/src/app/oid4vc:z
     environment:
       RUST_LOG: warn
       OID4VCI_HOST: 0.0.0.0
@@ -33,7 +33,7 @@ services:
         --auto-provision
         --log-level debug
         --debug-webhooks
-        --plugin oid4vci
+        --plugin oid4vc
     healthcheck:
       test: curl -s -o /dev/null -w '%{http_code}' "http://localhost:3001/status/live" | grep "200" > /dev/null
       start_period: 30s
@@ -42,7 +42,7 @@ services:
       retries: 5
 
   tests:
-    image: oid4vci-test-runner
+    image: oid4vc-test-runner
     build:
       context: .
     volumes:

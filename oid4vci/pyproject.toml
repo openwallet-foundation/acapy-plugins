@@ -1,8 +1,14 @@
 [tool.poetry]
-name = "oid4vci"
+name = "oid4vc"
 version = "0.1.0"
-description = "oid4vci plugin for acapy. (Supported aries-cloudagent version: 1.0.0) "
-authors = ["Adam Burdett <burdettadam@gmail.com>"]
+description = "OpenID for Verifiable Credentials plugin for acapy. (Supported aries-cloudagent version: 1.0.0)"
+authors = [
+	"Adam Burdett <burdettadam@gmail.com>",
+	"Char Howland <char@indicio.tech>",
+	"Daniel Bluhm <dbluhm@pm.me>",
+	"Micah Peltier <micah@indicio.tech>",
+	"Colton Wolkins <colton@indicio.tech>"
+]
 readme = "README.md"
 
 [tool.poetry.dependencies]
@@ -57,11 +63,11 @@ ignore = [
 "**/{tests}/*" = ["F841", "D", "E501"]
 
 [tool.pytest.ini_options]
-testpaths = "oid4vci"
+testpaths = "oid4vc"
 addopts = """
     -p no:warnings
     --quiet --junitxml=./.test-reports/junit.xml
-    --cov-config .coveragerc --cov=oid4vci --cov-report term --cov-report xml
+    --cov-config .coveragerc --cov=oid4vc --cov-report term --cov-report xml
 """
 markers = []
 junit_family = "xunit1"
