@@ -4,8 +4,8 @@ import pytest
 from aries_cloudagent.admin.request_context import AdminRequestContext
 from aries_cloudagent.core.in_memory.profile import InMemoryProfile
 
-from oid4vci import routes as test_module
-from oid4vci.models.supported_cred import SupportedCredential
+from oid4vc import routes as test_module
+from oid4vc.models.supported_cred import SupportedCredential
 
 
 @pytest.mark.asyncio

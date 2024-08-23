@@ -5,7 +5,7 @@ from aries_cloudagent.admin.request_context import AdminRequestContext
 from aries_cloudagent.core.in_memory import InMemoryProfile
 from aries_cloudagent.resolver.did_resolver import DIDResolver
 
-from oid4vci.jwk_resolver import JwkResolver
+from oid4vc.jwk_resolver import JwkResolver
 
 
 @pytest.fixture

@@ -38,10 +38,10 @@ from aries_askar import Key, KeyAlg
 from marshmallow import fields
 from marshmallow.validate import OneOf
 
-from oid4vci.jwk import DID_JWK, P256
-from oid4vci.models.presentation import OID4VPPresentation, OID4VPPresentationSchema
-from oid4vci.models.presentation_definition import OID4VPPresDef
-from oid4vci.models.request import OID4VPRequest, OID4VPRequestSchema
+from oid4vc.jwk import DID_JWK, P256
+from oid4vc.models.presentation import OID4VPPresentation, OID4VPPresentationSchema
+from oid4vc.models.presentation_definition import OID4VPPresDef
+from oid4vc.models.request import OID4VPRequest, OID4VPRequestSchema
 
 from .config import Config
 from .models.exchange import OID4VCIExchangeRecord, OID4VCIExchangeRecordSchema
@@ -85,7 +85,7 @@ class ExchangeRecordListSchema(OpenAPISchema):
 
 
 @docs(
-    tags=["oid4vci"],
+    tags=["oid4vc"],
     summary="Fetch all credential exchange records",
 )
 @querystring_schema(ExchangeRecordQuerySchema())
@@ -164,7 +164,7 @@ class ExchangeRecordCreateRequestSchema(OpenAPISchema):
 
 
 @docs(
-    tags=["oid4vci"],
+    tags=["oid4vc"],
     summary=("Create a credential exchange record"),
 )
 @request_schema(ExchangeRecordCreateRequestSchema())
@@ -234,7 +234,7 @@ class ExchangeRecordIDMatchSchema(OpenAPISchema):
 
 
 @docs(
-    tags=["oid4vci"],
+    tags=["oid4vc"],
     summary="Remove an existing exchange record",
 )
 @match_info_schema(ExchangeRecordIDMatchSchema())
@@ -294,7 +294,7 @@ class CredOfferSchema(OpenAPISchema):
     grants = fields.Nested(CredOfferGrantSchema(), required=True)
 
 
-@docs(tags=["oid4vci"], summary="Get a credential offer")
+@docs(tags=["oid4vc"], summary="Get a credential offer")
 @querystring_schema(CredOfferQuerySchema())
 @response_schema(CredOfferSchema(), 200)
 @tenant_authentication
@@ -406,7 +406,7 @@ class SupportedCredCreateRequestSchema(OpenAPISchema):
     )
 
 
-@docs(tags=["oid4vci"], summary="Register a Oid4vci credential")
+@docs(tags=["oid4vc"], summary="Register a Oid4vci credential")
 @request_schema(SupportedCredCreateRequestSchema())
 @response_schema(SupportedCredentialSchema())
 @tenant_authentication
@@ -453,7 +453,7 @@ class SupportedCredentialListSchema(OpenAPISchema):
 
 
 @docs(
-    tags=["oid4vci"],
+    tags=["oid4vc"],
     summary="Fetch all credential supported records",
 )
 @querystring_schema(SupportedCredentialQuerySchema())
@@ -504,7 +504,7 @@ class SupportedCredentialMatchSchema(OpenAPISchema):
 
 
 @docs(
-    tags=["oid4vci"],
+    tags=["oid4vc"],
     summary="Remove an existing credential supported record",
 )
 @match_info_schema(SupportedCredentialMatchSchema())
@@ -879,24 +879,24 @@ async def register(app: web.Application):
     """Register routes."""
     app.add_routes(
         [
-            web.get("/oid4vci/credential-offer", get_cred_offer, allow_head=False),
+            web.get("/oid4vc/credential-offer", get_cred_offer, allow_head=False),
             web.get(
-                "/oid4vci/exchange/records",
+                "/oid4vc/exchange/records",
                 list_exchange_records,
                 allow_head=False,
             ),
-            web.post("/oid4vci/exchange/create", exchange_create),
-            web.delete("/oid4vci/exchange/records/{exchange_id}", exchange_delete),
+            web.post("/oid4vc/exchange/create", exchange_create),
+            web.delete("/oid4vc/exchange/records/{exchange_id}", exchange_delete),
             web.post(
-                "/oid4vci/credential-supported/create", supported_credential_create
+                "/oid4vc/credential-supported/create", supported_credential_create
             ),
             web.get(
-                "/oid4vci/credential-supported/records",
+                "/oid4vc/credential-supported/records",
                 supported_credential_list,
                 allow_head=False,
             ),
             web.delete(
-                "/oid4vci/exchange-supported/records/{supported_cred_id}",
+                "/oid4vc/exchange-supported/records/{supported_cred_id}",
                 supported_credential_remove,
             ),
             web.post("/oid4vp/request", create_oid4vp_request),
@@ -917,8 +917,8 @@ def post_process_routes(app: web.Application):
         app._state["swagger_dict"]["tags"] = []
     app._state["swagger_dict"]["tags"].append(
         {
-            "name": "oid4vci",
-            "description": "oid4vci plugin",
+            "name": "oid4vc",
+            "description": "oid4vc plugin",
             "externalDocs": {"description": "Specification", "url": SPEC_URI},
         }
     )

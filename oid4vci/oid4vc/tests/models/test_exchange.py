@@ -1,7 +1,7 @@
 import pytest
 from aries_cloudagent.core.profile import Profile
 
-from oid4vci.models.exchange import OID4VCIExchangeRecord
+from oid4vc.models.exchange import OID4VCIExchangeRecord
 
 
 @pytest.fixture

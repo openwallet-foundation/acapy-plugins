@@ -10,7 +10,7 @@ from aries_cloudagent.resolver.did_resolver import DIDResolver, DIDUrl
 from aries_cloudagent.wallet.key_type import ED25519
 from aries_cloudagent.wallet.util import b58_to_bytes, bytes_to_b64
 
-from oid4vci.jwk import P256
+from oid4vc.jwk import P256
 
 
 async def key_material_for_kid(profile: Profile, kid: str):

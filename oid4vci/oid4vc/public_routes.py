@@ -40,12 +40,12 @@ from base58 import b58decode
 from marshmallow import fields
 
 
-from oid4vci.jwk import DID_JWK
-from oid4vci.jwt import jwt_sign, jwt_verify, key_material_for_kid
-from oid4vci.models.presentation import OID4VPPresentation
-from oid4vci.models.presentation_definition import OID4VPPresDef
-from oid4vci.models.request import OID4VPRequest
-from oid4vci.pex import PresentationExchangeEvaluator, PresentationSubmission
+from oid4vc.jwk import DID_JWK
+from oid4vc.jwt import jwt_sign, jwt_verify, key_material_for_kid
+from oid4vc.models.presentation import OID4VPPresentation
+from oid4vc.models.presentation_definition import OID4VPPresDef
+from oid4vc.models.request import OID4VPRequest
+from oid4vc.pex import PresentationExchangeEvaluator, PresentationSubmission
 
 from .config import Config
 from .cred_processor import CredIssueError
@@ -86,7 +86,7 @@ class CredentialIssuerMetadataSchema(OpenAPISchema):
     )
 
 
-@docs(tags=["oid4vci"], summary="Get credential issuer metadata")
+@docs(tags=["oid4vc"], summary="Get credential issuer metadata")
 @response_schema(CredentialIssuerMetadataSchema())
 async def credential_issuer_metadata(request: web.Request):
     """Credential issuer metadata endpoint."""
@@ -124,7 +124,7 @@ class GetTokenSchema(OpenAPISchema):
     user_pin = fields.Str(required=False)
 
 
-@docs(tags=["oid4vci"], summary="Get credential issuance token")
+@docs(tags=["oid4vc"], summary="Get credential issuance token")
 @form_schema(GetTokenSchema())
 async def token(request: web.Request):
     """Token endpoint to exchange pre_authorized codes for access tokens."""
@@ -281,7 +281,7 @@ class IssueCredentialRequestSchema(OpenAPISchema):
     proof = fields.Dict(metadata={"description": ""})
 
 
-@docs(tags=["oid4vci"], summary="Issue a credential")
+@docs(tags=["oid4vc"], summary="Issue a credential")
 @request_schema(IssueCredentialRequestSchema())
 async def issue_cred(request: web.Request):
     """The Credential Endpoint issues a Credential.
