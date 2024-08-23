@@ -1,12 +1,10 @@
 """OID4VC plugin."""
 
 import logging
-from typing import cast
 
 from aries_cloudagent.config.injection_context import InjectionContext
 from aries_cloudagent.core.event_bus import Event, EventBus
 from aries_cloudagent.core.profile import Profile
-from aries_cloudagent.utils.classloader import ClassLoader
 from aries_cloudagent.wallet.did_method import DIDMethods
 from aries_cloudagent.wallet.key_type import KeyTypes
 
@@ -14,7 +12,7 @@ from aries_cloudagent.core.util import SHUTDOWN_EVENT_PATTERN, STARTUP_EVENT_PAT
 from aries_cloudagent.resolver.did_resolver import DIDResolver
 
 from jwt_vc_json.cred_processor import JwtVcJsonCredProcessor
-from oid4vc.cred_processor import CredProcessors, CredProcessor
+from oid4vc.cred_processor import CredProcessors
 from .jwk import DID_JWK, P256
 
 
@@ -40,7 +38,7 @@ async def setup(context: InjectionContext):
     key_types = context.inject(KeyTypes)
     key_types.register(P256)
 
-    #Include jwt_vc_json by default
+    # Include jwt_vc_json by default
     jwt_vc_json = JwtVcJsonCredProcessor()
     processors = CredProcessors([jwt_vc_json])
     context.injector.bind_instance(CredProcessors, processors)

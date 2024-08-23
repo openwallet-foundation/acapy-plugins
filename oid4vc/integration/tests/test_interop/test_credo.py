@@ -2,6 +2,7 @@ import pytest
 
 from credo_wrapper import CredoWrapper
 
+
 @pytest.mark.interop
 @pytest.mark.asyncio
 async def test_accept_credential_offer(credo: CredoWrapper, offer: str):

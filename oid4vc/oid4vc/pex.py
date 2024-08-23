@@ -5,7 +5,7 @@ from typing import Any, Dict, List, Mapping, Optional, Sequence, Union
 
 from aries_cloudagent.core.profile import Profile
 from aries_cloudagent.messaging.models.base import BaseModel, BaseModelSchema
-from aries_cloudagent.messaging.valid import UUID4_EXAMPLE, UUID4_VALIDATE
+from aries_cloudagent.messaging.valid import UUID4_EXAMPLE
 from aries_cloudagent.protocols.present_proof.dif.pres_exch import (
     PresentationDefinition,
     DIFField,
@@ -199,9 +199,7 @@ class DescriptorEvaluator:
         self._field_constraints = field_constraints
 
     @classmethod
-    def compile(
-        cls, descriptor: Union[dict, InputDescriptors]
-    ) -> "DescriptorEvaluator":
+    def compile(cls, descriptor: Union[dict, InputDescriptors]) -> "DescriptorEvaluator":
         """Compile an input descriptor."""
         if isinstance(descriptor, dict):
             descriptor = InputDescriptors.deserialize(descriptor)

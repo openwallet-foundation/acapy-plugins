@@ -2,11 +2,12 @@ import pytest
 
 from sphereon_wrapper import SphereaonWrapper
 
+
 @pytest.mark.interop
 @pytest.mark.asyncio
 async def test_api(sphereon: SphereaonWrapper):
     """Test that we can hit the sphereon rpc api."""
-    
+
     result = await sphereon.test()
     assert result
     assert "test" in result

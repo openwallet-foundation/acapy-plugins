@@ -24,7 +24,6 @@ from aries_cloudagent.messaging.models.base import BaseModelError
 from aries_cloudagent.messaging.models.openapi import OpenAPISchema
 from aries_cloudagent.storage.base import BaseStorage, StorageRecord
 from aries_cloudagent.storage.error import StorageError, StorageNotFoundError
-from aries_cloudagent.utils.classloader import ClassLoader, ModuleLoadError
 from aries_cloudagent.wallet.base import BaseWallet, WalletError
 from aries_cloudagent.wallet.did_info import DIDInfo
 from aries_cloudagent.wallet.error import WalletNotFoundError
@@ -76,9 +75,7 @@ class CredentialIssuerMetadataSchema(OpenAPISchema):
     )
     authorization_server = fields.Str(
         required=False,
-        metadata={
-            "description": "The authorization server endpoint. Currently ignored."
-        },
+        metadata={"description": "The authorization server endpoint. Currently ignored."},
     )
     batch_credential_endpoint = fields.Str(
         required=False,
@@ -214,9 +211,7 @@ async def check_token(
     return result
 
 
-async def handle_proof_of_posession(
-    profile: Profile, proof: Dict[str, Any], nonce: str
-):
+async def handle_proof_of_posession(profile: Profile, proof: Dict[str, Any], nonce: str):
     """Handle proof of posession."""
     encoded_headers, encoded_payload, encoded_signature = proof["jwt"].split(".", 3)
     headers = b64_to_dict(encoded_headers)
@@ -322,9 +317,7 @@ async def issue_cred(request: web.Request):
     if "proof" not in body:
         raise web.HTTPBadRequest(reason=f"proof is required for {supported.format}")
 
-    pop = await handle_proof_of_posession(
-        context.profile, body["proof"], ex_record.nonce
-    )
+    pop = await handle_proof_of_posession(context.profile, body["proof"], ex_record.nonce)
     if not pop.verified:
         raise web.HTTPBadRequest(reason="Invalid proof")
 
@@ -332,9 +325,7 @@ async def issue_cred(request: web.Request):
         processors = context.inject(CredProcessors)
         processor = processors.for_format(supported.format)
 
-        credential = await processor.issue_cred(
-            body, supported, ex_record, pop, context
-        )
+        credential = await processor.issue_cred(body, supported, ex_record, pop, context)
     except CredIssueError as e:
         raise web.HTTPBadRequest(reason=e.message)
 
@@ -549,7 +540,6 @@ async def verify_presentation(
         raise ValueError("Presentation failed")
 
     async with profile.session() as session:
-
         pres_def_entry = await OID4VPPresDef.retrieve_by_id(
             session,
             pres_def_id,
@@ -601,7 +591,6 @@ async def post_response(request: web.Request):
         raise web.HTTPBadRequest(reason=err.roll_up) from err
 
     async with context.session() as session:
-
         if not verify_result.verified:
             assert verify_result.details
             record.errors = [verify_result.details]

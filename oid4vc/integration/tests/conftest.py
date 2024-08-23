@@ -10,6 +10,7 @@ from oid4vci_client.client import OpenID4VCIClient
 
 ISSUER_ADMIN_ENDPOINT = getenv("ISSUER_ADMIN_ENDPOINT", "http://localhost:3001")
 
+
 @pytest_asyncio.fixture
 async def controller():
     """Connect to Issuer."""

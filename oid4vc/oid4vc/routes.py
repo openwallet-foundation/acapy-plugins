@@ -53,9 +53,7 @@ from urllib.parse import quote
 VCI_SPEC_URI = (
     "https://openid.net/specs/openid-4-verifiable-credential-issuance-1_0-11.html"
 )
-VP_SPEC_URI = (
-    "https://openid.net/specs/openid-4-verifiable-presentations-1_0-ID2.html"
-)
+VP_SPEC_URI = "https://openid.net/specs/openid-4-verifiable-presentations-1_0-ID2.html"
 LOGGER = logging.getLogger(__name__)
 CODE_BYTES = 16
 
@@ -109,9 +107,7 @@ async def list_exchange_records(request: web.BaseRequest):
     try:
         async with context.profile.session() as session:
             if exchange_id := request.query.get("exchange_id"):
-                record = await OID4VCIExchangeRecord.retrieve_by_id(
-                    session, exchange_id
-                )
+                record = await OID4VCIExchangeRecord.retrieve_by_id(session, exchange_id)
                 results = [record.serialize()]
             else:
                 filter_ = {
@@ -528,9 +524,7 @@ async def supported_credential_remove(request: web.Request):
 
     try:
         async with context.session() as session:
-            record = await SupportedCredential.retrieve_by_id(
-                session, supported_cred_id
-            )
+            record = await SupportedCredential.retrieve_by_id(session, supported_cred_id)
             await record.delete_record(session)
     except StorageNotFoundError as err:
         raise web.HTTPNotFound(reason=err.roll_up) from err
@@ -700,9 +694,7 @@ async def list_oid4vp_presentations(request: web.Request):
     try:
         async with context.profile.session() as session:
             if presentation_id := request.query.get("presentation_id"):
-                record = await OID4VPPresentation.retrieve_by_id(
-                    session, presentation_id
-                )
+                record = await OID4VPPresentation.retrieve_by_id(session, presentation_id)
                 results = [record.serialize()]
             else:
                 filter_ = {
@@ -880,9 +872,7 @@ async def create_did_jwk(request: web.Request):
         jwk = json.loads(key.get_jwk_public())
         jwk["use"] = "sig"
 
-        did = "did:jwk:" + bytes_to_b64(
-            json.dumps(jwk).encode(), urlsafe=True, pad=False
-        )
+        did = "did:jwk:" + bytes_to_b64(json.dumps(jwk).encode(), urlsafe=True, pad=False)
 
         did_info = DIDInfo(
             did=did,
@@ -909,9 +899,7 @@ async def register(app: web.Application):
             ),
             web.post("/oid4vci/exchange/create", exchange_create),
             web.delete("/oid4vci/exchange/records/{exchange_id}", exchange_delete),
-            web.post(
-                "/oid4vci/credential-supported/create", supported_credential_create
-            ),
+            web.post("/oid4vci/credential-supported/create", supported_credential_create),
             web.get(
                 "/oid4vci/credential-supported/records",
                 supported_credential_list,

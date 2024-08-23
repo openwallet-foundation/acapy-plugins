@@ -11,6 +11,7 @@ SPHEREON_PORT = int(getenv("SPHEREON_PORT", "3000"))
 CREDO_HOST = getenv("CREDO_HOST", "localhost")
 CREDO_PORT = int(getenv("CREDO_PORT", "3000"))
 
+
 @pytest_asyncio.fixture
 async def sphereon():
     """Create a wrapper instance and connect to the server."""

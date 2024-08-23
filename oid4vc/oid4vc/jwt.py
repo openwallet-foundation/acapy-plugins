@@ -1,12 +1,20 @@
 """."""
 
 from typing import Any, Dict, Mapping, Optional
+
 from aries_askar import Key, KeyAlg
 from aries_cloudagent.core.profile import Profile
-from aries_cloudagent.wallet.base import BaseWallet
-from aries_cloudagent.wallet.jwt import BaseVerificationKeyStrategy, JWTVerifyResult, BadJWSHeaderError, dict_to_b64, did_lookup_name, nym_to_did
-from aries_cloudagent.wallet.jwt import b64_to_dict, b64_to_bytes
 from aries_cloudagent.resolver.did_resolver import DIDResolver, DIDUrl
+from aries_cloudagent.wallet.base import BaseWallet
+from aries_cloudagent.wallet.jwt import (
+    BadJWSHeaderError,
+    BaseVerificationKeyStrategy,
+    JWTVerifyResult,
+    dict_to_b64,
+    did_lookup_name,
+    nym_to_did,
+)
+from aries_cloudagent.wallet.jwt import b64_to_bytes, b64_to_dict
 from aries_cloudagent.wallet.key_type import ED25519
 from aries_cloudagent.wallet.util import b58_to_bytes, bytes_to_b64
 
@@ -77,7 +85,7 @@ async def jwt_sign(
 
         did_info = await wallet.get_local_did(did_lookup_name(did))
         if did_info.key_type == ED25519:
-            headers["alg"] = "EdDSA",
+            headers["alg"] = ("EdDSA",)
         elif did_info.key_type == P256:
             headers["alg"] = "ES256"
         else:

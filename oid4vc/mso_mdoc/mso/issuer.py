@@ -66,11 +66,7 @@ class MsoIssuer:
                     "elementValue": v,
                 }
                 self.hash_map[ns][digest_cnt] = hashfunc(
-                    cbor2.dumps(
-                        cbor2.CBORTag(
-                            24, self.disclosure_map[ns][digest_cnt]
-                        )
-                    )
+                    cbor2.dumps(cbor2.CBORTag(24, self.disclosure_map[ns][digest_cnt]))
                 ).digest()
 
                 digest_cnt += 1

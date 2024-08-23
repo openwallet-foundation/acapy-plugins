@@ -20,6 +20,7 @@ LOGGER = logging.getLogger(__name__)
 
 class JwtVcJsonCredProcessor(CredProcessor):
     """Credential processor class for jwt_vc_json format."""
+
     format = "jwt_vc_json"
 
     async def issue_cred(

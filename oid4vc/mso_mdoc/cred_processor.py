@@ -19,6 +19,7 @@ LOGGER = logging.getLogger(__name__)
 
 class MsoMdocCredProcessor(CredProcessor):
     """Credential processor class for mso_mdoc credential format."""
+
     format = "mso_mdoc"
 
     async def issue_cred(

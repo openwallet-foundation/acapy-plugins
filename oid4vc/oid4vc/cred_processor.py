@@ -12,6 +12,7 @@ from .pop_result import PopResult
 
 class CredProcessor(Protocol):
     """Protocol for metadata about a cred processor."""
+
     format: str
 
     def issue_cred(

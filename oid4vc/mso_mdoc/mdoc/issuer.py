@@ -83,9 +83,7 @@ async def mso_mdoc_sign(
     return mdoc_sign(jwk, headers, payload)
 
 
-def mdoc_sign(
-    jwk: dict, headers: Mapping[str, Any], payload: Mapping[str, Any]
-) -> str:
+def mdoc_sign(jwk: dict, headers: Mapping[str, Any], payload: Mapping[str, Any]) -> str:
     """Create a signed mso_mdoc given headers, payload, and private key."""
     pk_dict = {
         "KTY": jwk.get("kty") or "",  # OKP, EC

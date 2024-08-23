@@ -40,15 +40,13 @@ async def test_credential_supported_create():
                 "cryptographic_suites_supported": ["ES256"],
                 "display": [{"some nonsense": "here"}],
             }
-        )
+        ),
     )
 
     await test_module.supported_credential_create(request)
 
     async with context.session() as session:
-        records = await SupportedCredential.query(
-            session, {"identifier": "MyCredential"}
-        )
+        records = await SupportedCredential.query(session, {"identifier": "MyCredential"})
 
     assert records
     record = records[0]

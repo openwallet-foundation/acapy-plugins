@@ -7,6 +7,7 @@ from pycose.messages import Sign1Message
 import cryptography
 import cbor2
 
+
 LOGGER = logging.getLogger(__name__)
 
 
@@ -19,9 +20,7 @@ class MsoVerifier:
             data = cbor2.dumps(cbor2.CBORTag(18, value=data))
 
         self.object: Sign1Message = Sign1Message.decode(data)
-        self.public_key: (
-            cryptography.hazmat.backends.openssl.ec._EllipticCurvePublicKey
-        ) = None
+        self.public_key = None
         self.x509_certificates: list = []
 
     @property
@@ -46,9 +45,7 @@ class MsoVerifier:
         self.attest_public_key()
 
         for i in self.raw_public_keys:
-            self.x509_certificates.append(
-                cryptography.x509.load_der_x509_certificate(i)
-            )
+            self.x509_certificates.append(cryptography.x509.load_der_x509_certificate(i))
 
         self.public_key = self.x509_certificates[0].public_key()
         pem_public = self.public_key.public_bytes(
