@@ -10,10 +10,6 @@ python = "^3.12"
 # Define ACA-Py as an optional/extra dependancy so it can be
 # explicitly installed with the plugin if desired.
 aries-cloudagent = { version = "~1.0.0", optional = true }
-cbor2 = "~5"
-cbor-diag = "*"
-cwt = "~2"
-pycose = "~1"
 oid4vc = {path = "../oid4vc", optional = true, develop = true}
 
 [tool.poetry.extras]

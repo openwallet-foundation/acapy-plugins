@@ -1,9 +1,8 @@
 """Retrieve configuration values."""
 
-import json
 from dataclasses import dataclass
 from os import getenv
-from typing import Dict
+from typing import List
 
 from aries_cloudagent.config.base import BaseSettings
 from aries_cloudagent.config.settings import Settings
@@ -27,7 +26,7 @@ class Config:
     host: str
     port: int
     endpoint: str
-    cred_handler: Dict[str, str]
+    cred_handlers: List[str]
 
     @classmethod
     def from_settings(cls, settings: BaseSettings) -> "Config":
@@ -50,6 +49,6 @@ class Config:
         if not cred_handler:
             raise ConfigError("cred_handler", "OID4VCI_CRED_HANDLER")
 
-        cred_handler = json.loads(cred_handler)
+        cred_handlers = cred_handler.split(" ")
 
-        return cls(host, port, endpoint, cred_handler)
+        return cls(host, port, endpoint, cred_handlers)

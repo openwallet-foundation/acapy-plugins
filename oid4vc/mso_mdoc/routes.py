@@ -91,6 +91,7 @@ async def mdoc_sign(request: web.BaseRequest):
             "did": "did:example:123",
             "verificationMethod": "did:example:123#keys-1"
             with did and verification being mutually exclusive.
+
     """
     context: AdminRequestContext = request["context"]
     body = await request.json()
@@ -120,7 +121,7 @@ async def mdoc_verify(request: web.BaseRequest):
 
     Args:
         request: The web request object.
-        
+
             "mso_mdoc": { ... }
     """
     context: AdminRequestContext = request["context"]

@@ -13,7 +13,8 @@ from aries_cloudagent.wallet.key_type import KeyTypes
 from aries_cloudagent.core.util import SHUTDOWN_EVENT_PATTERN, STARTUP_EVENT_PATTERN
 from aries_cloudagent.resolver.did_resolver import DIDResolver
 
-from oid4vc.cred_processor import CredProcessors, ICredProcessor
+from jwt_vc_json.cred_processor import JwtVcJsonCredProcessor
+from oid4vc.cred_processor import CredProcessors, CredProcessor
 from .jwk import DID_JWK, P256
 
 
@@ -38,16 +39,10 @@ async def setup(context: InjectionContext):
 
     key_types = context.inject(KeyTypes)
     key_types.register(P256)
-    config = Config.from_settings(context.settings)
-    processors = CredProcessors(
-        {
-            format: cast(
-                ICredProcessor,
-                ClassLoader.load_subclass_of(ICredProcessor, processor_path)(),
-            )
-            for format, processor_path in config.cred_handler.items()
-        }
-    )
+
+    #Include jwt_vc_json by default
+    jwt_vc_json = JwtVcJsonCredProcessor()
+    processors = CredProcessors([jwt_vc_json])
     context.injector.bind_instance(CredProcessors, processors)
 
 

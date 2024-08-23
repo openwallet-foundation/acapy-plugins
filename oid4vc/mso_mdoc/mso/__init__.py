@@ -3,4 +3,4 @@
 from .issuer import MsoIssuer
 from .verifier import MsoVerifier
 
-__all__ = [MsoIssuer, MsoVerifier]
+__all__ = ["MsoIssuer", "MsoVerifier"]

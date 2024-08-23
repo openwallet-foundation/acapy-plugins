@@ -50,8 +50,11 @@ from .models.supported_cred import SupportedCredential, SupportedCredentialSchem
 
 from urllib.parse import quote
 
-SPEC_URI = (
+VCI_SPEC_URI = (
     "https://openid.net/specs/openid-4-verifiable-credential-issuance-1_0-11.html"
+)
+VP_SPEC_URI = (
+    "https://openid.net/specs/openid-4-verifiable-presentations-1_0-ID2.html"
 )
 LOGGER = logging.getLogger(__name__)
 CODE_BYTES = 16
@@ -86,7 +89,7 @@ class ExchangeRecordListSchema(OpenAPISchema):
 
 
 @docs(
-    tags=["oid4vc"],
+    tags=["oid4vci"],
     summary="Fetch all credential exchange records",
 )
 @querystring_schema(ExchangeRecordQuerySchema())
@@ -165,7 +168,7 @@ class ExchangeRecordCreateRequestSchema(OpenAPISchema):
 
 
 @docs(
-    tags=["oid4vc"],
+    tags=["oid4vci"],
     summary=("Create a credential exchange record"),
 )
 @request_schema(ExchangeRecordCreateRequestSchema())
@@ -235,7 +238,7 @@ class ExchangeRecordIDMatchSchema(OpenAPISchema):
 
 
 @docs(
-    tags=["oid4vc"],
+    tags=["oid4vci"],
     summary="Remove an existing exchange record",
 )
 @match_info_schema(ExchangeRecordIDMatchSchema())
@@ -295,7 +298,7 @@ class CredOfferSchema(OpenAPISchema):
     grants = fields.Nested(CredOfferGrantSchema(), required=True)
 
 
-@docs(tags=["oid4vc"], summary="Get a credential offer")
+@docs(tags=["oid4vci"], summary="Get a credential offer")
 @querystring_schema(CredOfferQuerySchema())
 @response_schema(CredOfferSchema(), 200)
 @tenant_authentication
@@ -407,7 +410,7 @@ class SupportedCredCreateRequestSchema(OpenAPISchema):
     )
 
 
-@docs(tags=["oid4vc"], summary="Register a Oid4vci credential")
+@docs(tags=["oid4vci"], summary="Register a Oid4vci credential")
 @request_schema(SupportedCredCreateRequestSchema())
 @response_schema(SupportedCredentialSchema())
 @tenant_authentication
@@ -460,7 +463,7 @@ class SupportedCredentialListSchema(OpenAPISchema):
 
 
 @docs(
-    tags=["oid4vc"],
+    tags=["oid4vci"],
     summary="Fetch all credential supported records",
 )
 @querystring_schema(SupportedCredentialQuerySchema())
@@ -511,7 +514,7 @@ class SupportedCredentialMatchSchema(OpenAPISchema):
 
 
 @docs(
-    tags=["oid4vc"],
+    tags=["oid4vci"],
     summary="Remove an existing credential supported record",
 )
 @match_info_schema(SupportedCredentialMatchSchema())
@@ -770,6 +773,10 @@ class GetOID4VPPresResponseSchema(OpenAPISchema):
     )
 
 
+@docs(
+    tags=["oid4vp"],
+    summary="Fetch presentation.",
+)
 @match_info_schema(PresentationIDMatchSchema())
 @response_schema(GetOID4VPPresResponseSchema())
 async def get_oid4vp_pres_by_id(request: web.Request):
@@ -790,6 +797,10 @@ async def get_oid4vp_pres_by_id(request: web.Request):
     return web.json_response(record.serialize())
 
 
+@docs(
+    tags=["oid4vp"],
+    summary="Delete presentation.",
+)
 @match_info_schema(PresentationIDMatchSchema())
 @response_schema(OID4VPPresentationSchema())
 async def oid4vp_pres_remove(request: web.Request):
@@ -838,6 +849,10 @@ class CreateDIDJWKResponseSchema(OpenAPISchema):
     )
 
 
+@docs(
+    tags=["did"],
+    summary="Create DID JWK.",
+)
 @request_schema(CreateDIDJWKRequestSchema())
 @response_schema(CreateDIDJWKResponseSchema())
 async def create_did_jwk(request: web.Request):
@@ -924,8 +939,15 @@ def post_process_routes(app: web.Application):
         app._state["swagger_dict"]["tags"] = []
     app._state["swagger_dict"]["tags"].append(
         {
-            "name": "oid4vc",
-            "description": "OpenID4VC plugin",
-            "externalDocs": {"description": "Specification", "url": SPEC_URI},
+            "name": "oid4vci",
+            "description": "OpenID4VCI",
+            "externalDocs": {"description": "Specification", "url": VCI_SPEC_URI},
+        }
+    )
+    app._state["swagger_dict"]["tags"].append(
+        {
+            "name": "oid4vp",
+            "description": "OpenID4VP",
+            "externalDocs": {"description": "Specification", "url": VP_SPEC_URI},
         }
     )

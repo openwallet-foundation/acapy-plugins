@@ -11,15 +11,16 @@ from oid4vc.models.exchange import OID4VCIExchangeRecord
 from oid4vc.models.supported_cred import SupportedCredential
 from oid4vc.public_routes import types_are_subset
 from oid4vc.pop_result import PopResult
-from oid4vc.cred_processor import ICredProcessor, CredIssueError
+from oid4vc.cred_processor import CredProcessor, CredIssueError
 from oid4vc.jwt import jwt_sign
 from pydid import DIDUrl
 
 LOGGER = logging.getLogger(__name__)
 
 
-class JwtVcJsonCredProcessor(ICredProcessor):
+class JwtVcJsonCredProcessor(CredProcessor):
     """Credential processor class for jwt_vc_json format."""
+    format = "jwt_vc_json"
 
     async def issue_cred(
         self,

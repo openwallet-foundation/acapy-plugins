@@ -2,9 +2,9 @@ import pytest
 
 from aries_cloudagent.admin.request_context import AdminRequestContext
 
-from oid4vci.models.exchange import OID4VCIExchangeRecord
-from oid4vci.models.supported_cred import SupportedCredential
-from oid4vci.public_routes import PopResult
+from oid4vc.models.exchange import OID4VCIExchangeRecord
+from oid4vc.models.supported_cred import SupportedCredential
+from oid4vc.public_routes import PopResult
 
 
 @pytest.fixture

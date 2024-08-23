@@ -3,31 +3,34 @@
 import logging
 import json
 import re
+from typing import Any
 
 from aries_cloudagent.admin.request_context import AdminRequestContext
 
-from oid4vci.models.exchange import OID4VCIExchangeRecord
-from oid4vci.models.supported_cred import SupportedCredential
-from oid4vci.pop_result import PopResult
-from oid4vci.cred_processor import ICredProcessor, CredIssueError
+from oid4vc.models.exchange import OID4VCIExchangeRecord
+from oid4vc.models.supported_cred import SupportedCredential
+from oid4vc.pop_result import PopResult
+from oid4vc.cred_processor import CredProcessor, CredIssueError
 
 from .mdoc import mso_mdoc_sign
 
 LOGGER = logging.getLogger(__name__)
 
 
-class CredProcessor(ICredProcessor):
+class MsoMdocCredProcessor(CredProcessor):
     """Credential processor class for mso_mdoc credential format."""
+    format = "mso_mdoc"
 
     async def issue_cred(
         self,
-        body: any,
+        body: Any,
         supported: SupportedCredential,
         ex_record: OID4VCIExchangeRecord,
         pop: PopResult,
         context: AdminRequestContext,
     ):
         """Return signed credential in COBR format."""
+        assert supported.format_data
         if body.get("doctype") != supported.format_data.get("doctype"):
             raise CredIssueError("Requested doctype does not match offer.")
 
