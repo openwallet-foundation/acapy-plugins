@@ -4,11 +4,6 @@ WORKDIR /usr/src/app
 # Install and configure poetry
 USER root
 
-# Install jwt_vc_json plugin
-WORKDIR /usr/src
-RUN mkdir jwt_vc_json
-COPY jwt_vc_json jwt_vc_json
-
 # Install and configure poetry
 WORKDIR /usr/src/app
 ENV POETRY_VERSION=1.7.1
@@ -21,7 +16,8 @@ RUN poetry config virtualenvs.in-project true
 
 # Setup project
 RUN mkdir oid4vc && touch oid4vc/__init__.py
-COPY oid4vc/pyproject.toml oid4vc/poetry.lock oid4vc/README.md ./
+RUN mkdir jwt_vc_json && touch jwt_vc_json/__init__.py
+COPY pyproject.toml poetry.lock README.md ./
 RUN poetry install --without dev --all-extras
 USER $user
 
@@ -31,8 +27,9 @@ WORKDIR /usr/src/app
 COPY --from=base /usr/src/app/.venv /usr/src/app/.venv
 ENV PATH="/usr/src/app/.venv/bin:$PATH"
 RUN apt-get update && apt-get install -y curl jq && apt-get clean
-COPY oid4vc/oid4vc/ oid4vc/
-COPY oid4vc/docker/*.yml ./
+COPY jwt_vc_json/ jwt_vc_json/
+COPY oid4vc/ oid4vc/
+COPY docker/*.yml ./
 
 ENTRYPOINT ["/bin/bash", "-c", "aca-py \"$@\"", "--"]
 CMD ["start", "--arg-file", "default.yml"]

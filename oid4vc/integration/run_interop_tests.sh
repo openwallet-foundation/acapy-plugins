@@ -28,6 +28,6 @@ case $ARG in
   *)
     docker-compose -f $F down -v
     docker-compose -f $F build
-    docker-compose -f $F run tests "$ARG $@"
+    docker-compose -f $F run tests "$ARG" "$@"
     ;;
 esac

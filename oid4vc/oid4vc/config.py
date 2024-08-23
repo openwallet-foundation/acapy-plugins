@@ -3,6 +3,7 @@
 import json
 from dataclasses import dataclass
 from os import getenv
+from typing import Dict
 
 from aries_cloudagent.config.base import BaseSettings
 from aries_cloudagent.config.settings import Settings
@@ -26,7 +27,7 @@ class Config:
     host: str
     port: int
     endpoint: str
-    cred_handler: dict
+    cred_handler: Dict[str, str]
 
     @classmethod
     def from_settings(cls, settings: BaseSettings) -> "Config":

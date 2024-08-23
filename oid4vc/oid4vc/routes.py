@@ -38,6 +38,7 @@ from aries_askar import Key, KeyAlg
 from marshmallow import fields
 from marshmallow.validate import OneOf
 
+from oid4vc.cred_processor import CredProcessors
 from oid4vc.jwk import DID_JWK, P256
 from oid4vc.models.presentation import OID4VPPresentation, OID4VPPresentationSchema
 from oid4vc.models.presentation_definition import OID4VPPresDef
@@ -422,6 +423,12 @@ async def supported_credential_create(request: web.Request):
     record = SupportedCredential(
         **body,
     )
+
+    registered_processors = context.inject(CredProcessors)
+    if record.format not in registered_processors.processors:
+        raise web.HTTPBadRequest(
+            reason=f"Format {format} is not supported by currently registered processors"
+        )
 
     async with profile.session() as session:
         await record.save(session, reason="Save credential supported record.")
@@ -879,24 +886,24 @@ async def register(app: web.Application):
     """Register routes."""
     app.add_routes(
         [
-            web.get("/oid4vc/credential-offer", get_cred_offer, allow_head=False),
+            web.get("/oid4vci/credential-offer", get_cred_offer, allow_head=False),
             web.get(
-                "/oid4vc/exchange/records",
+                "/oid4vci/exchange/records",
                 list_exchange_records,
                 allow_head=False,
             ),
-            web.post("/oid4vc/exchange/create", exchange_create),
-            web.delete("/oid4vc/exchange/records/{exchange_id}", exchange_delete),
+            web.post("/oid4vci/exchange/create", exchange_create),
+            web.delete("/oid4vci/exchange/records/{exchange_id}", exchange_delete),
             web.post(
-                "/oid4vc/credential-supported/create", supported_credential_create
+                "/oid4vci/credential-supported/create", supported_credential_create
             ),
             web.get(
-                "/oid4vc/credential-supported/records",
+                "/oid4vci/credential-supported/records",
                 supported_credential_list,
                 allow_head=False,
             ),
             web.delete(
-                "/oid4vc/exchange-supported/records/{supported_cred_id}",
+                "/oid4vci/exchange-supported/records/{supported_cred_id}",
                 supported_credential_remove,
             ),
             web.post("/oid4vp/request", create_oid4vp_request),
@@ -918,7 +925,7 @@ def post_process_routes(app: web.Application):
     app._state["swagger_dict"]["tags"].append(
         {
             "name": "oid4vc",
-            "description": "oid4vc plugin",
+            "description": "OpenID4VC plugin",
             "externalDocs": {"description": "Specification", "url": SPEC_URI},
         }
     )

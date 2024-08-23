@@ -1,0 +1,1 @@
+"""CredentialProcessor test."""

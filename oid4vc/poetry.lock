@@ -1223,23 +1223,6 @@ cryptography = ">=3.4"
 typing-extensions = ">=4.5.0"
 
 [[package]]
-name = "jwt-vc-json"
-version = "0.1.0"
-description = "jwt_vc_json credential handler plugin (Supported aries-cloudagent version: 1.0.0) "
-optional = true
-python-versions = "^3.12"
-files = []
-develop = false
-
-[package.extras]
-aca-py = ["aries-cloudagent (>=1.0.0,<1.1.0)"]
-oid4vc = ["oid4vc @ file:///home/dbluhm/dev/aries/acapy/plugins/oid4vc"]
-
-[package.source]
-type = "directory"
-url = "../jwt_vc_json"
-
-[[package]]
 name = "lxml"
 version = "5.3.0"
 description = "Powerful and Pythonic XML processing library combining libxml2/libxslt with the ElementTree API."
@@ -2703,9 +2686,8 @@ multidict = ">=4.0"
 
 [extras]
 aca-py = ["aries-cloudagent"]
-plugins = ["jwt-vc-json"]
 
 [metadata]
 lock-version = "2.0"
 python-versions = "^3.12"
-content-hash = "3046a8625f7642f1002f739fd6714931d4568e639b67714508005fe5c7f70fac"
+content-hash = "5d3ee3239e1f9c97319fa77b8ff585ee1fa4544e4d2caccd756c4568ca99cc63"

@@ -1,15 +1,19 @@
 """OID4VC plugin."""
 
 import logging
+from typing import cast
 
 from aries_cloudagent.config.injection_context import InjectionContext
 from aries_cloudagent.core.event_bus import Event, EventBus
 from aries_cloudagent.core.profile import Profile
+from aries_cloudagent.utils.classloader import ClassLoader
 from aries_cloudagent.wallet.did_method import DIDMethods
 from aries_cloudagent.wallet.key_type import KeyTypes
 
 from aries_cloudagent.core.util import SHUTDOWN_EVENT_PATTERN, STARTUP_EVENT_PATTERN
 from aries_cloudagent.resolver.did_resolver import DIDResolver
+
+from oid4vc.cred_processor import CredProcessors, ICredProcessor
 from .jwk import DID_JWK, P256
 
 
@@ -34,6 +38,17 @@ async def setup(context: InjectionContext):
 
     key_types = context.inject(KeyTypes)
     key_types.register(P256)
+    config = Config.from_settings(context.settings)
+    processors = CredProcessors(
+        {
+            format: cast(
+                ICredProcessor,
+                ClassLoader.load_subclass_of(ICredProcessor, processor_path)(),
+            )
+            for format, processor_path in config.cred_handler.items()
+        }
+    )
+    context.injector.bind_instance(CredProcessors, processors)
 
 
 async def startup(profile: Profile, event: Event):

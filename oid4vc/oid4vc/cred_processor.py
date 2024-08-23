@@ -1,7 +1,7 @@
 """CredProcessor interface and exception."""
 
 from abc import ABC, abstractmethod
-from typing import Any
+from typing import Any, Mapping
 
 from aries_cloudagent.core.error import BaseError
 from aries_cloudagent.admin.request_context import AdminRequestContext
@@ -38,3 +38,22 @@ class ICredProcessor(ABC):
 
 class CredIssueError(BaseError):
     """Base class for CredProcessor errors."""
+
+
+class CredProcessors:
+    """Registry for credential format processors."""
+
+    def __init__(self, processors: Mapping[str, ICredProcessor]):
+        """Initialize the processor registry."""
+        self.processors = dict(processors)
+
+    def for_format(self, format: str):
+        """Return the processor to handle the given format."""
+        processor = self.processors.get(format)
+        if not processor:
+            raise CredIssueError(f"No loaded processor for format {format}")
+        return processor
+
+    def register(self, format: str, processor: ICredProcessor):
+        """Register a new processor for a format."""
+        self.processors[format] = processor

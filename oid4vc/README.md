@@ -150,7 +150,7 @@ The Plugin expects the following configuration options. These options can either
 - `OID4VCI_ENDPOINT` or `oid4vci.endpoint`
     - `credential_issuer` endpoint, seen in the Credential Offer
 - `OID4VCI_CRED_HANDLER` or `oid4vci.cred_handler`
-    - Dict of credential handlers. e.g. `{"jwt_vc_json": "jwt_vc_json.v1_0"}`
+    - Dict of credential handlers. e.g. `{"jwt_vc_json": "jwt_vc_json"}`
 
 ### Creating Supported Credential Records
 

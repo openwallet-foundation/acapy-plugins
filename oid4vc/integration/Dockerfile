@@ -14,9 +14,9 @@ COPY pyproject.toml poetry.lock README.md ./
 RUN poetry install --only main
 
 # add tests to image
-COPY sphereon_wrapper/* sphereon_wrapper/
-COPY credo_wrapper/* credo_wrapper/
-COPY tests/* tests/
-COPY oid4vci_client/* oid4vci_client/
+COPY sphereon_wrapper/ sphereon_wrapper/
+COPY credo_wrapper/ credo_wrapper/
+COPY tests/ tests/
+COPY oid4vci_client/ oid4vci_client/
 
 ENTRYPOINT ["poetry", "run", "pytest"]

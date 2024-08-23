@@ -34,6 +34,7 @@ services:
       OID4VCI_HOST: 0.0.0.0
       OID4VCI_PORT: 8081
       OID4VCI_ENDPOINT: "http://issuer:8081"
+      OID4VCI_CRED_HANDLER: '{"jwt_vc_json": "jwt_vc_json"}'
       TUNNEL_ENDPOINT: "http://ngrok:4040"
     entrypoint: >
       /bin/sh -c '/entrypoint.sh aca-py "$$@"' --

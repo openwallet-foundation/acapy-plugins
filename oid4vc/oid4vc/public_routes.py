@@ -48,7 +48,7 @@ from oid4vc.models.request import OID4VPRequest
 from oid4vc.pex import PresentationExchangeEvaluator, PresentationSubmission
 
 from .config import Config
-from .cred_processor import CredIssueError
+from .cred_processor import CredIssueError, CredProcessors
 from .models.exchange import OID4VCIExchangeRecord
 from .models.supported_cred import SupportedCredential
 from .pop_result import PopResult
@@ -301,21 +301,19 @@ async def issue_cred(request: web.Request):
             supported = await SupportedCredential.retrieve_by_id(
                 session, ex_record.supported_cred_id
             )
-        config = Config.from_settings(context.settings)
-        handler_name = config.cred_handler[supported.format]
     except (StorageError, BaseModelError, StorageNotFoundError) as err:
         raise web.HTTPBadRequest(reason=err.roll_up) from err
+
+    if supported.format != body.get("format"):
+        raise web.HTTPBadRequest(reason="Requested format does not match offer.")
+
+    if not supported.format:
+        raise web.HTTPBadRequest(reason="SupportedCredential missing format identifier")
 
     if ex_record.nonce is None:
         raise web.HTTPBadRequest(
             reason="Invalid exchange; no offer created for this request"
         )
-
-    if supported.format != body.get("format"):
-        raise web.HTTPBadRequest(reason="Requested format does not match offer.")
-
-    if handler_name is None:
-        raise web.HTTPUnprocessableEntity(reason=f"{supported.format} is supported.")
 
     if supported.format_data is None:
         LOGGER.error(f"No format_data for supported credential {supported.format}.")
@@ -331,16 +329,10 @@ async def issue_cred(request: web.Request):
         raise web.HTTPBadRequest(reason="Invalid proof")
 
     try:
-        handler = ClassLoader.load_module(handler_name)
-        LOGGER.debug(f"Loaded module: {handler_name}")
-    except ModuleLoadError as e:
-        LOGGER.error(f"Error loading handler module: {e}")
-        raise web.HTTPInternalServerError(
-            reason=f"No handler to process {supported.format} credential."
-        )
+        processors = context.inject(CredProcessors)
+        processor = processors.for_format(supported.format)
 
-    try:
-        credential = await handler.cred_processor.issue_cred(
+        credential = await processor.issue_cred(
             body, supported, ex_record, pop, context
         )
     except CredIssueError as e:
