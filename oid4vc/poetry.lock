@@ -1233,7 +1233,7 @@ develop = false
 
 [package.extras]
 aca-py = ["aries-cloudagent (>=1.0.0,<1.1.0)"]
-oid4vci = ["oid4vci @ file:///home/dbluhm/dev/aries/acapy/plugins/oid4vci"]
+oid4vc = ["oid4vc @ file:///home/dbluhm/dev/aries/acapy/plugins/oid4vc"]
 
 [package.source]
 type = "directory"

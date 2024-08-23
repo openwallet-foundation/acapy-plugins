@@ -14,11 +14,11 @@ cbor2 = "~5"
 cbor-diag = "*"
 cwt = "~2"
 pycose = "~1"
-oid4vci = {path = "../oid4vci", optional = true, develop = true}
+oid4vc = {path = "../oid4vc", optional = true, develop = true}
 
 [tool.poetry.extras]
 aca-py = ["aries-cloudagent"]
-oid4vci = ["oid4vci"]
+oid4vc = ["oid4vc"]
 
 [tool.poetry.dev-dependencies]
 ruff = "^0.6.2"
