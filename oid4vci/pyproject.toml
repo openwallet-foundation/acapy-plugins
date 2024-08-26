@@ -25,7 +25,7 @@ plugins = ["jwt-vc-json"]
 [tool.poetry.dev-dependencies]
 ruff = "^0.5.7"
 pytest = "^8.3.1"
-pytest-asyncio = "^0.23.8"
+pytest-asyncio = "^0.24.0"
 pytest-cov = "^5.0.0"
 pytest-ruff = "^0.4.1"
 
