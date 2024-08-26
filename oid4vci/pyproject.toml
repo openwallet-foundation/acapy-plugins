@@ -1,7 +1,7 @@
 [tool.poetry]
 name = "oid4vci"
 version = "0.1.0"
-description = "oid4vci plugin for acapy. (Supported aries-cloudagent version: 0.12.2) "
+description = "oid4vci plugin for acapy. (Supported aries-cloudagent version: 1.0.0) "
 authors = ["Adam Burdett <burdettadam@gmail.com>"]
 readme = "README.md"
 
@@ -23,9 +23,9 @@ aca-py = ["aries-cloudagent"]
 plugins = ["jwt-vc-json"]
 
 [tool.poetry.dev-dependencies]
-ruff = "^0.5.7"
+ruff = "^0.6.2"
 pytest = "^8.3.1"
-pytest-asyncio = "^0.23.8"
+pytest-asyncio = "^0.24.0"
 pytest-cov = "^5.0.0"
 pytest-ruff = "^0.4.1"
 
