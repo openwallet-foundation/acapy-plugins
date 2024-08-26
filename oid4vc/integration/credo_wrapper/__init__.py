@@ -39,3 +39,10 @@ class CredoWrapper:
             "openid4vci.acceptCredentialOffer",
             offer=offer,
         )
+
+    async def openid4vp_accept_request(self, request: str):
+        """Accept OpenID4VP presentation (authorization) request."""
+        return await self.client.request(
+            "openid4vci.acceptAuthorizationRequest",
+            request=request,
+        )

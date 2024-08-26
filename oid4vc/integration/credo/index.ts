@@ -10,6 +10,10 @@ import {
   PeerDidRegistrar,
   W3cCredentialRecord,
   SdJwtVcRecord,
+  DifPresentationExchangeService,
+  JwkDidResolver,
+  JwkDidCreateOptions,
+  JwkDidRegistrar,
 } from '@credo-ts/core';
 import { KeyDidCreateOptions, getJwkFromKey, DidKey } from '@credo-ts/core'
 import { agentDependencies } from '@credo-ts/node';
@@ -57,8 +61,8 @@ proxy.rpc.addMethod('initialize', async (): Promise<{}> => {
         ariesAskar,
       }),
       dids: new DidsModule({
-        registrars: [new PeerDidRegistrar()],
-        resolvers: [new PeerDidResolver()]
+        registrars: [new PeerDidRegistrar(), new JwkDidRegistrar()],
+        resolvers: [new PeerDidResolver(), new JwkDidResolver()]
       }),
       openId4VcHolderModule: new OpenId4VcHolderModule(),
       w3cCredentials: new W3cCredentialsModule(),
@@ -109,8 +113,8 @@ proxy.rpc.addMethod(
           // Return the binding to the credential that should be used. Either did or jwk is supported
 
           if (supportsAllDidMethods || supportedDidMethods?.includes('did:key')) {
-            const didResult = await agent.dids.create<KeyDidCreateOptions>({
-              method: 'key',
+            const didResult = await agent.dids.create<JwkDidCreateOptions>({
+              method: 'jwk',
               options: {
                 keyType,
               },
@@ -120,11 +124,11 @@ proxy.rpc.addMethod(
               throw new Error('DID creation failed.')
             }
 
-            const didKey = DidKey.fromDid(didResult.didState.did)
+            const did = didResult.didState.did
 
             return {
               method: 'did',
-              didUrl: `${didKey.did}#${didKey.key.fingerprint}`,
+              didUrl: `${did}#0`,
             }
           }
 
@@ -162,6 +166,35 @@ proxy.rpc.addMethod(
         records.push(record)
       }
     }
+  }
+)
+
+proxy.rpc.addMethod(
+  'openid4vci.acceptAuthorizationRequest',
+  async ({request}: {request: string}) => {
+    const agent = getAgent()
+    const resolvedAuthorizationRequest = await agent.modules.openId4VcHolderModule.resolveSiopAuthorizationRequest(
+      request
+    )
+    console.log(
+      'Resolved credentials for request',
+      JSON.stringify(resolvedAuthorizationRequest.presentationExchange.credentialsForRequest, null, 2)
+    )
+
+    const presentationExchangeService = agent.dependencyManager.resolve(DifPresentationExchangeService)
+    // Automatically select credentials. In a wallet you could manually choose which credentials to return based on the "resolvedAuthorizationRequest.presentationExchange.credentialsForRequest" value
+    const selectedCredentials = presentationExchangeService.selectCredentialsForRequest(
+      resolvedAuthorizationRequest.presentationExchange.credentialsForRequest
+    )
+
+    // issuer only supports pre-authorized flow for now
+    const authorizationResponse = await agent.modules.openId4VcHolderModule.acceptSiopAuthorizationRequest({
+      authorizationRequest: resolvedAuthorizationRequest.authorizationRequest,
+      presentationExchange: {
+        credentials: selectedCredentials,
+      },
+    })
+    console.log('Submitted authorization response', JSON.stringify(authorizationResponse.submittedResponse, null, 2))
   }
 )
 
