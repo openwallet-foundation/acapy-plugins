@@ -11,7 +11,6 @@ class OID4VPPresentation(BaseRecord):
 
     REQUEST_CREATED = "request-created"
     REQUEST_RETRIEVED = "request-retrieved"
-    PRESENTATION_RECEIVED = "presentation-received"
     PRESENTATION_INVALID = "presentation-invalid"
     PRESENTATION_VALID = "presentation-valid"
     RECORD_TOPIC = "oid4vp"
@@ -19,7 +18,6 @@ class OID4VPPresentation(BaseRecord):
     STATES = (
         REQUEST_CREATED,
         REQUEST_RETRIEVED,
-        PRESENTATION_RECEIVED,
         PRESENTATION_INVALID,
         PRESENTATION_VALID,
     )

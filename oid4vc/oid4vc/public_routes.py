@@ -590,20 +590,24 @@ async def post_response(request: web.Request):
     except (StorageError, BaseModelError) as err:
         raise web.HTTPBadRequest(reason=err.roll_up) from err
 
+    if verify_result.verified:
+        record.state = OID4VPPresentation.PRESENTATION_VALID
+    else:
+        record.state = OID4VPPresentation.PRESENTATION_INVALID
+        assert verify_result.details
+        record.errors = [verify_result.details]
+
+    record.verified = verify_result.verified
+    record.matched_credentials = verify_result.descriptor_id_to_claims
+
     async with context.session() as session:
-        if not verify_result.verified:
-            assert verify_result.details
-            record.errors = [verify_result.details]
-
-        record.verified = verify_result.verified
-        record.matched_credentials = verify_result.descriptor_id_to_claims
-
         await record.save(
             session,
             reason=f"Presentation verified: {verify_result.verified}",
         )
 
-        return web.Response(status=200)
+    LOGGER.debug("Presentation result: %s", record.verified)
+    return web.Response(status=200)
 
 
 async def register(app: web.Application):

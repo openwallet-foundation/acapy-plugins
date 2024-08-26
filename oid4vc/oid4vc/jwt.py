@@ -74,6 +74,7 @@ async def jwt_sign(
 
     if not headers.get("typ", None):
         headers["typ"] = "JWT"
+
     headers = {
         **headers,
         "kid": verification_method,
@@ -85,7 +86,7 @@ async def jwt_sign(
 
         did_info = await wallet.get_local_did(did_lookup_name(did))
         if did_info.key_type == ED25519:
-            headers["alg"] = ("EdDSA",)
+            headers["alg"] = "EdDSA"
         elif did_info.key_type == P256:
             headers["alg"] = "ES256"
         else:
