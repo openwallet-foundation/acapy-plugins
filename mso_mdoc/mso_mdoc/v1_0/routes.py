@@ -1,10 +1,9 @@
 """mso_mdoc admin routes."""
 
 import logging
+
 from aiohttp import web
 from aiohttp_apispec import docs, request_schema, response_schema
-from marshmallow import fields
-
 from aries_cloudagent.admin.request_context import AdminRequestContext
 from aries_cloudagent.messaging.jsonld.error import (
     BadJWSHeaderError,
@@ -17,6 +16,7 @@ from aries_cloudagent.messaging.valid import (
     Uri,
 )
 from aries_cloudagent.resolver.base import ResolverError
+from marshmallow import fields
 
 from .mdoc import mso_mdoc_sign, mso_mdoc_verify
 
@@ -84,11 +84,13 @@ async def mdoc_sign(request: web.BaseRequest):
     """Request handler for sd-jws creation using did.
 
     Args:
-        "headers": { ... },
-        "payload": { ... },
-        "did": "did:example:123",
-        "verificationMethod": "did:example:123#keys-1"
-        with did and verification being mutually exclusive.
+        request: The web request object.
+
+            "headers": { ... },
+            "payload": { ... },
+            "did": "did:example:123",
+            "verificationMethod": "did:example:123#keys-1"
+            with did and verification being mutually exclusive.
     """
     context: AdminRequestContext = request["context"]
     body = await request.json()
@@ -117,7 +119,9 @@ async def mdoc_verify(request: web.BaseRequest):
     """Request handler for mso_mdoc validation.
 
     Args:
-        "mso_mdoc": { ... }
+        request: The web request object.
+        
+            "mso_mdoc": { ... }
     """
     context: AdminRequestContext = request["context"]
     body = await request.json()

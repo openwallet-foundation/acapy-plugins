@@ -1178,7 +1178,7 @@ typing-extensions = ">=4.5.0"
 [[package]]
 name = "jwt-vc-json"
 version = "0.1.0"
-description = "jwt_vc_json credential handler plugin (Supported aries-cloudagent version: 0.12.2) "
+description = "jwt_vc_json credential handler plugin (Supported aries-cloudagent version: 1.0.0) "
 optional = true
 python-versions = "^3.12"
 files = []

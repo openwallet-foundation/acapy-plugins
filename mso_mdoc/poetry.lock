@@ -1747,7 +1747,7 @@ files = [
 [[package]]
 name = "oid4vci"
 version = "0.1.0"
-description = "oid4vci plugin for acapy. (Supported aries-cloudagent version: 0.12.2) "
+description = "oid4vci plugin for acapy. (Supported aries-cloudagent version: 1.0.0) "
 optional = true
 python-versions = "^3.12"
 files = []
