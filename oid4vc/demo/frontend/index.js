@@ -73,14 +73,15 @@ app.get("/issue", (req, res) => {
 
 
 app.get("/present", (req, res) => {
-	res.render("presentation", {"page": "present", "registrationId": uuidv4()});
+	res.render("presentation", {"page": "present", "presentationId": uuidv4()});
 });
 
-app.post("/present/create", (req, res, next) => {
-	create_presentation(req, res).catch(next);
+app.post("/present/create/:id", (req, res, next) => {
+	create_presentation(req.params.id, req, res).catch(next);
 });
-async function create_presentation(req, res) {
+async function create_presentation(presentationId, req, res) {
 	//res.status(404).send("");
+	events.emit(`p${presentationId}`, {type: "message", message: "Creating Presentation Definition."});
 	const presentationDefinition = {"pres_def": {
 		"id": uuidv4(),
 		"purpose": "Present basic profile info",
@@ -142,7 +143,6 @@ async function create_presentation(req, res) {
 	}
 	};
 
-	events.emit(`p${req.body.registrationId}`, {type: "message", message: "Received credential data."});
 
 	const presentationDefinitionUrl = () =>
 		`${API_BASE_URL}/oid4vp/presentation-definition`;
@@ -171,6 +171,8 @@ async function create_presentation(req, res) {
 		body: JSON.stringify(presentationDefinition),
 	});
 	logger.warn(presentationDefinitionUrl());
+	events.emit(`p${presentationId}`, {type: "message", message: `Posting Presentation Definition to: ${presentationDefinitionUrl()}`});
+	events.emit(`p${presentationId}`, {type: "debug-message", message: "Request options", data: presentationDefinitionOptions()});
 	const presentationDefinitionData = await fetchApiData(
 		presentationDefinitionUrl(),
 		presentationDefinitionOptions()
@@ -179,6 +181,9 @@ async function create_presentation(req, res) {
 	logger.info("Created presentation?");
 	logger.trace(JSON.stringify(presentationDefinitionData));
 	logger.trace(presentationDefinitionData.pres_def_id);
+	events.emit(`p${presentationId}`, {type: "message", message: `Created Presentation Definition`});
+	events.emit(`p${presentationId}`, {type: "message", message: `Presentation Definition ID: ${presentationDefinitionData.pres_def_id}`});
+	events.emit(`p${presentationId}`, {type: "debug-message", message: "Response data", data: presentationDefinitionData});
 	const presentationRequestOptions = () => ({
 		method: "POST",
 		headers: commonHeaders,
@@ -192,11 +197,18 @@ async function create_presentation(req, res) {
 			},
 		}),
 	});
+	events.emit(`p${presentationId}`, {type: "message", message: `Generating Presentation Request.`});
+	events.emit(`p${presentationId}`, {type: "message", message: `Posting Presentation Request to: ${presentationRequestUrl()}`});
+	events.emit(`p${presentationId}`, {type: "debug-message", message: "Request options", data: presentationRequestOptions()});
 	const presentationRequestData = await fetchApiData(
 		presentationRequestUrl(),
 		presentationRequestOptions()
 	);
+	events.emit(`p${presentationId}`, {type: "message", message: `Generated Presentation Request.`});
+	events.emit(`p${presentationId}`, {type: "message", message: `Presentation Request URI: ${presentationRequestData?.request_uri}`});
+	events.emit(`p${presentationId}`, {type: "debug-message", message: "Response data", data: presentationRequestData});
 	let code = presentationRequestData.request_uri;
+	presentationCache.set(presentationDefinitionData.pres_def_id, { presentationDefinitionData, presentationRequestData, presentationId: presentationId });
 	logger.trace(JSON.stringify(presentationRequestData, null, 2));
 	var qrcode = new QRCode({
 		content: code,
@@ -228,9 +240,18 @@ app.get("/stream/present/:id", (req, res) => {
 			res.write(`event: message\ndata: ${data.message}<br />\n\n`);
 			return;
 		}
+		if (data.type == "debug-message") {
+			res.write(`event: message\ndata: <div style="text-indent: -1rem; padding-left: 1rem;">&gt; ${data.message}: ${JSON.stringify(data.data)}</div>\n\n`);
+		}
 		if (data.type == "webhook") {
-		//	if (data.data.state == state)
-		//		return;
+			console.log(JSON.stringify(data, null, 2));
+			res.write(`event: message\ndata: <div style="text-indent: -1rem; padding-left: 1rem;">&gt; Webhook data: ${JSON.stringify(data.data)}</div>\n\n`);
+			if (data.data.state == "request-retrieved")
+				res.write(`event: status\ndata: <div style="text-align: center;">QRCode Scanned, awaiting presentation...</div>\n\n`);
+			if (data.data.state == "presentation-invalid")
+				res.write(`event: status\ndata: <div style="text-align: center;">PRESENTATION INVALID</div>\n\n`);
+			if (data.data.state == "presentation-valid")
+				res.write(`event: status\ndata: <div style="text-align: center;">Presentation Valid</div>\n\n`);
 		}
 		res.write(`event: debug\ndata: ${JSON.stringify(data)}\n\n`);
 	});
@@ -510,9 +531,11 @@ app.post("/webhook/*", (req, res, next) => {
 	if (req.path == "/webhook/topic/oid4vp/") {
 		if (!req.body.pres_def_id) return;
 		let exchange = presentationCache.get(req.body.pres_def_id);
+		console.error(exchange);
+		console.error(exchange?.presentationId);
 		if (!exchange) return;
 
-		events.emit(`p${exchange.registrationId}`, {type: "webhook", data: req.body});
+		events.emit(`p${exchange.presentationId}`, {type: "webhook", data: req.body});
 	}
 });
 

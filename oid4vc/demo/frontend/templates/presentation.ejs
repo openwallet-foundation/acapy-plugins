@@ -1,66 +1,19 @@
 <div>
-	<div class="w3-row">
+	<div hx-ext="sse" sse-connect="/stream/present/<%= presentationId %>" class="w3-row">
 		<div class="w3-col m6 l6">
 			<button
 					class="w3-btn w3-blue"
-					hx-post="/present/create"
+					hx-post="/present/create/<%= presentationId %>"
 					hx-target="#presentation"
 					hx-swap="innerhtml"
 					>
 					Create Presentation
 			</button>
 		</div>
-		<div class="w3-col m6 l6" id="presentation">
-			<form
-					class="w3-container"
-					hx-post="/register"
-					hx-target="#registration-form"
-					hx-swap="innerhtml"
-					>
-				<input type="hidden" id="registrationId" name="registrationId" value="<%= registrationId %>">
-				<label
-						class="w3-text-gray"
-						for="fname"
-						>
-					First Name
-				</label>
-				<input
-						class="w3-input"
-						name="fname"
-						placeholder="First Name"
-						value="Sally"
-						></input>
-				<label
-						class="w3-text-gray"
-						for="lname"
-						>
-					Last Name
-				</label>
-				<input
-						class="w3-input"
-						name="lname"
-						placeholder="Last Name"
-						value="Sparrow"
-						></input>
-				<label
-						class="w3-text-gray"
-						for="email"
-						>
-					Email
-				</label>
-				<input
-						class="w3-input"
-						name="email"
-						placeholder="Email"
-						value="SallySparrow@example.com"
-						></input>
-				<button
-						class="w3-block w3-btn w3-green"
-						type="submit"
-						>
-					Register
-				</button>
-			</form>
+		<div class="w3-col m6 l6" sse-swap="status" id="presentation"></div>
+		<div style="display:flex; flex-direction: column;" class="w3-col m12 l12">
+			<pre style="flex-grow: 1; text-wrap: pretty; padding-bottom: 15px; overflow-wrap: anywhere;"><div sse-swap="message" hx-swap="beforeend"></div></pre>
+			<div sse-swap="debug" style="text-wrap: pretty; overflow-wrap: anywhere;"></div>
 		</div>
 	</div>
 </div>
