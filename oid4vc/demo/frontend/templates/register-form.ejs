@@ -50,8 +50,8 @@
 		</button>
 	</form>
 </div>
-<div hx-ext="sse" sse-connect="/stream/issue/<%= registrationId %>" style="display: flex; max-width: 100vw; flex-direction: column; height: calc(100dvh - 120px);">
-	<div sse-swap="qrcode" style="min-height: 256px; align-self: center;"></div>
+<div hx-ext="sse" sse-connect="/stream/issue/<%= registrationId %>" style="display: flex; max-width: 100%; flex-direction: column;">
+	<div sse-swap="qrcode" style="align-self: center;"></div>
 	<pre style="flex-grow: 1; text-wrap: pretty; padding-bottom: 15px; overflow-wrap: anywhere;"><div sse-swap="message" hx-swap="beforeend"></div></pre>
 	<div sse-swap="debug" style="text-wrap: pretty; overflow-wrap: anywhere;"></div>
 </div>

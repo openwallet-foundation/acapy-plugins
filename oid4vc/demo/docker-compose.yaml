@@ -29,6 +29,7 @@ services:
         --endpoint http://issuer:3000
         --admin 0.0.0.0 3001
         --admin-insecure-mode
+        --webhook-url http://demo-app:3000/webhook
         --webhook-url http://webhook-listener:8080
         --no-ledger
         --wallet-type askar
@@ -86,3 +87,4 @@ services:
       - NODE_ENV=development # Set NODE_ENV to 'development'
       - WDS_SOCKET_PORT=0
       - API_BASE_URL=http://issuer:3001
+      - FORCE_COLOR=3

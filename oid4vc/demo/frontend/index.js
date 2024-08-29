@@ -19,7 +19,7 @@ import { EventEmitter } from 'node:events';
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 
-const my_stream = {
+const logger_stream = {
 	formatter: colada(),
 	console: (level, msg) => {
 		if (level <= 30)
@@ -40,7 +40,7 @@ const my_stream = {
 const logger = pino({
 	prettifier: colada,
 	level: 'trace',
-}, my_stream);
+}, logger_stream);
 logger.silent("Logger initialized.");
 logger.fatal("Logger initialized.");
 logger.error("Logger initialized.");
@@ -53,10 +53,12 @@ const app = express();
 app.set("views", path.join(__dirname, "templates"));
 app.set('view engine', 'ejs');
 app.use(express.urlencoded({extended: false}));
+app.use(express.json());
 app.use(express.static("public"));
 
 const events = new EventEmitter();
 const exchangeCache = new NodeCache({ stdTTL: 300, checkperiod: 400 });
+const presentationCache = new NodeCache({ stdTTL: 300, checkperiod: 400 });
 
 const API_BASE_URL = process.env.API_BASE_URL || "http://localhost:3001";
 const API_KEY = process.env.API_KEY;
@@ -114,8 +116,8 @@ async function create_presentation(req, res) {
 						{
 							"name": "name",
 							"path": [
-								"$.vc.credentialSubject.name",
-								"$.credentialSubject.name"
+								"$.vc.credentialSubject.first_name",
+								"$.credentialSubject.first_name"
 							],
 							"filter": {
 								"type": "string",
@@ -125,23 +127,12 @@ async function create_presentation(req, res) {
 						{
 							"name": "lastname",
 							"path": [
-								"$.vc.credentialSubject.lastname",
-								"$.credentialSubject.lastname"
+								"$.vc.credentialSubject.last_name",
+								"$.credentialSubject.last_name"
 							],
 							"filter": {
 								"type": "string",
 								"pattern": "^.{1,64}$"
-							}
-						},
-						{
-							"name": "email",
-							"path": [
-								"$.vc.credentialSubject.email",
-								"$.credentialSubject.email"
-							],
-							"filter": {
-								"type": "string",
-								"pattern": "^.{1,128}$"
 							}
 						}
 					]
@@ -151,7 +142,7 @@ async function create_presentation(req, res) {
 	}
 	};
 
-	events.emit(`r${req.body.registrationId}`, {type: "message", message: "Received credential data."});
+	events.emit(`p${req.body.registrationId}`, {type: "message", message: "Received credential data."});
 
 	const presentationDefinitionUrl = () =>
 		`${API_BASE_URL}/oid4vp/presentation-definition`;
@@ -159,9 +150,11 @@ async function create_presentation(req, res) {
 
 	const commonHeaders = {
 		accept: "application/json",
-		"X-API-KEY": API_KEY,
 		"Content-Type": "application/json",
 	};
+	if (API_KEY) {
+		commonHeaders["X-API-KEY"] =  API_KEY;
+	}
 
 	axios.defaults.withCredentials = true;
 	axios.defaults.headers.common["Access-Control-Allow-Origin"] = API_BASE_URL;
@@ -220,6 +213,33 @@ async function create_presentation(req, res) {
 	res.send(qrcode);
 }
 
+app.get("/stream/present/:id", (req, res) => {
+	res.writeHead(200, {
+		"Connection": "keep-alive",
+		"Cache-Control": "no-cache",
+		"Content-Type": "text/event-stream",
+	});
+
+	logger.trace("Present Stream started!");
+	res.write(`event: debug\ndata: \n\n`);
+	let state = ""
+	events.on(`p${req.params.id}`, (data) => {
+		if (data.type == "message") {
+			res.write(`event: message\ndata: ${data.message}<br />\n\n`);
+			return;
+		}
+		if (data.type == "webhook") {
+		//	if (data.data.state == state)
+		//		return;
+		}
+		res.write(`event: debug\ndata: ${JSON.stringify(data)}\n\n`);
+	});
+
+	res.on("close", () => {
+		res.end();
+	});
+});
+
 
 app.get("/stream/issue/:id", (req, res) => {
 	res.writeHead(200, {
@@ -238,13 +258,14 @@ app.get("/stream/issue/:id", (req, res) => {
 			return;
 		}
 		if (data.type == "webhook") {
+			res.write(`event: message\ndata: <div style="overflow-x: scroll; white-space: nowrap;">&gt; Webhook data: ${JSON.stringify(data.data)}</div>\n\n`);
 			if (data.data.state == state)
 				return;
 
 			state = data.data.state;
-			if (state != "offer") {
+			if (state == "issued") {
 				res.write(`event: qrcode\ndata: Credential Issued!\n\n`);
-				res.close();
+				//res.end();
 				return;
 			}
 		}
@@ -403,7 +424,7 @@ async function issue_credential(req, res) {
 
 	events.emit(`r${req.body.registrationId}`, {type: "message", message: "Generating Credential Exchange."});
 	const exchangeResponse = await axios.post(exchangeCreateUrl, {
-		credential_subject: { name: firstName, lastname: lastName, email },
+		credential_subject: { id: req.body.registrationId, first_name: firstName, last_name: lastName, email },
 		verification_method: did+"#0",
 		supported_cred_id: supportedCredId,
 	});
@@ -446,9 +467,9 @@ async function issue_credential(req, res) {
 				}
 			);
 
-			console.log(response.data);
+			//console.log(response.data);
 
-			events.emit(`r${req.body.registrationId}`, {type: "webhook", data: response.data.results[0]});
+			//events.emit(`r${req.body.registrationId}`, {type: "webhook", data: response.data.results[0]});
 			if (response.data.results[0].state === "issued") {
 				//navigate(`/`);
 				events.emit(`r${req.body.registrationId}`, {type: "message", message: "Credential issued, closing connection."});
@@ -461,8 +482,8 @@ async function issue_credential(req, res) {
 	};
 	// Use the useInterval hook to start polling every 1000ms (1 second)
 	events.emit(`r${req.body.registrationId}`, {type: "message", message: "Begin polling until credential has been issued."});
-	await pollState();
-	setTimeout(pollState, 1000);
+	//await pollState();
+	//setTimeout(pollState, 1000);
 
 	return;
 	//const { credentialOffer, exchangeId } = state;
@@ -474,6 +495,26 @@ async function issue_credential(req, res) {
 
 	res.send(`Success!<br /><pre><code>${JSON.stringify(req.body)}</code></pre>`);
 }
+
+app.post("/webhook/*", (req, res, next) => {
+	logger.trace("Webhook received");
+	logger.trace(req.path);
+	logger.trace(JSON.stringify(req.body));
+	if (req.path == "/webhook/topic/oid4vci/") {
+		if (!req.body.exchange_id) return;
+		let exchange = exchangeCache.get(req.body.exchange_id);
+		if (!exchange) return;
+
+		events.emit(`r${exchange.registrationId}`, {type: "webhook", data: req.body});
+	}
+	if (req.path == "/webhook/topic/oid4vp/") {
+		if (!req.body.pres_def_id) return;
+		let exchange = presentationCache.get(req.body.pres_def_id);
+		if (!exchange) return;
+
+		events.emit(`p${exchange.registrationId}`, {type: "webhook", data: req.body});
+	}
+});
 
 //*
 app.listen(3000, () => {
