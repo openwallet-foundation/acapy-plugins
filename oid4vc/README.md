@@ -20,10 +20,10 @@ First, you'll have to get your authtoken from ngrok. Note this value down.
 
 ```shell
 cd oid4vc/demo
-docker compose build
+docker-compose build
 echo "NGROK_AUTHTOKEN=<PASTE YOUR AUTHTOKEN HERE>" > .env
-docker compose up
-docker compose down -v  # Clean up
+docker-compose up
+docker-compose down -v  # Clean up
 ```
 
 If you're using Apple Silicon, you may have to separately build the image with the appropriate platform flag (from the `demo` directory):
@@ -34,26 +34,33 @@ DOCKER_DEFAULT_PLATFORM=linux/amd64 docker build -f ../docker/Dockerfile --tag o
 
 ### Demo Flow
 
-Navigate to `http://localhost:3002` in your browser. You will start at the registration page.
+Navigate to `http://localhost:3002` in your browser. You will start at the landing page. The sidebar has buttons to take you to the issuance and presentation pages. 
 
-1. Admin Registration Page
+1. Issue Credential
 
-- Demonstrates the issuer's process of registering a new OID4VCI credential type.
-- Utilizes the admin API to create a supported credential record for issuance tracking.
-- In a production environment, this process is dynamic, but for the demo, it's simplified to a single button click.
+   - This page generates a simple `UniversityCredential` for issuance
+       - The demo obscures and automate the necessary `credential-supported/create` call, which is what defines the type and values of a credential that can be issued
 
-1. Input Form Page
+   - Preparing a credential offer is simple:
+      - Enter your name and email, or use the test value provided, and hit `Register`
+      - Once you hit `Register`, you'll be automatically taken to the Credential Offer Page
 
-- Illustrates the user's initiation of an interaction with an issuer to request a credential.
-- The data submitted here will end up in the issued credential.
+2. Credential Offer Page
+   - Presents a credential offer in the form of a QR code.
+   - Scan the QR code using the Sphereon Wallet app.
+   - The Sphereon Wallet follows the OID4VC flow, requesting an authentication token and using it to obtain a credential.
+   - The OID4VC plugin determines the credential subjects based on the exchange record.
 
-3. Credential Offer Page
+Now you have a `UniversityCredential` in your Sphereon Wallet. To demonstrate the other half of the OID4VC plugin, click on the `Present Credential` button on the sidebar.
 
-- Presents a credential offer in the form of a QR code.
-- The Input Form Page uses the admin API to create an exchange record, tracking user information, OID4VC token, codes, pins, and credential subjects.
-- Scan the QR code using the Sphereon Wallet app.
-- The Sphereon Wallet follows the OID4VCI flow, requesting an authentication token and using it to obtain a credential.
-- The OID4VCI plugin determines the credential subjects based on the exchange record.
+3. Present Credential
+   - The Present Credential page has a single button on it: Present Credential
+   - When you press that button, the demo will prepare a QR code that contains a presentation request
+     - Again, the demo obscures and automates some of the necessary calls to prepare the request, but you can see the calls being made in the logs
+   - Scan this QR code with your Sphereon Wallet app
+   - Follow the steps on the app, which will prompt you to select a University Credential from your wallet
+
+As mentioned, the demo automatically takes care of a lot of the setup calls necessary to prepare credential definitions, presentation requests, and so forth. You can see what calls are being made, and with what values, both in the container logs and on the page.
 
 ### Note
 
@@ -80,6 +87,8 @@ The plugin adds two records to ACA-Py, `OID4VCIExchangeRecord` and `SupportedCre
 ### How it works
 
 It is the Controller's responsibility to prepare Credential Issuer Metadata, collect and record details about the credential subject, (optionally) generate and deliver a User PIN to the holder out of band, and to generate and present the credential offer to the holder.
+
+### Credential Issuance
 
 ```mermaid
 sequenceDiagram
@@ -135,6 +144,36 @@ alt complete
 controller ->> alice: redirect to success page
 end
 end
+```
+### Credential Presentation
+```mermaid
+sequenceDiagram
+autonumber
+
+actor alice as Alice
+participant holder as Wallet
+participant controller as Controller
+box OpenID4VCI Plugin
+participant public as Public Routes
+participant admin as Admin Routes
+end
+participant acapy as ACA-Py Core
+
+controller ->> admin: POST /oid4vp/presentation-definition
+admin ->> acapy: store presentation definition
+admin -->> controller: created presentation definition
+alice ->> controller: Hits web page initiating presentation
+controller ->> admin: POST /oid4vp/request
+admin ->> acapy: save request record associated <br/>with a particular pres def 
+admin -->> controller: request URI
+controller ->> alice: QR Code
+alice ->> holder: Scan QR Code
+holder ->> public: GET /oid4vp/request/{request_id} (request uri in QR code)
+public -> acapy: retrieve stored request
+public -->> holder: request 
+holder ->> public: POST /oid4vp/response/{presentation_id}
+acapy ->> controller: POST /topic/oid4vp <br/>(state: presentation-valid/invalid)
+controller ->> holder: result
 ```
 
 ## Usage
