@@ -244,7 +244,7 @@ app.get("/stream/present/:id", (req, res) => {
 			res.write(`event: message\ndata: <div style="text-indent: -1rem; padding-left: 1rem;">&gt; ${data.message}: ${JSON.stringify(data.data)}</div>\n\n`);
 		}
 		if (data.type == "webhook") {
-			console.log(JSON.stringify(data, null, 2));
+			logger.trace(JSON.stringify(data, null, 2));
 			res.write(`event: message\ndata: <div style="text-indent: -1rem; padding-left: 1rem;">&gt; Webhook data: ${JSON.stringify(data.data)}</div>\n\n`);
 			if (data.data.state == "request-retrieved")
 				res.write(`event: status\ndata: <div style="text-align: center;">QRCode Scanned, awaiting presentation...</div>\n\n`);
@@ -277,6 +277,9 @@ app.get("/stream/issue/:id", (req, res) => {
 		if (data.type == "message") {
 			res.write(`event: message\ndata: ${data.message}<br />\n\n`);
 			return;
+		}
+		if (data.type == "debug-message") {
+			res.write(`event: message\ndata: <div style="text-indent: -1rem; padding-left: 1rem;">&gt; ${data.message}: ${JSON.stringify(data.data)}</div>\n\n`);
 		}
 		if (data.type == "webhook") {
 			res.write(`event: message\ndata: <div style="overflow-x: scroll; white-space: nowrap;">&gt; Webhook data: ${JSON.stringify(data.data)}</div>\n\n`);
@@ -319,7 +322,7 @@ async function issue_credential(req, res) {
 	//events.emit(`r${req.body.registrationId}`, req.body);
 	//return;
 	//res.send(`Success!<br /><pre><code>${JSON.stringify(req.body)}</code></pre>`);
-	events.emit(`r${req.body.registrationId}`, {type: "message", message: "Received credential data."});
+	events.emit(`r${req.body.registrationId}`, {type: "message", message: "Received credential data from user."});
 
 	const exchangeCreateUrl = `${API_BASE_URL}/oid4vci/exchange/create`;
 	const createCredentialSupportedUrl = () =>
@@ -424,6 +427,8 @@ async function issue_credential(req, res) {
 
 
 
+	events.emit(`r${req.body.registrationId}`, {type: "message", message: `Posting Create Credential Request to: ${createCredentialSupportedUrl()}`});
+	events.emit(`r${req.body.registrationId}`, {type: "debug-message", message: "Request options", data: createCredentialSupportedOptions()});
 	const supportedCredentialData = await fetchApiData(
 		createCredentialSupportedUrl(),
 		createCredentialSupportedOptions()
@@ -432,6 +437,8 @@ async function issue_credential(req, res) {
 	const supportedCredId = supportedCredentialData.supported_cred_id;
 
 	events.emit(`r${req.body.registrationId}`, {type: "message", message: "Creating DID."});
+	events.emit(`r${req.body.registrationId}`, {type: "message", message: `Posting Create DID Request to: ${createDidUrl}`});
+	events.emit(`r${req.body.registrationId}`, {type: "debug-message", message: "Request options", data: createDidOptions()});
 	const didData = await fetchApiData(createDidUrl, createDidOptions());
 
 	const { did } = didData;
@@ -443,12 +450,15 @@ async function issue_credential(req, res) {
 	//console.error("Error during registration:", error);
 
 
-	events.emit(`r${req.body.registrationId}`, {type: "message", message: "Generating Credential Exchange."});
-	const exchangeResponse = await axios.post(exchangeCreateUrl, {
+	const exchangeCreateOptions = {
 		credential_subject: { id: req.body.registrationId, first_name: firstName, last_name: lastName, email },
 		verification_method: did+"#0",
 		supported_cred_id: supportedCredId,
-	});
+	};
+	events.emit(`r${req.body.registrationId}`, {type: "message", message: "Generating Credential Exchange."});
+	events.emit(`r${req.body.registrationId}`, {type: "message", message: `Posting Credential Exchange Creation Request to: ${exchangeCreateUrl}`});
+	events.emit(`r${req.body.registrationId}`, {type: "debug-message", message: "Request options", data: exchangeCreateOptions});
+	const exchangeResponse = await axios.post(exchangeCreateUrl, exchangeCreateOptions);
 
 	const exchangeId = exchangeResponse.data.exchange_id;
 	events.emit(`r${req.body.registrationId}`, {type: "message", message: `Received Credential Exchange ID: ${exchangeId}`});
@@ -458,11 +468,14 @@ async function issue_credential(req, res) {
 		exchange_id: exchangeId,
 	};
 
-	events.emit(`r${req.body.registrationId}`, {type: "message", message: "Requesting Credential Offer."});
-	const offerResponse = await axios.get(credentialOfferUrl, {
+	const credentialOfferOptions = {
 		params: queryParams,
 		headers: headers,
-	});
+	};
+	events.emit(`r${req.body.registrationId}`, {type: "message", message: "Requesting Credential Offer."});
+	events.emit(`r${req.body.registrationId}`, {type: "message", message: `Retrieving Credential Offer from: ${credentialOfferUrl}`});
+	events.emit(`r${req.body.registrationId}`, {type: "debug-message", message: "Request options", data: credentialOfferOptions});
+	const offerResponse = await axios.get(credentialOfferUrl, credentialOfferOptions);
 
 	const credentialOffer = offerResponse.data;
 
@@ -497,7 +510,7 @@ async function issue_credential(req, res) {
 				return;
 			}
 		} catch (error) {
-			console.error("Error during API call:", error);
+			logger.error("Error during API call:", error);
 		}
 		setTimeout(pollState, 1000);
 	};
@@ -531,8 +544,6 @@ app.post("/webhook/*", (req, res, next) => {
 	if (req.path == "/webhook/topic/oid4vp/") {
 		if (!req.body.pres_def_id) return;
 		let exchange = presentationCache.get(req.body.pres_def_id);
-		console.error(exchange);
-		console.error(exchange?.presentationId);
 		if (!exchange) return;
 
 		events.emit(`p${exchange.presentationId}`, {type: "webhook", data: req.body});
