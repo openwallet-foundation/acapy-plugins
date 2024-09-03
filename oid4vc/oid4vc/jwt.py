@@ -1,4 +1,4 @@
-"""."""
+"""JWT Methods."""
 
 from typing import Any, Dict, Mapping, Optional
 

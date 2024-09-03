@@ -75,7 +75,9 @@ class CredentialIssuerMetadataSchema(OpenAPISchema):
     )
     authorization_server = fields.Str(
         required=False,
-        metadata={"description": "The authorization server endpoint. Currently ignored."},
+        metadata={
+            "description": "The authorization server endpoint. Currently ignored."
+        },
     )
     batch_credential_endpoint = fields.Str(
         required=False,
@@ -197,10 +199,6 @@ async def check_token(
     if scheme.lower() != "bearer":
         raise web.HTTPUnauthorized()  # Invalid authentication credentials
 
-    # jwt_header = jwt.get_unverified_header(cred)
-    # if "did:key:" not in jwt_header["kid"]:
-    #     raise web.HTTPUnauthorized()  # Invalid authentication credentials
-
     result = await jwt_verify(profile, cred)
     if not result.valid:
         raise web.HTTPUnauthorized()  # Invalid credentials
@@ -211,7 +209,9 @@ async def check_token(
     return result
 
 
-async def handle_proof_of_posession(profile: Profile, proof: Dict[str, Any], nonce: str):
+async def handle_proof_of_posession(
+    profile: Profile, proof: Dict[str, Any], nonce: str
+):
     """Handle proof of posession."""
     encoded_headers, encoded_payload, encoded_signature = proof["jwt"].split(".", 3)
     headers = b64_to_dict(encoded_headers)
@@ -317,7 +317,9 @@ async def issue_cred(request: web.Request):
     if "proof" not in body:
         raise web.HTTPBadRequest(reason=f"proof is required for {supported.format}")
 
-    pop = await handle_proof_of_posession(context.profile, body["proof"], ex_record.nonce)
+    pop = await handle_proof_of_posession(
+        context.profile, body["proof"], ex_record.nonce
+    )
     if not pop.verified:
         raise web.HTTPBadRequest(reason="Invalid proof")
 
@@ -325,7 +327,9 @@ async def issue_cred(request: web.Request):
         processors = context.inject(CredProcessors)
         processor = processors.for_format(supported.format)
 
-        credential = await processor.issue_cred(body, supported, ex_record, pop, context)
+        credential = await processor.issue_cred(
+            body, supported, ex_record, pop, context
+        )
     except CredIssueError as e:
         raise web.HTTPBadRequest(reason=e.message)
 
@@ -556,7 +560,7 @@ async def verify_presentation(
 @match_info_schema(OID4VPPresentationIDMatchSchema())
 @form_schema(PostOID4VPResponseSchema())
 async def post_response(request: web.Request):
-    """."""
+    """Post an OID4VP Response."""
     context: AdminRequestContext = request["context"]
     presentation_id = request.match_info["presentation_id"]
 
