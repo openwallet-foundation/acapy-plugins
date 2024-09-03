@@ -80,7 +80,6 @@ app.post("/present/create/:id", (req, res, next) => {
 	create_presentation(req.params.id, req, res).catch(next);
 });
 async function create_presentation(presentationId, req, res) {
-	//res.status(404).send("");
 	events.emit(`p${presentationId}`, {type: "message", message: "Creating Presentation Definition."});
 	const presentationDefinition = {"pres_def": {
 		"id": uuidv4(),
@@ -177,7 +176,6 @@ async function create_presentation(presentationId, req, res) {
 		presentationDefinitionUrl(),
 		presentationDefinitionOptions()
 	);
-	//const supportedCredId = supportedCredentialData.supported_cred_id;
 	logger.info("Created presentation?");
 	logger.trace(JSON.stringify(presentationDefinitionData));
 	logger.trace(presentationDefinitionData.pres_def_id);
@@ -319,9 +317,6 @@ app.post("/issue", (req, res, next) => {
 });
 async function issue_credential(req, res) {
 	res.status(200).send("");
-	//events.emit(`r${req.body.registrationId}`, req.body);
-	//return;
-	//res.send(`Success!<br /><pre><code>${JSON.stringify(req.body)}</code></pre>`);
 	events.emit(`r${req.body.registrationId}`, {type: "message", message: "Received credential data from user."});
 
 	const exchangeCreateUrl = `${API_BASE_URL}/oid4vci/exchange/create`;
@@ -446,8 +441,6 @@ async function issue_credential(req, res) {
 
 	logger.info(did);
 	logger.info(supportedCredId);
-	//navigate(`/input`, { state: { did, supportedCredId } });
-	//console.error("Error during registration:", error);
 
 
 	const exchangeCreateOptions = {
@@ -486,48 +479,9 @@ async function issue_credential(req, res) {
 	events.emit(`r${req.body.registrationId}`, {type: "message", message: `Sending offer to user: ${qrcode}`});
 	events.emit(`r${req.body.registrationId}`, {type: "qrcode", credentialOffer, exchangeId, qrcode});
 	exchangeCache.set(exchangeId, { exchangeId, credentialOffer, did, supportedCredId, registrationId: req.body.registrationId });
-	//navigate(`/qr-code`, { state: { credentialOffer, exchangeId } });
-	//console.error("Error during API call:", error);
-	//await getOffer();
-	//return;
 
-	const pollState = async () => {
-		try {
-			const response = await axios.get(
-				`${API_BASE_URL}/oid4vci/exchange/records?exchange_id=${exchangeId}`,
-				{
-					params: { exchange_id: exchangeId },
-					headers: headers,
-				}
-			);
-
-			//console.log(response.data);
-
-			//events.emit(`r${req.body.registrationId}`, {type: "webhook", data: response.data.results[0]});
-			if (response.data.results[0].state === "issued") {
-				//navigate(`/`);
-				events.emit(`r${req.body.registrationId}`, {type: "message", message: "Credential issued, closing connection."});
-				return;
-			}
-		} catch (error) {
-			logger.error("Error during API call:", error);
-		}
-		setTimeout(pollState, 1000);
-	};
 	// Use the useInterval hook to start polling every 1000ms (1 second)
-	events.emit(`r${req.body.registrationId}`, {type: "message", message: "Begin polling until credential has been issued."});
-	//await pollState();
-	//setTimeout(pollState, 1000);
-
-	return;
-	//const { credentialOffer, exchangeId } = state;
-	const [qrData, setQRData] = useState("");
-	const jsonStr = JSON.stringify(credentialOffer);
-	const encodedJson = encodeURIComponent(jsonStr);
-	const urlOffer = `openid-credential-offer://?credential_offer=${encodedJson}`;
-
-
-	res.send(`Success!<br /><pre><code>${JSON.stringify(req.body)}</code></pre>`);
+	events.emit(`r${req.body.registrationId}`, {type: "message", message: "Begin listening for credential to be issued."});
 }
 
 app.post("/webhook/*", (req, res, next) => {
