@@ -1,0 +1,29 @@
+{
+  "name": "afj-test",
+  "version": "0.0.1",
+  "description": "Testing against AFJ",
+  "main": "dist/index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "start": "node dist/index.js",
+    "build": "tsc --declaration",
+    "format": "prettier --write .",
+    "watch": "nodemon --watch 'index.ts' --exec 'ts-node index.ts'"
+  },
+  "author": "",
+  "license": "Apache-2.0",
+  "dependencies": {
+    "@credo-ts/askar": "^0.5.10",
+    "@credo-ts/core": "^0.5.10",
+    "@credo-ts/node": "^0.5.10",
+    "@credo-ts/openid4vc": "^0.5.10",
+    "@hyperledger/aries-askar-nodejs": "^0.2.3",
+    "json-rpc-api-proxy": "github:Indicio-tech/json-rpc-api-proxy"
+  },
+  "devDependencies": {
+    "nodemon": "^3.0.1",
+    "prettier": "^3.1.0",
+    "ts-node": "^10.9.1",
+    "typescript": "^5.2.2"
+  }
+}

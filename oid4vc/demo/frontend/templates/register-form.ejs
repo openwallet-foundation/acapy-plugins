@@ -1,0 +1,66 @@
+<div id="registration-form">
+	<form
+			class="w3-container"
+			hx-post="/issue"
+			hx-target="#registration-form"
+			hx-swap="innerhtml"
+			>
+		<input type="hidden" id="registrationId" name="registrationId" value="<%= registrationId %>">
+		<label
+				class="w3-text-gray"
+				for="fname"
+				>
+			First Name
+		</label>
+		<input
+				class="w3-input w3-animate"
+				name="fname"
+				placeholder="First Name"
+				value="Sally"
+				></input>
+		<label
+				class="w3-text-gray"
+				for="lname"
+				>
+			Last Name
+		</label>
+		<input
+				class="w3-input w3-animate"
+				name="lname"
+				placeholder="Last Name"
+				value="Sparrow"
+				></input>
+		<label
+				class="w3-text-gray"
+				for="email"
+				>
+			Email
+		</label>
+		<input
+				class="w3-input w3-animate"
+				name="email"
+				placeholder="Email"
+				value="SallySparrow@example.com"
+				></input>
+		<button
+				class="w3-bar w3-btn w3-green"
+				type="submit"
+				>
+			Register
+		</button>
+	</form>
+</div>
+<div hx-ext="sse" sse-connect="/stream/issue/<%= registrationId %>" style="display: flex; max-width: 100%; flex-direction: column;">
+	<div sse-swap="qrcode" style="align-self: center;"></div>
+	<pre style="flex-grow: 1; text-wrap: pretty; padding-bottom: 15px; overflow-wrap: anywhere;"><div sse-swap="message" hx-swap="beforeend"></div></pre>
+	<div sse-swap="debug" style="text-wrap: pretty; overflow-wrap: anywhere;"></div>
+</div>
+<div id="navigation" hx-swap-oob="innerhtml">
+	<%- include('navigation.ejs') %>
+</div>
+<div id="content-header" hx-swap-oob="innerhtml">
+	<h1 class="w3-jumbo"><b>Admin Credential Issuance</b></h1>
+	<h1 class="w3-xxxlarge w3-text-green"><b>Issue Credential</b></h1>
+	<hr style="width:50px;border:5px solid green" class="w3-round">
+</div>
+

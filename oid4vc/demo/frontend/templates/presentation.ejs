@@ -1,0 +1,28 @@
+<div>
+	<div hx-ext="sse" sse-connect="/stream/present/<%= presentationId %>" class="w3-row">
+		<div class="w3-col m6 l6">
+			<button
+					class="w3-btn w3-blue"
+					hx-post="/present/create/<%= presentationId %>"
+					hx-target="#presentation"
+					hx-swap="innerhtml"
+					>
+					Create Presentation
+			</button>
+		</div>
+		<div class="w3-col m6 l6" sse-swap="status" id="presentation"></div>
+		<div style="display:flex; flex-direction: column;" class="w3-col m12 l12">
+			<pre style="flex-grow: 1; text-wrap: pretty; padding-bottom: 15px; overflow-wrap: anywhere;"><div sse-swap="message" hx-swap="beforeend"></div></pre>
+			<div sse-swap="debug" style="text-wrap: pretty; overflow-wrap: anywhere;"></div>
+		</div>
+	</div>
+</div>
+<div id="navigation" hx-swap-oob="innerhtml">
+  <%- include('navigation.ejs') %>
+</div>
+<div id="content-header" hx-swap-oob="innerhtml">
+  <h1 class="w3-jumbo"><b>Admin Credential Proof</b></h1>
+  <h1 class="w3-xxxlarge w3-text-green"><b>Present Credential</b></h1>
+  <hr style="width:50px;border:5px solid green" class="w3-round">
+</div>
+

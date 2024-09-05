@@ -1,0 +1,42 @@
+auto-provision: true
+label: oid4vc
+
+# Admin
+admin: [ 0.0.0.0, 3001 ]
+admin-insecure-mode: true
+# admin-api-key: change-me
+
+# Transport
+inbound-transport:
+  - [ http, 0.0.0.0, 3000 ]
+  - [ ws, 0.0.0.0, 3002 ]
+outbound-transport: http
+endpoint:
+  - http://host.docker.internal:3000
+
+# plugins
+plugin:
+  - oid4vc
+
+#config
+genesis-url: https://indy.igrant.io/genesis
+
+# Multi-tenancy
+# multitenant: true
+# jwt-secret: insecure-jwt-secret
+# multitenant-admin: true
+
+# Wallet
+# wallet-name: default
+wallet-type: askar
+wallet-storage-type: default
+# wallet-key: "insecure, for use in demo only"
+
+log-level: info
+
+# Connections
+debug-connections: true
+auto-accept-invites: true
+auto-accept-requests: true
+auto-ping-connection: true
+auto-respond-messages: true

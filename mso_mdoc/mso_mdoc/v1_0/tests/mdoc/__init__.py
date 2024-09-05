@@ -1,1 +1,0 @@
-"""MDOC test cases."""

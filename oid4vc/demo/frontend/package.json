@@ -1,0 +1,17 @@
+{
+	"type": "module",
+	"scripts": {
+		"start": "node index.js"
+	},
+	"dependencies": {
+		"axios": "^1.7.3",
+		"ejs": "^3.1.10",
+		"express": "^4.19.2",
+		"node-cache": "^5.1.2",
+		"pino": "^9.3.2",
+		"pino-colada": "^2.2.2",
+		"pino-pretty": "^11.2.2",
+		"qrcode-svg": "^1.1.0",
+		"uuid": "^10.0.0"
+	}
+}

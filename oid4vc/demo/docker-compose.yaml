@@ -1,0 +1,90 @@
+version: '3'
+
+services:
+
+  issuer:
+    # from .. run
+    # DOCKER_DEFAULT_PLATFORM=linux/amd64 docker build -f ./docker/Dockerfile --tag oid4vci .
+    image: oid4vc
+    build:
+      dockerfile: docker/Dockerfile
+      context: ..
+    ports:
+      - "3000:3000"
+      - "3001:3001"
+      - "8082:8082"
+    volumes:
+      - ../docker/entrypoint.sh:/entrypoint.sh:ro,z
+    environment:
+      RUST_LOG: warn
+      TUNNEL_ENDPOINT: http://ngrok:4040
+      OID4VCI_HOST: 0.0.0.0
+      OID4VCI_PORT: 8082
+    entrypoint: >
+      /bin/sh -c '/entrypoint.sh aca-py "$$@"' --
+    command: >
+      start
+        --inbound-transport http 0.0.0.0 3000
+        --outbound-transport http
+        --endpoint http://issuer:3000
+        --admin 0.0.0.0 3001
+        --admin-insecure-mode
+        --webhook-url http://demo-app:3000/webhook
+        --webhook-url http://webhook-listener:8080
+        --no-ledger
+        --wallet-type askar
+        --emit-new-didcomm-prefix
+        --wallet-storage-type default
+        --wallet-name issuer
+        --wallet-key insecure
+        --auto-provision
+        --log-level debug
+        --debug-webhooks
+        --plugin oid4vc
+        --plugin mso_mdoc
+    healthcheck:
+      test: curl -s -o /dev/null -w '%{http_code}' "http://localhost:3001/status/live" | grep "200" > /dev/null
+      start_period: 30s
+      interval: 7s
+      timeout: 5s
+      retries: 5
+    depends_on:
+      webhook-listener:
+        condition: service_started
+      ngrok:
+        condition: service_healthy
+
+  webhook-listener:
+    image: mendhak/http-https-echo:18
+    environment:
+      - HTTP_PORT=8080
+
+  ngrok:
+    image: ngrok/ngrok
+    restart: unless-stopped
+    hostname: ngrok
+    ports:
+      - "4040:4040"
+    environment:
+      - NGROK_AUTHTOKEN=${NGROK_AUTHTOKEN}
+    command: ["http", "issuer:8082"]
+    healthcheck:
+      test: /bin/bash -c "</dev/tcp/ngrok/4040"
+      interval: 3s
+      timeout: 3s
+      start_period: 5s
+      retries: 5
+
+  demo-app:
+    build:
+      context: ./frontend
+    ports:
+      - "3002:3000"
+    volumes:
+      - ./frontend/index.js:/app/index.js:z
+      - ./frontend/templates:/app/templates:z
+    environment:
+      - NODE_ENV=development # Set NODE_ENV to 'development'
+      - WDS_SOCKET_PORT=0
+      - API_BASE_URL=http://issuer:3001
+      - FORCE_COLOR=3

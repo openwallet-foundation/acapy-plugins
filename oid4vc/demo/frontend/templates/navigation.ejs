@@ -1,0 +1,13 @@
+<button
+		hx-get="/issue"
+		hx-target="#content"
+		hx-swap="innerhtml"
+		class="w3-bar-item w3-button w3-hover-white <%= locals.page=='register' ? 'w3-pale-green' : '' %>"
+		>Issue Credential</button>
+<button
+		hx-get="/present"
+		hx-target="#content"
+		hx-swap="innerhtml"
+		class="w3-bar-item w3-button w3-hover-white <%= locals.page=='present' ? 'w3-pale-green' : '' %>"
+		>Present Credential</button>
+
