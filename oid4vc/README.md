@@ -39,7 +39,7 @@ Navigate to `http://localhost:3002` in your browser. You will start at the landi
 1. Issue Credential
 
    - This page generates a simple `UniversityCredential` for issuance
-       - The demo obscures and automate the necessary `credential-supported/create` call, which is what defines the type and values of a credential that can be issued
+       - The demo obscures and automates the necessary `credential-supported/create` call, which is what defines the type and values of a credential that can be issued
 
    - Preparing a credential offer is simple:
       - Enter your name and email, or use the test value provided, and hit `Register`
@@ -363,7 +363,7 @@ AFJ has an active PR working on adding support for Draft 11 version of the OpenI
 To run the integration tests:
 
 ```shell
-cd oid4vci/int
+cd oid4vc/integration
 docker compose build
 docker compose run tests
 docker compose down -v  # Clean up
