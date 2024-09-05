@@ -515,53 +515,11 @@
   
   
     <li class="md-nav__item">
-      <a href="../jwt_vc_json/" class="md-nav__link">
-        
-  
-  <span class="md-ellipsis">
-    JWT_VC_JSON Credential Format
-  </span>
-  
-
-      </a>
-    </li>
-  
-
-              
-            
-              
-                
-  
-  
-  
-  
-    <li class="md-nav__item">
       <a href="../kafka_events/" class="md-nav__link">
         
   
   <span class="md-ellipsis">
     Kafka Events
-  </span>
-  
-
-      </a>
-    </li>
-  
-
-              
-            
-              
-                
-  
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../mso_mdoc/" class="md-nav__link">
-        
-  
-  <span class="md-ellipsis">
-    MSO MDOC Credential Format Plugin
   </span>
   
 
@@ -745,6 +703,24 @@
   <a href="#how-it-works" class="md-nav__link">
     <span class="md-ellipsis">
       How it works
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#credential-issuance" class="md-nav__link">
+    <span class="md-ellipsis">
+      Credential Issuance
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#credential-presentation" class="md-nav__link">
+    <span class="md-ellipsis">
+      Credential Presentation
     </span>
   </a>
   
@@ -1151,6 +1127,24 @@
   
 </li>
         
+          <li class="md-nav__item">
+  <a href="#credential-issuance" class="md-nav__link">
+    <span class="md-ellipsis">
+      Credential Issuance
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#credential-presentation" class="md-nav__link">
+    <span class="md-ellipsis">
+      Credential Presentation
+    </span>
+  </a>
+  
+</li>
+        
       </ul>
     </nav>
   
@@ -1262,48 +1256,54 @@
 </ul>
 <h3 id="steps-to-run-the-demo">Steps to Run the Demo<a class="headerlink" href="#steps-to-run-the-demo" title="Permanent link">&para;</a></h3>
 <p>First, you'll have to get your authtoken from ngrok. Note this value down.</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="nb">cd</span><span class="w"> </span>oid4vci/demo
-<a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a>docker<span class="w"> </span>compose<span class="w"> </span>build
+<div class="highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="nb">cd</span><span class="w"> </span>oid4vc/demo
+<a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a>docker-compose<span class="w"> </span>build
 <a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a><span class="nb">echo</span><span class="w"> </span><span class="s2">&quot;NGROK_AUTHTOKEN=&lt;PASTE YOUR AUTHTOKEN HERE&gt;&quot;</span><span class="w"> </span>&gt;<span class="w"> </span>.env
-<a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a>docker<span class="w"> </span>compose<span class="w"> </span>up
-<a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a>docker<span class="w"> </span>compose<span class="w"> </span>down<span class="w"> </span>-v<span class="w">  </span><span class="c1"># Clean up</span>
+<a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a>docker-compose<span class="w"> </span>up
+<a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a>docker-compose<span class="w"> </span>down<span class="w"> </span>-v<span class="w">  </span><span class="c1"># Clean up</span>
 </code></pre></div>
 <p>If you're using Apple Silicon, you may have to separately build the image with the appropriate platform flag (from the <code>demo</code> directory):</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a><span class="nv">DOCKER_DEFAULT_PLATFORM</span><span class="o">=</span>linux/amd64<span class="w"> </span>docker<span class="w"> </span>build<span class="w"> </span>-f<span class="w"> </span>../docker/Dockerfile<span class="w"> </span>--tag<span class="w"> </span>oid4vci<span class="w"> </span>..
+<div class="highlight"><pre><span></span><code><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a><span class="nv">DOCKER_DEFAULT_PLATFORM</span><span class="o">=</span>linux/amd64<span class="w"> </span>docker<span class="w"> </span>build<span class="w"> </span>-f<span class="w"> </span>../docker/Dockerfile<span class="w"> </span>--tag<span class="w"> </span>oid4vc<span class="w"> </span>..
 </code></pre></div>
 <h3 id="demo-flow">Demo Flow<a class="headerlink" href="#demo-flow" title="Permanent link">&para;</a></h3>
-<p>Navigate to <code>http://localhost:3002</code> in your browser. You will start at the registration page.</p>
+<p>Navigate to <code>http://localhost:3002</code> in your browser. You will start at the landing page. The sidebar has buttons to take you to the issuance and presentation pages. </p>
 <ol>
 <li>
-<p>Admin Registration Page</p>
+<p>Issue Credential</p>
 </li>
 <li>
-<p>Demonstrates the issuer's process of registering a new OID4VCI credential type.</p>
-</li>
-<li>Utilizes the admin API to create a supported credential record for issuance tracking.</li>
-<li>
-<p>In a production environment, this process is dynamic, but for the demo, it's simplified to a single button click.</p>
-</li>
-<li>
-<p>Input Form Page</p>
+<p>This page generates a simple <code>UniversityCredential</code> for issuance</p>
+<ul>
+<li>The demo obscures and automates the necessary <code>credential-supported/create</code> call, which is what defines the type and values of a credential that can be issued</li>
+</ul>
 </li>
 <li>
-<p>Illustrates the user's initiation of an interaction with an issuer to request a credential.</p>
-</li>
-<li>
-<p>The data submitted here will end up in the issued credential.</p>
+<p>Preparing a credential offer is simple:</p>
+<ul>
+<li>Enter your name and email, or use the test value provided, and hit <code>Register</code></li>
+<li>Once you hit <code>Register</code>, you'll be automatically taken to the Credential Offer Page</li>
+</ul>
 </li>
 <li>
 <p>Credential Offer Page</p>
 </li>
-<li>
-<p>Presents a credential offer in the form of a QR code.</p>
-</li>
-<li>The Input Form Page uses the admin API to create an exchange record, tracking user information, OID4VCI token, codes, pins, and credential subjects.</li>
+<li>Presents a credential offer in the form of a QR code.</li>
 <li>Scan the QR code using the Sphereon Wallet app.</li>
-<li>The Sphereon Wallet follows the OID4VCI flow, requesting an authentication token and using it to obtain a credential.</li>
-<li>The OID4VCI plugin determines the credential subjects based on the exchange record.</li>
+<li>The Sphereon Wallet follows the OID4VC flow, requesting an authentication token and using it to obtain a credential.</li>
+<li>The OID4VC plugin determines the credential subjects based on the exchange record.</li>
 </ol>
+<p>Now you have a <code>UniversityCredential</code> in your Sphereon Wallet. To demonstrate the other half of the OID4VC plugin, click on the <code>Present Credential</code> button on the sidebar.</p>
+<ol>
+<li>Present Credential</li>
+<li>The Present Credential page has a single button on it: Present Credential</li>
+<li>When you press that button, the demo will prepare a QR code that contains a presentation request<ul>
+<li>Again, the demo obscures and automates some of the necessary calls to prepare the request, but you can see the calls being made in the logs</li>
+</ul>
+</li>
+<li>Scan this QR code with your Sphereon Wallet app</li>
+<li>Follow the steps on the app, which will prompt you to select a University Credential from your wallet</li>
+</ol>
+<p>As mentioned, the demo automatically takes care of a lot of the setup calls necessary to prepare credential definitions, presentation requests, and so forth. You can see what calls are being made, and with what values, both in the container logs and on the page.</p>
 <h3 id="note">Note<a class="headerlink" href="#note" title="Permanent link">&para;</a></h3>
 <p>In a production environment, the described processes would be more dynamic and involve additional security measures. This demo provides a streamlined representation for clarity and ease of understanding.</p>
 <h2 id="architecture">Architecture<a class="headerlink" href="#architecture" title="Permanent link">&para;</a></h2>
@@ -1317,6 +1317,7 @@
 <p>The plugin adds two records to ACA-Py, <code>OID4VCIExchangeRecord</code> and <code>SupportedCredential</code>. The exchange record keeps track of user data use during the exchange. The supported credential record keeps track of information a issuer needs to issue a credential.</p>
 <h3 id="how-it-works">How it works<a class="headerlink" href="#how-it-works" title="Permanent link">&para;</a></h3>
 <p>It is the Controller's responsibility to prepare Credential Issuer Metadata, collect and record details about the credential subject, (optionally) generate and deliver a User PIN to the holder out of band, and to generate and present the credential offer to the holder.</p>
+<h3 id="credential-issuance">Credential Issuance<a class="headerlink" href="#credential-issuance" title="Permanent link">&para;</a></h3>
 <pre class="mermaid"><code>sequenceDiagram
 autonumber
 
@@ -1370,6 +1371,34 @@ alt complete
 controller -&gt;&gt; alice: redirect to success page
 end
 end</code></pre>
+<h3 id="credential-presentation">Credential Presentation<a class="headerlink" href="#credential-presentation" title="Permanent link">&para;</a></h3>
+<pre class="mermaid"><code>sequenceDiagram
+autonumber
+
+actor alice as Alice
+participant holder as Wallet
+participant controller as Controller
+box OpenID4VCI Plugin
+participant public as Public Routes
+participant admin as Admin Routes
+end
+participant acapy as ACA-Py Core
+
+controller -&gt;&gt; admin: POST /oid4vp/presentation-definition
+admin -&gt;&gt; acapy: store presentation definition
+admin --&gt;&gt; controller: created presentation definition
+alice -&gt;&gt; controller: Hits web page initiating presentation
+controller -&gt;&gt; admin: POST /oid4vp/request
+admin -&gt;&gt; acapy: save request record associated &lt;br/&gt;with a particular pres def 
+admin --&gt;&gt; controller: request URI
+controller -&gt;&gt; alice: QR Code
+alice -&gt;&gt; holder: Scan QR Code
+holder -&gt;&gt; public: GET /oid4vp/request/{request_id} (request uri in QR code)
+public -&gt; acapy: retrieve stored request
+public --&gt;&gt; holder: request 
+holder -&gt;&gt; public: POST /oid4vp/response/{presentation_id}
+acapy -&gt;&gt; controller: POST /topic/oid4vp &lt;br/&gt;(state: presentation-valid/invalid)
+controller -&gt;&gt; holder: result</code></pre>
 <h2 id="usage">Usage<a class="headerlink" href="#usage" title="Permanent link">&para;</a></h2>
 <h3 id="configuration">Configuration<a class="headerlink" href="#configuration" title="Permanent link">&para;</a></h3>
 <p>The Plugin expects the following configuration options. These options can either be set by environment variable (<code>OID4VCI_*</code>) or by plugin config value (<code>-o oid4vci.*</code>).</p>
@@ -1387,7 +1416,7 @@ end</code></pre>
 </ul>
 </li>
 <li><code>OID4VCI_CRED_HANDLER</code> or <code>oid4vci.cred_handler</code><ul>
-<li>Dict of credential handlers. e.g. <code>{"jwt_vc_json": "jwt_vc_json.v1_0"}</code></li>
+<li>Dict of credential handlers. e.g. <code>{"jwt_vc_json": "jwt_vc_json"}</code></li>
 </ul>
 </li>
 </ul>
@@ -1545,7 +1574,7 @@ end</code></pre>
 </ul>
 <p>AFJ has an active PR working on adding support for Draft 11 version of the OpenID4VCI specification. Until that PR is in and available in a release, these tests are incomplete and ignored.</p>
 <p>To run the integration tests:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a><span class="nb">cd</span><span class="w"> </span>oid4vci/int
+<div class="highlight"><pre><span></span><code><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a><span class="nb">cd</span><span class="w"> </span>oid4vc/integration
 <a id="__codelineno-6-2" name="__codelineno-6-2" href="#__codelineno-6-2"></a>docker<span class="w"> </span>compose<span class="w"> </span>build
 <a id="__codelineno-6-3" name="__codelineno-6-3" href="#__codelineno-6-3"></a>docker<span class="w"> </span>compose<span class="w"> </span>run<span class="w"> </span>tests
 <a id="__codelineno-6-4" name="__codelineno-6-4" href="#__codelineno-6-4"></a>docker<span class="w"> </span>compose<span class="w"> </span>down<span class="w"> </span>-v<span class="w">  </span><span class="c1"># Clean up</span>
