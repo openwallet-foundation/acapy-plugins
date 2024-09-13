@@ -3,16 +3,30 @@
 from aries_cloudagent.core.profile import Profile
 from sd_jwt.issuer import SDJWTIssuer, SDObj
 import time
-from jsonpointer import JsonPointer
-from typing import Any, Dict, List, Mapping, Optional
+import re
+from jsonpointer import JsonPointer, EndOfList, JsonPointerException
+from typing import Any, Dict, List, Optional
 
 from aries_cloudagent.admin.request_context import AdminRequestContext
 from oid4vc.cred_processor import CredProcessor, CredIssueError
 from oid4vc.jwt import jwt_sign
 from oid4vc.models.exchange import OID4VCIExchangeRecord
 from oid4vc.models.supported_cred import SupportedCredential
-from oid4vc.pop_result import PopResult
 from oid4vc.public_routes import types_are_subset
+
+
+# Certain claims, if present, are never to be included in the selective disclosures list.
+
+# For flat claims, it's a simple matter of preventing the basic JSON pointer:
+FLAT_CLAIMS_NEVER_SD = ("/iss", "/exp", "/vct", "/nbf")
+
+# For claims that are objects, we need to be sure that neither the full claim, nor any
+# sub-element of the object, is included in the selective disclosure, while still allowing
+# claims with similar names to be selectively disclosable
+
+# e.g., this regex will match `/status` or `/status/foo`, but not `/statuses`,
+# in case `statuses` is a valid item to include in disclosures
+OBJ_CLAIMS_NEVER_SD = re.compile(r"(?:/cnf|/status)(?:/.+)*")
 
 
 class SDJWTError(BaseException):
@@ -29,31 +43,68 @@ class SdJwtCredIssueProcessor(CredProcessor):
         body: Any,
         supported: SupportedCredential,
         ex_record: OID4VCIExchangeRecord,
-        pop: PopResult,
         context: AdminRequestContext,
     ) -> Any:
         """Return a signed credential in SD-JWT format."""
         assert supported.format_data
         assert supported.vc_additional_data
+
+        sd_list = supported.vc_additional_data.get("sd_list", [])
+        assert isinstance(sd_list, list)
+
         if not types_are_subset(body.get("types"), supported.format_data.get("types")):
             raise CredIssueError("Requested types does not match offer.")
 
         current_time = int(time.time())
 
-        sd_list = supported.vc_additional_data.get("sd_list")
-        assert isinstance(sd_list, list)
-
-        claims = {**ex_record.credential_subject}
-        headers = {
+        claims = {
+            **ex_record.credential_subject,
             "vct": supported.format_data["vct"],
             "iss": ex_record.issuer_id,
             "iat": current_time,
-            "kid": ex_record.verification_method,
-            # "_sd": [],
         }
 
-        profile = context.inject(Profile)
-        return await sd_jwt_sign(sd_list, claims, headers, profile)
+        headers = {
+            "kid": ex_record.verification_method,
+        }
+
+        profile = context.profile
+        did = ex_record.issuer_id
+        ver_method = ex_record.verification_method
+        return await sd_jwt_sign(sd_list, claims, headers, profile, did, ver_method)
+
+    def validate_supported_credential(self, supported: SupportedCredential):
+        """Validate a supported SD JWT VC Credential."""
+        # check sd_list pointers exists, are valid json pointers
+        # check format_data, format_data[vct], vct_additional_data exists
+
+        format_data = supported.format_data
+        vc_additional = supported.vc_additional_data
+        if not format_data:
+            raise ValueError("SD-JWT VC needs format_data")
+        if not format_data["vct"]:
+            raise ValueError('SD-JWT VC needs format_data["vct"]')
+        if not vc_additional:
+            raise ValueError("SD-JWT VC needs vc_additional_data")
+
+        sd_list = vc_additional.get("sd_list", [])
+
+        bad_claims = []
+        for sd in sd_list:
+            if sd in FLAT_CLAIMS_NEVER_SD or OBJ_CLAIMS_NEVER_SD.fullmatch(sd):
+                bad_claims.append(sd)
+
+        if bad_claims:
+            raise SDJWTError(
+                "The following claims cannot be"
+                f"included in the selective disclosures: {bad_claims}",
+            )
+
+        try:
+            for idx, sd in enumerate(sd_list):
+                sd_list[idx] = JsonPointer(sd)
+        except JsonPointerException as e:
+            raise ValueError("Invalid JSON pointer") from e
 
 
 class SDJWTIssuerACAPy(SDJWTIssuer):
@@ -103,43 +154,36 @@ class SDJWTIssuerACAPy(SDJWTIssuer):
         return self.sd_jwt_issuance
 
 
-def sort_sd_list(sd_list) -> List:
-    """Sorts sd_list.
-
-    Ensures that selectively disclosable claims deepest
-    in the structure are handled first.
-    """
-    nested_claim_sort = [(len(sd.split(".")), sd) for sd in sd_list]
-    nested_claim_sort.sort(reverse=True)
-    return [sd[1] for sd in nested_claim_sort]
+Unset = object()
 
 
 async def sd_jwt_sign(
-    sd_list: List[str],
-    claims: Mapping[str, Any],
-    headers: Mapping[str, Any],
+    sd_list: List[JsonPointer],
+    claims: Dict[str, Any],
+    headers: Dict[str, Any],
     profile: Profile,
     did: Optional[str] = None,
     verification_method: Optional[str] = None,
 ):
     """Compose and sign an sd-jwt."""
 
-    for sd in sd_list:
-        sd_pointer = JsonPointer(sd)
-        sd_claim = sd_pointer.resolve(claims, None)
+    for sd_pointer in sd_list:
+        sd_claim = sd_pointer.resolve(claims, Unset)
 
-        if not sd_claim:
-            raise SDJWTError(f"Claim for {sd} not found in payload.")
-        else:
+        if sd_claim is Unset:
+            raise SDJWTError(f"Claim for {sd_pointer.path} not found in payload.")
+
+        sub, key = sd_pointer.to_last(claims)
+
+        if isinstance(sub, EndOfList):
+            raise SDJWTError("Invalid JSON Pointer; EndOfList referenced")
+
+        if isinstance(sub, dict):
+            sub[SDObj(key)] = sd_claim
+            sub.pop(key)
+
+        if isinstance(sub, list):
             sd_pointer.set(claims, SDObj(sd_claim))
-            # for match in matches:
-            #     if isinstance(match.context.value, list):
-            #         match.context.value.remove(match.value)
-            #         match.context.value.append(SDObj(match.value))
-            #     else:
-            #         match.context.value[SDObj(str(match.path))] = (
-            #             match.context.value.pop(str(match.path))
-            #         )
 
     return await SDJWTIssuerACAPy(
         user_claims=claims,
