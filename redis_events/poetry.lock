@@ -986,13 +986,13 @@ test = ["hypothesis (>=4.43.0)", "mypy (==1.10.0)", "pytest (>=7.0.0)", "pytest-
 
 [[package]]
 name = "fastapi-slim"
-version = "0.114.0"
+version = "0.114.2"
 description = "FastAPI framework, high performance, easy to learn, fast to code, ready for production"
 optional = false
 python-versions = ">=3.8"
 files = [
-    {file = "fastapi_slim-0.114.0-py3-none-any.whl", hash = "sha256:83c8e95301c75c6575f7f6c4b885bf42a4c0b4a85e936e2faca25055470d0afe"},
-    {file = "fastapi_slim-0.114.0.tar.gz", hash = "sha256:2299d5e0b8818f264725bd13dd91c80b904589be06c98c3d8115132576e5e2dd"},
+    {file = "fastapi_slim-0.114.2-py3-none-any.whl", hash = "sha256:52ae76c53a30ad0fa96beb84c1bf4bef9c72e88c2f7c0473e836f01d7ac3ca6b"},
+    {file = "fastapi_slim-0.114.2.tar.gz", hash = "sha256:76d0a450826fb0fa740268be55ef04c44807da87a94fbbf5f16338b5a4a2d321"},
 ]
 
 [package.dependencies]
@@ -2802,4 +2802,4 @@ aca-py = ["aries-cloudagent"]
 [metadata]
 lock-version = "2.0"
 python-versions = "^3.12"
-content-hash = "8f1ddf56f53afa4168ef2316b64763fcc6150c831dafd8d2dd6929a148759d90"
+content-hash = "7a4d07e8a7cf1535837127bdfbddc3108f3122dce211b34697eda3b787691aa1"
