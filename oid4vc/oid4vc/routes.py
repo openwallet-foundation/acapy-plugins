@@ -429,11 +429,15 @@ async def supported_credential_create(request: web.Request):
     registered_processors = context.inject(CredProcessors)
     if record.format not in registered_processors.processors:
         raise web.HTTPBadRequest(
-            reason=f"Format {record.format} is not supported by currently registered processors"
+            reason=f"Format {record.format} is not supported by"
+            "currently registered processors"
         )
 
     processor = registered_processors.for_format(record.format)
-    processor.validate_supported_credential(record)
+    try:
+        processor.validate_supported_credential(record)
+    except ValueError as err:
+        raise web.HTTPBadRequest(reason=str(err)) from err
 
     async with profile.session() as session:
         await record.save(session, reason="Save credential supported record.")
