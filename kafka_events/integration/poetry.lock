@@ -372,9 +372,6 @@ python-versions = "^3.7"
 files = []
 develop = false
 
-[package.dependencies]
-httpx = {version = "^0.15.4", optional = true}
-
 [package.extras]
 client = ["httpx (>=0.15.4,<0.16.0)"]
 server = ["aries-staticagent @ git+https://github.com/dbluhm/aries-staticagent-python@880c1b6a6b2f8deca36437ed2e733b4728225142", "fastapi (>=0.67.0,<0.68.0)"]
@@ -659,13 +656,13 @@ files = [
 
 [[package]]
 name = "pytest"
-version = "8.3.2"
+version = "8.3.3"
 description = "pytest: simple powerful testing with Python"
 optional = false
 python-versions = ">=3.8"
 files = [
-    {file = "pytest-8.3.2-py3-none-any.whl", hash = "sha256:4ba08f9ae7dcf84ded419494d229b48d0903ea6407b030eaec46df5e6a73bba5"},
-    {file = "pytest-8.3.2.tar.gz", hash = "sha256:c132345d12ce551242c87269de812483f5bcc87cdbb4722e48487ba194f9fdce"},
+    {file = "pytest-8.3.3-py3-none-any.whl", hash = "sha256:a6853c7375b2663155079443d2e45de913a911a11d669df02a50814944db57b2"},
+    {file = "pytest-8.3.3.tar.gz", hash = "sha256:70b98107bd648308a7952b06e6ca9a50bc660be218d53c257cc1fc94fda10181"},
 ]
 
 [package.dependencies]
@@ -913,4 +910,4 @@ test = ["covdefaults (>=2.3)", "coverage (>=7.2.7)", "coverage-enable-subprocess
 [metadata]
 lock-version = "2.0"
 python-versions = "^3.9"
-content-hash = "3d433001c19ec02dbdb89c09511366afdd068d812e5b65f0939f33d0f02098a0"
+content-hash = "1087bc83bdfa11592a755d32a8e68d2337531de42b5e7e59a0af521a63aa521c"
