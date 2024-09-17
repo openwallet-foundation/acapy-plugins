@@ -75,14 +75,12 @@ class SdJwtCredIssueProcessor(CredProcessor):
 
     def validate_supported_credential(self, supported: SupportedCredential):
         """Validate a supported SD JWT VC Credential."""
-        # check sd_list pointers exists, are valid json pointers
-        # check format_data, format_data[vct], vct_additional_data exists
 
         format_data = supported.format_data
         vc_additional = supported.vc_additional_data
         if not format_data:
             raise ValueError("SD-JWT VC needs format_data")
-        if not format_data["vct"]:
+        if not format_data.get("vct"):
             raise ValueError('SD-JWT VC needs format_data["vct"]')
         if not vc_additional:
             raise ValueError("SD-JWT VC needs vc_additional_data")
@@ -91,20 +89,34 @@ class SdJwtCredIssueProcessor(CredProcessor):
 
         bad_claims = []
         for sd in sd_list:
-            if sd in FLAT_CLAIMS_NEVER_SD or OBJ_CLAIMS_NEVER_SD.fullmatch(sd):
+
+            if (
+                sd in FLAT_CLAIMS_NEVER_SD
+                or OBJ_CLAIMS_NEVER_SD.fullmatch(sd)
+                or sd == ""
+                or sd[-1] == "/"
+            ):
                 bad_claims.append(sd)
 
         if bad_claims:
             raise SDJWTError(
                 "The following claims cannot be"
-                f"included in the selective disclosures: {bad_claims}",
+                f"included in the selective disclosures: {bad_claims}"
+                "\nThese values are protected and cannot be selectively disclosable:"
+                f"{', '.join(FLAT_CLAIMS_NEVER_SD)}, /cnf, /status"
+                "\nOr, you provided an empty string, or a string that ends with a `/`"
+                "which are invalid for this purpose."
             )
 
+        bad_pointer = []
         try:
-            for idx, sd in enumerate(sd_list):
-                sd_list[idx] = JsonPointer(sd)
-        except JsonPointerException as e:
-            raise ValueError("Invalid JSON pointer") from e
+            for sd in sd_list:
+                JsonPointer(sd)
+        except JsonPointerException:
+            bad_pointer.append(sd)
+
+        if bad_pointer:
+            raise ValueError(f"Invalid JSON pointer(s): {bad_pointer}")
 
 
 class SDJWTIssuerACAPy(SDJWTIssuer):
@@ -158,7 +170,7 @@ Unset = object()
 
 
 async def sd_jwt_sign(
-    sd_list: List[JsonPointer],
+    sd_list: List[str],
     claims: Dict[str, Any],
     headers: Dict[str, Any],
     profile: Profile,
@@ -167,7 +179,8 @@ async def sd_jwt_sign(
 ):
     """Compose and sign an sd-jwt."""
 
-    for sd_pointer in sd_list:
+    for sd in sd_list:
+        sd_pointer = JsonPointer(sd)
         sd_claim = sd_pointer.resolve(claims, Unset)
 
         if sd_claim is Unset:
