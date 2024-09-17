@@ -2949,8 +2949,9 @@ multidict = ">=4.0"
 [extras]
 aca-py = ["aries-cloudagent"]
 mso-mdoc = ["cbor-diag", "cbor2", "cwt", "pycose"]
+sd-jwt = ["jsonpointer"]
 
 [metadata]
 lock-version = "2.0"
 python-versions = "^3.12"
-content-hash = "6243b4aca38c875020f7101880db79f5d7f44ca7dba65a4e6c4c0fcb2f2eee85"
+content-hash = "617a2b574944874a3d1c1df95d50419f3a8bdd8f446d857578d2297a835201e0"
