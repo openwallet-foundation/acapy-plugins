@@ -37,6 +37,7 @@ jsonpointer = "^3.0.0"
 [tool.poetry.extras]
 aca-py = ["aries-cloudagent"]
 mso_mdoc = ["cbor2", "cbor-diag", "cwt", "pycose"]
+sd_jwt = ["jsonpointer"]
 
 [tool.poetry.dev-dependencies]
 ruff = "^0.6.5"
