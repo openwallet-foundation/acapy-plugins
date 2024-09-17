@@ -677,7 +677,7 @@ app.post("/issue", (req, res, next) => {
 	//events.on(`${event_type}-${req.params.id}`, (data) => {
 	console.log(req.body);
 	switch(req.body["credential-type"]) {
-		case "jwt":
+		case "oid4vc":
 			issue_jwt_credential(req, res).catch(next);
 			break;
 		case "sdjwt":
