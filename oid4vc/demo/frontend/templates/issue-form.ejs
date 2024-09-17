@@ -5,49 +5,27 @@
 			hx-target="#registration-form"
 			hx-swap="innerhtml"
 			>
-		<input type="hidden" id="registrationId" name="registrationId" value="<%= registrationId %>">
-		<label
-				class="w3-text-gray"
-				for="fname"
-				>
-			First Name
-		</label>
-		<input
-				class="w3-input w3-animate"
-				name="fname"
-				placeholder="First Name"
-				value="Sally"
-				></input>
-		<label
-				class="w3-text-gray"
-				for="lname"
-				>
-			Last Name
-		</label>
-		<input
-				class="w3-input w3-animate"
-				name="lname"
-				placeholder="Last Name"
-				value="Sparrow"
-				></input>
-		<label
-				class="w3-text-gray"
-				for="email"
-				>
-			Email
-		</label>
-		<input
-				class="w3-input w3-animate"
-				name="email"
-				placeholder="Email"
-				value="SallySparrow@example.com"
-				></input>
-		<button
-				class="w3-bar w3-btn w3-green"
-				type="submit"
-				>
-			Register
-		</button>
+		<div class="w3-container w3-center">
+			<input type="hidden" id="registrationId" name="registrationId" value="<%= registrationId %>">
+			<label
+					class="w3-text-gray"
+					for="credential-type"
+					>
+				Type of Credential to issue
+			</label>
+			<br />
+			<select
+					name="credential-type"
+					hx-get="/issue/select"
+					hx-target="#fields"
+					>
+				<option value="" disabled selected>Credential Type</option>
+				<option value="jwt">OpenID4VC</option>
+				<option value="sdjwt">SD-JWT</option>
+			</select>
+		</div>
+		<div id="fields">
+		</div>
 	</form>
 </div>
 <div hx-ext="sse" sse-connect="/stream/issue/<%= registrationId %>" style="display: flex; max-width: 100%; flex-direction: column;">
