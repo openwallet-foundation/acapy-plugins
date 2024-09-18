@@ -383,7 +383,7 @@ async function issue_sdjwt_credential(req, res) {
 		supported_cred_id: supportedCredId,
 		credential_subject: {
 			given_name: firstName,
-			family_nam: lastName,
+			family_name: lastName,
 			source_document_type: "id_card",
 			age_equal_or_over: {
 				"12": age >= 12,

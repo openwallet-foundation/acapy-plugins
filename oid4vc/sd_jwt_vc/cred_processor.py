@@ -102,7 +102,9 @@ class SdJwtCredIssueProcessor(CredProcessor):
         except SDJWTError as error:
             raise CredIssueError("Could not sign SD-JWT VC") from error
 
-    def validate_credential_subject(self, supported: SupportedCredential, subject: dict):
+    def validate_credential_subject(
+        self, supported: SupportedCredential, subject: dict
+    ):
         """Validate the credential subject."""
         vc_additional = supported.vc_additional_data
         assert vc_additional
@@ -127,7 +129,7 @@ class SdJwtCredIssueProcessor(CredProcessor):
 
             claim = pointer.resolve(subject, Unset)
             if claim is Unset and metadata.mandatory:
-                missing.append(claim)
+                missing.append(pointer.path)
 
             # TODO type checking against value_type
 
@@ -241,21 +243,10 @@ async def sd_jwt_sign(
     verification_method: Optional[str] = None,
 ):
     """Compose and sign an sd-jwt."""
-    LOGGER.debug(
-        "sd_jwt_sign(%s, %s, %s, %s, %s, %s)",
-        sd_list,
-        claims,
-        headers,
-        profile,
-        did,
-        verification_method,
-    )
 
     for sd in sd_list:
         sd_pointer = JsonPointer(sd)
-        LOGGER.debug("sd pointer: %s", sd)
         sd_claim = sd_pointer.resolve(claims, Unset)
-        LOGGER.debug("sd_claim: %s", sd_claim)
 
         if sd_claim is Unset:
             raise SDJWTError(f"Claim for {sd_pointer.path} not found in payload.")
