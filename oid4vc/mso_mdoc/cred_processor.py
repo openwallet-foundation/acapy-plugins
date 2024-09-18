@@ -56,6 +56,10 @@ class MsoMdocCredProcessor(CredProcessor):
 
         return mso_mdoc
 
+    def validate_credential_subject(self, supported: SupportedCredential, subject: dict):
+        """Validate the credential subject."""
+        pass
+
     def validate_supported_credential(self, supported: SupportedCredential):
         """Validate a supported MSO MDOC Credential."""
         pass
