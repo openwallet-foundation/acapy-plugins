@@ -1,6 +1,10 @@
 """Issue an SD-JWT credential."""
 
+from copy import deepcopy
+from dataclasses import dataclass
+import logging
 from aries_cloudagent.core.profile import Profile
+from pydid import DIDUrl
 from sd_jwt.issuer import SDJWTIssuer, SDObj
 import time
 import re
@@ -12,7 +16,10 @@ from oid4vc.cred_processor import CredProcessor, CredIssueError
 from oid4vc.jwt import jwt_sign
 from oid4vc.models.exchange import OID4VCIExchangeRecord
 from oid4vc.models.supported_cred import SupportedCredential
-from oid4vc.public_routes import types_are_subset
+from oid4vc.pop_result import PopResult
+
+
+LOGGER = logging.getLogger(__name__)
 
 
 # Certain claims, if present, are never to be included in the selective disclosures list.
@@ -33,6 +40,15 @@ class SDJWTError(BaseException):
     """SD-JWT Error."""
 
 
+@dataclass
+class ClaimMetadata:
+    """Claim metadata."""
+
+    mandatory: bool = False
+    value_type: Optional[str] = None
+    display: Optional[dict] = None
+
+
 class SdJwtCredIssueProcessor(CredProcessor):
     """Credential processor class for sd_jwt_vc format."""
 
@@ -43,6 +59,7 @@ class SdJwtCredIssueProcessor(CredProcessor):
         body: Any,
         supported: SupportedCredential,
         ex_record: OID4VCIExchangeRecord,
+        pop: PopResult,
         context: AdminRequestContext,
     ) -> Any:
         """Return a signed credential in SD-JWT format."""
@@ -52,13 +69,21 @@ class SdJwtCredIssueProcessor(CredProcessor):
         sd_list = supported.vc_additional_data.get("sd_list", [])
         assert isinstance(sd_list, list)
 
-        if not types_are_subset(body.get("types"), supported.format_data.get("types")):
-            raise CredIssueError("Requested types does not match offer.")
+        if body.get("vct") != supported.format_data.get("vct"):
+            raise CredIssueError("Requested vct does not match offer.")
 
         current_time = int(time.time())
+        claims = deepcopy(ex_record.credential_subject)
+
+        if pop.holder_kid and pop.holder_kid.startswith("did:"):
+            claims["sub"] = DIDUrl(pop.holder_kid).did
+        elif pop.holder_jwk:
+            claims["cnf"] = {"jwk": pop.holder_jwk}
+        else:
+            raise ValueError("Unsupported pop holder value")
 
         claims = {
-            **ex_record.credential_subject,
+            **claims,
             "vct": supported.format_data["vct"],
             "iss": ex_record.issuer_id,
             "iat": current_time,
@@ -66,12 +91,51 @@ class SdJwtCredIssueProcessor(CredProcessor):
 
         headers = {
             "kid": ex_record.verification_method,
+            "typ": "vc+sd-jwt",
         }
 
         profile = context.profile
         did = ex_record.issuer_id
         ver_method = ex_record.verification_method
-        return await sd_jwt_sign(sd_list, claims, headers, profile, did, ver_method)
+        try:
+            return await sd_jwt_sign(sd_list, claims, headers, profile, did, ver_method)
+        except SDJWTError as error:
+            raise CredIssueError("Could not sign SD-JWT VC") from error
+
+    def validate_credential_subject(self, supported: SupportedCredential, subject: dict):
+        """Validate the credential subject."""
+        vc_additional = supported.vc_additional_data
+        assert vc_additional
+        assert supported.format_data
+        claims_metadata = supported.format_data.get("claims")
+        sd_list = vc_additional.get("sd_list", [])
+
+        # TODO this will only enforce mandatory fields that are selectively disclosable
+        # We should validate that disclosed claims that are mandatory are also present
+        missing = []
+        for sd in sd_list:
+            # iat is the only claim that can be disclosable that is not set in the subject
+            if sd == "/iat":
+                continue
+            pointer = JsonPointer(sd)
+
+            metadata = pointer.resolve(claims_metadata)
+            if metadata:
+                metadata = ClaimMetadata(**metadata)
+            else:
+                metadata = ClaimMetadata()
+
+            claim = pointer.resolve(subject, Unset)
+            if claim is Unset and metadata.mandatory:
+                missing.append(claim)
+
+            # TODO type checking against value_type
+
+        if missing:
+            raise CredIssueError(
+                "Invalid credential subject; selectively discloseable claim is"
+                f" mandatory but missing: {missing}"
+            )
 
     def validate_supported_credential(self, supported: SupportedCredential):
         """Validate a supported SD JWT VC Credential."""
@@ -89,7 +153,6 @@ class SdJwtCredIssueProcessor(CredProcessor):
 
         bad_claims = []
         for sd in sd_list:
-
             if (
                 sd in FLAT_CLAIMS_NEVER_SD
                 or OBJ_CLAIMS_NEVER_SD.fullmatch(sd)
@@ -109,11 +172,11 @@ class SdJwtCredIssueProcessor(CredProcessor):
             )
 
         bad_pointer = []
-        try:
-            for sd in sd_list:
+        for sd in sd_list:
+            try:
                 JsonPointer(sd)
-        except JsonPointerException:
-            bad_pointer.append(sd)
+            except JsonPointerException:
+                bad_pointer.append(sd)
 
         if bad_pointer:
             raise ValueError(f"Invalid JSON pointer(s): {bad_pointer}")
@@ -178,10 +241,21 @@ async def sd_jwt_sign(
     verification_method: Optional[str] = None,
 ):
     """Compose and sign an sd-jwt."""
+    LOGGER.debug(
+        "sd_jwt_sign(%s, %s, %s, %s, %s, %s)",
+        sd_list,
+        claims,
+        headers,
+        profile,
+        did,
+        verification_method,
+    )
 
     for sd in sd_list:
         sd_pointer = JsonPointer(sd)
+        LOGGER.debug("sd pointer: %s", sd)
         sd_claim = sd_pointer.resolve(claims, Unset)
+        LOGGER.debug("sd_claim: %s", sd_claim)
 
         if sd_claim is Unset:
             raise SDJWTError(f"Claim for {sd_pointer.path} not found in payload.")

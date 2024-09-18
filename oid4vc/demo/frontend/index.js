@@ -280,25 +280,56 @@ async function issue_sdjwt_credential(req, res) {
 		method: "POST",
 		headers: commonHeaders,
 		body: JSON.stringify({
-			cryptographic_binding_methods_supported: ["did"],
-			cryptographic_suites_supported: ["EdDSA"],
-			display: [
-				{
-					name: "ID Card",
-					locale: "en-US",
-					logo: {
-						url: "https://w3c-ccg.github.io/vc-ed/plugfest-1-2022/images/JFF_LogoLockup.png",
-						alt_text: "a square logo of a university",
-					},
-					background_color: "#12107c",
-					text_color: "#FFFFFF",
-				},
-			],
 			format: "vc+sd-jwt",
+			id: "IDCard",
+			cryptographic_binding_methods_supported: ["jwk"],
+      display: [
+        {
+          "name": "ID Card",
+          "locale": "en-US",
+          "background_color": "#12107c",
+          "text_color": "#FFFFFF"
+        }
+      ],
 			format_data: {
-				vct: "https://example.com/test",
+				vct: "ExampleIDCard",
+        "claims": {
+            "given_name": {
+                "mandatory": true,
+                "value_type": "string",
+            },
+            "family_name": {
+                "mandatory": true,
+                "value_type": "string",
+            },
+            "age_equal_or_over": {
+                "12": {
+                    "mandatory": true,
+                    "value_type": "boolean",
+                },
+                "14": {
+                    "mandatory": true,
+                    "value_type": "boolean",
+                },
+                "16": {
+                    "mandatory": true,
+                    "value_type": "boolean",
+                },
+                "18": {
+                    "mandatory": true,
+                    "value_type": "boolean",
+                },
+                "21": {
+                    "mandatory": true,
+                    "value_type": "boolean",
+                },
+                "65": {
+                    "mandatory": true,
+                    "value_type": "boolean",
+                },
+            }
+        },
 			},
-			id: "UniversityDegreeCredential",
 			vc_additional_data: {
 				sd_list: [
 					"/given_name",
@@ -353,7 +384,7 @@ async function issue_sdjwt_credential(req, res) {
 		credential_subject: {
 			given_name: firstName,
 			family_nam: lastName,
-			source_docent_type: "id_card",
+			source_document_type: "id_card",
 			age_equal_or_over: {
 				"12": age >= 12,
 				"14": age >= 14,

@@ -330,6 +330,8 @@ async def issue_cred(request: web.Request):
         credential = await processor.issue_cred(
             body, supported, ex_record, pop, context
         )
+        LOGGER.debug("Credential: %s", credential)
+        LOGGER.debug("Record: %s", ex_record)
     except CredIssueError as e:
         raise web.HTTPBadRequest(reason=e.message)
 
@@ -340,8 +342,6 @@ async def issue_cred(request: web.Request):
         # Exchange is completed, record can be cleaned up
         # But we'll leave it to the controller
         # await ex_record.delete_record(session)
-
-    LOGGER.debug("Credential: %s", credential)
 
     return web.json_response(
         {
