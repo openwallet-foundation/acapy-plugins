@@ -13,6 +13,7 @@ readme = "README.md"
 packages = [
 	{ include = "oid4vc" },
 	{ include = "jwt_vc_json" },
+	{ include = "sd_jwt_vc" },
 	{ include = "mso_mdoc" },
 ]
 
