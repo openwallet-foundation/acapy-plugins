@@ -33,7 +33,7 @@ cbor2 = {version = "~5", optional = true}
 cbor-diag = {version = "*", optional = true}
 cwt = {version = "~2", optional = true}
 pycose = {version = "~1", optional = true}
-jsonpointer = "^3.0.0"
+jsonpointer = {version = "^3.0.0", optional = true}
 
 [tool.poetry.extras]
 aca-py = ["aries-cloudagent"]
