@@ -1370,7 +1370,7 @@ ply = "*"
 name = "jsonpointer"
 version = "3.0.0"
 description = "Identify specific nodes in a JSON document (RFC 6901)"
-optional = false
+optional = true
 python-versions = ">=3.7"
 files = [
     {file = "jsonpointer-3.0.0-py2.py3-none-any.whl", hash = "sha256:13e088adc14fca8b6aa8177c044e12701e6ad4b28ff10e65f2267a90109c9942"},
@@ -2954,4 +2954,4 @@ sd-jwt = ["jsonpointer"]
 [metadata]
 lock-version = "2.0"
 python-versions = "^3.12"
-content-hash = "617a2b574944874a3d1c1df95d50419f3a8bdd8f446d857578d2297a835201e0"
+content-hash = "a818da677e30c4e05855ff4fc8ff4ad302367bfa5534cafb2ed118e52953e5f1"
