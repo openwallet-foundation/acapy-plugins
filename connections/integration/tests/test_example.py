@@ -18,7 +18,7 @@ def alice():
 
 
 @pytest.fixture(scope="session", autouse=True)
-def established_connection(bob, alice):
+def established_connection(bob: Agent, alice: Agent):
     """Established connection filter."""
     invite = bob.create_invitation(auto_accept="true")["invitation"]
     resp = alice.receive_invite(invite, auto_accept="true")

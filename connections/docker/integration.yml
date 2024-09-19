@@ -10,7 +10,7 @@ endpoint:
   - http://host.docker.internal:3000
 
 plugin:
-  - connections.v1_0
+  - connections
 
 genesis-url: http://test.bcovrin.vonx.io/genesis
 

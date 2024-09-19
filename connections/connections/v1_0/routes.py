@@ -1,6 +1,7 @@
 """Connection handling admin routes."""
 
 import json
+import logging
 from typing import cast
 
 from aiohttp import web
@@ -14,6 +15,7 @@ from aiohttp_apispec import (
 from aries_cloudagent.admin.decorators.auth import tenant_authentication
 from aries_cloudagent.admin.request_context import AdminRequestContext
 from aries_cloudagent.cache.base import BaseCache
+from aries_cloudagent.connections.base_manager import BaseConnectionManager
 from aries_cloudagent.messaging.models.base import BaseModelError
 from aries_cloudagent.messaging.models.openapi import OpenAPISchema
 from aries_cloudagent.messaging.models.paginated_query import (

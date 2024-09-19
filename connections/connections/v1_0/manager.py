@@ -4,6 +4,7 @@ import logging
 from typing import Optional, Sequence, Tuple, Union, cast
 import warnings
 
+from aries_cloudagent.cache.base import BaseCache
 from aries_cloudagent.connections.base_manager import BaseConnectionManager
 from aries_cloudagent.connections.models.connection_target import ConnectionTarget
 from aries_cloudagent.core.error import BaseError
@@ -62,14 +63,150 @@ class ConnectionManager(BaseConnectionManager):
     def deprecation_warning(self):
         """Log a deprecation warning."""
         warnings.warn(
-            "Aries RFC 0160: Connection Protocol is deprecated and support will be "
-            "removed in a future version; use RFC 0023: DID Exchange instead.",
+            "Aries RFC 0160: Connection Protocol is deprecated and this plugin "
+            "is receiving minimal updates; use RFC 0023: DID Exchange instead.",
             DeprecationWarning,
         )
         self._logger.warning(
-            "Aries RFC 0160: Connection Protocol is deprecated and support will be "
-            "removed in a future version; use RFC 0023: DID Exchange instead."
+            "Aries RFC 0160: Connection Protocol is deprecated and this plugin "
+            "is receiving minimal updates; use RFC 0023: DID Exchange instead.",
         )
+
+    async def get_connection_targets(
+        self,
+        *,
+        connection_id: Optional[str] = None,
+        connection: Optional[ConnRecord] = None,
+    ):
+        """Create a connection target from a `ConnRecord`.
+
+        Args:
+            connection_id: The connection ID to search for
+            connection: The connection record itself, if already available
+        """
+        if connection_id is None and connection is None:
+            raise ValueError("Must supply either connection_id or connection")
+
+        if not connection_id:
+            assert connection
+            connection_id = connection.connection_id
+
+        cache = self._profile.inject_or(BaseCache)
+        cache_key = f"connection_target::{connection_id}"
+        if cache:
+            async with cache.acquire(cache_key) as entry:
+                if entry.result:
+                    self._logger.debug("Connection targets retrieved from cache")
+                    targets = [ConnectionTarget.deserialize(row) for row in entry.result]
+                else:
+                    if not connection:
+                        async with self._profile.session() as session:
+                            connection = await ConnRecord.retrieve_by_id(
+                                session, connection_id
+                            )
+
+                    targets = await self.fetch_connection_targets(connection)
+
+                    if connection.state == ConnRecord.State.COMPLETED.rfc160:
+                        # Only set cache if connection has reached completed state
+                        # Otherwise, a replica that participated early in exchange
+                        # may have bad data set in cache.
+                        self._logger.debug("Caching connection targets")
+                        await entry.set_result([row.serialize() for row in targets], 3600)
+                    else:
+                        self._logger.debug(
+                            "Not caching connection targets for connection in "
+                            f"state ({connection.state})"
+                        )
+        else:
+            if not connection:
+                async with self._profile.session() as session:
+                    connection = await ConnRecord.retrieve_by_id(session, connection_id)
+
+            targets = await self.fetch_connection_targets(connection)
+        return targets
+
+    async def fetch_connection_targets(self, connection: ConnRecord) -> Sequence[ConnectionTarget]:
+        """Get a list of connection targets from a `ConnRecord`.
+
+        Args:
+            connection: The connection record (with associated `DIDDoc`)
+                used to generate the connection target
+        """
+
+        if not connection.my_did:
+            self._logger.debug("No local DID associated with connection")
+            return []
+
+        async with self._profile.session() as session:
+            wallet = session.inject(BaseWallet)
+            my_info = await wallet.get_local_did(connection.my_did)
+
+        if (
+            ConnRecord.State.get(connection.state)
+            in (ConnRecord.State.INVITATION, ConnRecord.State.REQUEST)
+            and ConnRecord.Role.get(connection.their_role) is ConnRecord.Role.RESPONDER
+        ):  # invitation received or sending request
+            return await self._fetch_targets_for_connection_in_progress(
+                connection, my_info.verkey
+            )
+
+        if not connection.their_did:
+            self._logger.debug("No target DID associated with connection")
+            return []
+
+        return await self.resolve_connection_targets(
+            connection.their_did, my_info.verkey, connection.their_label
+        )
+
+    async def _fetch_targets_for_connection_in_progress(
+        self, connection: ConnRecord, sender_verkey: str
+    ) -> Sequence[ConnectionTarget]:
+        """Get a list of connection targets from an incomplete `ConnRecord`.
+
+        This covers retrieving targets for connections that are still in the
+        process of bootstrapping. This includes connections that are in states
+        invitation-received or request-received.
+
+        Args:
+            connection: The connection record (with associated `DIDDoc`)
+                used to generate the connection target
+            sender_verkey: The verkey we are using
+        Returns:
+            A list of `ConnectionTarget` objects
+        """
+        if (
+            connection.invitation_msg_id
+            or connection.invitation_key
+            or not connection.their_did
+        ):  # invitation received or sending request to invitation
+            async with self._profile.session() as session:
+                invitation = await connection.retrieve_invitation(session)
+            targets = await self._fetch_connection_targets_for_invitation(
+                connection,
+                invitation,
+                sender_verkey,
+            )
+        else:  # sending implicit request
+            # request is implicit; did isn't set if we've received an
+            # invitation, only the invitation key
+            (
+                endpoint,
+                recipient_keys,
+                routing_keys,
+            ) = await self.resolve_invitation(connection.their_did)
+            targets = [
+                ConnectionTarget(
+                    did=connection.their_did,
+                    endpoint=endpoint,
+                    label=None,
+                    recipient_keys=recipient_keys,
+                    routing_keys=routing_keys,
+                    sender_key=sender_verkey,
+                )
+            ]
+
+        return targets
 
     async def _fetch_connection_targets_for_invitation(
         self,
