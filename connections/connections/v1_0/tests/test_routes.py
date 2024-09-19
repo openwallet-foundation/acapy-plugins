@@ -7,10 +7,10 @@ from aries_cloudagent.tests import mock
 from aries_cloudagent.admin.request_context import AdminRequestContext
 from aries_cloudagent.cache.base import BaseCache
 from aries_cloudagent.cache.in_memory import InMemoryCache
-from aries_cloudagent.connections.models.conn_record import ConnRecord
 from aries_cloudagent.core.in_memory import InMemoryProfile
 from aries_cloudagent.storage.error import StorageNotFoundError
 from .. import routes as test_module
+from ..models.conn_record import ConnectionsRecord as ConnRecord
 
 
 class TestConnectionRoutes(IsolatedAsyncioTestCase):

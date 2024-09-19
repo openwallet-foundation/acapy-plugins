@@ -14,7 +14,6 @@ from aiohttp_apispec import (
 from aries_cloudagent.admin.decorators.auth import tenant_authentication
 from aries_cloudagent.admin.request_context import AdminRequestContext
 from aries_cloudagent.cache.base import BaseCache
-from aries_cloudagent.connections.models.conn_record import ConnRecord, ConnRecordSchema
 from aries_cloudagent.messaging.models.base import BaseModelError
 from aries_cloudagent.messaging.models.openapi import OpenAPISchema
 from aries_cloudagent.messaging.models.paginated_query import (
@@ -36,6 +35,10 @@ from aries_cloudagent.storage.error import StorageError, StorageNotFoundError
 from aries_cloudagent.wallet.error import WalletError
 from marshmallow import fields, validate, validates_schema
 
+from .models.conn_record import (
+    ConnectionsRecord as ConnRecord,
+    MaybeStoredConnectionsRecordSchema as ConnRecordSchema,
+)
 from .manager import ConnectionManager, ConnectionManagerError
 from .message_types import SPEC_URI
 from .messages.connection_invitation import (

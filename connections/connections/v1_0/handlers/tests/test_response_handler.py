@@ -2,12 +2,12 @@ import pytest
 
 from aries_cloudagent.tests import mock
 
-from ......connections.models import connection_target
-from ......connections.models.diddoc import DIDDoc, PublicKey, PublicKeyType, Service
-from ......messaging.request_context import RequestContext
-from ......messaging.responder import MockResponder
-from ......protocols.trustping.v1_0.messages.ping import Ping
-from ......transport.inbound.receipt import MessageReceipt
+from aries_cloudagent.connections.models import connection_target
+from aries_cloudagent.connections.models.diddoc import DIDDoc, PublicKey, PublicKeyType, Service
+from aries_cloudagent.messaging.request_context import RequestContext
+from aries_cloudagent.messaging.responder import MockResponder
+from aries_cloudagent.protocols.trustping.v1_0.messages.ping import Ping
+from aries_cloudagent.transport.inbound.receipt import MessageReceipt
 from ...handlers import connection_response_handler as handler
 from ...manager import ConnectionManagerError
 from ...messages.connection_response import ConnectionResponse

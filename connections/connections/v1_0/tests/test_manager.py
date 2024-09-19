@@ -4,7 +4,6 @@ from aries_cloudagent.tests import mock
 
 from aries_cloudagent.cache.base import BaseCache
 from aries_cloudagent.cache.in_memory import InMemoryCache
-from aries_cloudagent.connections.models.conn_record import ConnRecord
 from aries_cloudagent.connections.models.diddoc import DIDDoc, PublicKey, PublicKeyType, Service
 from aries_cloudagent.core.in_memory import InMemoryProfile
 from aries_cloudagent.core.oob_processor import OobMessageProcessor
@@ -28,6 +27,7 @@ from ..messages.connection_invitation import ConnectionInvitation
 from ..messages.connection_request import ConnectionRequest
 from ..messages.connection_response import ConnectionResponse
 from ..models.connection_detail import ConnectionDetail
+from ..models.conn_record import ConnectionsRecord as ConnRecord
 
 
 class TestConnectionManager(IsolatedAsyncioTestCase):

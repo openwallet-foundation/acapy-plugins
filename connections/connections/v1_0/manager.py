@@ -1,28 +1,34 @@
 """Classes to manage connections."""
 
 import logging
-import warnings
 from typing import Optional, Sequence, Tuple, Union, cast
+import warnings
 
 from aries_cloudagent.connections.base_manager import BaseConnectionManager
-from aries_cloudagent.connections.models.conn_record import ConnRecord
 from aries_cloudagent.connections.models.connection_target import ConnectionTarget
 from aries_cloudagent.core.error import BaseError
 from aries_cloudagent.core.oob_processor import OobMessageProcessor
 from aries_cloudagent.core.profile import Profile
 from aries_cloudagent.messaging.responder import BaseResponder
 from aries_cloudagent.messaging.valid import IndyDID
+from aries_cloudagent.protocols.coordinate_mediation.v1_0.manager import (
+    MediationManager,
+)
+from aries_cloudagent.protocols.out_of_band.v1_0.messages.invitation import (
+    InvitationMessage,
+)
 from aries_cloudagent.storage.error import StorageNotFoundError
 from aries_cloudagent.transport.inbound.receipt import MessageReceipt
 from aries_cloudagent.wallet.base import BaseWallet
 from aries_cloudagent.wallet.did_method import SOV
 from aries_cloudagent.wallet.key_type import ED25519
-from aries_cloudagent.protocols.coordinate_mediation.v1_0.manager import MediationManager
+
 from .message_types import ARIES_PROTOCOL as CONN_PROTO
 from .messages.connection_invitation import ConnectionInvitation
 from .messages.connection_request import ConnectionRequest
 from .messages.connection_response import ConnectionResponse
 from .messages.problem_report import ConnectionProblemReport, ProblemReportReason
+from .models.conn_record import ConnectionsRecord as ConnRecord
 from .models.connection_detail import ConnectionDetail
 
 
@@ -64,6 +70,40 @@ class ConnectionManager(BaseConnectionManager):
             "Aries RFC 0160: Connection Protocol is deprecated and support will be "
             "removed in a future version; use RFC 0023: DID Exchange instead."
         )
+
+    async def _fetch_connection_targets_for_invitation(
+        self,
+        connection: ConnRecord,
+        invitation: Union[ConnectionInvitation, InvitationMessage],
+        sender_verkey: str,
+    ) -> Sequence[ConnectionTarget]:
+        if isinstance(invitation, InvitationMessage):
+            return await super()._fetch_connection_targets_for_invitation(
+                connection, invitation, sender_verkey
+            )
+
+        if invitation.did:
+            did = invitation.did
+            (
+                endpoint,
+                recipient_keys,
+                routing_keys,
+            ) = await self.resolve_invitation(did)
+        else:
+            endpoint = invitation.endpoint
+            recipient_keys = invitation.recipient_keys
+            routing_keys = invitation.routing_keys
+
+        return [
+            ConnectionTarget(
+                did=connection.their_did,
+                endpoint=endpoint,
+                label=invitation.label if invitation else None,
+                recipient_keys=recipient_keys,
+                routing_keys=routing_keys,
+                sender_key=sender_verkey,
+            )
+        ]
 
     async def create_invitation(
         self,
