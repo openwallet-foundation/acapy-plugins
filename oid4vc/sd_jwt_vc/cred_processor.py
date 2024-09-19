@@ -2,7 +2,7 @@
 
 from copy import deepcopy
 from dataclasses import dataclass
-import logging
+import json
 from aries_cloudagent.core.profile import Profile
 from pydid import DIDUrl
 from sd_jwt.issuer import SDJWTIssuer, SDObj
@@ -12,14 +12,12 @@ from jsonpointer import JsonPointer, EndOfList, JsonPointerException
 from typing import Any, Dict, List, Optional
 
 from aries_cloudagent.admin.request_context import AdminRequestContext
+from aries_cloudagent.resolver import DIDResolver
 from oid4vc.cred_processor import CredProcessor, CredIssueError
 from oid4vc.jwt import jwt_sign
 from oid4vc.models.exchange import OID4VCIExchangeRecord
 from oid4vc.models.supported_cred import SupportedCredential
 from oid4vc.pop_result import PopResult
-
-
-LOGGER = logging.getLogger(__name__)
 
 
 # Certain claims, if present, are never to be included in the selective disclosures list.
@@ -38,6 +36,12 @@ OBJ_CLAIMS_NEVER_SD = re.compile(r"(?:/cnf|/status)(?:/.+)*")
 
 class SDJWTError(BaseException):
     """SD-JWT Error."""
+
+
+@dataclass
+class VerifyResult:
+    verified: bool
+    payload: Any
 
 
 @dataclass
@@ -182,6 +186,24 @@ class SdJwtCredIssueProcessor(CredProcessor):
 
         if bad_pointer:
             raise ValueError(f"Invalid JSON pointer(s): {bad_pointer}")
+
+    async def verify_presentation(
+        self, profile: Profile, presentation: Any
+    ) -> VerifyResult:
+        """Verify signature over credential or presentation."""
+        if isinstance(presentation, str):
+            ldp_vc = json.loads(presentation)
+        elif isinstance(presentation, dict):
+            ldp_vc = presentation
+        else:
+            raise TypeError("Unexpected type for signed value")
+
+        resolver = profile.inject(DIDResolver)
+
+    async def verify_credential(self, profile: Profile, credential: Any):
+        """Verify signature over credential."""
+
+        # NOOP on AC
 
 
 class SDJWTIssuerACAPy(SDJWTIssuer):

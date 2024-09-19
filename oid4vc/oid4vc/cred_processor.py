@@ -4,6 +4,8 @@ from typing import Any, Protocol, Sequence
 
 from aries_cloudagent.core.error import BaseError
 from aries_cloudagent.admin.request_context import AdminRequestContext
+from aries_cloudagent.core.profile import Profile
+from .pex import VerifyResult
 
 from .models.exchange import OID4VCIExchangeRecord
 from .models.supported_cred import SupportedCredential
@@ -35,11 +37,21 @@ class CredProcessor(Protocol):
             encoded: signed credential payload.
         """
 
-    def validate_credential_subject(self, supported: SupportedCredential, subject: dict):
+    def validate_credential_subject(
+        self, supported: SupportedCredential, subject: dict
+    ):
         """Validate the credential subject."""
 
     def validate_supported_credential(self, supported: SupportedCredential):
         """Validate the credential."""
+
+    async def verify_presentation(
+        self, profile: Profile, presentation: Any
+    ) -> VerifyResult:
+        """Verify signature over credential or presentation."""
+
+    async def verify_credential(self, profile: Profile, credential: Any):
+        """Verify signature over credential."""
 
 
 class CredIssueError(BaseError):
