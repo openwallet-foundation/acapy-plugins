@@ -1,6 +1,5 @@
 """Problem report handler for Connection Protocol."""
 
-from aries_cloudagent.connections.models.conn_record import ConnRecord
 from aries_cloudagent.messaging.base_handler import (
     BaseHandler,
     BaseResponder,
@@ -10,6 +9,7 @@ from aries_cloudagent.messaging.base_handler import (
 from aries_cloudagent.storage.error import StorageNotFoundError
 from ..manager import ConnectionManager, ConnectionManagerError
 from ..messages.problem_report import ConnectionProblemReport
+from ..models.conn_record import ConnectionsRecord as ConnRecord
 
 
 class ConnectionProblemReportHandler(BaseHandler):

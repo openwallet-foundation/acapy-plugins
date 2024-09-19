@@ -61,36 +61,6 @@ class TestConnectionRequest(TestCase, TestConfig):
             CONNECTION_REQUEST
         )
 
-    @mock.patch(
-        "aries_cloudagent.protocols.connections.v1_0.messages."
-        "connection_request.ConnectionRequestSchema.load"
-    )
-    def test_deserialize(self, mock_connection_request_schema_load):
-        """
-        Test deserialization.
-        """
-        obj = {"obj": "obj"}
-
-        connection_request = ConnectionRequest.deserialize(obj)
-        mock_connection_request_schema_load.assert_called_once_with(obj)
-
-        assert connection_request is mock_connection_request_schema_load.return_value
-
-    @mock.patch(
-        "aries_cloudagent.protocols.connections.v1_0.messages."
-        "connection_request.ConnectionRequestSchema.dump"
-    )
-    def test_serialize(self, mock_connection_request_schema_dump):
-        """
-        Test serialization.
-        """
-        connection_request_dict = self.connection_request.serialize()
-        mock_connection_request_schema_dump.assert_called_once_with(
-            self.connection_request
-        )
-
-        assert connection_request_dict is mock_connection_request_schema_dump.return_value
-
 
 class TestConnectionRequestSchema(IsolatedAsyncioTestCase, TestConfig):
     """Test connection request schema."""

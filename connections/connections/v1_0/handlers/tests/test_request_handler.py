@@ -2,20 +2,21 @@ import pytest
 
 from aries_cloudagent.tests import mock
 
-from ......connections.models import connection_target
-from ......connections.models.conn_record import ConnRecord
-from ......connections.models.diddoc import DIDDoc, PublicKey, PublicKeyType, Service
-from ......core.profile import ProfileSession
-from ......messaging.request_context import RequestContext
-from ......messaging.responder import MockResponder
-from ......storage.base import BaseStorage
-from ......storage.error import StorageNotFoundError
-from ......transport.inbound.receipt import MessageReceipt
+from aries_cloudagent.connections.models import connection_target
+from aries_cloudagent.connections.models.diddoc import DIDDoc, PublicKey, PublicKeyType, Service
+from aries_cloudagent.core.profile import ProfileSession
+from aries_cloudagent.messaging.request_context import RequestContext
+from aries_cloudagent.messaging.responder import MockResponder
+from aries_cloudagent.storage.base import BaseStorage
+from aries_cloudagent.storage.error import StorageNotFoundError
+from aries_cloudagent.transport.inbound.receipt import MessageReceipt
+
 from ...handlers import connection_request_handler as handler
 from ...manager import ConnectionManagerError
 from ...messages.connection_request import ConnectionRequest
 from ...messages.problem_report import ConnectionProblemReport, ProblemReportReason
 from ...models.connection_detail import ConnectionDetail
+from ...models.conn_record import ConnectionsRecord as ConnRecord
 
 
 @pytest.fixture()

@@ -1,6 +1,5 @@
 """Connection request handler."""
 
-from aries_cloudagent.connections.models.conn_record import ConnRecord
 from aries_cloudagent.messaging.base_handler import (
     BaseHandler,
     BaseResponder,
@@ -10,6 +9,7 @@ from aries_cloudagent.protocols.coordinate_mediation.v1_0.manager import (
     MediationManager,
 )
 
+from ..models.conn_record import ConnectionsRecord as ConnRecord
 from ..manager import ConnectionManager, ConnectionManagerError
 from ..messages.connection_request import ConnectionRequest
 

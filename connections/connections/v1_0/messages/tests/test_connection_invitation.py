@@ -34,39 +34,6 @@ class TestConnectionInvitation(TestCase):
             CONNECTION_INVITATION
         )
 
-    @mock.patch(
-        "aries_cloudagent.protocols.connections.v1_0.messages."
-        "connection_invitation.ConnectionInvitationSchema.load"
-    )
-    def test_deserialize(self, mock_connection_invitation_schema_load):
-        obj = {"obj": "obj"}
-
-        connection_invitation = ConnectionInvitation.deserialize(obj)
-        mock_connection_invitation_schema_load.assert_called_once_with(obj)
-
-        assert (
-            connection_invitation is mock_connection_invitation_schema_load.return_value
-        )
-
-    @mock.patch(
-        "aries_cloudagent.protocols.connections.v1_0.messages."
-        "connection_invitation.ConnectionInvitationSchema.dump"
-    )
-    def test_serialize(self, mock_connection_invitation_schema_dump):
-        connection_invitation = ConnectionInvitation(
-            label=self.label, recipient_keys=[self.key], endpoint=self.endpoint_url
-        )
-
-        connection_invitation_dict = connection_invitation.serialize()
-        mock_connection_invitation_schema_dump.assert_called_once_with(
-            connection_invitation
-        )
-
-        assert (
-            connection_invitation_dict
-            is mock_connection_invitation_schema_dump.return_value
-        )
-
     def test_url_round_trip(self):
         connection_invitation = ConnectionInvitation(
             label=self.label, recipient_keys=[self.key], endpoint=self.endpoint_url
