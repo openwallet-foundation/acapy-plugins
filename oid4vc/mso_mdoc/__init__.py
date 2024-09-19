@@ -18,4 +18,4 @@ async def setup(context: InjectionContext):
     """Setup the plugin."""
     processors = context.inject(CredProcessors)
     mso_mdoc = MsoMdocCredProcessor()
-    processors.register(mso_mdoc)
+    processors.register_issuer("mso_mdoc", mso_mdoc)

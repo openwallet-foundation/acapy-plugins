@@ -47,7 +47,7 @@ from oid4vc.models.request import OID4VPRequest
 from oid4vc.pex import PresentationExchangeEvaluator, PresentationSubmission
 
 from .config import Config
-from .cred_processor import CredIssueError, CredProcessors
+from .cred_processor import CredProcessorError, CredProcessors
 from .models.exchange import OID4VCIExchangeRecord
 from .models.supported_cred import SupportedCredential
 from .pop_result import PopResult
@@ -330,7 +330,7 @@ async def issue_cred(request: web.Request):
         credential = await processor.issue_cred(
             body, supported, ex_record, pop, context
         )
-    except CredIssueError as e:
+    except CredProcessorError as e:
         raise web.HTTPBadRequest(reason=e.message)
 
     async with context.session() as session:
@@ -537,6 +537,7 @@ async def verify_presentation(
 
     LOGGER.debug("Got: %s %s", submission, vp_token)
 
+    processors = profile.inject(CredProcessors)
     vp_result = await jwt_verify(profile, vp_token)
     if not vp_result.valid:
         raise ValueError("Presentation failed")

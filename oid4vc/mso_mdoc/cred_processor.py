@@ -10,19 +10,17 @@ from aries_cloudagent.admin.request_context import AdminRequestContext
 from oid4vc.models.exchange import OID4VCIExchangeRecord
 from oid4vc.models.supported_cred import SupportedCredential
 from oid4vc.pop_result import PopResult
-from oid4vc.cred_processor import CredProcessor, CredIssueError
+from oid4vc.cred_processor import CredProcessorError, Issuer
 
 from .mdoc import mso_mdoc_sign
 
 LOGGER = logging.getLogger(__name__)
 
 
-class MsoMdocCredProcessor(CredProcessor):
+class MsoMdocCredProcessor(Issuer):
     """Credential processor class for mso_mdoc credential format."""
 
-    format = "mso_mdoc"
-
-    async def issue_cred(
+    async def issue(
         self,
         body: Any,
         supported: SupportedCredential,
@@ -33,7 +31,7 @@ class MsoMdocCredProcessor(CredProcessor):
         """Return signed credential in COBR format."""
         assert supported.format_data
         if body.get("doctype") != supported.format_data.get("doctype"):
-            raise CredIssueError("Requested doctype does not match offer.")
+            raise CredProcessorError("Requested doctype does not match offer.")
 
         try:
             headers = {
@@ -52,7 +50,7 @@ class MsoMdocCredProcessor(CredProcessor):
             )
             mso_mdoc = mso_mdoc[2:-1] if mso_mdoc.startswith("b'") else None
         except Exception as ex:
-            raise CredIssueError("Failed to issue credential") from ex
+            raise CredProcessorError("Failed to issue credential") from ex
 
         return mso_mdoc
 

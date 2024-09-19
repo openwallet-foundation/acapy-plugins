@@ -226,7 +226,7 @@ class DescriptorEvaluator:
 
 
 @dataclass
-class VerifyResult:
+class PexVerifyResult:
     """Result of verification."""
 
     verified: bool = False
@@ -265,7 +265,7 @@ class PresentationExchangeEvaluator:
         profile: Profile,
         submission: Union[dict, PresentationSubmission],
         presentation: Mapping[str, Any],
-    ) -> VerifyResult:
+    ) -> PexVerifyResult:
         """Check if a submission matches the definition."""
         if isinstance(submission, dict):
             submission = PresentationSubmission.deserialize(submission)
@@ -275,7 +275,7 @@ class PresentationExchangeEvaluator:
             raise TypeError("submission must be dict or PresentationSubmission")
 
         if submission.definition_id != self.id:
-            return VerifyResult(details="Submission id doesn't match definition")
+            return PexVerifyResult(details="Submission id doesn't match definition")
 
         descriptor_id_to_claims = {}
         descriptor_id_to_fields = {}
@@ -283,7 +283,7 @@ class PresentationExchangeEvaluator:
             # TODO Check JWT VP generally, if format is jwt_vp
             evaluator = self._id_to_descriptor.get(item.id)
             if not evaluator:
-                return VerifyResult(
+                return PexVerifyResult(
                     details=f"Could not find input descriptor corresponding to {item.id}"
                 )
 
@@ -293,26 +293,26 @@ class PresentationExchangeEvaluator:
             path = jsonpath.parse(item.path_nested.path)
             values = path.find(presentation)
             if len(values) != 1:
-                return VerifyResult(
+                return PexVerifyResult(
                     details=f"More than one value found for path {item.path_nested.path}"
                 )
 
             vc = values[0].value
             result = await jwt_verify(profile, vc)
             if not result.valid:
-                return VerifyResult(details="Credential signature verification failed")
+                return PexVerifyResult(details="Credential signature verification failed")
 
             try:
                 fields = evaluator.match(result.payload)
             except DescriptorMatchFailed:
-                return VerifyResult(
+                return PexVerifyResult(
                     details="Credential did not match expected descriptor constraints"
                 )
 
             descriptor_id_to_claims[item.id] = result.payload
             descriptor_id_to_fields[item.id] = fields
 
-        return VerifyResult(
+        return PexVerifyResult(
             verified=True,
             descriptor_id_to_claims=descriptor_id_to_claims,
             descriptor_id_to_fields=descriptor_id_to_fields,

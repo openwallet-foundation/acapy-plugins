@@ -2,18 +2,23 @@
 
 from copy import deepcopy
 from dataclasses import dataclass
-import json
-from aries_cloudagent.core.profile import Profile
-from pydid import DIDUrl
-from sd_jwt.issuer import SDJWTIssuer, SDObj
-import time
 import re
-from jsonpointer import JsonPointer, EndOfList, JsonPointerException
+import time
 from typing import Any, Dict, List, Optional
 
 from aries_cloudagent.admin.request_context import AdminRequestContext
-from aries_cloudagent.resolver import DIDResolver
-from oid4vc.cred_processor import CredProcessor, CredIssueError
+from aries_cloudagent.core.profile import Profile
+from jsonpointer import EndOfList, JsonPointer, JsonPointerException
+from pydid import DIDUrl
+from sd_jwt.issuer import SDJWTIssuer, SDObj
+
+from oid4vc.cred_processor import (
+    CredProcessorError,
+    CredVerifier,
+    Issuer,
+    PresVerifier,
+    VerifyResult,
+)
 from oid4vc.jwt import jwt_sign
 from oid4vc.models.exchange import OID4VCIExchangeRecord
 from oid4vc.models.supported_cred import SupportedCredential
@@ -39,12 +44,6 @@ class SDJWTError(BaseException):
 
 
 @dataclass
-class VerifyResult:
-    verified: bool
-    payload: Any
-
-
-@dataclass
 class ClaimMetadata:
     """Claim metadata."""
 
@@ -53,12 +52,10 @@ class ClaimMetadata:
     display: Optional[dict] = None
 
 
-class SdJwtCredIssueProcessor(CredProcessor):
+class SdJwtCredIssueProcessor(Issuer, CredVerifier, PresVerifier):
     """Credential processor class for sd_jwt_vc format."""
 
-    format = "vc+sd-jwt"
-
-    async def issue_cred(
+    async def issue(
         self,
         body: Any,
         supported: SupportedCredential,
@@ -74,7 +71,7 @@ class SdJwtCredIssueProcessor(CredProcessor):
         assert isinstance(sd_list, list)
 
         if body.get("vct") != supported.format_data.get("vct"):
-            raise CredIssueError("Requested vct does not match offer.")
+            raise CredProcessorError("Requested vct does not match offer.")
 
         current_time = int(time.time())
         claims = deepcopy(ex_record.credential_subject)
@@ -104,11 +101,9 @@ class SdJwtCredIssueProcessor(CredProcessor):
         try:
             return await sd_jwt_sign(sd_list, claims, headers, profile, did, ver_method)
         except SDJWTError as error:
-            raise CredIssueError("Could not sign SD-JWT VC") from error
+            raise CredProcessorError("Could not sign SD-JWT VC") from error
 
-    def validate_credential_subject(
-        self, supported: SupportedCredential, subject: dict
-    ):
+    def validate_credential_subject(self, supported: SupportedCredential, subject: dict):
         """Validate the credential subject."""
         vc_additional = supported.vc_additional_data
         assert vc_additional
@@ -138,7 +133,7 @@ class SdJwtCredIssueProcessor(CredProcessor):
             # TODO type checking against value_type
 
         if missing:
-            raise CredIssueError(
+            raise CredProcessorError(
                 "Invalid credential subject; selectively discloseable claim is"
                 f" mandatory but missing: {missing}"
             )
@@ -191,19 +186,11 @@ class SdJwtCredIssueProcessor(CredProcessor):
         self, profile: Profile, presentation: Any
     ) -> VerifyResult:
         """Verify signature over credential or presentation."""
-        if isinstance(presentation, str):
-            ldp_vc = json.loads(presentation)
-        elif isinstance(presentation, dict):
-            ldp_vc = presentation
-        else:
-            raise TypeError("Unexpected type for signed value")
+        raise NotImplementedError()
 
-        resolver = profile.inject(DIDResolver)
-
-    async def verify_credential(self, profile: Profile, credential: Any):
+    async def verify_credential(self, profile: Profile, credential: Any) -> VerifyResult:
         """Verify signature over credential."""
-
-        # NOOP on AC
+        raise NotImplementedError()
 
 
 class SDJWTIssuerACAPy(SDJWTIssuer):
