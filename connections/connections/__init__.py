@@ -17,8 +17,5 @@ async def setup(context: InjectionContext):
     LOGGER.debug("Binding BaseConnectionManager to ConnectionManager")
     context.injector.bind_provider(
         BaseConnectionManager,
-        ClassProvider(
-            ConnectionManager,
-            ClassProvider.Inject(Profile)
-        )
+        ClassProvider(ConnectionManager, ClassProvider.Inject(Profile)),
     )

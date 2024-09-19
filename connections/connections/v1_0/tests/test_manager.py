@@ -4,7 +4,12 @@ from aries_cloudagent.tests import mock
 
 from aries_cloudagent.cache.base import BaseCache
 from aries_cloudagent.cache.in_memory import InMemoryCache
-from aries_cloudagent.connections.models.diddoc import DIDDoc, PublicKey, PublicKeyType, Service
+from aries_cloudagent.connections.models.diddoc import (
+    DIDDoc,
+    PublicKey,
+    PublicKeyType,
+    Service,
+)
 from aries_cloudagent.core.in_memory import InMemoryProfile
 from aries_cloudagent.core.oob_processor import OobMessageProcessor
 from aries_cloudagent.messaging.responder import BaseResponder, MockResponder
@@ -19,9 +24,15 @@ from aries_cloudagent.wallet.did_method import SOV, DIDMethods
 from aries_cloudagent.wallet.in_memory import InMemoryWallet
 from aries_cloudagent.wallet.key_type import ED25519
 from aries_cloudagent.protocols.coordinate_mediation.v1_0.manager import MediationManager
-from aries_cloudagent.protocols.coordinate_mediation.v1_0.messages.mediate_request import MediationRequest
-from aries_cloudagent.protocols.coordinate_mediation.v1_0.models.mediation_record import MediationRecord
-from aries_cloudagent.protocols.coordinate_mediation.v1_0.route_manager import RouteManager
+from aries_cloudagent.protocols.coordinate_mediation.v1_0.messages.mediate_request import (
+    MediationRequest,
+)
+from aries_cloudagent.protocols.coordinate_mediation.v1_0.models.mediation_record import (
+    MediationRecord,
+)
+from aries_cloudagent.protocols.coordinate_mediation.v1_0.route_manager import (
+    RouteManager,
+)
 from ..manager import ConnectionManager, ConnectionManagerError
 from ..messages.connection_invitation import ConnectionInvitation
 from ..messages.connection_request import ConnectionRequest

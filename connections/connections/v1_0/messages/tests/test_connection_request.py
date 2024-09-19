@@ -1,6 +1,11 @@
-from unittest import IsolatedAsyncioTestCase, TestCase, mock
+from unittest import IsolatedAsyncioTestCase, TestCase
 
-from aries_cloudagent.connections.models.diddoc import DIDDoc, PublicKey, PublicKeyType, Service
+from aries_cloudagent.connections.models.diddoc import (
+    DIDDoc,
+    PublicKey,
+    PublicKeyType,
+    Service,
+)
 from aries_cloudagent.protocols.didcomm_prefix import DIDCommPrefix
 from ...message_types import CONNECTION_REQUEST
 from ...models.connection_detail import ConnectionDetail

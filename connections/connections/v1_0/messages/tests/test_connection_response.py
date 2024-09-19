@@ -1,6 +1,11 @@
-from unittest import IsolatedAsyncioTestCase, TestCase, mock
+from unittest import IsolatedAsyncioTestCase, TestCase
 
-from aries_cloudagent.connections.models.diddoc import DIDDoc, PublicKey, PublicKeyType, Service
+from aries_cloudagent.connections.models.diddoc import (
+    DIDDoc,
+    PublicKey,
+    PublicKeyType,
+    Service,
+)
 from aries_cloudagent.core.in_memory import InMemoryProfile
 from aries_cloudagent.wallet.key_type import ED25519
 from aries_cloudagent.protocols.didcomm_prefix import DIDCommPrefix

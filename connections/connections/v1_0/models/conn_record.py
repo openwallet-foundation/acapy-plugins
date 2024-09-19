@@ -21,6 +21,7 @@ class ConnectionsRecord(ConnRecord):
 
     class Meta:
         """ConnectionsRecord metadata."""
+
         schema_class = "MaybeStoredConnectionsRecordSchema"
 
     SUPPORTED_PROTOCOLS = ("connections/1.0", *ConnRecord.SUPPORTED_PROTOCOLS)
@@ -33,9 +34,7 @@ class ConnectionsRecord(ConnRecord):
         """Attach invitation."""
         return await super().attach_invitation(session, invitation)
 
-    async def retrieve_invitation(
-        self, session: ProfileSession
-    ) -> ConnectionInvitation:
+    async def retrieve_invitation(self, session: ProfileSession) -> ConnectionInvitation:
         """Retrieve invitation."""
         assert self.connection_id
         storage = session.inject(BaseStorage)
@@ -63,7 +62,7 @@ class ConnectionsRecord(ConnRecord):
 
 class MaybeStoredConnectionsRecordSchema(MaybeStoredConnRecordSchema):
     """Schema."""
+
     connection_protocol = fields.Str(
-        required=False,
-        validate=validate.OneOf(ConnectionsRecord.SUPPORTED_PROTOCOLS)
+        required=False, validate=validate.OneOf(ConnectionsRecord.SUPPORTED_PROTOCOLS)
     )

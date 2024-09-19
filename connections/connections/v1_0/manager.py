@@ -126,7 +126,9 @@ class ConnectionManager(BaseConnectionManager):
             targets = await self.fetch_connection_targets(connection)
         return targets
 
-    async def fetch_connection_targets(self, connection: ConnRecord) -> Sequence[ConnectionTarget]:
+    async def fetch_connection_targets(
+        self, connection: ConnRecord
+    ) -> Sequence[ConnectionTarget]:
         """Get a list of connection targets from a `ConnRecord`.
 
         Args:

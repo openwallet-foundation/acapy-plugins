@@ -1,4 +1,4 @@
-from unittest import TestCase, mock
+from unittest import TestCase
 
 from aries_cloudagent.messaging.models.base import BaseModelError
 from aries_cloudagent.protocols.didcomm_prefix import DIDCommPrefix
