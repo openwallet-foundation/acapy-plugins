@@ -11,7 +11,7 @@ python = "^3.12"
 # explicitly installed with the plugin if desired.
 aries-cloudagent = { version = "~1.0.0", optional = true }
 aiohttp = "^3.9.5"
-fastapi-slim = "^0.114.2"
+fastapi-slim = "^0.115.0"
 nest-asyncio = "^1.5.5"
 redis = "^5.0.6"
 uvicorn = "^0.30.1"
@@ -43,8 +43,18 @@ line-length = 90
 select = ["E", "F", "C", "D"]
 ignore = [
     # Google Python Doc Style
-    "D203", "D204", "D213", "D215", "D400", "D401", "D404", "D406", "D407",
-    "D408", "D409", "D413",
+    "D203",
+    "D204",
+    "D213",
+    "D215",
+    "D400",
+    "D401",
+    "D404",
+    "D406",
+    "D407",
+    "D408",
+    "D409",
+    "D413",
     "D202", # Allow blank line after docstring
     "D104", # Don't require docstring in public package
     # Things that we should fix, but are too much work right now
@@ -66,19 +76,11 @@ junit_family = "xunit1"
 asyncio_mode = "auto"
 
 [tool.coverage.run]
-omit = [
-    "*/tests/*",
-    "docker/*",
-    "integration/*",
-    "*/definition.py"
-]
+omit = ["*/tests/*", "docker/*", "integration/*", "*/definition.py"]
 data_file = ".test-reports/.coverage"
 
 [tool.coverage.report]
-exclude_lines = [
-    "pragma: no cover",
-    "@abstract"
-]
+exclude_lines = ["pragma: no cover", "@abstract"]
 precision = 2
 skip_covered = true
 show_missing = true
@@ -89,4 +91,3 @@ output = ".test-reports/coverage.xml"
 [build-system]
 requires = ["setuptools", "poetry-core>=1.2"]
 build-backend = "poetry.core.masonry.api"
-
