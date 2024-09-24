@@ -93,7 +93,7 @@ class JwtVcJsonCredProcessor(Issuer, CredVerifier, PresVerifier):
         """Verify a credential or presentation."""
         res = await jwt_verify(profile, jwt)
         return VerifyResult(
-            verified=res.valid,
+            verified=res.verified,
             payload=res.payload,
         )
 

@@ -13,7 +13,7 @@ from aries_cloudagent.wallet.jwt import JWTVerifyResult
 from jsonpointer import EndOfList, JsonPointer, JsonPointerException
 from pydid import DIDUrl
 from sd_jwt.issuer import SDJWTIssuer, SDObj
-from sd_jwt.verifier import SDJWTVerifier
+from sd_jwt.verifier import DEFAULT_SIGNING_ALG, KB_DIGEST_KEY, SDJWTVerifier
 
 
 from oid4vc.cred_processor import (
@@ -107,9 +107,7 @@ class SdJwtCredIssueProcessor(Issuer, CredVerifier, PresVerifier):
         except SDJWTError as error:
             raise CredProcessorError("Could not sign SD-JWT VC") from error
 
-    def validate_credential_subject(
-        self, supported: SupportedCredential, subject: dict
-    ):
+    def validate_credential_subject(self, supported: SupportedCredential, subject: dict):
         """Validate the credential subject."""
         vc_additional = supported.vc_additional_data
         assert vc_additional
@@ -195,16 +193,14 @@ class SdJwtCredIssueProcessor(Issuer, CredVerifier, PresVerifier):
 
         result = await sd_jwt_verify(profile, presentation)
         # TODO: This is a little hacky
-        return VerifyResult(result.valid, presentation)
+        return VerifyResult(result.verified, presentation)
 
-    async def verify_credential(
-        self, profile: Profile, credential: Any
-    ) -> VerifyResult:
+    async def verify_credential(self, profile: Profile, credential: Any) -> VerifyResult:
         """Verify signature over credential."""
         # TODO: Can we optimize this? since we end up doing this twice in a row
 
         result = await sd_jwt_verify(profile, credential)
-        return VerifyResult(result.valid, result.payload)
+        return VerifyResult(result.verified, result.payload)
 
 
 class SDJWTIssuerACAPy(SDJWTIssuer):
@@ -337,30 +333,30 @@ class SDJWTVerifierACAPy(SDJWTVerifier):
         """Initialize an SDJWTVerifierACAPy instance."""
         self.profile = profile
         self.sd_jwt_presentation = sd_jwt_presentation
+
+        if serialization_format not in ("compact", "json"):
+            raise ValueError(f"Unknown serialization format: {serialization_format}")
         self._serialization_format = serialization_format
+
         self.expected_aud = expected_aud
         self.expected_nonce = expected_nonce
 
-    async def _verify_sd_jwt(self) -> SDJWTVerifyResult:
+    async def _verify_sd_jwt(self):
         verified = await jwt_verify(
             self.profile,
             self._unverified_input_sd_jwt,
         )
-        return SDJWTVerifyResult(
-            headers=verified.headers,
-            payload=verified.payload,
-            valid=verified.valid,
-            kid=verified.kid,
-            disclosures=self._disclosures_list,
-        )
+        if verified.verified is False:
+            raise CredProcessorError("Invalid signature")
 
-    async def verify(self) -> SDJWTVerifyResult:
+        self._sd_jwt_payload = verified.payload
+        self._holder_public_key_payload = self._sd_jwt_payload.get("cnf", None)
+
+    async def verify(self):
         """Verify an sd-jwt."""
         self._parse_sd_jwt(self.sd_jwt_presentation)
         self._create_hash_mappings(self._input_disclosures)
-        self._disclosures_list = list(self._hash_to_decoded_disclosure.values())
-
-        self.verified_sd_jwt = await self._verify_sd_jwt()
+        await self._verify_sd_jwt()
 
         if self.expected_aud or self.expected_nonce:
             if not (self.expected_aud and self.expected_nonce):
@@ -372,28 +368,20 @@ class SDJWTVerifierACAPy(SDJWTVerifier):
                 self.expected_aud,
                 self.expected_nonce,
             )
-        return self.verified_sd_jwt
+
+        return self
 
     async def _verify_key_binding_jwt(
         self,
         expected_aud: Union[str, None] = None,
         expected_nonce: Union[str, None] = None,
     ):
+        # Verify the key binding JWT using the holder public key
+        if not self._holder_public_key_payload:
+            raise ValueError("No holder public key in SD-JWT")
         verified_kb_jwt = await jwt_verify(
             self.profile, self._unverified_input_key_binding_jwt
         )
-        self._holder_public_key_payload = self.verified_sd_jwt.payload.get("cnf", None)
-
-        if not self._holder_public_key_payload:
-            raise ValueError("No holder public key in SD-JWT")
-
-        holder_public_key_payload_jwk = self._holder_public_key_payload.get("jwk", None)
-        if not holder_public_key_payload_jwk:
-            raise ValueError(
-                "The holder_public_key_payload is malformed. "
-                "It doesn't contain the claim jwk: "
-                f"{self._holder_public_key_payload}"
-            )
 
         if verified_kb_jwt.headers["typ"] != self.KB_JWT_TYP_HEADER:
             raise ValueError("Invalid header typ")
@@ -402,15 +390,33 @@ class SDJWTVerifierACAPy(SDJWTVerifier):
         if verified_kb_jwt.payload["nonce"] != expected_nonce:
             raise ValueError("Invalid nonce")
 
+        if self._serialization_format == "compact":
+            string_to_hash = self._combine(
+                self._unverified_input_sd_jwt, *self._input_disclosures, ""
+            )
+            expected_sd_jwt_presentation_hash = self._b64hash(
+                string_to_hash.encode("ascii")
+            )
+
+            if (
+                verified_kb_jwt.payload[KB_DIGEST_KEY]
+                != expected_sd_jwt_presentation_hash
+            ):
+                raise ValueError("Invalid digest in KB-JWT")
+
 
 async def sd_jwt_verify(
     profile: Profile,
     sd_jwt_presentation: str,
-    expected_aud: str = None,
-    expected_nonce: str = None,
-) -> SDJWTVerifyResult:
+    expected_aud: Optional[str] = None,
+    expected_nonce: Optional[str] = None,
+) -> VerifyResult:
     """Verify sd-jwt using SDJWTVerifierACAPy.verify()."""
     sd_jwt_verifier = SDJWTVerifierACAPy(
         profile, sd_jwt_presentation, expected_aud, expected_nonce
     )
-    return await sd_jwt_verifier.verify()
+    try:
+        payload = (await sd_jwt_verifier.verify()).get_verified_payload()
+        return VerifyResult(True, payload)
+    except Exception:
+        return VerifyResult(False, None)

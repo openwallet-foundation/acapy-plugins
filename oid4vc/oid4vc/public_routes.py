@@ -200,7 +200,7 @@ async def check_token(
         raise web.HTTPUnauthorized()  # Invalid authentication credentials
 
     result = await jwt_verify(profile, cred)
-    if not result.valid:
+    if not result.verified:
         raise web.HTTPUnauthorized()  # Invalid credentials
 
     if result.payload["exp"] < datetime.datetime.utcnow().timestamp():
