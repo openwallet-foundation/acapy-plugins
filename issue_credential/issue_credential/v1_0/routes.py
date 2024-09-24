@@ -1,6 +1,7 @@
 """Credential exchange admin routes."""
 
 from json.decoder import JSONDecodeError
+import re
 from typing import Optional
 
 from aiohttp import web
@@ -11,20 +12,22 @@ from aiohttp_apispec import (
     request_schema,
     response_schema,
 )
-from marshmallow import fields, validate
-
-from ....admin.decorators.auth import tenant_authentication
-from ....admin.request_context import AdminRequestContext
-from ....connections.models.conn_record import ConnRecord
-from ....core.profile import Profile
-from ....indy.holder import IndyHolderError
-from ....indy.issuer import IndyIssuerError
-from ....ledger.error import LedgerError
-from ....messaging.credential_definitions.util import CRED_DEF_TAGS
-from ....messaging.models.base import BaseModelError
-from ....messaging.models.openapi import OpenAPISchema
-from ....messaging.models.paginated_query import PaginatedQuerySchema, get_limit_offset
-from ....messaging.valid import (
+from aries_cloudagent.admin.decorators.auth import tenant_authentication
+from aries_cloudagent.admin.request_context import AdminRequestContext
+from aries_cloudagent.connections.models.conn_record import ConnRecord
+from aries_cloudagent.core.event_bus import EventWithMetadata
+from aries_cloudagent.core.profile import EventBus, Profile
+from aries_cloudagent.indy.holder import IndyHolderError
+from aries_cloudagent.indy.issuer import IndyIssuerError
+from aries_cloudagent.ledger.error import LedgerError
+from aries_cloudagent.messaging.credential_definitions.util import CRED_DEF_TAGS
+from aries_cloudagent.messaging.models.base import BaseModelError
+from aries_cloudagent.messaging.models.openapi import OpenAPISchema
+from aries_cloudagent.messaging.models.paginated_query import (
+    PaginatedQuerySchema,
+    get_limit_offset,
+)
+from aries_cloudagent.messaging.valid import (
     INDY_CRED_DEF_ID_EXAMPLE,
     INDY_CRED_DEF_ID_VALIDATE,
     INDY_DID_EXAMPLE,
@@ -36,10 +39,19 @@ from ....messaging.valid import (
     UUID4_EXAMPLE,
     UUID4_VALIDATE,
 )
-from ....storage.error import StorageError, StorageNotFoundError
-from ....utils.tracing import AdminAPIMessageTracingSchema, get_timer, trace_event
-from ....wallet.util import default_did_from_verkey
-from ...out_of_band.v1_0.models.oob_record import OobRecord
+from aries_cloudagent.protocols.out_of_band.v1_0.models.oob_record import OobRecord
+from aries_cloudagent.revocation.models.issuer_cred_rev_record import (
+    IssuerCredRevRecord,
+)
+from aries_cloudagent.storage.error import StorageError, StorageNotFoundError
+from aries_cloudagent.utils.tracing import (
+    AdminAPIMessageTracingSchema,
+    get_timer,
+    trace_event,
+)
+from aries_cloudagent.wallet.util import default_did_from_verkey
+from marshmallow import fields, validate
+
 from . import problem_report_for_record, report_problem
 from .manager import CredentialManager, CredentialManagerError
 from .message_types import SPEC_URI
@@ -1508,3 +1520,34 @@ def post_process_routes(app: web.Application):
             "externalDocs": {"description": "Specification", "url": SPEC_URI},
         }
     )
+
+
+def register_events(bus: EventBus):
+    """Register event listeners."""
+    bus.subscribe(re.compile(r"^acapy::cred-revoked$"), cred_revoked)
+
+
+async def cred_revoked(profile: Profile, event: EventWithMetadata):
+    """Handle cred revoked event."""
+    assert isinstance(event.payload, IssuerCredRevRecord)
+    rev_rec: IssuerCredRevRecord = event.payload
+
+    if rev_rec.cred_ex_id is None:
+        return
+
+    if (
+        rev_rec.cred_ex_version
+        and rev_rec.cred_ex_version != IssuerCredRevRecord.VERSION_1
+    ):
+        return
+
+    async with profile.transaction() as txn:
+        try:
+            cred_ex_record = await V10CredentialExchange.retrieve_by_id(
+                txn, rev_rec.cred_ex_id, for_update=True
+            )
+            cred_ex_record.state = V10CredentialExchange.STATE_CREDENTIAL_REVOKED
+            await cred_ex_record.save(txn, reason="revoke credential")
+            await txn.commit()
+        except StorageNotFoundError:
+            pass
