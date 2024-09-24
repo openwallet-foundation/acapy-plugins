@@ -5,12 +5,12 @@ from typing import Any, Mapping, Optional, Union
 
 from marshmallow import fields, validate
 
-from .....core.profile import ProfileSession
-from .....indy.models.proof import IndyProof, IndyProofSchema
-from .....indy.models.proof_request import IndyProofRequest, IndyProofRequestSchema
-from .....messaging.models.base_record import BaseExchangeRecord, BaseExchangeSchema
-from .....messaging.valid import UUID4_EXAMPLE
-from .....storage.base import StorageError
+from aries_cloudagent.core.profile import ProfileSession
+from aries_cloudagent.indy.models.proof import IndyProof, IndyProofSchema
+from aries_cloudagent.indy.models.proof_request import IndyProofRequest, IndyProofRequestSchema
+from aries_cloudagent.messaging.models.base_record import BaseExchangeRecord, BaseExchangeSchema
+from aries_cloudagent.messaging.valid import UUID4_EXAMPLE
+from aries_cloudagent.storage.base import StorageError
 from ..messages.presentation_proposal import (
     PresentationProposal,
     PresentationProposalSchema,
@@ -255,6 +255,17 @@ class V10PresentationExchange(BaseExchangeRecord):
     def __eq__(self, other: Any) -> bool:
         """Comparison between records."""
         return super().__eq__(other)
+
+    def get_indy_proof_request(self) -> dict:
+        """Retrieve indy proof request."""
+        if not self._presentation_request:
+            raise ValueError("No presentation request on this record")
+
+        proof_request = self._presentation_request.ser
+        if proof_request is None:
+            raise ValueError("No proof request on this record")
+
+        return proof_request
 
 
 class V10PresentationExchangeSchema(BaseExchangeSchema):
