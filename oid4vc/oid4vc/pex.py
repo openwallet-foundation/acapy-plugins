@@ -18,6 +18,8 @@ import jsonpath_ng as jsonpath
 from jsonschema import Draft7Validator, ValidationError
 from marshmallow import EXCLUDE, fields
 
+from oid4vc.cred_processor import CredProcessors
+
 from .jwt import jwt_verify
 
 
@@ -199,7 +201,9 @@ class DescriptorEvaluator:
         self._field_constraints = field_constraints
 
     @classmethod
-    def compile(cls, descriptor: Union[dict, InputDescriptors]) -> "DescriptorEvaluator":
+    def compile(
+        cls, descriptor: Union[dict, InputDescriptors]
+    ) -> "DescriptorEvaluator":
         """Compile an input descriptor."""
         if isinstance(descriptor, dict):
             descriptor = InputDescriptors.deserialize(descriptor)
@@ -288,19 +292,25 @@ class PresentationExchangeEvaluator:
                 )
 
             # TODO Do something different if not jwt_vc
-            assert item.path_nested
-            assert item.path_nested.path
-            path = jsonpath.parse(item.path_nested.path)
-            values = path.find(presentation)
-            if len(values) != 1:
-                return PexVerifyResult(
-                    details=f"More than one value found for path {item.path_nested.path}"
-                )
+            if item.path_nested:
+                assert item.path_nested.path
+                path = jsonpath.parse(item.path_nested.path)
+                values = path.find(presentation)
+                if len(values) != 1:
+                    return PexVerifyResult(
+                        details=f"More than one value found for path {item.path_nested.path}"
+                    )
 
-            vc = values[0].value
-            result = await jwt_verify(profile, vc)
-            if not result.valid:
-                return PexVerifyResult(details="Credential signature verification failed")
+                vc = values[0].value
+            else:
+                vc = presentation
+            processors = profile.inject(CredProcessors)
+            processor = processors.cred_verifier_for_format(item.fmt)
+            result = await processor.verify_credential(profile, vc)
+            if not result.verified:
+                return PexVerifyResult(
+                    details="Credential signature verification failed"
+                )
 
             try:
                 fields = evaluator.match(result.payload)

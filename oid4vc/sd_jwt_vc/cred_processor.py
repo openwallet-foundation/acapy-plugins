@@ -2,15 +2,19 @@
 
 from copy import deepcopy
 from dataclasses import dataclass
+import logging
 import re
 import time
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List, Optional, Union
 
 from aries_cloudagent.admin.request_context import AdminRequestContext
 from aries_cloudagent.core.profile import Profile
+from aries_cloudagent.wallet.jwt import JWTVerifyResult
 from jsonpointer import EndOfList, JsonPointer, JsonPointerException
 from pydid import DIDUrl
 from sd_jwt.issuer import SDJWTIssuer, SDObj
+from sd_jwt.verifier import SDJWTVerifier
+
 
 from oid4vc.cred_processor import (
     CredProcessorError,
@@ -19,12 +23,12 @@ from oid4vc.cred_processor import (
     PresVerifier,
     VerifyResult,
 )
-from oid4vc.jwt import jwt_sign
+from oid4vc.jwt import jwt_sign, jwt_verify
 from oid4vc.models.exchange import OID4VCIExchangeRecord
 from oid4vc.models.supported_cred import SupportedCredential
 from oid4vc.pop_result import PopResult
 
-
+LOGGER = logging.getLogger(__name__)
 # Certain claims, if present, are never to be included in the selective disclosures list.
 
 # For flat claims, it's a simple matter of preventing the basic JSON pointer:
@@ -103,7 +107,9 @@ class SdJwtCredIssueProcessor(Issuer, CredVerifier, PresVerifier):
         except SDJWTError as error:
             raise CredProcessorError("Could not sign SD-JWT VC") from error
 
-    def validate_credential_subject(self, supported: SupportedCredential, subject: dict):
+    def validate_credential_subject(
+        self, supported: SupportedCredential, subject: dict
+    ):
         """Validate the credential subject."""
         vc_additional = supported.vc_additional_data
         assert vc_additional
@@ -164,11 +170,11 @@ class SdJwtCredIssueProcessor(Issuer, CredVerifier, PresVerifier):
 
         if bad_claims:
             raise SDJWTError(
-                "The following claims cannot be"
-                f"included in the selective disclosures: {bad_claims}"
-                "\nThese values are protected and cannot be selectively disclosable:"
-                f"{', '.join(FLAT_CLAIMS_NEVER_SD)}, /cnf, /status"
-                "\nOr, you provided an empty string, or a string that ends with a `/`"
+                "The following claims cannot be "
+                f"included in the selective disclosures: {bad_claims} "
+                "\nThese values are protected and cannot be selectively disclosable: "
+                f"{', '.join(FLAT_CLAIMS_NEVER_SD)}, /cnf, /status "
+                "\nOr, you provided an empty string, or a string that ends with a `/` "
                 "which are invalid for this purpose."
             )
 
@@ -186,11 +192,19 @@ class SdJwtCredIssueProcessor(Issuer, CredVerifier, PresVerifier):
         self, profile: Profile, presentation: Any
     ) -> VerifyResult:
         """Verify signature over credential or presentation."""
-        raise NotImplementedError()
 
-    async def verify_credential(self, profile: Profile, credential: Any) -> VerifyResult:
+        result = await sd_jwt_verify(profile, presentation)
+        # TODO: This is a little hacky
+        return VerifyResult(result.valid, presentation)
+
+    async def verify_credential(
+        self, profile: Profile, credential: Any
+    ) -> VerifyResult:
         """Verify signature over credential."""
-        raise NotImplementedError()
+        # TODO: Can we optimize this? since we end up doing this twice in a row
+
+        result = await sd_jwt_verify(profile, credential)
+        return VerifyResult(result.valid, result.payload)
 
 
 class SDJWTIssuerACAPy(SDJWTIssuer):
@@ -281,3 +295,122 @@ async def sd_jwt_sign(
         did=did,
         verification_method=verification_method,
     ).issue()
+
+
+class SDJWTVerifyResult(JWTVerifyResult):
+    """Result from verifying SD-JWT."""
+
+    class Meta:
+        """SDJWTVerifyResult metadata."""
+
+        schema_class = "SDJWTVerifyResultSchema"
+
+    def __init__(
+        self,
+        headers,
+        payload,
+        valid,
+        kid,
+        disclosures,
+    ):
+        """Initialize an SDJWTVerifyResult instance."""
+        super().__init__(
+            headers,
+            payload,
+            valid,
+            kid,
+        )
+        self.disclosures = disclosures
+
+
+class SDJWTVerifierACAPy(SDJWTVerifier):
+    """SDJWTVerifier class for ACA-Py implementation."""
+
+    def __init__(
+        self,
+        profile: Profile,
+        sd_jwt_presentation: str,
+        expected_aud: Union[str, None] = None,
+        expected_nonce: Union[str, None] = None,
+        serialization_format: str = "compact",
+    ):
+        """Initialize an SDJWTVerifierACAPy instance."""
+        self.profile = profile
+        self.sd_jwt_presentation = sd_jwt_presentation
+        self._serialization_format = serialization_format
+        self.expected_aud = expected_aud
+        self.expected_nonce = expected_nonce
+
+    async def _verify_sd_jwt(self) -> SDJWTVerifyResult:
+        verified = await jwt_verify(
+            self.profile,
+            self._unverified_input_sd_jwt,
+        )
+        return SDJWTVerifyResult(
+            headers=verified.headers,
+            payload=verified.payload,
+            valid=verified.valid,
+            kid=verified.kid,
+            disclosures=self._disclosures_list,
+        )
+
+    async def verify(self) -> SDJWTVerifyResult:
+        """Verify an sd-jwt."""
+        self._parse_sd_jwt(self.sd_jwt_presentation)
+        self._create_hash_mappings(self._input_disclosures)
+        self._disclosures_list = list(self._hash_to_decoded_disclosure.values())
+
+        self.verified_sd_jwt = await self._verify_sd_jwt()
+
+        if self.expected_aud or self.expected_nonce:
+            if not (self.expected_aud and self.expected_nonce):
+                raise ValueError(
+                    "Either both expected_aud and expected_nonce must be provided "
+                    "or both must be None"
+                )
+            await self._verify_key_binding_jwt(
+                self.expected_aud,
+                self.expected_nonce,
+            )
+        return self.verified_sd_jwt
+
+    async def _verify_key_binding_jwt(
+        self,
+        expected_aud: Union[str, None] = None,
+        expected_nonce: Union[str, None] = None,
+    ):
+        verified_kb_jwt = await jwt_verify(
+            self.profile, self._unverified_input_key_binding_jwt
+        )
+        self._holder_public_key_payload = self.verified_sd_jwt.payload.get("cnf", None)
+
+        if not self._holder_public_key_payload:
+            raise ValueError("No holder public key in SD-JWT")
+
+        holder_public_key_payload_jwk = self._holder_public_key_payload.get("jwk", None)
+        if not holder_public_key_payload_jwk:
+            raise ValueError(
+                "The holder_public_key_payload is malformed. "
+                "It doesn't contain the claim jwk: "
+                f"{self._holder_public_key_payload}"
+            )
+
+        if verified_kb_jwt.headers["typ"] != self.KB_JWT_TYP_HEADER:
+            raise ValueError("Invalid header typ")
+        if verified_kb_jwt.payload["aud"] != expected_aud:
+            raise ValueError("Invalid audience")
+        if verified_kb_jwt.payload["nonce"] != expected_nonce:
+            raise ValueError("Invalid nonce")
+
+
+async def sd_jwt_verify(
+    profile: Profile,
+    sd_jwt_presentation: str,
+    expected_aud: str = None,
+    expected_nonce: str = None,
+) -> SDJWTVerifyResult:
+    """Verify sd-jwt using SDJWTVerifierACAPy.verify()."""
+    sd_jwt_verifier = SDJWTVerifierACAPy(
+        profile, sd_jwt_presentation, expected_aud, expected_nonce
+    )
+    return await sd_jwt_verifier.verify()

@@ -538,9 +538,23 @@ async def verify_presentation(
     LOGGER.debug("Got: %s %s", submission, vp_token)
 
     processors = profile.inject(CredProcessors)
-    vp_result = await jwt_verify(profile, vp_token)
-    if not vp_result.valid:
-        raise ValueError("Presentation failed")
+    if not submission.descriptor_maps:
+        raise web.HTTPBadRequest(
+            reason="Descriptor map of submission must not be empty"
+        )
+
+    # TODO: Support longer descriptor map arrays
+    if len(submission.descriptor_maps) != 1:
+        raise web.HTTPBadRequest(
+            reason="Descriptor map of length greater than 1 is not supported at this time"
+        )
+
+    verifier = processors.pres_verifier_for_format(submission.descriptor_maps[0].fmt)
+    LOGGER.debug("VERIFIER: %s", verifier)
+
+    vp_result = await verifier.verify_presentation(
+        profile=profile, presentation=vp_token
+    )
 
     async with profile.session() as session:
         pres_def_entry = await OID4VPPresDef.retrieve_by_id(

@@ -453,67 +453,45 @@ async function create_presentation(presentationId, req, res) {
 
 
   // Create Presentation Definition
+  // TODO make pres type selectable via ui
   events.emit(`presentation-${presentationId}`, {type: "message", message: "Creating Presentation Definition."});
   const presentationDefinition = {"pres_def": {
     "id": uuidv4(),
     "purpose": "Present basic profile info",
     "format": {
-      "jwt_vc_json": {
-        "alg": [
-          "ES256"
-        ]
-      },
-      "jwt_vp_json": {
-        "alg": [
-          "ES256"
-        ]
-      },
-      "jwt_vc": {
-        "alg": [
-          "ES256"
-        ]
-      },
-      "jwt_vp": {
-        "alg": [
-          "ES256"
-        ]
-      }
+      "vc+sd-jwt": {}
     },
     "input_descriptors": [
       {
-        "id": "4ce7aff1-0234-4f35-9d21-251668a60950",
+        "id": "ID Card",
         "name": "Profile",
         "purpose": "Present basic profile info",
         "constraints": {
+          "limit_disclosure": "required",
           "fields": [
             {
-              "name": "name",
               "path": [
-                "$.vc.credentialSubject.first_name",
-                "$.credentialSubject.first_name"
+                "$.vct"
               ],
               "filter": {
-                "type": "string",
-                "pattern": "^.{1,64}$"
+                "type": "string"
               }
             },
             {
-              "name": "lastname",
               "path": [
-                "$.vc.credentialSubject.last_name",
-                "$.credentialSubject.last_name"
-              ],
-              "filter": {
-                "type": "string",
-                "pattern": "^.{1,64}$"
-              }
+                "$.family_name"
+              ]
+            },
+            {
+              "path": [
+                "$.given_name"
+              ]
             }
           ]
         }
       }
     ]
-  }
-  };
+  }};
 
   const presentationDefinitionUrl = `${API_BASE_URL}/oid4vp/presentation-definition`;
   const presentationDefinitionOptions = {
@@ -544,8 +522,8 @@ async function create_presentation(presentationId, req, res) {
     body: JSON.stringify({
       "pres_def_id": presentationDefinitionData.pres_def_id,
       "vp_formats": {
-        "jwt_vc_json": { "alg": [ "ES256", "EdDSA" ] },
-        "jwt_vp_json": { "alg": [ "ES256", "EdDSA" ] },
+        "vc+sd-jwt": { "alg": [ "ES256", "EdDSA" ] },
+        "vc+sd-jwt": { "alg": [ "ES256", "EdDSA" ] },
         "jwt_vc": { "alg": [ "ES256", "EdDSA" ] },
         "jwt_vp": { "alg": [ "ES256", "EdDSA" ] }
       },
