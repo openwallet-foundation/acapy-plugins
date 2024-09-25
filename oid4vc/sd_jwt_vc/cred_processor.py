@@ -13,7 +13,7 @@ from aries_cloudagent.wallet.jwt import JWTVerifyResult
 from jsonpointer import EndOfList, JsonPointer, JsonPointerException
 from pydid import DIDUrl
 from sd_jwt.issuer import SDJWTIssuer, SDObj
-from sd_jwt.verifier import DEFAULT_SIGNING_ALG, KB_DIGEST_KEY, SDJWTVerifier
+from sd_jwt.verifier import KB_DIGEST_KEY, SDJWTVerifier
 
 
 from oid4vc.cred_processor import (
@@ -107,7 +107,9 @@ class SdJwtCredIssueProcessor(Issuer, CredVerifier, PresVerifier):
         except SDJWTError as error:
             raise CredProcessorError("Could not sign SD-JWT VC") from error
 
-    def validate_credential_subject(self, supported: SupportedCredential, subject: dict):
+    def validate_credential_subject(
+        self, supported: SupportedCredential, subject: dict
+    ):
         """Validate the credential subject."""
         vc_additional = supported.vc_additional_data
         assert vc_additional
@@ -195,7 +197,9 @@ class SdJwtCredIssueProcessor(Issuer, CredVerifier, PresVerifier):
         # TODO: This is a little hacky
         return VerifyResult(result.verified, presentation)
 
-    async def verify_credential(self, profile: Profile, credential: Any) -> VerifyResult:
+    async def verify_credential(
+        self, profile: Profile, credential: Any
+    ) -> VerifyResult:
         """Verify signature over credential."""
         # TODO: Can we optimize this? since we end up doing this twice in a row
 

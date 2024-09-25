@@ -20,8 +20,6 @@ from marshmallow import EXCLUDE, fields
 
 from oid4vc.cred_processor import CredProcessors
 
-from .jwt import jwt_verify
-
 
 # TODO Update ACA-Py's InputDescriptorMapping model to match this
 class InputDescriptorMapping(BaseModel):
@@ -298,7 +296,8 @@ class PresentationExchangeEvaluator:
                 values = path.find(presentation)
                 if len(values) != 1:
                     return PexVerifyResult(
-                        details=f"More than one value found for path {item.path_nested.path}"
+                        details="More than one value found for path "
+                        f"{item.path_nested.path}"
                     )
 
                 vc = values[0].value
