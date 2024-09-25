@@ -232,6 +232,54 @@ async def presentation_definition_id(controller: Controller, issuer_did: str):
 
 
 @pytest_asyncio.fixture
+async def sdjwt_presentation_definition_id(controller: Controller, issuer_did: str):
+    """Create a supported credential."""
+    record = await controller.post(
+        "/oid4vp/presentation-definition",
+        json={
+            "pres_def": {
+                "id": str(uuid4()),
+                "purpose": "Present basic profile info",
+                "format": {
+                    "vc+sd-jwt": {}
+                },
+                "input_descriptors": [
+                    {
+                        "id": "ID Card",
+                        "name": "Profile",
+                        "purpose": "Present basic profile info",
+                        "constraints": {
+                            "limit_disclosure": "required",
+                            "fields": [
+                                {
+                                    "path": [
+                                        "$.vct"
+                                    ],
+                                    "filter": {
+                                        "type": "string"
+                                    }
+                                },
+                                {
+                                    "path": [
+                                        "$.family_name"
+                                    ]
+                                },
+                                {
+                                    "path": [
+                                        "$.given_name"
+                                    ]
+                                }
+                            ]
+                        }
+                    }
+                ]
+            }
+        },
+    )
+    yield record["pres_def_id"]
+
+
+@pytest_asyncio.fixture
 async def request_uri(
     controller: Controller, issuer_did: str, presentation_definition_id: str
 ):
@@ -241,11 +289,35 @@ async def request_uri(
         json={
             "pres_def_id": presentation_definition_id,
             "vp_formats": {
-				"jwt_vc_json": { "alg": [ "ES256", "EdDSA" ] },
-				"jwt_vp_json": { "alg": [ "ES256", "EdDSA" ] },
-				"jwt_vc": { "alg": [ "ES256", "EdDSA" ] },
-				"jwt_vp": { "alg": [ "ES256", "EdDSA" ] },
-			},
+                "jwt_vc_json": { "alg": [ "ES256", "EdDSA" ] },
+                "jwt_vp_json": { "alg": [ "ES256", "EdDSA" ] },
+                "jwt_vc": { "alg": [ "ES256", "EdDSA" ] },
+                "jwt_vp": { "alg": [ "ES256", "EdDSA" ] },
+            },
+        },
+    )
+    yield exchange["request_uri"]
+
+
+@pytest_asyncio.fixture
+async def sdjwt_request_uri(
+    controller: Controller, issuer_did: str, sdjwt_presentation_definition_id: str
+):
+    """Create a credential offer."""
+    exchange = await controller.post(
+        "/oid4vp/request",
+        json={
+            "pres_def_id": sdjwt_presentation_definition_id,
+            "vp_formats": {
+                "vc+sd-jwt": {
+                    "sd-jwt_alg_values": [
+                        "ES256", "EdDSA"
+                    ],
+                    "kb-jwt_alg_values": [
+                        "ES256", "EdDSA"
+                    ]
+                }
+            },
         },
     )
     yield exchange["request_uri"]

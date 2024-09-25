@@ -224,12 +224,12 @@ async def exchange_create(request: web.Request):
             )
 
     registered_processors = context.inject(CredProcessors)
-    if supported.format not in registered_processors.processors:
+    if supported.format not in registered_processors.issuers:
         raise web.HTTPBadRequest(
             reason=f"Format {supported.format} is not supported by"
             " currently registered processors"
         )
-    processor = registered_processors.for_format(supported.format)
+    processor = registered_processors.issuer_for_format(supported.format)
     try:
         processor.validate_credential_subject(supported, credential_subject)
     except ValueError as err:
@@ -454,13 +454,13 @@ async def supported_credential_create(request: web.Request):
     )
 
     registered_processors = context.inject(CredProcessors)
-    if record.format not in registered_processors.processors:
+    if record.format not in registered_processors.issuers:
         raise web.HTTPBadRequest(
             reason=f"Format {record.format} is not supported by"
             " currently registered processors"
         )
 
-    processor = registered_processors.for_format(record.format)
+    processor = registered_processors.issuer_for_format(record.format)
     try:
         processor.validate_supported_credential(record)
     except ValueError as err:

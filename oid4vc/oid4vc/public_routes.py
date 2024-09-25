@@ -325,9 +325,9 @@ async def issue_cred(request: web.Request):
 
     try:
         processors = context.inject(CredProcessors)
-        processor = processors.for_format(supported.format)
+        processor = processors.issuer_for_format(supported.format)
 
-        credential = await processor.issue_cred(
+        credential = await processor.issue(
             body, supported, ex_record, pop, context
         )
     except CredProcessorError as e:
