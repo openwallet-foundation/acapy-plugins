@@ -116,7 +116,7 @@ async function issue_jwt_credential(req, res) {
     headers: commonHeaders,
     body: JSON.stringify({
       cryptographic_binding_methods_supported: ["did"],
-      cryptographic_suites_supported: ["EdDSA"],
+      cryptographic_suites_supported: ["ES256"],
       display: [
         {
           name: "University Credential",
@@ -546,7 +546,9 @@ async function create_jwt_vc_presentation(req, res) {
       "pres_def_id": presentationDefinitionData.pres_def_id,
       "vp_formats": {
         "jwt_vc": { "alg": [ "ES256", "EdDSA" ] },
-        "jwt_vp": { "alg": [ "ES256", "EdDSA" ] }
+        "jwt_vp": { "alg": [ "ES256", "EdDSA" ] },
+        "jwt_vc_json": { "alg": [ "ES256", "EdDSA" ] },
+        "jwt_vp_json": { "alg": [ "ES256", "EdDSA" ] }
       },
     }),
   };
