@@ -1,14 +1,18 @@
 <div>
 	<div hx-ext="sse" sse-connect="/stream/present/<%= presentationId %>" class="w3-row">
 		<div class="w3-col m6 l6">
-			<button
-					class="w3-btn w3-blue"
-					hx-post="/present/create/<%= presentationId %>"
-					hx-target="#presentation"
+			<select
+					name="credential-type"
+					hx-get="/present/select"
+					hx-target="#pres-create"
 					hx-swap="innerhtml"
 					>
-					Create Presentation
-			</button>
+				<option value="" disabled selected>Credential Type</option>
+				<option value="jwt">JWT VC</option>
+				<option value="sdjwt">SD-JWT VC</option>
+			</select>
+			<div id="pres-create">
+			</div>
 		</div>
 		<div class="w3-col m6 l6" sse-swap="status" id="presentation"></div>
 		<div style="display:flex; flex-direction: column;" class="w3-col m12 l12">

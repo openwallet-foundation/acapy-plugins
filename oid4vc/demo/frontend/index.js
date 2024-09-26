@@ -432,9 +432,9 @@ async function issue_sdjwt_credential(req, res) {
 }
 
 
-// Begin Presentation Flow
-async function create_presentation(presentationId, req, res) {
-
+// Begin JWT VC JSON Presentation Flow
+async function create_jwt_vc_presentation(req, res) {
+  const presentationId = req.params.id;
   const commonHeaders = {
     accept: "application/json",
     "Content-Type": "application/json",
@@ -459,10 +459,162 @@ async function create_presentation(presentationId, req, res) {
     "id": uuidv4(),
     "purpose": "Present basic profile info",
     "format": {
-      "vc+sd-jwt": {}
+      "jwt_vc_json": {
+        "alg": [
+          "ES256"
+        ]
+      },
+      "jwt_vp_json": {
+        "alg": [
+          "ES256"
+        ]
+      },
+      "jwt_vc": {
+        "alg": [
+          "ES256"
+        ]
+      },
+      "jwt_vp": {
+        "alg": [
+          "ES256"
+        ]
+      }
     },
     "input_descriptors": [
       {
+        "id": "4ce7aff1-0234-4f35-9d21-251668a60950",
+        "name": "Profile",
+        "purpose": "Present basic profile info",
+        "constraints": {
+          "fields": [
+            {
+              "name": "name",
+              "path": [
+                "$.vc.credentialSubject.first_name",
+                "$.credentialSubject.first_name"
+              ],
+              "filter": {
+                "type": "string",
+                "pattern": "^.{1,64}$"
+              }
+            },
+            {
+              "name": "lastname",
+              "path": [
+                "$.vc.credentialSubject.last_name",
+                "$.credentialSubject.last_name"
+              ],
+              "filter": {
+                "type": "string",
+                "pattern": "^.{1,64}$"
+              }
+            }
+          ]
+        }
+      }
+    ]
+  }
+  };
+
+  const presentationDefinitionUrl = `${API_BASE_URL}/oid4vp/presentation-definition`;
+  const presentationDefinitionOptions = {
+    method: "POST",
+    headers: commonHeaders,
+    body: JSON.stringify(presentationDefinition),
+  };
+  logger.warn(presentationDefinitionUrl);
+  events.emit(`presentation-${presentationId}`, {type: "message", message: `Posting Presentation Definition to: ${presentationDefinitionUrl}`});
+  events.emit(`presentation-${presentationId}`, {type: "debug-message", message: "Request options", data: presentationDefinitionOptions});
+  const presentationDefinitionData = await fetchApiData(
+    presentationDefinitionUrl,
+    presentationDefinitionOptions
+  );
+  logger.info("Created presentation?");
+  logger.trace(JSON.stringify(presentationDefinitionData));
+  logger.trace(presentationDefinitionData.pres_def_id);
+  events.emit(`presentation-${presentationId}`, {type: "message", message: `Created Presentation Definition`});
+  events.emit(`presentation-${presentationId}`, {type: "message", message: `Presentation Definition ID: ${presentationDefinitionData.pres_def_id}`});
+  events.emit(`presentation-${presentationId}`, {type: "debug-message", message: "Response data", data: presentationDefinitionData});
+
+
+  // Create Presentation Request
+  const presentationRequestUrl = `${API_BASE_URL}/oid4vp/request`;
+  const presentationRequestOptions = {
+    method: "POST",
+    headers: commonHeaders,
+    body: JSON.stringify({
+      "pres_def_id": presentationDefinitionData.pres_def_id,
+      "vp_formats": {
+        "jwt_vc": { "alg": [ "ES256", "EdDSA" ] },
+        "jwt_vp": { "alg": [ "ES256", "EdDSA" ] }
+      },
+    }),
+  };
+  events.emit(`presentation-${presentationId}`, {type: "message", message: `Generating Presentation Request.`});
+  events.emit(`presentation-${presentationId}`, {type: "message", message: `Posting Presentation Request to: ${presentationRequestUrl}`});
+  events.emit(`presentation-${presentationId}`, {type: "debug-message", message: "Request options", data: presentationRequestOptions});
+  const presentationRequestData = await fetchApiData(
+    presentationRequestUrl,
+    presentationRequestOptions
+  );
+  events.emit(`presentation-${presentationId}`, {type: "message", message: `Generated Presentation Request.`});
+  events.emit(`presentation-${presentationId}`, {type: "message", message: `Presentation Request URI: ${presentationRequestData?.request_uri}`});
+  events.emit(`presentation-${presentationId}`, {type: "debug-message", message: "Response data", data: presentationRequestData});
+
+  // Grab the relevant data and store it for later reference while waiting for the webhooks from ACA-Py
+  let code = presentationRequestData.request_uri;
+  presentationCache.set(presentationDefinitionData.pres_def_id, { presentationDefinitionData, presentationRequestData, presentationId: presentationId });
+  logger.trace(JSON.stringify(presentationRequestData, null, 2));
+
+  // Generate a QRCode and return it to the browser (HTMX replaces a div with our current response)
+  var qrcode = new QRCode({
+    content: code,
+    padding: 4,
+    width: 256,
+    height: 256,
+    color: "#000000",
+    background: "#ffffff",
+    ecl: "M",
+  });
+  qrcode = qrcode.svg()
+  qrcode = qrcode.substring(qrcode.indexOf('?>')+2,qrcode.length)
+  res.setHeader('Content-Type', 'text/html; charset=utf-8');
+  res.send(qrcode);
+
+  // Polling for the credential is an option at this stage, but we opt to just listen for the appropriate webhook instead
+}
+
+// Begin SD-JWT Presentation Flow
+async function create_sd_jwt_presentation(req, res) {
+  const presentationId = req.params.id;
+  const commonHeaders = {
+    accept: "application/json",
+    "Content-Type": "application/json",
+  };
+  if (API_KEY) {
+    commonHeaders["X-API-KEY"] =  API_KEY;
+  }
+  axios.defaults.withCredentials = true;
+  axios.defaults.headers.common["Access-Control-Allow-Origin"] = API_BASE_URL;
+  axios.defaults.headers.common["X-API-KEY"] = API_KEY;
+
+  const fetchApiData = async (url, options) => {
+    const response = await fetch(url, options);
+    return await response.json();
+  };
+
+
+  // Create Presentation Definition
+  // TODO make pres type selectable via ui
+  events.emit(`presentation-${presentationId}`, {type: "message", message: "Creating Presentation Definition."});
+  const presentationDefinition = {"pres_def": {
+    "id": uuidv4(),
+    "purpose": "Present basic profile info",
+    "input_descriptors": [
+      {
+        "format": {
+          "vc+sd-jwt": {}
+        },
         "id": "ID Card",
         "name": "Profile",
         "purpose": "Present basic profile info",
@@ -522,10 +674,16 @@ async function create_presentation(presentationId, req, res) {
     body: JSON.stringify({
       "pres_def_id": presentationDefinitionData.pres_def_id,
       "vp_formats": {
-        "vc+sd-jwt": { "alg": [ "ES256", "EdDSA" ] },
-        "vc+sd-jwt": { "alg": [ "ES256", "EdDSA" ] },
-        "jwt_vc": { "alg": [ "ES256", "EdDSA" ] },
-        "jwt_vp": { "alg": [ "ES256", "EdDSA" ] }
+        "vc+sd-jwt": {
+            "sd-jwt_alg_values": [
+                "ES256",
+                "ES384"
+            ],
+            "kb-jwt_alg_values": [
+                "ES256",
+                "ES384"
+            ]
+        }
       },
     }),
   };
@@ -685,7 +843,7 @@ app.post("/issue", (req, res, next) => {
   //events.on(`${event_type}-${req.params.id}`, (data) => {
     console.log(req.body);
     switch(req.body["credential-type"]) {
-      case "oid4vc":
+      case "jwt":
         issue_jwt_credential(req, res).catch(next);
         break;
       case "sdjwt":
@@ -701,14 +859,29 @@ app.post("/issue", (req, res, next) => {
     handleEvents("issuance", req, res);
   });
 
+  app.get("/present/select", (req, res) => {
+    console.log(req.query);
+    res.render(`present/${req.query["credential-type"]}`, {"page": "register", "presentationId": uuidv4()});
+  });
+  
   // Render Presentation Exchange form
   app.get("/present", (req, res) => {
     res.render("presentation", {"page": "present", "presentationId": uuidv4()});
   });
 
-  app.post("/present/create/:id", (req, res, next) => {
+  app.get("/present/create/:id", (req, res, next) => {
     // Begin Presentation Exchange flow
-    create_presentation(req.params.id, req, res).catch(next);
+
+    switch(req.query["credential-type"]) {
+      case "jwt":
+        create_jwt_vc_presentation(req, res).catch(next);
+        break;
+      case "sdjwt":
+        create_sd_jwt_presentation(req, res).catch(next);
+        break;
+      default:
+        res.status(400).send("");
+    }
   });
 
   // Event Stream for Presentation page
