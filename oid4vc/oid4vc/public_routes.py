@@ -327,9 +327,7 @@ async def issue_cred(request: web.Request):
         processors = context.inject(CredProcessors)
         processor = processors.issuer_for_format(supported.format)
 
-        credential = await processor.issue(
-            body, supported, ex_record, pop, context
-        )
+        credential = await processor.issue(body, supported, ex_record, pop, context)
     except CredProcessorError as e:
         raise web.HTTPBadRequest(reason=e.message)
 
@@ -474,7 +472,7 @@ async def get_request(request: web.Request):
         "response_types_supported": ["id_token", "vp_token"],
         "scopes_supported": ["openid", "vp_token"],
         "subject_types_supported": ["pairwise"],
-        "subject_syntax_types_supported": ["did:web", "did:jwk"],
+        "subject_syntax_types_supported": "urn:ietf:params:oauth:jwk-thumbprint",
         "vp_formats": record.vp_formats,
         "response_type": "vp_token",
         "response_mode": "direct_post",

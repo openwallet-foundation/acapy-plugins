@@ -2,6 +2,7 @@
 
 from copy import deepcopy
 from dataclasses import dataclass
+import json
 import logging
 import re
 import time
@@ -10,6 +11,8 @@ from typing import Any, Dict, List, Optional, Union
 from aries_cloudagent.admin.request_context import AdminRequestContext
 from aries_cloudagent.core.profile import Profile
 from aries_cloudagent.wallet.jwt import JWTVerifyResult
+from aries_cloudagent.wallet.util import bytes_to_b64
+
 from jsonpointer import EndOfList, JsonPointer, JsonPointerException
 from pydid import DIDUrl
 from sd_jwt.issuer import SDJWTIssuer, SDObj
@@ -82,8 +85,16 @@ class SdJwtCredIssueProcessor(Issuer, CredVerifier, PresVerifier):
 
         if pop.holder_kid and pop.holder_kid.startswith("did:"):
             claims["sub"] = DIDUrl(pop.holder_kid).did
+            claims["cnf"] = {"kid": pop.holder_kid}
         elif pop.holder_jwk:
-            claims["cnf"] = {"jwk": pop.holder_jwk}
+            # FIXME: Credo explicitly requires a `kid` in `cnf`,
+            # so we're making credo happy here
+            pop.holder_jwk["use"] = "sig"
+            did = "did:jwk:" + bytes_to_b64(
+                json.dumps(pop.holder_jwk).encode(), urlsafe=True, pad=False
+            )
+
+            claims["cnf"] = {"kid": did + "#0", "jwk": pop.holder_jwk}
         else:
             raise ValueError("Unsupported pop holder value")
 
@@ -103,7 +114,9 @@ class SdJwtCredIssueProcessor(Issuer, CredVerifier, PresVerifier):
         did = ex_record.issuer_id
         ver_method = ex_record.verification_method
         try:
-            return await sd_jwt_sign(sd_list, claims, headers, profile, did, ver_method)
+            cred = await sd_jwt_sign(sd_list, claims, headers, profile, did, ver_method)
+            LOGGER.debug("SD JWT VC CREDENTIAL: %s", cred)
+            return cred
         except SDJWTError as error:
             raise CredProcessorError("Could not sign SD-JWT VC") from error
 
