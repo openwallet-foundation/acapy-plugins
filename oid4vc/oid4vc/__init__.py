@@ -42,8 +42,11 @@ async def setup(context: InjectionContext):
     jwt_vc_json = JwtVcJsonCredProcessor()
     processors = CredProcessors()
     processors.register_issuer("jwt_vc_json", jwt_vc_json)
+    processors.register_issuer("jwt_vc", jwt_vc_json)
     processors.register_cred_verifier("jwt_vc_json", jwt_vc_json)
+    processors.register_cred_verifier("jwt_vc", jwt_vc_json)
     processors.register_pres_verifier("jwt_vp_json", jwt_vc_json)
+    processors.register_pres_verifier("jwt_vp", jwt_vc_json)
 
     context.injector.bind_instance(CredProcessors, processors)
 

@@ -289,7 +289,7 @@ class PresentationExchangeEvaluator:
                     details=f"Could not find input descriptor corresponding to {item.id}"
                 )
 
-            # TODO Do something different if not jwt_vc
+            processors = profile.inject(CredProcessors)
             if item.path_nested:
                 assert item.path_nested.path
                 path = jsonpath.parse(item.path_nested.path)
@@ -301,10 +301,11 @@ class PresentationExchangeEvaluator:
                     )
 
                 vc = values[0].value
+                processor = processors.cred_verifier_for_format(item.path_nested.fmt)
             else:
                 vc = presentation
-            processors = profile.inject(CredProcessors)
-            processor = processors.cred_verifier_for_format(item.fmt)
+                processor = processors.cred_verifier_for_format(item.fmt)
+
             result = await processor.verify_credential(profile, vc)
             if not result.verified:
                 return PexVerifyResult(
