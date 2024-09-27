@@ -453,7 +453,6 @@ async function create_jwt_vc_presentation(req, res) {
 
 
   // Create Presentation Definition
-  // TODO make pres type selectable via ui
   events.emit(`presentation-${presentationId}`, {type: "message", message: "Creating Presentation Definition."});
   const presentationDefinition = {"pres_def": {
     "id": uuidv4(),
@@ -607,7 +606,6 @@ async function create_sd_jwt_presentation(req, res) {
 
 
   // Create Presentation Definition
-  // TODO make pres type selectable via ui
   events.emit(`presentation-${presentationId}`, {type: "message", message: "Creating Presentation Definition."});
   const presentationDefinition = {"pres_def": {
     "id": uuidv4(),
@@ -780,9 +778,9 @@ function handleEvents(event_type, req, res) {
         if (state == "request-retrieved")
           res.write(`event: status\ndata: <div style="text-align: center;">QRCode Scanned, awaiting presentation...</div>\n\n`);
         if (state == "presentation-invalid")
-          res.write(`event: status\ndata: <div style="text-align: center;">PRESENTATION INVALID</div>\n\n`);
+          res.write(`event: status\ndata: <div style="text-align: center;">Presentaion verification failed</div>\n\n`);
         if (state == "presentation-valid")
-          res.write(`event: status\ndata: <div style="text-align: center;">Presentation Valid</div>\n\n`);
+          res.write(`event: status\ndata: <div style="text-align: center;">Presentation Verified!</div>\n\n`);
       }
 
       // Handle OID4VCI webhooks
@@ -861,11 +859,11 @@ app.post("/issue", (req, res, next) => {
     handleEvents("issuance", req, res);
   });
 
-  app.get("/present/select", (req, res) => {
+  app.get("/present/select/:id", (req, res) => {
     console.log(req.query);
-    res.render(`present/${req.query["credential-type"]}`, {"page": "register", "presentationId": uuidv4()});
+    res.render(`present/${req.query["credential-type"]}`, {"page": "register", "presentationId": req.params.id});
   });
-  
+
   // Render Presentation Exchange form
   app.get("/present", (req, res) => {
     res.render("presentation", {"page": "present", "presentationId": uuidv4()});
