@@ -1,21 +1,29 @@
 """CredProcessor interface and exception."""
 
-from typing import Any, Protocol, Sequence
+from dataclasses import dataclass
+from typing import Any, Mapping, Optional, Protocol
 
 from aries_cloudagent.core.error import BaseError
 from aries_cloudagent.admin.request_context import AdminRequestContext
+from aries_cloudagent.core.profile import Profile
 
 from .models.exchange import OID4VCIExchangeRecord
 from .models.supported_cred import SupportedCredential
 from .pop_result import PopResult
 
 
-class CredProcessor(Protocol):
-    """Protocol for metadata about a cred processor."""
+@dataclass
+class VerifyResult:
+    """Result of verification."""
 
-    format: str
+    verified: bool
+    payload: Any
 
-    def issue_cred(
+
+class Issuer(Protocol):
+    """Issuer protocol."""
+
+    async def issue(
         self,
         body: Any,
         supported: SupportedCredential,
@@ -23,43 +31,97 @@ class CredProcessor(Protocol):
         pop: PopResult,
         context: AdminRequestContext,
     ) -> Any:
-        """Method signature.
-
-        Args:
-            body: any
-            supported: SupportedCredential
-            ex_record: OID4VCIExchangeRecord
-            pop: PopResult
-            context: AdminRequestContext
-        Returns:
-            encoded: signed credential payload.
-        """
+        """Issue a credential."""
+        ...
 
     def validate_credential_subject(self, supported: SupportedCredential, subject: dict):
         """Validate the credential subject."""
+        ...
 
     def validate_supported_credential(self, supported: SupportedCredential):
         """Validate the credential."""
+        ...
 
 
-class CredIssueError(BaseError):
+class CredVerifier(Protocol):
+    """Credential verifier protocol."""
+
+    async def verify_credential(self, profile: Profile, credential: Any) -> VerifyResult:
+        """Verify credential."""
+        ...
+
+
+class PresVerifier(Protocol):
+    """Presentation verifier protocol."""
+
+    async def verify_presentation(
+        self, profile: Profile, presentation: Any
+    ) -> VerifyResult:
+        """Verify presentation."""
+        ...
+
+
+class CredProcessorError(BaseError):
     """Base class for CredProcessor errors."""
+
+
+class IssuerError(CredProcessorError):
+    """Raised on issuer errors."""
+
+
+class CredVerifeirError(CredProcessorError):
+    """Raised on credential verifier errors."""
+
+
+class PresVerifeirError(CredProcessorError):
+    """Raised on presentation verifier errors."""
 
 
 class CredProcessors:
     """Registry for credential format processors."""
 
-    def __init__(self, processors: Sequence[CredProcessor]):
+    def __init__(
+        self,
+        issuers: Optional[Mapping[str, Issuer]] = None,
+        cred_verifiers: Optional[Mapping[str, CredVerifier]] = None,
+        pres_verifiers: Optional[Mapping[str, PresVerifier]] = None,
+    ):
         """Initialize the processor registry."""
-        self.processors = {processor.format: processor for processor in processors}
+        self.issuers = dict(issuers) if issuers else {}
+        self.cred_verifiers = dict(cred_verifiers) if cred_verifiers else {}
+        self.pres_verifiers = dict(pres_verifiers) if pres_verifiers else {}
 
-    def for_format(self, format: str):
+    def issuer_for_format(self, format: str) -> Issuer:
         """Return the processor to handle the given format."""
-        processor = self.processors.get(format)
+        processor = self.issuers.get(format)
         if not processor:
-            raise CredIssueError(f"No loaded processor for format {format}")
+            raise CredProcessorError(f"No loaded issuer for format {format}")
         return processor
 
-    def register(self, processor: CredProcessor):
+    def cred_verifier_for_format(self, format: str) -> CredVerifier:
+        """Return the processor to handle the given format."""
+        processor = self.cred_verifiers.get(format)
+        if not processor:
+            raise CredProcessorError(f"No loaded credential verifier for format {format}")
+        return processor
+
+    def pres_verifier_for_format(self, format: str) -> PresVerifier:
+        """Return the processor to handle the given format."""
+        processor = self.pres_verifiers.get(format)
+        if not processor:
+            raise CredProcessorError(
+                f"No loaded presentation verifier for format {format}"
+            )
+        return processor
+
+    def register_issuer(self, format: str, processor: Issuer):
         """Register a new processor for a format."""
-        self.processors[processor.format] = processor
+        self.issuers[format] = processor
+
+    def register_cred_verifier(self, format: str, processor: CredVerifier):
+        """Register a new processor for a format."""
+        self.cred_verifiers[format] = processor
+
+    def register_pres_verifier(self, format: str, processor: PresVerifier):
+        """Register a new processor for a format."""
+        self.pres_verifiers[format] = processor

@@ -47,7 +47,7 @@ from oid4vc.models.request import OID4VPRequest
 from oid4vc.pex import PresentationExchangeEvaluator, PresentationSubmission
 
 from .config import Config
-from .cred_processor import CredIssueError, CredProcessors
+from .cred_processor import CredProcessorError, CredProcessors
 from .models.exchange import OID4VCIExchangeRecord
 from .models.supported_cred import SupportedCredential
 from .pop_result import PopResult
@@ -200,7 +200,7 @@ async def check_token(
         raise web.HTTPUnauthorized()  # Invalid authentication credentials
 
     result = await jwt_verify(profile, cred)
-    if not result.valid:
+    if not result.verified:
         raise web.HTTPUnauthorized()  # Invalid credentials
 
     if result.payload["exp"] < datetime.datetime.utcnow().timestamp():
@@ -325,12 +325,10 @@ async def issue_cred(request: web.Request):
 
     try:
         processors = context.inject(CredProcessors)
-        processor = processors.for_format(supported.format)
+        processor = processors.issuer_for_format(supported.format)
 
-        credential = await processor.issue_cred(
-            body, supported, ex_record, pop, context
-        )
-    except CredIssueError as e:
+        credential = await processor.issue(body, supported, ex_record, pop, context)
+    except CredProcessorError as e:
         raise web.HTTPBadRequest(reason=e.message)
 
     async with context.session() as session:
@@ -474,7 +472,7 @@ async def get_request(request: web.Request):
         "response_types_supported": ["id_token", "vp_token"],
         "scopes_supported": ["openid", "vp_token"],
         "subject_types_supported": ["pairwise"],
-        "subject_syntax_types_supported": ["did:web", "did:jwk"],
+        "subject_syntax_types_supported": ["urn:ietf:params:oauth:jwk-thumbprint"],
         "vp_formats": record.vp_formats,
         "response_type": "vp_token",
         "response_mode": "direct_post",
@@ -537,9 +535,24 @@ async def verify_presentation(
 
     LOGGER.debug("Got: %s %s", submission, vp_token)
 
-    vp_result = await jwt_verify(profile, vp_token)
-    if not vp_result.valid:
-        raise ValueError("Presentation failed")
+    processors = profile.inject(CredProcessors)
+    if not submission.descriptor_maps:
+        raise web.HTTPBadRequest(
+            reason="Descriptor map of submission must not be empty"
+        )
+
+    # TODO: Support longer descriptor map arrays
+    if len(submission.descriptor_maps) != 1:
+        raise web.HTTPBadRequest(
+            reason="Descriptor map of length greater than 1 is not supported at this time"
+        )
+
+    verifier = processors.pres_verifier_for_format(submission.descriptor_maps[0].fmt)
+    LOGGER.debug("VERIFIER: %s", verifier)
+
+    vp_result = await verifier.verify_presentation(
+        profile=profile, presentation=vp_token
+    )
 
     async with profile.session() as session:
         pres_def_entry = await OID4VPPresDef.retrieve_by_id(

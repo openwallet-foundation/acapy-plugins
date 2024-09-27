@@ -1,5 +1,6 @@
 """JWT Methods."""
 
+from dataclasses import dataclass
 from typing import Any, Dict, Mapping, Optional
 
 from aries_askar import Key, KeyAlg
@@ -9,7 +10,6 @@ from aries_cloudagent.wallet.base import BaseWallet
 from aries_cloudagent.wallet.jwt import (
     BadJWSHeaderError,
     BaseVerificationKeyStrategy,
-    JWTVerifyResult,
     dict_to_b64,
     did_lookup_name,
     nym_to_did,
@@ -19,6 +19,20 @@ from aries_cloudagent.wallet.key_type import ED25519
 from aries_cloudagent.wallet.util import b58_to_bytes, bytes_to_b64
 
 from oid4vc.jwk import P256
+
+@dataclass
+class JWTVerifyResult:
+    """JWT Verification Result."""
+    def __init__(
+        self,
+        headers: Mapping[str, Any],
+        payload: Mapping[str, Any],
+        verified: bool,
+    ):
+        """Initialize a JWTVerifyResult instance."""
+        self.headers = headers
+        self.payload = payload
+        self.verified = verified
 
 
 async def key_material_for_kid(profile: Profile, kid: str):
@@ -101,15 +115,26 @@ async def jwt_sign(
     return f"{encoded_headers}.{encoded_payload}.{sig}"
 
 
-async def jwt_verify(profile: Profile, jwt: str) -> JWTVerifyResult:
+async def jwt_verify(
+    profile: Profile, jwt: str, *, cnf: Optional[dict] = None
+) -> JWTVerifyResult:
     """Verify a JWT and return the headers and payload."""
     encoded_headers, encoded_payload, encoded_signature = jwt.split(".", 3)
     headers = b64_to_dict(encoded_headers)
     payload = b64_to_dict(encoded_payload)
-    verification_method = headers["kid"]
-    decoded_signature = b64_to_bytes(encoded_signature, urlsafe=True)
+    if cnf:
+        if "jwk" in cnf:
+            key = Key.from_jwk(cnf["jwk"])
+        elif "kid" in cnf:
+            verification_method = headers["kid"]
+            key = await key_material_for_kid(profile, verification_method)
+        else:
+            raise ValueError("Unsupported cnf")
+    else:
+        verification_method = headers["kid"]
+        key = await key_material_for_kid(profile, verification_method)
 
-    key = await key_material_for_kid(profile, verification_method)
+    decoded_signature = b64_to_bytes(encoded_signature, urlsafe=True)
     alg = headers.get("alg")
     if alg == "EdDSA" and key.algorithm != KeyAlg.ED25519:
         raise BadJWSHeaderError("Expected ed25519 key")
@@ -121,4 +146,4 @@ async def jwt_verify(profile: Profile, jwt: str) -> JWTVerifyResult:
         decoded_signature,
     )
 
-    return JWTVerifyResult(headers, payload, valid, verification_method)
+    return JWTVerifyResult(headers, payload, valid)

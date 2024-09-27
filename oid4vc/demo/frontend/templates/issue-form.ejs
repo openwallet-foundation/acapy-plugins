@@ -1,44 +1,47 @@
 <div id="registration-form">
-	<form
-			class="w3-container"
-			hx-post="/issue"
-			hx-target="#registration-form"
-			hx-swap="innerhtml"
-			>
-		<div class="w3-container w3-center">
-			<input type="hidden" id="registrationId" name="registrationId" value="<%= registrationId %>">
-			<label
-					class="w3-text-gray"
-					for="credential-type"
-					>
-				Type of Credential to issue
-			</label>
-			<br />
-			<select
-					name="credential-type"
-					hx-get="/issue/select"
-					hx-target="#fields"
-					>
-				<option value="" disabled selected>Credential Type</option>
-				<option value="oid4vc">JWT VC</option>
-				<option value="sdjwt">SD-JWT VC</option>
-			</select>
-		</div>
-		<div id="fields">
-		</div>
-	</form>
+  <form
+      class="w3-container"
+      hx-post="/issue"
+      hx-target="#registration-form"
+      hx-swap="innerhtml"
+      >
+    <div class="w3-container w3-center">
+      <input type="hidden" id="registrationId" name="registrationId" value="<%= registrationId %>">
+      <label
+          class="w3-text-gray"
+          for="credential-type"
+          >
+        Type of Credential to Issue
+      </label>
+      <br />
+      <select
+          style="margin-bottom: 1em;"
+          name="credential-type"
+          hx-get="/issue/select"
+          hx-target="#fields"
+          >
+        <option value="" disabled selected>Credential Type</option>
+        <option value="jwt">JWT VC</option>
+        <option value="sdjwt">SD-JWT VC</option>
+      </select>
+    </div>
+    <div id="fields">
+    </div>
+  </form>
 </div>
 <div hx-ext="sse" sse-connect="/stream/issue/<%= registrationId %>" style="display: flex; max-width: 100%; flex-direction: column;">
-	<div sse-swap="qrcode" style="align-self: center;"></div>
-	<pre style="flex-grow: 1; text-wrap: pretty; padding-bottom: 15px; overflow-wrap: anywhere;"><div sse-swap="message" hx-swap="beforeend"></div></pre>
-	<div sse-swap="debug" style="text-wrap: pretty; overflow-wrap: anywhere;"></div>
+  <div sse-swap="qrcode" style="align-self: center;"></div>
+  <pre style="flex-grow: 1; text-wrap: pretty; padding-bottom: 15px; overflow-wrap: anywhere;">
+  <div sse-swap="message" hx-swap="beforeend"></div>
+  <div sse-swap="debug" hx-swap="beforeend"></div>
+  </pre>
 </div>
 <div id="navigation" hx-swap-oob="innerhtml">
-	<%- include('navigation.ejs') %>
+  <%- include('navigation.ejs') %>
 </div>
 <div id="content-header" hx-swap-oob="innerhtml">
-	<h1 class="w3-jumbo"><b>Admin Credential Issuance</b></h1>
-	<h1 class="w3-xxxlarge w3-text-green"><b>Issue Credential</b></h1>
-	<hr style="width:50px;border:5px solid green" class="w3-round">
+  <h1 class="w3-jumbo"><b>OpenID4VCI</b></h1>
+  <h1 class="w3-xxxlarge w3-text-green"><b>Issue Credential</b></h1>
+  <hr style="width:50px;border:5px solid green" class="w3-round">
 </div>
 

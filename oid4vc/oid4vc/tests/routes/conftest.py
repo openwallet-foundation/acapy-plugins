@@ -20,7 +20,11 @@ def resolver():
 @pytest.fixture
 def profile(resolver: DIDResolver):
     """Test Profile."""
-    processors = CredProcessors([JwtVcJsonCredProcessor()])
+    processors = CredProcessors(
+        {"jwt_vc_json": JwtVcJsonCredProcessor()},
+        {"jwt_vc_json": JwtVcJsonCredProcessor()},
+        {"jwt_vc_json": JwtVcJsonCredProcessor()},
+    )
     yield InMemoryProfile.test_profile(
         {
             "admin.admin_insecure_mode": True,
@@ -30,7 +34,7 @@ def profile(resolver: DIDResolver):
                     "host": "0.0.0.0",
                     "port": 8020,
                 }
-            }
+            },
         },
         {
             DIDResolver: resolver,

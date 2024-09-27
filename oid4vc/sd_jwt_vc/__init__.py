@@ -15,4 +15,6 @@ async def setup(context: InjectionContext):
     """Setup the plugin."""
     processors = context.inject(CredProcessors)
     sd_jwt = SdJwtCredIssueProcessor()
-    processors.register(sd_jwt)
+    processors.register_issuer("vc+sd-jwt", sd_jwt)
+    processors.register_cred_verifier("vc+sd-jwt", sd_jwt)
+    processors.register_pres_verifier("vc+sd-jwt", sd_jwt)

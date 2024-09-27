@@ -6,24 +6,29 @@ from typing import Any
 import uuid
 
 from aries_cloudagent.admin.request_context import AdminRequestContext
+from aries_cloudagent.core.profile import Profile
+from pydid import DIDUrl
 
+from oid4vc.cred_processor import (
+    CredProcessorError,
+    CredVerifier,
+    Issuer,
+    PresVerifier,
+    VerifyResult,
+)
+from oid4vc.jwt import jwt_sign, jwt_verify
 from oid4vc.models.exchange import OID4VCIExchangeRecord
 from oid4vc.models.supported_cred import SupportedCredential
-from oid4vc.public_routes import types_are_subset
 from oid4vc.pop_result import PopResult
-from oid4vc.cred_processor import CredProcessor, CredIssueError
-from oid4vc.jwt import jwt_sign
-from pydid import DIDUrl
+from oid4vc.public_routes import types_are_subset
 
 LOGGER = logging.getLogger(__name__)
 
 
-class JwtVcJsonCredProcessor(CredProcessor):
+class JwtVcJsonCredProcessor(Issuer, CredVerifier, PresVerifier):
     """Credential processor class for jwt_vc_json format."""
 
-    format = "jwt_vc_json"
-
-    async def issue_cred(
+    async def issue(
         self,
         body: Any,
         supported: SupportedCredential,
@@ -34,7 +39,7 @@ class JwtVcJsonCredProcessor(CredProcessor):
         """Return signed credential in JWT format."""
         assert supported.format_data
         if not types_are_subset(body.get("types"), supported.format_data.get("types")):
-            raise CredIssueError("Requested types does not match offer.")
+            raise CredProcessorError("Requested types does not match offer.")
 
         current_time = datetime.datetime.now(datetime.timezone.utc)
         current_time_unix_timestamp = int(current_time.timestamp())
@@ -83,3 +88,21 @@ class JwtVcJsonCredProcessor(CredProcessor):
     def validate_supported_credential(self, supported: SupportedCredential):
         """Validate a supported JWT VC JSON Credential."""
         pass
+
+    async def verify(self, profile: Profile, jwt: str) -> VerifyResult:
+        """Verify a credential or presentation."""
+        res = await jwt_verify(profile, jwt)
+        return VerifyResult(
+            verified=res.verified,
+            payload=res.payload,
+        )
+
+    async def verify_credential(self, profile: Profile, credential: Any) -> VerifyResult:
+        """Verify a credential in JWT VC format."""
+        return await self.verify(profile, credential)
+
+    async def verify_presentation(
+        self, profile: Profile, presentation: Any
+    ) -> VerifyResult:
+        """Verify a presentation in JWT VP format."""
+        return await self.verify(profile, presentation)

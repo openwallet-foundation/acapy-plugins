@@ -18,7 +18,7 @@ import jsonpath_ng as jsonpath
 from jsonschema import Draft7Validator, ValidationError
 from marshmallow import EXCLUDE, fields
 
-from .jwt import jwt_verify
+from oid4vc.cred_processor import CredProcessors
 
 
 # TODO Update ACA-Py's InputDescriptorMapping model to match this
@@ -199,7 +199,9 @@ class DescriptorEvaluator:
         self._field_constraints = field_constraints
 
     @classmethod
-    def compile(cls, descriptor: Union[dict, InputDescriptors]) -> "DescriptorEvaluator":
+    def compile(
+        cls, descriptor: Union[dict, InputDescriptors]
+    ) -> "DescriptorEvaluator":
         """Compile an input descriptor."""
         if isinstance(descriptor, dict):
             descriptor = InputDescriptors.deserialize(descriptor)
@@ -226,7 +228,7 @@ class DescriptorEvaluator:
 
 
 @dataclass
-class VerifyResult:
+class PexVerifyResult:
     """Result of verification."""
 
     verified: bool = False
@@ -265,7 +267,7 @@ class PresentationExchangeEvaluator:
         profile: Profile,
         submission: Union[dict, PresentationSubmission],
         presentation: Mapping[str, Any],
-    ) -> VerifyResult:
+    ) -> PexVerifyResult:
         """Check if a submission matches the definition."""
         if isinstance(submission, dict):
             submission = PresentationSubmission.deserialize(submission)
@@ -275,7 +277,7 @@ class PresentationExchangeEvaluator:
             raise TypeError("submission must be dict or PresentationSubmission")
 
         if submission.definition_id != self.id:
-            return VerifyResult(details="Submission id doesn't match definition")
+            return PexVerifyResult(details="Submission id doesn't match definition")
 
         descriptor_id_to_claims = {}
         descriptor_id_to_fields = {}
@@ -283,36 +285,44 @@ class PresentationExchangeEvaluator:
             # TODO Check JWT VP generally, if format is jwt_vp
             evaluator = self._id_to_descriptor.get(item.id)
             if not evaluator:
-                return VerifyResult(
+                return PexVerifyResult(
                     details=f"Could not find input descriptor corresponding to {item.id}"
                 )
 
-            # TODO Do something different if not jwt_vc
-            assert item.path_nested
-            assert item.path_nested.path
-            path = jsonpath.parse(item.path_nested.path)
-            values = path.find(presentation)
-            if len(values) != 1:
-                return VerifyResult(
-                    details=f"More than one value found for path {item.path_nested.path}"
-                )
+            processors = profile.inject(CredProcessors)
+            if item.path_nested:
+                assert item.path_nested.path
+                path = jsonpath.parse(item.path_nested.path)
+                values = path.find(presentation)
+                if len(values) != 1:
+                    return PexVerifyResult(
+                        details="More than one value found for path "
+                        f"{item.path_nested.path}"
+                    )
 
-            vc = values[0].value
-            result = await jwt_verify(profile, vc)
-            if not result.valid:
-                return VerifyResult(details="Credential signature verification failed")
+                vc = values[0].value
+                processor = processors.cred_verifier_for_format(item.path_nested.fmt)
+            else:
+                vc = presentation
+                processor = processors.cred_verifier_for_format(item.fmt)
+
+            result = await processor.verify_credential(profile, vc)
+            if not result.verified:
+                return PexVerifyResult(
+                    details="Credential signature verification failed"
+                )
 
             try:
                 fields = evaluator.match(result.payload)
             except DescriptorMatchFailed:
-                return VerifyResult(
+                return PexVerifyResult(
                     details="Credential did not match expected descriptor constraints"
                 )
 
             descriptor_id_to_claims[item.id] = result.payload
             descriptor_id_to_fields[item.id] = fields
 
-        return VerifyResult(
+        return PexVerifyResult(
             verified=True,
             descriptor_id_to_claims=descriptor_id_to_claims,
             descriptor_id_to_fields=descriptor_id_to_fields,
