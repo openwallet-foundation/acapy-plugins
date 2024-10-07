@@ -107,9 +107,7 @@ async def list_exchange_records(request: web.BaseRequest):
     try:
         async with context.profile.session() as session:
             if exchange_id := request.query.get("exchange_id"):
-                record = await OID4VCIExchangeRecord.retrieve_by_id(
-                    session, exchange_id
-                )
+                record = await OID4VCIExchangeRecord.retrieve_by_id(session, exchange_id)
                 results = [record.serialize()]
             else:
                 filter_ = {
@@ -472,6 +470,131 @@ async def supported_credential_create(request: web.Request):
     return web.json_response(record.serialize())
 
 
+class JwtSupportedCredCreateRequestSchema(OpenAPISchema):
+    """Schema for SupportedCredCreateRequestSchema."""
+
+    format = fields.Str(required=True, metadata={"example": "jwt_vc_json"})
+    identifier = fields.Str(
+        data_key="id", required=True, metadata={"example": "UniversityDegreeCredential"}
+    )
+    cryptographic_binding_methods_supported = fields.List(
+        fields.Str(), metadata={"example": ["did"]}
+    )
+    cryptographic_suites_supported = fields.List(
+        fields.Str(), metadata={"example": ["ES256K"]}
+    )
+    display = fields.List(
+        fields.Dict(),
+        metadata={
+            "example": [
+                {
+                    "name": "University Credential",
+                    "locale": "en-US",
+                    "logo": {
+                        "url": "https://w3c-ccg.github.io/vc-ed/plugfest-1-2022/images/JFF_LogoLockup.png",
+                        "alt_text": "a square logo of a university",
+                    },
+                    "background_color": "#12107c",
+                    "text_color": "#FFFFFF",
+                }
+            ]
+        },
+    )
+    type = fields.List(
+        fields.Str,
+        required=True,
+        metadata={
+            "description": "List of credential types supported.",
+            "example": ["VerifiableCredential", "UniversityDegreeCredential"]
+        },
+    )
+    credential_subject = fields.Dict(
+        keys=fields.Str,
+        data_key="credentialSubject",
+        required=False,
+        metadata={
+            "description": "Metadata about the Credential Subject to help with display.",
+            "example": {
+                "given_name": {"display": [{"name": "Given Name", "locale": "en-US"}]},
+                "last_name": {"display": [{"name": "Surname", "locale": "en-US"}]},
+                "degree": {},
+                "gpa": {"display": [{"name": "GPA"}]},
+            },
+        },
+    )
+    order = fields.List(
+        fields.Str,
+        required=False,
+        metadata={
+            "description": (
+                "The order in which claims should be displayed. This is not well defined "
+                "by the spec right now. Best to omit for now."
+            )
+        },
+    )
+    context = fields.List(
+        fields.Raw,
+        data_key="@context",
+        required=True,
+        metadata={
+            "example": [
+                "https://www.w3.org/2018/credentials/v1",
+                "https://www.w3.org/2018/credentials/examples/v1",
+            ],
+        },
+    )
+
+
+@docs(
+    tags=["oid4vci"], summary="Register a configuration for a supported JWT VC credential"
+)
+@request_schema(JwtSupportedCredCreateRequestSchema())
+@response_schema(SupportedCredentialSchema())
+@tenant_authentication
+async def supported_credential_create_jwt(request: web.Request):
+    """Request handler for creating a credential supported record."""
+    context = request["context"]
+    assert isinstance(context, AdminRequestContext)
+    profile = context.profile
+
+    body: Dict[str, Any] = await request.json()
+    LOGGER.info(f"body: {body}")
+    body["identifier"] = body.pop("id")
+    format_data = {}
+    format_data["types"] = body.pop("type")
+    format_data["credential_subject"] = body.pop("credentialSubject", None)
+    format_data["context"] = body.pop("@context")
+    format_data["order"] = body.pop("order", None)
+    vc_additional_data = {}
+    vc_additional_data["@context"] = format_data["context"]
+    # type vs types is deliberate; OID4VCI spec is inconsistent with VCDM
+    vc_additional_data["type"] = format_data["types"]
+
+    record = SupportedCredential(
+        **body,
+        format_data=format_data,
+        vc_additional_data=vc_additional_data,
+    )
+
+    registered_processors = context.inject(CredProcessors)
+    if record.format not in registered_processors.issuers:
+        raise web.HTTPBadRequest(
+            reason=f"Format {record.format} is not supported by"
+            " currently registered processors"
+        )
+
+    processor = registered_processors.issuer_for_format(record.format)
+    try:
+        processor.validate_supported_credential(record)
+    except ValueError as err:
+        raise web.HTTPBadRequest(reason=str(err)) from err
+
+    async with profile.session() as session:
+        await record.save(session, reason="Save credential supported record.")
+
+    return web.json_response(record.serialize())
+
+
 class SupportedCredentialQuerySchema(OpenAPISchema):
     """Query filters for credential supported record list query."""
 
@@ -561,9 +684,7 @@ async def supported_credential_remove(request: web.Request):
 
     try:
         async with context.session() as session:
-            record = await SupportedCredential.retrieve_by_id(
-                session, supported_cred_id
-            )
+            record = await SupportedCredential.retrieve_by_id(session, supported_cred_id)
             await record.delete_record(session)
     except StorageNotFoundError as err:
         raise web.HTTPNotFound(reason=err.roll_up) from err
@@ -733,9 +854,7 @@ async def list_oid4vp_presentations(request: web.Request):
     try:
         async with context.profile.session() as session:
             if presentation_id := request.query.get("presentation_id"):
-                record = await OID4VPPresentation.retrieve_by_id(
-                    session, presentation_id
-                )
+                record = await OID4VPPresentation.retrieve_by_id(session, presentation_id)
                 results = [record.serialize()]
             else:
                 filter_ = {
@@ -913,9 +1032,7 @@ async def create_did_jwk(request: web.Request):
         jwk = json.loads(key.get_jwk_public())
         jwk["use"] = "sig"
 
-        did = "did:jwk:" + bytes_to_b64(
-            json.dumps(jwk).encode(), urlsafe=True, pad=False
-        )
+        did = "did:jwk:" + bytes_to_b64(json.dumps(jwk).encode(), urlsafe=True, pad=False)
 
         did_info = DIDInfo(
             did=did,
@@ -942,8 +1059,10 @@ async def register(app: web.Application):
             ),
             web.post("/oid4vci/exchange/create", exchange_create),
             web.delete("/oid4vci/exchange/records/{exchange_id}", exchange_delete),
+            web.post("/oid4vci/credential-supported/create", supported_credential_create),
             web.post(
-                "/oid4vci/credential-supported/create", supported_credential_create
+                "/oid4vci/credential-supported/create/jwt",
+                supported_credential_create_jwt,
             ),
             web.get(
                 "/oid4vci/credential-supported/records",
@@ -973,14 +1092,14 @@ def post_process_routes(app: web.Application):
     app._state["swagger_dict"]["tags"].append(
         {
             "name": "oid4vci",
-            "description": "OpenID4VCI",
+            "description": "OpenID for VC Issuance",
             "externalDocs": {"description": "Specification", "url": VCI_SPEC_URI},
         }
     )
     app._state["swagger_dict"]["tags"].append(
         {
             "name": "oid4vp",
-            "description": "OpenID4VP",
+            "description": "OpenID for VP",
             "externalDocs": {"description": "Specification", "url": VP_SPEC_URI},
         }
     )

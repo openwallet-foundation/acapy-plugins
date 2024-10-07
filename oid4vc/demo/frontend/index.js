@@ -110,7 +110,7 @@ async function issue_jwt_credential(req, res) {
 
 
   // Create credential schema
-  const createCredentialSupportedUrl = `${API_BASE_URL}/oid4vci/credential-supported/create`;
+  const createCredentialSupportedUrl = `${API_BASE_URL}/oid4vci/credential-supported/create/jwt`;
   const createCredentialSupportedOptions = {
     method: "POST",
     headers: commonHeaders,
@@ -130,43 +130,38 @@ async function issue_jwt_credential(req, res) {
         },
       ],
       format: "jwt_vc_json",
-      format_data: {
-        credentialSubject: {
-          degree: {},
-          given_name: {
-            display: [
-              {
-                name: "Given Name",
-                locale: "en-US",
-              },
-            ],
-          },
-          gpa: {
-            display: [
-              {
-                name: "GPA",
-              },
-            ],
-          },
-          last_name: {
-            display: [
-              {
-                name: "Surname",
-                locale: "en-US",
-              },
-            ],
-          },
+      credentialSubject: {
+        degree: {},
+        given_name: {
+          display: [
+            {
+              name: "Given Name",
+              locale: "en-US",
+            },
+          ],
         },
-        types: ["VerifiableCredential", "UniversityDegreeCredential"],
+        gpa: {
+          display: [
+            {
+              name: "GPA",
+            },
+          ],
+        },
+        last_name: {
+          display: [
+            {
+              name: "Surname",
+              locale: "en-US",
+            },
+          ],
+        },
       },
+      type: ["VerifiableCredential", "UniversityDegreeCredential"],
       id: "UniversityDegreeCredential",
-      vc_additional_data: {
-        "@context": [
-          "https://www.w3.org/2018/credentials/v1",
-          "https://www.w3.org/2018/credentials/examples/v1",
-        ],
-        type: ["VerifiableCredential", "UniversityDegreeCredential"],
-      },
+      "@context": [
+        "https://www.w3.org/2018/credentials/v1",
+        "https://www.w3.org/2018/credentials/examples/v1",
+      ]
     }),
   };
 
@@ -274,7 +269,7 @@ async function issue_sdjwt_credential(req, res) {
 
 
   // Create credential schema
-  const createCredentialSupportedUrl = `${API_BASE_URL}/oid4vci/credential-supported/create`;
+  const createCredentialSupportedUrl = `${API_BASE_URL}/oid4vci/credential-supported/create/sd-jwt`;
   const createCredentialSupportedOptions = {
     method: "POST",
     headers: commonHeaders,
@@ -290,57 +285,53 @@ async function issue_sdjwt_credential(req, res) {
           "text_color": "#FFFFFF"
         }
       ],
-      format_data: {
-        vct: "ExampleIDCard",
-        "claims": {
-          "given_name": {
-            "mandatory": true,
-            "value_type": "string",
-          },
-          "family_name": {
-            "mandatory": true,
-            "value_type": "string",
-          },
-          "age_equal_or_over": {
-            "12": {
-              "mandatory": true,
-              "value_type": "boolean",
-            },
-            "14": {
-              "mandatory": true,
-              "value_type": "boolean",
-            },
-            "16": {
-              "mandatory": true,
-              "value_type": "boolean",
-            },
-            "18": {
-              "mandatory": true,
-              "value_type": "boolean",
-            },
-            "21": {
-              "mandatory": true,
-              "value_type": "boolean",
-            },
-            "65": {
-              "mandatory": true,
-              "value_type": "boolean",
-            },
-          }
+      vct: "ExampleIDCard",
+      "claims": {
+        "given_name": {
+          "mandatory": true,
+          "value_type": "string",
         },
+        "family_name": {
+          "mandatory": true,
+          "value_type": "string",
+        },
+        "age_equal_or_over": {
+          "12": {
+            "mandatory": true,
+            "value_type": "boolean",
+          },
+          "14": {
+            "mandatory": true,
+            "value_type": "boolean",
+          },
+          "16": {
+            "mandatory": true,
+            "value_type": "boolean",
+          },
+          "18": {
+            "mandatory": true,
+            "value_type": "boolean",
+          },
+          "21": {
+            "mandatory": true,
+            "value_type": "boolean",
+          },
+          "65": {
+            "mandatory": true,
+            "value_type": "boolean",
+          },
+        }
       },
-      vc_additional_data: {
-        sd_list: [
-          "/given_name",
-          "/family_name",
-          "/age_equal_or_over/12",
-          "/age_equal_or_over/14",
-          "/age_equal_or_over/16",
-          "/age_equal_or_over/18",
-          "/age_equal_or_over/21",
-          "/age_equal_or_over/65"
-        ]
-      }
+      sd_list: [
+        "/given_name",
+        "/family_name",
+        "/age_equal_or_over/12",
+        "/age_equal_or_over/14",
+        "/age_equal_or_over/16",
+        "/age_equal_or_over/18",
+        "/age_equal_or_over/21",
+        "/age_equal_or_over/65"
+      ]
     }),
   };
 
