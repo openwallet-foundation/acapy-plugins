@@ -1,7 +1,7 @@
 [tool.poetry]
 name = "oid4vc"
 version = "0.1.0"
-description = "OpenID for Verifiable Credentials plugin for acapy. (Supported aries-cloudagent version: 1.0.0)"
+description = "OpenID for Verifiable Credentials plugin for acapy. (Supported aries-cloudagent version: 1.0.1) "
 authors = [
 	"Adam Burdett <burdettadam@gmail.com>",
 	"Char Howland <char@indicio.tech>",
@@ -41,7 +41,7 @@ mso_mdoc = ["cbor2", "cbor-diag", "cwt", "pycose"]
 sd_jwt = ["jsonpointer"]
 
 [tool.poetry.dev-dependencies]
-ruff = "^0.6.5"
+ruff = "^0.6.9"
 pytest = "^8.3.3"
 pytest-asyncio = "^0.24.0"
 pytest-cov = "^5.0.0"
