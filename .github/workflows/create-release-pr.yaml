@@ -162,7 +162,17 @@ jobs:
               continue
             fi
             cd $current_folder
-            poetry install --no-interaction --no-root --extras "aca-py"
+
+            # If the plugin fails to install then consider it as a failed plugin and skip linting
+            if ! poetry install --no-interaction --no-root --all-extras $i
+            then
+              echo "plugin $current_folder failed to install"
+              failed_plugins+=("$current_folder")
+              cd ..
+              continue
+            fi
+
+            # Run the lint check
             if poetry run ruff check .; then
               echo "plugin $current_folder passed lint check"
             else
@@ -187,7 +197,17 @@ jobs:
               continue
             fi
             cd $current_folder
-            poetry install --no-interaction --no-root --all-extras
+
+            # If the plugin fails to install then consider it as a failed plugin and skip unit tests
+            if ! poetry install --no-interaction --no-root --all-extras $i
+            then
+              echo "plugin $current_folder failed to install"
+              failed_plugins+=("$current_folder")
+              cd ..
+              continue
+            fi
+
+            # Run the unit test check
             if poetry run pytest; then
               echo "plugin $current_folder passed unit test check"
             else
@@ -236,23 +256,17 @@ jobs:
             cd $current_folder/integration
             docker compose down --remove-orphans
             docker compose build
-            if docker compose run tests; then
-              echo "plugin $current_folder passed integration test check"
-            else
+            if ! docker compose run tests $i 
+            then
               echo "plugin $current_folder failed integration test check"
               failed_plugins+=("$current_folder")
+              continue
             fi
+
+            echo "plugin $current_folder passed integration test check"
             cd ../..
           done
           echo integration_test_plugins=${failed_plugins[*]} >> $GITHUB_OUTPUT
-      #----------------------------------------------
-      #       Integration Test Failure Check
-      #----------------------------------------------
-      - name: Integration Test Failure Check
-        if: steps.integration_test_plugins.outputs.integration_test_exit_code == '17'
-        run: |
-          echo "Integration tests failed with exit code 17. Skipping commit and release"
-          echo integration_test_exit_code=17 >> $GITHUB_OUTPUT
       # ----------------------------------------------
       #       Prepare Pull Request
       # ----------------------------------------------
