@@ -1,4 +1,25 @@
 # Plugin Release Status
+## ACA-Py Release 1.0.1
+
+| Plugin Name | Supported ACA-Py Release |
+| --- | --- |
+|basicmessage_storage | 1.0.1|
+|connection_update | 1.0.1|
+|firebase_push_notifications | 1.0.1|
+|kafka_events | 0.12.2|
+|multitenant_provider | 1.0.1|
+|oid4vc | 1.0.1|
+|redis_events | 1.0.1|
+|rpc | 1.0.1| 
+
+### Plugins Upgraded For ACA-Py Release 1.0.1 
+ - basicmessage_storage 
+ - connection_update 
+ - firebase_push_notifications 
+ - multitenant_provider 
+ - oid4vc 
+ - redis_events 
+ - rpc 
 ## ACA-Py Release 1.0.0
 
 | Plugin Name | Supported ACA-Py Release |
