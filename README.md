@@ -109,7 +109,7 @@ Example Dockerfile:
 
 ```yaml
 
-FROM ghcr.io/openwallet-foundation/acapy:py3.12-1.0.1
+FROM ghcr.io/openwallet-foundation/acapy:py3.12-1.1.0
 
 USER root
 
