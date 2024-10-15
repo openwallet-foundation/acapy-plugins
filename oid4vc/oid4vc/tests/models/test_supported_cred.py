@@ -1,5 +1,5 @@
 import pytest
-from aries_cloudagent.core.profile import Profile
+from acapy_agent.core.profile import Profile
 
 from oid4vc.models.supported_cred import SupportedCredential
 

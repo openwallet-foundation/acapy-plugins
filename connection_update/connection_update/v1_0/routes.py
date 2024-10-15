@@ -3,17 +3,17 @@
 import functools
 import logging
 
-from aiohttp import web
-from aiohttp_apispec import docs, match_info_schema, request_schema, response_schema
-from aries_cloudagent.admin.decorators.auth import tenant_authentication
-from aries_cloudagent.admin.request_context import AdminRequestContext
-from aries_cloudagent.connections.models.conn_record import ConnRecord, ConnRecordSchema
-from aries_cloudagent.messaging.models.base import BaseModelError
-from aries_cloudagent.messaging.models.openapi import OpenAPISchema
-from aries_cloudagent.protocols.connections.v1_0.routes import (
+from acapy_agent.admin.decorators.auth import tenant_authentication
+from acapy_agent.admin.request_context import AdminRequestContext
+from acapy_agent.connections.models.conn_record import ConnRecord, ConnRecordSchema
+from acapy_agent.messaging.models.base import BaseModelError
+from acapy_agent.messaging.models.openapi import OpenAPISchema
+from acapy_agent.protocols.connections.v1_0.routes import (
     ConnectionsConnIdMatchInfoSchema,
 )
-from aries_cloudagent.storage.error import StorageError, StorageNotFoundError
+from acapy_agent.storage.error import StorageError, StorageNotFoundError
+from aiohttp import web
+from aiohttp_apispec import docs, match_info_schema, request_schema, response_schema
 from marshmallow import fields
 
 LOGGER = logging.getLogger(__name__)
@@ -69,9 +69,7 @@ async def connections_update(request: web.BaseRequest):
     profile = context.profile
 
     async with profile.session() as session:
-        record = await ConnRecord.retrieve_by_id(
-            session, connection_id, for_update=True
-        )
+        record = await ConnRecord.retrieve_by_id(session, connection_id, for_update=True)
         if alias:
             record.alias = alias
         await record.save(session, reason="Update connection alias")

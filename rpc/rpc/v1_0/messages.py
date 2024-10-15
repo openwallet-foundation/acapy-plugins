@@ -1,6 +1,6 @@
 """Agent Messages for DIDComm RPC v1.0."""
 
-from aries_cloudagent.messaging.agent_message import AgentMessage, AgentMessageSchema
+from acapy_agent.messaging.agent_message import AgentMessage, AgentMessageSchema
 from marshmallow import ValidationError, pre_dump
 
 from rpc.v1_0.message_types import DRPC_REQUEST, DRPC_RESPONSE, PROTOCOL_PACKAGE

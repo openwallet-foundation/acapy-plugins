@@ -3,16 +3,16 @@
 import logging
 import re
 
+from acapy_agent.admin.decorators.auth import tenant_authentication
+from acapy_agent.admin.request_context import AdminRequestContext
+from acapy_agent.connections.models.conn_record import ConnRecord
+from acapy_agent.core.event_bus import Event, EventBus
+from acapy_agent.core.profile import Profile
+from acapy_agent.messaging.models.openapi import OpenAPISchema
+from acapy_agent.messaging.valid import UUIDFour
+from acapy_agent.storage.error import StorageNotFoundError
 from aiohttp import web
 from aiohttp_apispec import docs, match_info_schema, request_schema, response_schema
-from aries_cloudagent.admin.decorators.auth import tenant_authentication
-from aries_cloudagent.admin.request_context import AdminRequestContext
-from aries_cloudagent.connections.models.conn_record import ConnRecord
-from aries_cloudagent.core.event_bus import Event, EventBus
-from aries_cloudagent.core.profile import Profile
-from aries_cloudagent.messaging.models.openapi import OpenAPISchema
-from aries_cloudagent.messaging.valid import UUIDFour
-from aries_cloudagent.storage.error import StorageNotFoundError
 from marshmallow import fields
 
 from .constants import FORWARDING_EVENT

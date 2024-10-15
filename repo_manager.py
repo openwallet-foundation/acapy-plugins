@@ -211,9 +211,7 @@ def process_main_config_sections(
                         i,
                         content,
                         output,
-                        global_sections[
-                            ManagedPoetrySections(content[i].strip()).name
-                        ],
+                        global_sections[ManagedPoetrySections(content[i].strip()).name],
                         content[i],
                     )
             else:
@@ -270,9 +268,7 @@ def process_integration_config_sections(
                         i,
                         content,
                         output,
-                        global_sections[
-                            ManagedPoetrySections(content[i].strip()).name
-                        ],
+                        global_sections[ManagedPoetrySections(content[i].strip()).name],
                         content[i],
                     )
             else:
@@ -288,14 +284,16 @@ def replace_global_sections(name: str) -> None:
     global_sections, plugin_sections = get_and_combine_main_poetry_sections(name)
     process_main_config_sections(name, plugin_sections, global_sections)
     if is_plugin_directory(name, True):
-        global_sections, plugin_sections = get_and_combine_integration_poetry_sections(name)
+        global_sections, plugin_sections = get_and_combine_integration_poetry_sections(
+            name
+        )
         process_integration_config_sections(name, plugin_sections, global_sections)
 
 
 def is_plugin_directory(plugin_name: str, exclude_lite_plugins: bool = False) -> bool:
     # If there is a directory which is not a plugin it should be ignored here
     if exclude_lite_plugins:
-        lite_plugins = Path('lite_plugins').read_text().splitlines()
+        lite_plugins = Path("lite_plugins").read_text().splitlines()
         return (
             os.path.isdir(plugin_name)
             and plugin_name != GLOBAL_PLUGIN_DIR
@@ -307,7 +305,7 @@ def is_plugin_directory(plugin_name: str, exclude_lite_plugins: bool = False) ->
         and plugin_name != GLOBAL_PLUGIN_DIR
         and not plugin_name.startswith(".")
     )
-    
+
 
 def update_all_poetry_locks():
     for root, _, files in os.walk("."):
@@ -315,7 +313,8 @@ def update_all_poetry_locks():
             print(f"Updating poetry.lock in {root}")
             subprocess.run(["poetry", "lock"], cwd=root)
 
-def upgrade_library_in_all_plugins(library: str = None):        
+
+def upgrade_library_in_all_plugins(library: str = None):
     for root, _, files in os.walk("."):
         if "poetry.lock" in files:
             with open(f"{root}/poetry.lock", "r") as file:
@@ -327,13 +326,12 @@ def upgrade_library_in_all_plugins(library: str = None):
 
 
 def main(arg_1=None, arg_2=None):
-
     options = """
         What would you like to do? 
         (1) Create a new plugin
         (2) Update all plugin common poetry sections 
         (3) Upgrade plugin_global dependencies 
-        (4) Update plugins description with supported aries-cloudagent version
+        (4) Update plugins description with supported acapy-agent version
         (5) Get the plugins that upgraded since last release
         (6) Update all poetry.lock files
         (7) Upgrade a specific library in all plugins
@@ -389,17 +387,17 @@ def main(arg_1=None, arg_2=None):
         print(msg)
         os.system("cd plugin_globals && poetry lock")
 
-    # Update plugins description with supported aries-cloudagent version
+    # Update plugins description with supported acapy-agent version
     elif selection == "4":
         """
-        1. Update the description of each plugin with the supported aries-cloudagent version.
+        1. Update the description of each plugin with the supported acapy-agent version.
         2. Output text for the release notes in markdown form.
         """
 
-        # Get the aries-cloudagent version from the global poetry.lock file
+        # Get the acapy-agent version from the global poetry.lock file
         with open("./plugin_globals/poetry.lock", "r") as file:
             for line in file:
-                if 'name = "aries-cloudagent"' in line:
+                if 'name = "acapy-agent"' in line:
                     next_line = next(file, None)
                     global_version = re.findall(r'"([^"]*)"', next_line)
                     break
@@ -411,10 +409,10 @@ def main(arg_1=None, arg_2=None):
         print("| --- | --- |")
         for plugin_name in sorted(os.listdir("./")):
             if is_plugin_directory(plugin_name):
-                # Plugin specific aries-cloudagent version
+                # Plugin specific acapy-agent version
                 with open(f"./{plugin_name}/poetry.lock", "r") as file:
                     for line in file:
-                        if 'name = "aries-cloudagent"' in line:
+                        if 'name = "acapy-agent"' in line:
                             next_line = next(file, None)
                             version = re.findall(r'"([^"]*)"', next_line)
                             break
@@ -429,27 +427,27 @@ def main(arg_1=None, arg_2=None):
                             description_line = line
                             break
 
-                # Replace the description with the supported aries-cloudagent version at the end
-                if description[0].find("Supported aries-cloudagent version") != -1:
+                # Replace the description with the supported acapy-agent version at the end
+                if description[0].find("Supported acapy-agent version") != -1:
                     description[0] = description[0].split(
-                        " (Supported aries-cloudagent version"
+                        " (Supported acapy-agent version"
                     )[0]
 
                 filedata = filedata.replace(
                     description_line,
-                    f'description = "{description[0]} (Supported aries-cloudagent version: {version[0]}) "',
+                    f'description = "{description[0]} (Supported acapy-agent version: {version[0]}) "',
                 )
 
                 with open(f"./{plugin_name}/pyproject.toml", "w") as file:
                     file.write(filedata)
                 print(f"|{plugin_name} | {version[0]}|")
-        
+
         print("\n")
 
     elif selection == "5":
         """
         Extract the plugins from the RELEASES.md and determine which plugins which can be
-        upgraded or are new based off of the global aries-cloudagent version.
+        upgraded or are new based off of the global acapy-agent version.
         """
 
         # All the plugins. Used to determine which plugins are new.
@@ -457,10 +455,10 @@ def main(arg_1=None, arg_2=None):
             plugin for plugin in os.listdir("./") if is_plugin_directory(plugin)
         ]
 
-        # Get the aries-cloudagent version from the global poetry.lock file
+        # Get the acapy-agent version from the global poetry.lock file
         with open("./plugin_globals/poetry.lock", "r") as file:
             for line in file:
-                if 'name = "aries-cloudagent"' in line:
+                if 'name = "acapy-agent"' in line:
                     next_line = next(file, None)
                     global_version = re.findall(r'"([^"]*)"', next_line)
                     break
@@ -475,8 +473,7 @@ def main(arg_1=None, arg_2=None):
                     line = next(file)
                     while "### Plugins Upgraded" not in line:
                         if (
-                            line
-                            != "| Plugin Name | Supported ACA-Py Release |\n"
+                            line != "| Plugin Name | Supported ACA-Py Release |\n"
                             and line != "| --- | --- |\n"
                         ):
                             last_releases.append(line.strip())
@@ -493,7 +490,7 @@ def main(arg_1=None, arg_2=None):
             split_item = item.split("|")
             if len(split_item) > 1:
                 released_plugins.append(split_item[1].strip())
-                
+
                 if split_item[2].strip() == global_version[0]:
                     plugins_on_old_release.append(split_item[1].strip())
 

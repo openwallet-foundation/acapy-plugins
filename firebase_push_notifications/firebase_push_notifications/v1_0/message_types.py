@@ -1,6 +1,6 @@
 """Message type identifiers for push-notifications-fcm v1.0."""
 
-from aries_cloudagent.protocols.didcomm_prefix import DIDCommPrefix
+from acapy_agent.protocols.didcomm_prefix import DIDCommPrefix
 
 ARIES_PROTOCOL = "push-notifications-fcm/1.0"
 SET_DEVICE_INFO = f"{ARIES_PROTOCOL}/set-device-info"

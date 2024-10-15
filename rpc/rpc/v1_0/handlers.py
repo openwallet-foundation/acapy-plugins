@@ -2,13 +2,13 @@
 
 import json
 
-from aries_cloudagent.messaging.base_handler import (
+from acapy_agent.messaging.base_handler import (
     BaseHandler,
     BaseResponder,
     RequestContext,
 )
-from aries_cloudagent.storage.base import BaseStorage
-from aries_cloudagent.storage.record import StorageRecord
+from acapy_agent.storage.base import BaseStorage
+from acapy_agent.storage.record import StorageRecord
 
 from rpc.v1_0.messages import DRPCRequestMessage, DRPCResponseMessage
 from rpc.v1_0.models import DRPCRecord

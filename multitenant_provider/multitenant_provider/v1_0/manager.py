@@ -5,18 +5,18 @@ from datetime import datetime, timezone
 
 import bcrypt
 import jwt
-from aries_cloudagent.askar.profile import AskarProfile
-from aries_cloudagent.config.injection_context import InjectionContext
-from aries_cloudagent.core.error import BaseError
-from aries_cloudagent.core.profile import Profile
-from aries_cloudagent.multitenant.base import MultitenantManagerError
-from aries_cloudagent.multitenant.error import WalletKeyMissingError
-from aries_cloudagent.multitenant.manager import MultitenantManager
-from aries_cloudagent.multitenant.single_wallet_askar_manager import (
+from acapy_agent.askar.profile import AskarProfile
+from acapy_agent.config.injection_context import InjectionContext
+from acapy_agent.core.error import BaseError
+from acapy_agent.core.profile import Profile
+from acapy_agent.multitenant.base import MultitenantManagerError
+from acapy_agent.multitenant.error import WalletKeyMissingError
+from acapy_agent.multitenant.manager import MultitenantManager
+from acapy_agent.multitenant.single_wallet_askar_manager import (
     SingleWalletAskarMultitenantManager,
 )
-from aries_cloudagent.storage.error import StorageError
-from aries_cloudagent.wallet.models.wallet_record import WalletRecord
+from acapy_agent.storage.error import StorageError
+from acapy_agent.wallet.models.wallet_record import WalletRecord
 
 from .config import MultitenantProviderConfig
 from .models import WalletTokenRecord

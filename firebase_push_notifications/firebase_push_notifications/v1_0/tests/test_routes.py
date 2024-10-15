@@ -1,12 +1,12 @@
 from unittest import IsolatedAsyncioTestCase
 from unittest.mock import MagicMock, patch
 
+from acapy_agent.admin.request_context import AdminRequestContext
+from acapy_agent.connections.models.conn_record import ConnRecord
+from acapy_agent.core.event_bus import MockEventBus
+from acapy_agent.core.in_memory.profile import InMemoryProfile
+from acapy_agent.storage.error import StorageNotFoundError
 from aiohttp import web
-from aries_cloudagent.admin.request_context import AdminRequestContext
-from aries_cloudagent.connections.models.conn_record import ConnRecord
-from aries_cloudagent.core.event_bus import MockEventBus
-from aries_cloudagent.core.in_memory.profile import InMemoryProfile
-from aries_cloudagent.storage.error import StorageNotFoundError
 
 from .. import routes as test_module
 
@@ -27,7 +27,7 @@ class TestRoutes(IsolatedAsyncioTestCase):
             match_info={},
             query={},
             __getitem__=lambda _, k: self.request_dict[k],
-            headers={"x-api-key": "admin_api_key"}
+            headers={"x-api-key": "admin_api_key"},
         )
 
     async def test_register_events_subscribes_to_event_bus(self):

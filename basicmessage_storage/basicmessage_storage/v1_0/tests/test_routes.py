@@ -2,9 +2,9 @@ import json
 from unittest import IsolatedAsyncioTestCase
 from unittest.mock import AsyncMock, MagicMock, Mock, patch
 
-from aries_cloudagent.admin.request_context import AdminRequestContext
-from aries_cloudagent.protocols.basicmessage.v1_0 import routes as base_module
-from aries_cloudagent.core.in_memory.profile import InMemoryProfile
+from acapy_agent.admin.request_context import AdminRequestContext
+from acapy_agent.core.in_memory.profile import InMemoryProfile
+from acapy_agent.protocols.basicmessage.v1_0 import routes as base_module
 
 from basicmessage_storage.v1_0.models import BasicMessageRecord
 
@@ -32,7 +32,7 @@ class TestRoutes(IsolatedAsyncioTestCase):
             match_info={},
             query={},
             __getitem__=lambda _, k: self.request_dict[k],
-            headers={"x-api-key": "admin_api_key"}
+            headers={"x-api-key": "admin_api_key"},
         )
         self.test_conn_id = "connection-id"
 

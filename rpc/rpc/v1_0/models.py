@@ -2,9 +2,9 @@
 
 from typing import Any, List, Mapping, Optional, Union
 
-from aries_cloudagent.core.profile import ProfileSession
-from aries_cloudagent.messaging.models.base import BaseModel, BaseModelSchema
-from aries_cloudagent.messaging.models.base_record import BaseRecord, BaseRecordSchema
+from acapy_agent.core.profile import ProfileSession
+from acapy_agent.messaging.models.base import BaseModel, BaseModelSchema
+from acapy_agent.messaging.models.base_record import BaseRecord, BaseRecordSchema
 from marshmallow import ValidationError, fields, validate, validates_schema
 
 RPC_REQUEST_EXAMPLE = {
@@ -362,6 +362,4 @@ class DRPCRecordSchema(BaseRecordSchema):
             data.get("state") == DRPCRecord.STATE_COMPLETED
             and data.get("response") is None
         ):
-            raise ValidationError(
-                "RPC response cannot be null if state is 'completed'."
-            )
+            raise ValidationError("RPC response cannot be null if state is 'completed'.")

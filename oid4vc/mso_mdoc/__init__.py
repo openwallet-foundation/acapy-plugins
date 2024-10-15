@@ -2,7 +2,8 @@
 
 from importlib.util import find_spec
 
-from aries_cloudagent.config.injection_context import InjectionContext
+from acapy_agent.config.injection_context import InjectionContext
+
 from mso_mdoc.cred_processor import MsoMdocCredProcessor
 from oid4vc.cred_processor import CredProcessors
 

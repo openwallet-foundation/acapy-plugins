@@ -1,12 +1,12 @@
 import logging
 
-from aries_cloudagent.admin.base_server import BaseAdminServer
-from aries_cloudagent.config.injection_context import InjectionContext
-from aries_cloudagent.core.event_bus import Event, EventBus
-from aries_cloudagent.core.profile import Profile
-from aries_cloudagent.core.protocol_registry import ProtocolRegistry
-from aries_cloudagent.core.util import STARTUP_EVENT_PATTERN
-from aries_cloudagent.multitenant.base import BaseMultitenantManager
+from acapy_agent.admin.base_server import BaseAdminServer
+from acapy_agent.config.injection_context import InjectionContext
+from acapy_agent.core.event_bus import Event, EventBus
+from acapy_agent.core.profile import Profile
+from acapy_agent.core.protocol_registry import ProtocolRegistry
+from acapy_agent.core.util import STARTUP_EVENT_PATTERN
+from acapy_agent.multitenant.base import BaseMultitenantManager
 
 from .config import MultitenantProviderConfig, get_config
 from .provider import CustomMultitenantManagerProvider

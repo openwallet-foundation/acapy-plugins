@@ -2,12 +2,12 @@ import json
 from unittest import IsolatedAsyncioTestCase
 from unittest.mock import AsyncMock, MagicMock, patch
 
+from acapy_agent.admin.request_context import AdminRequestContext
+from acapy_agent.core.in_memory import InMemoryProfile
+from acapy_agent.messaging.models.base import BaseModelError
+from acapy_agent.storage.error import StorageError, StorageNotFoundError
+from acapy_agent.storage.record import StorageRecord
 from aiohttp import web
-from aries_cloudagent.admin.request_context import AdminRequestContext
-from aries_cloudagent.core.in_memory import InMemoryProfile
-from aries_cloudagent.messaging.models.base import BaseModelError
-from aries_cloudagent.storage.error import StorageError, StorageNotFoundError
-from aries_cloudagent.storage.record import StorageRecord
 
 import rpc.v1_0.routes as test_module
 from rpc.v1_0.models import DRPCRecord, DRPCRecordSchema
@@ -62,7 +62,7 @@ class TestDRPCRoutes(IsolatedAsyncioTestCase):
             match_info={},
             query={},
             __getitem__=lambda _, key: self.request_dict[key],
-            headers={"x-api-key": "admin_api_key"}
+            headers={"x-api-key": "admin_api_key"},
         )
 
     async def test_get_empty_drpc_record_list(self):

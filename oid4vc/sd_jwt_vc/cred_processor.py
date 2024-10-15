@@ -1,23 +1,21 @@
 """Issue an SD-JWT credential."""
 
-from copy import deepcopy
-from dataclasses import dataclass
 import json
 import logging
 import re
 import time
+from copy import deepcopy
+from dataclasses import dataclass
 from typing import Any, Dict, List, Optional, Union
 
-from aries_cloudagent.admin.request_context import AdminRequestContext
-from aries_cloudagent.core.profile import Profile
-from aries_cloudagent.wallet.jwt import JWTVerifyResult
-from aries_cloudagent.wallet.util import bytes_to_b64
-
+from acapy_agent.admin.request_context import AdminRequestContext
+from acapy_agent.core.profile import Profile
+from acapy_agent.wallet.jwt import JWTVerifyResult
+from acapy_agent.wallet.util import bytes_to_b64
 from jsonpointer import EndOfList, JsonPointer, JsonPointerException
 from pydid import DIDUrl
 from sd_jwt.issuer import SDJWTIssuer, SDObj
 from sd_jwt.verifier import KB_DIGEST_KEY, SDJWTVerifier
-
 
 from oid4vc.cred_processor import (
     CredProcessorError,
@@ -120,9 +118,7 @@ class SdJwtCredIssueProcessor(Issuer, CredVerifier, PresVerifier):
         except SDJWTError as error:
             raise CredProcessorError("Could not sign SD-JWT VC") from error
 
-    def validate_credential_subject(
-        self, supported: SupportedCredential, subject: dict
-    ):
+    def validate_credential_subject(self, supported: SupportedCredential, subject: dict):
         """Validate the credential subject."""
         vc_additional = supported.vc_additional_data
         assert vc_additional
@@ -210,9 +206,7 @@ class SdJwtCredIssueProcessor(Issuer, CredVerifier, PresVerifier):
         # TODO: This is a little hacky
         return VerifyResult(result.verified, presentation)
 
-    async def verify_credential(
-        self, profile: Profile, credential: Any
-    ) -> VerifyResult:
+    async def verify_credential(self, profile: Profile, credential: Any) -> VerifyResult:
         """Verify signature over credential."""
         # TODO: Can we optimize this? since we end up doing this twice in a row
 

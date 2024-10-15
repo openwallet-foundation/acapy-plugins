@@ -3,9 +3,9 @@
 from dataclasses import dataclass
 from typing import Any, Mapping, Optional, Protocol
 
-from aries_cloudagent.core.error import BaseError
-from aries_cloudagent.admin.request_context import AdminRequestContext
-from aries_cloudagent.core.profile import Profile
+from acapy_agent.admin.request_context import AdminRequestContext
+from acapy_agent.core.error import BaseError
+from acapy_agent.core.profile import Profile
 
 from .models.exchange import OID4VCIExchangeRecord
 from .models.supported_cred import SupportedCredential

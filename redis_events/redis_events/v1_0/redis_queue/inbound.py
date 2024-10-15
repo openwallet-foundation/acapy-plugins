@@ -8,13 +8,13 @@ from json import JSONDecodeError
 from typing import cast
 from uuid import uuid4
 
-from aries_cloudagent.messaging.error import MessageParseError
-from aries_cloudagent.transport.error import WireFormatParseError
-from aries_cloudagent.transport.inbound.base import (
+from acapy_agent.messaging.error import MessageParseError
+from acapy_agent.transport.error import WireFormatParseError
+from acapy_agent.transport.inbound.base import (
     BaseInboundTransport,
     InboundTransportError,
 )
-from aries_cloudagent.transport.wire_format import (
+from acapy_agent.transport.wire_format import (
     DIDCOMM_V0_MIME_TYPE,
     DIDCOMM_V1_MIME_TYPE,
 )
@@ -123,10 +123,7 @@ class RedisInboundTransport(BaseInboundTransport):
                 enc_uid_recip_key_count = await self.redis.hget(
                     "uid_recip_key_pending_msg_count", uid_recip_key
                 )
-                if (
-                    enc_uid_recip_key_count
-                    and int(enc_uid_recip_key_count.decode()) >= 1
-                ):
+                if enc_uid_recip_key_count and int(enc_uid_recip_key_count.decode()) >= 1:
                     await self.redis.hset(
                         "uid_recip_key_pending_msg_count",
                         uid_recip_key,

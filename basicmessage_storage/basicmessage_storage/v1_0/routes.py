@@ -4,6 +4,21 @@ import functools
 import logging
 import uuid
 
+from acapy_agent.admin.decorators.auth import tenant_authentication
+from acapy_agent.admin.request_context import AdminRequestContext
+from acapy_agent.messaging.models.base import BaseModelError
+from acapy_agent.messaging.models.openapi import OpenAPISchema
+from acapy_agent.messaging.util import str_to_epoch, time_now
+from acapy_agent.messaging.valid import UUID4_EXAMPLE
+from acapy_agent.multitenant.error import WalletKeyMissingError
+from acapy_agent.protocols.basicmessage.v1_0.message_types import SPEC_URI
+from acapy_agent.protocols.basicmessage.v1_0.routes import (
+    BasicConnIdMatchInfoSchema,
+    BasicMessageModuleResponseSchema,
+    SendMessageSchema,
+    connections_send_message,
+)
+from acapy_agent.storage.error import StorageError, StorageNotFoundError
 from aiohttp import web
 from aiohttp_apispec import (
     docs,
@@ -12,21 +27,6 @@ from aiohttp_apispec import (
     request_schema,
     response_schema,
 )
-from aries_cloudagent.admin.decorators.auth import tenant_authentication
-from aries_cloudagent.admin.request_context import AdminRequestContext
-from aries_cloudagent.messaging.models.base import BaseModelError
-from aries_cloudagent.messaging.models.openapi import OpenAPISchema
-from aries_cloudagent.messaging.util import str_to_epoch, time_now
-from aries_cloudagent.messaging.valid import UUID4_EXAMPLE
-from aries_cloudagent.multitenant.error import WalletKeyMissingError
-from aries_cloudagent.protocols.basicmessage.v1_0.message_types import SPEC_URI
-from aries_cloudagent.protocols.basicmessage.v1_0.routes import (
-    BasicConnIdMatchInfoSchema,
-    BasicMessageModuleResponseSchema,
-    SendMessageSchema,
-    connections_send_message,
-)
-from aries_cloudagent.storage.error import StorageError, StorageNotFoundError
 from marshmallow import fields, validate
 
 from .config import get_config
@@ -209,9 +209,7 @@ async def delete_message(request: web.BaseRequest):
     message_id = request.match_info["message_id"]
     try:
         async with profile.session() as session:
-            record = await BasicMessageRecord.retrieve_by_message_id(
-                session, message_id
-            )
+            record = await BasicMessageRecord.retrieve_by_message_id(session, message_id)
             await record.delete_record(session)
 
     except StorageNotFoundError as err:

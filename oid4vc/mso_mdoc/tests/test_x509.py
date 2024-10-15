@@ -1,9 +1,8 @@
-import pytest
-
 import os
-from pycose.keys import CoseKey
 
-from aries_cloudagent.wallet.util import b64_to_bytes
+import pytest
+from acapy_agent.wallet.util import b64_to_bytes
+from pycose.keys import CoseKey
 
 from ..x509 import selfsigned_x509cert
 

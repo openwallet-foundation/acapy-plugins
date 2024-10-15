@@ -4,17 +4,18 @@ import logging
 import re
 from binascii import unhexlify
 from typing import Any, Mapping
-from marshmallow import fields
-from aries_cloudagent.core.profile import Profile
-from aries_cloudagent.messaging.models.base import BaseModel, BaseModelSchema
-from aries_cloudagent.wallet.error import WalletNotFoundError
-from aries_cloudagent.wallet.base import BaseWallet
-from aries_cloudagent.wallet.util import bytes_to_b58
+
 import cbor2
+from acapy_agent.core.profile import Profile
+from acapy_agent.messaging.models.base import BaseModel, BaseModelSchema
+from acapy_agent.wallet.base import BaseWallet
+from acapy_agent.wallet.error import WalletNotFoundError
+from acapy_agent.wallet.util import bytes_to_b58
 from cbor_diag import cbor2diag
-from cryptography.hazmat.primitives.serialization import Encoding, PublicFormat
-from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PublicKey
 from cryptography.hazmat.primitives.asymmetric.ec import EllipticCurvePublicKey
+from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PublicKey
+from cryptography.hazmat.primitives.serialization import Encoding, PublicFormat
+from marshmallow import fields
 
 from ..mso import MsoVerifier
 

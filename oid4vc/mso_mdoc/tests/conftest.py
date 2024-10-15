@@ -1,6 +1,5 @@
 import pytest
-
-from aries_cloudagent.admin.request_context import AdminRequestContext
+from acapy_agent.admin.request_context import AdminRequestContext
 
 from oid4vc.models.exchange import OID4VCIExchangeRecord
 from oid4vc.models.supported_cred import SupportedCredential

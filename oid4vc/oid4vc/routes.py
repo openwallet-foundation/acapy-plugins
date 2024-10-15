@@ -4,7 +4,27 @@ import json
 import logging
 import secrets
 from typing import Any, Dict
+from urllib.parse import quote
 
+from acapy_agent.admin.decorators.auth import tenant_authentication
+from acapy_agent.admin.request_context import AdminRequestContext
+from acapy_agent.askar.profile import AskarProfileSession
+from acapy_agent.messaging.models.base import BaseModelError
+from acapy_agent.messaging.models.openapi import OpenAPISchema
+from acapy_agent.messaging.valid import (
+    GENERIC_DID_EXAMPLE,
+    GENERIC_DID_VALIDATE,
+    Uri,
+)
+from acapy_agent.storage.error import StorageError, StorageNotFoundError
+from acapy_agent.wallet.base import BaseWallet
+from acapy_agent.wallet.default_verification_key_strategy import (
+    BaseVerificationKeyStrategy,
+)
+from acapy_agent.wallet.did_info import DIDInfo
+from acapy_agent.wallet.jwt import nym_to_did
+from acapy_agent.wallet.key_type import KeyTypes
+from acapy_agent.wallet.util import bytes_to_b64
 from aiohttp import web
 from aiohttp_apispec import (
     docs,
@@ -13,28 +33,7 @@ from aiohttp_apispec import (
     request_schema,
     response_schema,
 )
-from aries_cloudagent.admin.decorators.auth import tenant_authentication
-from aries_cloudagent.admin.request_context import AdminRequestContext
-from aries_cloudagent.messaging.models.base import BaseModelError
-from aries_cloudagent.messaging.models.openapi import OpenAPISchema
-from aries_cloudagent.messaging.valid import (
-    GENERIC_DID_EXAMPLE,
-    GENERIC_DID_VALIDATE,
-    Uri,
-)
-from aries_cloudagent.storage.error import StorageError, StorageNotFoundError
-from aries_cloudagent.wallet.default_verification_key_strategy import (
-    BaseVerificationKeyStrategy,
-)
-from aries_cloudagent.wallet.jwt import nym_to_did
-from aries_cloudagent.wallet.base import BaseWallet
-from aries_cloudagent.wallet.key_type import KeyTypes
-from aries_cloudagent.askar.profile import AskarProfileSession
-from aries_cloudagent.wallet.util import bytes_to_b64
-from aries_cloudagent.wallet.did_info import DIDInfo
-
 from aries_askar import Key, KeyAlg
-
 from marshmallow import fields
 from marshmallow.validate import OneOf
 
@@ -47,8 +46,6 @@ from oid4vc.models.request import OID4VPRequest, OID4VPRequestSchema
 from .config import Config
 from .models.exchange import OID4VCIExchangeRecord, OID4VCIExchangeRecordSchema
 from .models.supported_cred import SupportedCredential, SupportedCredentialSchema
-
-from urllib.parse import quote
 
 VCI_SPEC_URI = (
     "https://openid.net/specs/openid-4-verifiable-credential-issuance-1_0-11.html"
@@ -505,7 +502,7 @@ class JwtSupportedCredCreateRequestSchema(OpenAPISchema):
         required=True,
         metadata={
             "description": "List of credential types supported.",
-            "example": ["VerifiableCredential", "UniversityDegreeCredential"]
+            "example": ["VerifiableCredential", "UniversityDegreeCredential"],
         },
     )
     credential_subject = fields.Dict(

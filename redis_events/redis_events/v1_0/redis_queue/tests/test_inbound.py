@@ -4,9 +4,9 @@ from unittest import IsolatedAsyncioTestCase
 from unittest.mock import AsyncMock, MagicMock, PropertyMock, patch
 
 import redis
+from acapy_agent.core.in_memory import InMemoryProfile
+from acapy_agent.messaging.error import MessageParseError
 from aiohttp.test_utils import unused_port
-from aries_cloudagent.core.in_memory import InMemoryProfile
-from aries_cloudagent.messaging.error import MessageParseError
 
 from .. import inbound as test_inbound
 from ..inbound import RedisInboundTransport
@@ -146,9 +146,7 @@ class TestRedisInbound(IsolatedAsyncioTestCase):
                                 MessageParseError,
                             ]
                         ),
-                        profile=MagicMock(
-                            settings={"emit_new_didcomm_mime_type": True}
-                        ),
+                        profile=MagicMock(settings={"emit_new_didcomm_mime_type": True}),
                     )
                 ),
                 root_profile=self.profile,

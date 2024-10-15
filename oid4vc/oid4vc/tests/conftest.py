@@ -1,5 +1,5 @@
 import pytest
-from aries_cloudagent.core.in_memory import InMemoryProfile
+from acapy_agent.core.in_memory import InMemoryProfile
 
 
 @pytest.fixture

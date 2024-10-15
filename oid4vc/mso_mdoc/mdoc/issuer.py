@@ -1,20 +1,20 @@
 """Operations supporting mso_mdoc issuance."""
 
-import os
 import json
 import logging
-import cbor2
+import os
 from binascii import hexlify
-from pycose.keys import CoseKey
-from pydid import DIDUrl
 from typing import Any, Mapping, Optional
 
-from aries_cloudagent.core.profile import Profile
-from aries_cloudagent.wallet.default_verification_key_strategy import (
+import cbor2
+from acapy_agent.core.profile import Profile
+from acapy_agent.wallet.base import BaseWallet
+from acapy_agent.wallet.default_verification_key_strategy import (
     BaseVerificationKeyStrategy,
 )
-from aries_cloudagent.wallet.base import BaseWallet
-from aries_cloudagent.wallet.util import b64_to_bytes, bytes_to_b64
+from acapy_agent.wallet.util import b64_to_bytes, bytes_to_b64
+from pycose.keys import CoseKey
+from pydid import DIDUrl
 
 from ..mso import MsoIssuer
 from ..x509 import selfsigned_x509cert

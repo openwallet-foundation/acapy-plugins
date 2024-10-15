@@ -4,10 +4,10 @@ from unittest.mock import AsyncMock, MagicMock, patch
 
 import bcrypt
 import jwt
-from aries_cloudagent.core.in_memory import InMemoryProfile
-from aries_cloudagent.multitenant.error import WalletKeyMissingError
-from aries_cloudagent.storage.error import StorageError
-from aries_cloudagent.wallet.models.wallet_record import WalletRecord
+from acapy_agent.core.in_memory import InMemoryProfile
+from acapy_agent.multitenant.error import WalletKeyMissingError
+from acapy_agent.storage.error import StorageError
+from acapy_agent.wallet.models.wallet_record import WalletRecord
 
 from multitenant_provider.v1_0.config import (
     MultitenantProviderConfig,

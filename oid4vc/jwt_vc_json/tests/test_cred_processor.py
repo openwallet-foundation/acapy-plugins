@@ -1,12 +1,12 @@
 from typing import Any
-import pytest
-from aries_cloudagent.admin.request_context import AdminRequestContext
 
+import pytest
+from acapy_agent.admin.request_context import AdminRequestContext
+
+from jwt_vc_json.cred_processor import CredProcessor
 from oid4vc.models.exchange import OID4VCIExchangeRecord
 from oid4vc.models.supported_cred import SupportedCredential
 from oid4vc.public_routes import PopResult
-
-from jwt_vc_json.cred_processor import CredProcessor
 
 
 class TestCredentialProcessor:

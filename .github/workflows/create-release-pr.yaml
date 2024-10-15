@@ -51,23 +51,23 @@ jobs:
         run: pipx install poetry
         id: setup-poetry
       #----------------------------------------------
-      #       Get the latest version of aries-cloudagent from pypi
+      #       Get the latest version of acapy-agent from pypi
       #----------------------------------------------
-      - name: Get latest aries-cloudagent version
+      - name: Get latest acapy-agent version
         id: current_available_version
         run: |
-          remote_version=$(pip index versions aries-cloudagent)
+          remote_version=$(pip index versions acapy-agent)
           version=$(grep -oP '(?<=Available versions: ).*?(?=,)' <<< "$remote_version")
           echo current_available_version=$version >> $GITHUB_OUTPUT
           echo "Remote version = $version"
       #----------------------------------------------
       #       Check the latest version from plugins_global lock file
       #----------------------------------------------
-      - name: Get global aries-cloudagent version from plugins repo
+      - name: Get global acapy-agent version from plugins repo
         id: current_global_version
         run: |
           cd plugin_globals
-          lock_version=$(grep -A1 'name = "aries-cloudagent"' poetry.lock | grep -v 'name = "aries-cloudagent"')
+          lock_version=$(grep -A1 'name = "acapy-agent"' poetry.lock | grep -v 'name = "acapy-agent"')
           version=$(grep -oP '(?<=").*?(?=")' <<< "$lock_version")
           echo current_global_version=$version >> $GITHUB_OUTPUT
           echo "Global version = $version"
@@ -79,10 +79,10 @@ jobs:
         run: |
           echo "Re-Release manually requested. Skipping upgrade available check."
       #----------------------------------------------
-      #       Check if aries-cloudagent upgrade available
+      #       Check if acapy-agent upgrade available
       #       If the global version is greater than or equal to the remote version, exit
       #----------------------------------------------
-      - name: Check if aries-cloudagent upgrade available
+      - name: Check if acapy-agent upgrade available
         id: upgrade_available
         if: github.event.inputs.re_release != 'true'
         run: |
@@ -97,13 +97,13 @@ jobs:
           }
 
           if [ $(sem_version $current_global_version) -ge $(sem_version $current_available_version) ]; then
-            echo "Version of aries-cloudagent is up to date"
+            echo "Version of acapy-agent is up to date"
             exit 0
           fi
             echo available=true >> $GITHUB_OUTPUT
-            echo "Detected aries-cloudagent upgrade available..."
+            echo "Detected acapy-agent upgrade available..."
       #----------------------------------------------
-      #       Update global aries-cloudagent version in lock file
+      #       Update global acapy-agent version in lock file
       #----------------------------------------------
       - name: Update global acapy version
         if: ${{ steps.upgrade_available.outputs.available == 'true' && github.event.inputs.re_release != 'true'}} 
@@ -111,7 +111,7 @@ jobs:
           python repo_manager.py 3
           echo "Update global acapy version"
       #----------------------------------------------
-      #       Update all plugins with aries-cloudagent and global and local dependencies
+      #       Update all plugins with acapy-agent and global and local dependencies
       #----------------------------------------------
       - name: Run global updates
         if: ${{ steps.upgrade_available.outputs.available == 'true' && github.event.inputs.re_release != 'true'}} 
@@ -412,7 +412,7 @@ jobs:
           committer: Release Bot <release-bot@users.noreply.github.com>
           token: ${{ secrets.GITHUB_TOKEN }}
           commit-message: "Release v${{ steps.prepare_pr.outputs.tag_version }} Upgrades"
-          title: "Release for aries-cloudagent v${{ steps.prepare_pr.outputs.tag_version }}"
+          title: "Release for acapy-agent v${{ steps.prepare_pr.outputs.tag_version }}"
           body: "${{ steps.prepare_pr.outputs.pr_body }}"
           branch: "release-v${{ steps.prepare_pr.outputs.tag_version }}"
           base: "main"

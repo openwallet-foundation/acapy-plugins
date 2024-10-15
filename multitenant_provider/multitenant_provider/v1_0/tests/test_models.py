@@ -1,8 +1,8 @@
 from unittest import IsolatedAsyncioTestCase
 from unittest.mock import patch
 
-from aries_cloudagent.core.in_memory import InMemoryProfile
-from aries_cloudagent.storage.error import StorageDuplicateError, StorageNotFoundError
+from acapy_agent.core.in_memory import InMemoryProfile
+from acapy_agent.storage.error import StorageDuplicateError, StorageNotFoundError
 
 from ..models import WalletTokenRecord
 
