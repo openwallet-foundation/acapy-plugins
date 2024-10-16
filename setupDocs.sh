@@ -16,7 +16,7 @@ cp LICENSE docs/LICENSE.md
 
 # Generate the main part of the mkdocs.yml file
 cat <<-EOF >${MKDOCS}
-site_name: A Cloud Agent Python Plugins
+site_name: ACA-Py Plugins
 repo_name: openwallet-foundation/acapy-plugins
 repo_url: https://github.com/openwallet-foundation/acapy-plugins
 theme:
