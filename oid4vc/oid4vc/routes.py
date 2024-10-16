@@ -707,6 +707,12 @@ class CreateOID4VPReqResponseSchema(OpenAPISchema):
         metadata={"descripton": "The created request"},
     )
 
+    presentation = fields.Nested(
+        OID4VPPresentationSchema,
+        required=True,
+        metadata={"descripton": "The created presentation"},
+    )
+
 
 class CreateOID4VPReqRequestSchema(OpenAPISchema):
     """Request schema for creating an OID4VP Request."""
@@ -759,6 +765,7 @@ async def create_oid4vp_request(request: web.Request):
         {
             "request_uri": full_uri,
             "request": req_record.serialize(),
+            "presentation": pres_record.serialize(),
         }
     )
 
