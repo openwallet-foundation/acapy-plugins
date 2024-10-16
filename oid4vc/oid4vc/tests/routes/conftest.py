@@ -1,14 +1,14 @@
 from unittest.mock import MagicMock
 
-from aries_cloudagent.core.profile import Profile
 import pytest
-from aries_cloudagent.admin.request_context import AdminRequestContext
-from aries_cloudagent.core.in_memory import InMemoryProfile
-from aries_cloudagent.resolver.did_resolver import DIDResolver
+from acapy_agent.admin.request_context import AdminRequestContext
+from acapy_agent.core.in_memory import InMemoryProfile
+from acapy_agent.core.profile import Profile
+from acapy_agent.resolver.did_resolver import DIDResolver
 
-from oid4vc.jwk_resolver import JwkResolver
-from oid4vc.cred_processor import CredProcessors
 from jwt_vc_json import JwtVcJsonCredProcessor
+from oid4vc.cred_processor import CredProcessors
+from oid4vc.jwk_resolver import JwkResolver
 
 
 @pytest.fixture

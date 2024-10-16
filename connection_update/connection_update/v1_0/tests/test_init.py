@@ -1,10 +1,10 @@
 from unittest import IsolatedAsyncioTestCase
 from unittest.mock import MagicMock, Mock
 
-from aries_cloudagent.core.event_bus import EventBus
-from aries_cloudagent.core.in_memory import InMemoryProfile
-from aries_cloudagent.core.plugin_registry import PluginRegistry
-from aries_cloudagent.core.protocol_registry import ProtocolRegistry
+from acapy_agent.core.event_bus import EventBus
+from acapy_agent.core.in_memory import InMemoryProfile
+from acapy_agent.core.plugin_registry import PluginRegistry
+from acapy_agent.core.protocol_registry import ProtocolRegistry
 
 from .. import setup
 

@@ -4,13 +4,13 @@ import base64
 import json
 import logging
 
-from aries_cloudagent.core.profile import Profile
-from aries_cloudagent.transport.outbound.base import (
+from acapy_agent.core.profile import Profile
+from acapy_agent.transport.outbound.base import (
     BaseOutboundTransport,
     OutboundTransportError,
     QueuedOutboundMessage,
 )
-from aries_cloudagent.transport.wire_format import (
+from acapy_agent.transport.wire_format import (
     DIDCOMM_V0_MIME_TYPE,
     DIDCOMM_V1_MIME_TYPE,
 )
@@ -38,8 +38,7 @@ class RedisOutboundQueue(BaseOutboundTransport):
         """Initialize base queue type."""
         super().__init__(**kwargs)
         self.outbound_config = (
-            get_config(root_profile.context.settings).outbound
-            or OutboundConfig.default()
+            get_config(root_profile.context.settings).outbound or OutboundConfig.default()
         )
         LOGGER.info(
             "Setting up redis outbound queue with configuration: %s",

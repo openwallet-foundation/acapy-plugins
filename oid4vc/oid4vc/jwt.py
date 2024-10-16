@@ -3,26 +3,28 @@
 from dataclasses import dataclass
 from typing import Any, Dict, Mapping, Optional
 
-from aries_askar import Key, KeyAlg
-from aries_cloudagent.core.profile import Profile
-from aries_cloudagent.resolver.did_resolver import DIDResolver, DIDUrl
-from aries_cloudagent.wallet.base import BaseWallet
-from aries_cloudagent.wallet.jwt import (
+from acapy_agent.core.profile import Profile
+from acapy_agent.resolver.did_resolver import DIDResolver, DIDUrl
+from acapy_agent.wallet.base import BaseWallet
+from acapy_agent.wallet.jwt import (
     BadJWSHeaderError,
     BaseVerificationKeyStrategy,
     dict_to_b64,
     did_lookup_name,
     nym_to_did,
 )
-from aries_cloudagent.wallet.jwt import b64_to_bytes, b64_to_dict
-from aries_cloudagent.wallet.key_type import ED25519
-from aries_cloudagent.wallet.util import b58_to_bytes, bytes_to_b64
+from acapy_agent.wallet.jwt import b64_to_bytes, b64_to_dict
+from acapy_agent.wallet.key_type import ED25519
+from acapy_agent.wallet.util import b58_to_bytes, bytes_to_b64
+from aries_askar import Key, KeyAlg
 
 from oid4vc.jwk import P256
+
 
 @dataclass
 class JWTVerifyResult:
     """JWT Verification Result."""
+
     def __init__(
         self,
         headers: Mapping[str, Any],

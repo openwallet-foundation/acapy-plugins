@@ -1,8 +1,9 @@
 """Presentation model for OID4VP."""
 
 from typing import Any, Dict, List, Optional
-from aries_cloudagent.core.profile import ProfileSession
-from aries_cloudagent.messaging.models.base_record import BaseRecord, BaseRecordSchema
+
+from acapy_agent.core.profile import ProfileSession
+from acapy_agent.messaging.models.base_record import BaseRecord, BaseRecordSchema
 from marshmallow import fields
 
 

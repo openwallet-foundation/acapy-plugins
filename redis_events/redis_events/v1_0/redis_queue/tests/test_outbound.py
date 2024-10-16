@@ -6,14 +6,14 @@ from unittest import IsolatedAsyncioTestCase
 from unittest.mock import AsyncMock, MagicMock, PropertyMock, patch
 
 import redis
-from aiohttp.test_utils import unused_port
-from aries_cloudagent.core.in_memory import InMemoryProfile
-from aries_cloudagent.transport.outbound.base import (
+from acapy_agent.core.in_memory import InMemoryProfile
+from acapy_agent.transport.outbound.base import (
     ConnectionTarget,
     OutboundMessage,
     QueuedOutboundMessage,
 )
-from aries_cloudagent.transport.wire_format import BaseWireFormat
+from acapy_agent.transport.wire_format import BaseWireFormat
+from aiohttp.test_utils import unused_port
 
 from .. import config as test_config
 from .. import outbound as test_outbound

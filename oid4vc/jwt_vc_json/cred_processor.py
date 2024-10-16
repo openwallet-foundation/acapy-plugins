@@ -2,11 +2,11 @@
 
 import datetime
 import logging
-from typing import Any
 import uuid
+from typing import Any
 
-from aries_cloudagent.admin.request_context import AdminRequestContext
-from aries_cloudagent.core.profile import Profile
+from acapy_agent.admin.request_context import AdminRequestContext
+from acapy_agent.core.profile import Profile
 from pydid import DIDUrl
 
 from oid4vc.cred_processor import (

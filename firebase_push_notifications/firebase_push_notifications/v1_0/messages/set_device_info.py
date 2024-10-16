@@ -1,6 +1,6 @@
 """Message type for setting device info."""
 
-from aries_cloudagent.messaging.agent_message import AgentMessage, AgentMessageSchema
+from acapy_agent.messaging.agent_message import AgentMessage, AgentMessageSchema
 from marshmallow import EXCLUDE, fields
 
 from ..message_types import PROTOCOL_PACKAGE, SET_DEVICE_INFO
@@ -19,11 +19,7 @@ class SetDeviceInfo(AgentMessage):
         schema_class = "SetDeviceInfoSchema"
 
     def __init__(
-        self,
-        *,
-        device_token: str = None,
-        device_platform: str = "Unknown",
-        **kwargs
+        self, *, device_token: str = None, device_platform: str = "Unknown", **kwargs
     ):
         """Initialize set device info message."""
         super().__init__(**kwargs)
@@ -48,7 +44,5 @@ class SetDeviceInfoSchema(AgentMessageSchema):
     )
 
     device_platform = fields.Str(
-        required=True,
-        description="Platform of the device",
-        example="Android"
+        required=True, description="Platform of the device", example="Android"
     )

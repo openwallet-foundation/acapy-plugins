@@ -1,9 +1,9 @@
 from unittest import IsolatedAsyncioTestCase
 from unittest.mock import Mock, patch
 
-from aries_cloudagent.config.base import InjectionError
-from aries_cloudagent.core.in_memory import InMemoryProfile
-from aries_cloudagent.utils.classloader import ClassLoader, ClassNotFoundError
+from acapy_agent.config.base import InjectionError
+from acapy_agent.core.in_memory import InMemoryProfile
+from acapy_agent.utils.classloader import ClassLoader, ClassNotFoundError
 
 from multitenant_provider.v1_0.config import MultitenantProviderConfig
 

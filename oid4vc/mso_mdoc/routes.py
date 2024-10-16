@@ -2,20 +2,20 @@
 
 import logging
 
-from aiohttp import web
-from aiohttp_apispec import docs, request_schema, response_schema
-from aries_cloudagent.admin.request_context import AdminRequestContext
-from aries_cloudagent.messaging.jsonld.error import (
+from acapy_agent.admin.request_context import AdminRequestContext
+from acapy_agent.messaging.jsonld.error import (
     BadJWSHeaderError,
     InvalidVerificationMethod,
 )
-from aries_cloudagent.messaging.models.openapi import OpenAPISchema
-from aries_cloudagent.messaging.valid import (
+from acapy_agent.messaging.models.openapi import OpenAPISchema
+from acapy_agent.messaging.valid import (
     GENERIC_DID_EXAMPLE,
     GENERIC_DID_VALIDATE,
     Uri,
 )
-from aries_cloudagent.resolver.base import ResolverError
+from acapy_agent.resolver.base import ResolverError
+from aiohttp import web
+from aiohttp_apispec import docs, request_schema, response_schema
 from marshmallow import fields
 
 from .mdoc import mso_mdoc_sign, mso_mdoc_verify

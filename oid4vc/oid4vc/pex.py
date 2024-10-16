@@ -3,18 +3,23 @@
 from dataclasses import dataclass, field
 from typing import Any, Dict, List, Mapping, Optional, Sequence, Union
 
-from aries_cloudagent.core.profile import Profile
-from aries_cloudagent.messaging.models.base import BaseModel, BaseModelSchema
-from aries_cloudagent.messaging.valid import UUID4_EXAMPLE
-from aries_cloudagent.protocols.present_proof.dif.pres_exch import (
-    PresentationDefinition,
+import jsonpath_ng as jsonpath
+from acapy_agent.core.profile import Profile
+from acapy_agent.messaging.models.base import BaseModel, BaseModelSchema
+from acapy_agent.messaging.valid import UUID4_EXAMPLE
+from acapy_agent.protocols.present_proof.dif.pres_exch import (
     DIFField,
     InputDescriptors,
+    PresentationDefinition,
+)
+from acapy_agent.protocols.present_proof.dif.pres_exch import (
     InputDescriptorMapping as InnerInDescMapping,
+)
+from acapy_agent.protocols.present_proof.dif.pres_exch import (
     InputDescriptorMappingSchema as InnerInDescMappingSchema,
 )
-from jsonpath_ng import DatumInContext as Matched, JSONPath
-import jsonpath_ng as jsonpath
+from jsonpath_ng import DatumInContext as Matched
+from jsonpath_ng import JSONPath
 from jsonschema import Draft7Validator, ValidationError
 from marshmallow import EXCLUDE, fields
 

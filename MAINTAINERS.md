@@ -2,40 +2,14 @@
 
 ## Maintainer Scopes, GitHub Roles and GitHub Teams
 
-Maintainers are assigned the following scopes in this repository:
+The Maintainers of this repo, defined as GitHub users with escalated privileges
+in the repo, are managed in the Hyperledger "governance" repo's [access-control.yaml](https://github.com/hyperledger/governance/blob/main/access-control.yaml) file. Consult that to see:
 
-| Scope      | Definition               | GitHub Role | GitHub Team                          |
-| ---------- | ------------------------ | ----------- | ------------------------------------ |
-| Admin      |                          | Admin       | [aries-admins]                       |
-| Maintainer | The GitHub Maintain role | Maintain    | [aries-cloudagent-python committers] |
-| Triage     | The GitHub Triage role   | Triage      | [aries triage]                       |
-| Read       | The GitHub Read role     | Read        | [Aries Contributors]                 |
+- What teams have escalated privileges to this repository.
+- What GitHub roles those teams have in the repository.
+- Who are the members of each of those teams.
 
-[aries-admins]: https://github.com/orgs/hyperledger/teams/aries-admins
-[aries-cloudagent-python committers]: https://github.com/orgs/hyperledger/teams/aries-cloudagent-python-committers
-[aries triage]: https://github.com/orgs/hyperledger/teams/aries-triage
-[Aries Contributors]: https://github.com/orgs/hyperledger/teams/aries-contributors
-
-## Active Maintainers
-
-<!-- Please keep this sorted alphabetically by github -->
-
-| GitHub ID       | Name             | Scope      | LFID | Discord ID | Email | Company Affiliation |
-| --------------- | ---------------- | ---------- | ---- | ---------- | ----- | ------------------- |
-| amanji          | Akiff Manji      | Maintainer |      |            |       | BC Gov              |
-| andrewwhitehead | Andrew Whitehead | Maintainer |      |            |       | BC Gov              |
-| chumbert        | Clement Humbert  | Maintainer |      |            |       | SICPA               |
-| dbluhm          | Daniel Bluhm     |            |      |            |       | Indicio PBC         |
-| dhh1128         | Daniel Hardman   | Maintainer |      |            |       | Provenant           |
-| ianco           | Ian Costanzo     |            |      |            |       | Anonymous Systems   |
-| jamshale        | Jamie Hale       | Maintainer |      |            |       | BC Gov              |
-| Jsyro           | Jason Syrotuck   |            |      |            |       | BC Gov              |
-| shaangill025    | Shaanjot Gill    |            |      |            |       | BC Gov              |
-| swcurran        | Stephen Curran   | Maintainer |      |            |       | BC Gov              |
-| TelegramSam     | Sam Curren       | Maintainer |      |            |       | Indicio PBC         |
-| TimoGlastra     | Timo Glastra     |            |      |            |       | Animo Solutions     |
-| WadeBarnes      | Wade Barnes      | Maintainer |      |            |       | BC Gov              |
-| usingtechnology | Jason Sherman    |            |      |            |       | BC Gov              |
+The actions covered below for [becoming](#becoming-a-maintainer) and [removing](#removing-maintainers) are made manifest through PRs to that file.
 
 ## The Duties of a Maintainer
 
@@ -56,8 +30,8 @@ Maintainers are expected to perform the following duties for this repository. Th
   give guidance and encouragement to those wanting to contribute to the product, and those wanting to become maintainers.
 - Contribute to the product via GitHub Pull Requests.
 - Monitor requests from the Hyperledger Technical Oversight Committee about the
-  contents and management of Hyperledger repositories, such as branch handling,
-  required files in repositories and so on.
+contents and management of Hyperledger repositories, such as branch handling,
+required files in repositories and so on.
 - Contribute to the Hyperledger Project's Quarterly Report.
 
 ## Becoming a Maintainer
@@ -69,18 +43,18 @@ occur, roughly in order.
 - The proposed maintainer establishes their reputation in the community,
   including authoring five (5) significant merged pull requests, and expresses
   an interest in becoming a maintainer for the repository.
-- A PR is created to update this file to add the proposed maintainer to the list of active maintainers.
-- The PR is authored by an existing maintainer or has a comment on the PR from an existing maintainer supporting the proposal.
-- The PR is authored by the proposed maintainer or has a comment on the PR from the proposed maintainer confirming their interest in being a maintainer.
-  - The PR or comment from the proposed maintainer must include their
+- An issue is created to add the proposed maintainer to the list of active maintainers.
+- The issue is authored by an existing maintainer or has a comment on the PR from an existing maintainer supporting the proposal.
+- The issue is authored by the proposed maintainer or has a comment on the issue from the proposed maintainer confirming their interest in being a maintainer.
+  - The issue or comment from the proposed maintainer must include their
     willingness to be a long-term (more than 6 month) maintainer.
-- Once the PR and necessary comments have been received, an approval timeframe begins.
-- The PR **MUST** be communicated on all appropriate communication channels, including relevant community calls, chat channels and mailing lists. Comments of support from the community are welcome.
-- The PR is merged and the proposed maintainer becomes a maintainer if either:
-  - Two weeks have passed since at least three (3) Maintainer PR approvals have been recorded, OR
-  - An absolute majority of maintainers have approved the PR.
-- If the PR does not get the requisite PR approvals, it may be closed.
-- Once the add maintainer PR has been merged, any necessary updates to the GitHub Teams are made.
+- Once the issue and necessary comments have been received, an approval timeframe begins.
+- The issue **MUST** be communicated on all appropriate communication channels, including relevant community calls, chat channels and mailing lists. Comments of support from the community are welcome.
+- The issue is approved and the proposed maintainer becomes a maintainer if either:
+  - Two weeks have passed since at least three (3) Maintainer issue approvals have been recorded, OR
+  - An absolute majority of maintainers have approved the issue.
+- If the issue does not get the requisite approvals, it may be closed.
+- Once the add maintainer issue has been approved, the necessary updates to the GitHub Teams are made via a PR to the Hyperledger "governance" repo's [access-control.yaml](https://github.com/hyperledger/governance/blob/main/access-control.yaml) file.
 
 ## Removing Maintainers
 
@@ -99,17 +73,18 @@ maintainer to emeritus status. This can occur in the following situations:
 - Other circumstances at the discretion of the other Maintainers.
 
 The process to move a maintainer from active to emeritus status is comparable to the process for adding a maintainer, outlined above. In the case of voluntary
-resignation, the Pull Request can be merged following a maintainer PR approval. If the removal is for any other reason, the following steps **SHOULD** be followed:
+resignation, the Pull Request can be merged following a maintainer issue approval. If the removal is for any other reason, the following steps **SHOULD** be followed:
 
-- A PR is created to update this file to move the maintainer to the list of emeritus maintainers.
-- The PR is authored by, or has a comment supporting the proposal from, an existing maintainer or Hyperledger GitHub organization administrator.
-- Once the PR and necessary comments have been received, the approval timeframe begins.
-- The PR **MAY** be communicated on appropriate communication channels, including relevant community calls, chat channels and mailing lists.
-- The PR is merged and the maintainer transitions to maintainer emeritus if:
-  - The PR is approved by the maintainer to be transitioned, OR
-  - Two weeks have passed since at least three (3) Maintainer PR approvals have been recorded, OR
-  - An absolute majority of maintainers have approved the PR.
-- If the PR does not get the requisite PR approvals, it may be closed.
+- An issue is created to move the maintainer to the list of emeritus maintainers.
+- The issue is authored by, or has a comment supporting the proposal from, an existing maintainer or Hyperledger GitHub organization administrator.
+- Once the issue and necessary comments have been received, the approval timeframe begins.
+- The issue **MAY** be communicated on appropriate communication channels, including relevant community calls, chat channels and mailing lists.
+- The issue is approved and the maintainer transitions to maintainer emeritus if:
+  - The issue is approved by the maintainer to be transitioned, OR
+  - Two weeks have passed since at least three (3) Maintainer issue approvals have been recorded, OR
+  - An absolute majority of maintainers have approved the issue.
+- If the issue does not get the requisite approvals, it may be closed.
+- Once the remove maintainer issue has been approved, the necessary updates to the GitHub Teams are made via a PR to the Hyperledger "governance" repo's [access-control.yaml](https://github.com/hyperledger/governance/blob/main/access-control.yaml) file.
 
 Returning to active status from emeritus status uses the same steps as adding a
 new maintainer. Note that the emeritus maintainer already has the 5 required

@@ -3,11 +3,26 @@
 import datetime
 import json
 import logging
-from secrets import token_urlsafe
 import time
-from typing import Any, Dict, List, Optional
 import uuid
+from secrets import token_urlsafe
+from typing import Any, Dict, List, Optional
 
+from acapy_agent.admin.request_context import AdminRequestContext
+from acapy_agent.core.profile import Profile, ProfileSession
+from acapy_agent.messaging.models.base import BaseModelError
+from acapy_agent.messaging.models.openapi import OpenAPISchema
+from acapy_agent.protocols.present_proof.dif.pres_exch import (
+    PresentationDefinition,
+)
+from acapy_agent.storage.base import BaseStorage, StorageRecord
+from acapy_agent.storage.error import StorageError, StorageNotFoundError
+from acapy_agent.wallet.base import BaseWallet, WalletError
+from acapy_agent.wallet.did_info import DIDInfo
+from acapy_agent.wallet.error import WalletNotFoundError
+from acapy_agent.wallet.jwt import JWTVerifyResult, b64_to_dict
+from acapy_agent.wallet.key_type import ED25519
+from acapy_agent.wallet.util import b64_to_bytes, bytes_to_b64
 from aiohttp import web
 from aiohttp_apispec import (
     docs,
@@ -17,27 +32,8 @@ from aiohttp_apispec import (
     response_schema,
 )
 from aries_askar import Key, KeyAlg
-
-from aries_cloudagent.admin.request_context import AdminRequestContext
-from aries_cloudagent.core.profile import Profile, ProfileSession
-from aries_cloudagent.messaging.models.base import BaseModelError
-from aries_cloudagent.messaging.models.openapi import OpenAPISchema
-from aries_cloudagent.storage.base import BaseStorage, StorageRecord
-from aries_cloudagent.storage.error import StorageError, StorageNotFoundError
-from aries_cloudagent.wallet.base import BaseWallet, WalletError
-from aries_cloudagent.wallet.did_info import DIDInfo
-from aries_cloudagent.wallet.error import WalletNotFoundError
-from aries_cloudagent.wallet.jwt import JWTVerifyResult, b64_to_dict
-from aries_cloudagent.wallet.key_type import ED25519
-from aries_cloudagent.wallet.util import bytes_to_b64
-from aries_cloudagent.wallet.util import b64_to_bytes
-from aries_cloudagent.protocols.present_proof.dif.pres_exch import (
-    PresentationDefinition,
-)
-
 from base58 import b58decode
 from marshmallow import fields
-
 
 from oid4vc.jwk import DID_JWK
 from oid4vc.jwt import jwt_sign, jwt_verify, key_material_for_kid
@@ -75,9 +71,7 @@ class CredentialIssuerMetadataSchema(OpenAPISchema):
     )
     authorization_server = fields.Str(
         required=False,
-        metadata={
-            "description": "The authorization server endpoint. Currently ignored."
-        },
+        metadata={"description": "The authorization server endpoint. Currently ignored."},
     )
     batch_credential_endpoint = fields.Str(
         required=False,
@@ -209,9 +203,7 @@ async def check_token(
     return result
 
 
-async def handle_proof_of_posession(
-    profile: Profile, proof: Dict[str, Any], nonce: str
-):
+async def handle_proof_of_posession(profile: Profile, proof: Dict[str, Any], nonce: str):
     """Handle proof of posession."""
     encoded_headers, encoded_payload, encoded_signature = proof["jwt"].split(".", 3)
     headers = b64_to_dict(encoded_headers)
@@ -317,9 +309,7 @@ async def issue_cred(request: web.Request):
     if "proof" not in body:
         raise web.HTTPBadRequest(reason=f"proof is required for {supported.format}")
 
-    pop = await handle_proof_of_posession(
-        context.profile, body["proof"], ex_record.nonce
-    )
+    pop = await handle_proof_of_posession(context.profile, body["proof"], ex_record.nonce)
     if not pop.verified:
         raise web.HTTPBadRequest(reason="Invalid proof")
 
@@ -537,9 +527,7 @@ async def verify_presentation(
 
     processors = profile.inject(CredProcessors)
     if not submission.descriptor_maps:
-        raise web.HTTPBadRequest(
-            reason="Descriptor map of submission must not be empty"
-        )
+        raise web.HTTPBadRequest(reason="Descriptor map of submission must not be empty")
 
     # TODO: Support longer descriptor map arrays
     if len(submission.descriptor_maps) != 1:
@@ -550,9 +538,7 @@ async def verify_presentation(
     verifier = processors.pres_verifier_for_format(submission.descriptor_maps[0].fmt)
     LOGGER.debug("VERIFIER: %s", verifier)
 
-    vp_result = await verifier.verify_presentation(
-        profile=profile, presentation=vp_token
-    )
+    vp_result = await verifier.verify_presentation(profile=profile, presentation=vp_token)
 
     async with profile.session() as session:
         pres_def_entry = await OID4VPPresDef.retrieve_by_id(

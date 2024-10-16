@@ -32,11 +32,11 @@ jobs:
       #----------------------------------------------
       #       Check the latest version from plugins_global lock file
       #----------------------------------------------
-      - name: Get global aries-cloudagent version from plugins repo
+      - name: Get global acapy-agent version from plugins repo
         id: current_global_version
         run: |
           cd plugin_globals
-          lock_version=$(grep -A1 'name = "aries-cloudagent"' poetry.lock | grep -v 'name = "aries-cloudagent"')
+          lock_version=$(grep -A1 'name = "acapy-agent"' poetry.lock | grep -v 'name = "acapy-agent"')
           version=$(grep -oP '(?<=").*?(?=")' <<< "$lock_version")
           echo current_global_version=$version >> $GITHUB_OUTPUT
           echo "Global version = $version"
@@ -68,7 +68,7 @@ jobs:
             # Check if the lock file is rooted
             if [[ $file == *"/poetry.lock"* ]] && [[ "$number_of_slashes" == 1  ]]; then
               changes="$(git diff ${{ github.event.before }} ${{ github.event.after }} $file)"
-              lock_version=$(echo "$changes" | grep -A1 'name = "aries-cloudagent"' | head -n 2 | tail -n 1 | awk '{print $3}' | tr -d '"')
+              lock_version=$(echo "$changes" | grep -A1 'name = "acapy-agent"' | head -n 2 | tail -n 1 | awk '{print $3}' | tr -d '"')
               echo "File = $file"
               echo "Old Version = $lock_version"
               echo "Global Version = $current_global_version"
@@ -98,7 +98,7 @@ jobs:
           echo ${{ steps.should_create_release.outputs.should_create_release }}
 
           # Get the latest version
-          remote_version=$(pip index versions aries-cloudagent)
+          remote_version=$(pip index versions acapy-agent)
           version=$(grep -oP '(?<=Available versions: ).*?(?=,)' <<< "$remote_version")
 
           # Set the git config

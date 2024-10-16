@@ -1,7 +1,7 @@
 from unittest.mock import AsyncMock, MagicMock
 
 import pytest
-from aries_cloudagent.admin.request_context import AdminRequestContext
+from acapy_agent.admin.request_context import AdminRequestContext
 
 from oid4vc import routes as test_module
 from oid4vc.models.supported_cred import SupportedCredential

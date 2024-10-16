@@ -5,9 +5,9 @@ from unittest import IsolatedAsyncioTestCase
 from unittest.mock import Mock, patch
 
 import pytest
-from aries_cloudagent.core.in_memory import InMemoryProfile
-from aries_cloudagent.messaging.util import datetime_now, datetime_to_str
-from aries_cloudagent.storage.base import StorageNotFoundError
+from acapy_agent.core.in_memory import InMemoryProfile
+from acapy_agent.messaging.util import datetime_now, datetime_to_str
+from acapy_agent.storage.base import StorageNotFoundError
 
 from .. import manager as test_module
 from ..constants import MAX_SEND_RATE_MINUTES

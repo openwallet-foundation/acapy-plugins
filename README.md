@@ -2,7 +2,7 @@
 
 This repository contains approved and tested plugins for [Aries Cloud Agent Python] (ACA-Py). This is to encourage collaboration and sharing of useful features not directly included in ACA-Py.
 
-[Aries Cloud Agent Python]: https://github.com/hyperledger/aries-cloudagent-python
+[A Cloud Agent Python]: https://github.com/openwallet-foundation/acapy
 
 ## Developer Notes
 
@@ -62,11 +62,11 @@ with at least a `Description` and `Configuration` section.
 ## Build and Run
 
 Each plugin (that is not a [Lite Plugin](#lite-plugins)) **MUST** include a
-Dockerfile (such as [Dockerfile](https://github.com/hyperledger/aries-acapy-plugins/blob/main/basicmessage_storage/docker/Dockerfile)) to
+Dockerfile (such as [Dockerfile](https://github.com/openwallet-foundation/acapy-plugins/blob/main/basicmessage_storage/docker/Dockerfile)) to
 run integration tests. This image is not intended for production as it copies
 the plugin source and loads its dependencies (including ACA-Py) along with a
 simplistic ACA-Py configuration file, (such as
-[default.yml](https://github.com/hyperledger/aries-acapy-plugins/blob/main/basicmessage_storage/docker/default.yml)).
+[default.yml](https://github.com/openwallet-foundation/acapy-plugins/blob/main/basicmessage_storage/docker/default.yml)).
 
 ## Run and Debug
 
@@ -75,7 +75,7 @@ and set breakpoints for debug (see `launch.json`).
 
 To run your ACA-Py code in debug mode, go to the `Run and Debug` view, select
 "Run/Debug Plugin" and click `Start Debugging (F5)`. Using the `default.yml` for
-the plugin (such as [default.yml](https://github.com/hyperledger/aries-acapy-plugins/blob/main/basicmessage_storage/docker/default.yml)),
+the plugin (such as [default.yml](https://github.com/openwallet-foundation/acapy-plugins/blob/main/basicmessage_storage/docker/default.yml)),
 your agent swagger is available at http://localhost:3001/api/doc.
 
 ## Testing
@@ -94,7 +94,7 @@ For the plugin to be accepted into this repo it must have adequate testing.
   created for your plugin after running the updater script. Plugins that don't
   have integrations must be flagged as being a [Lite Plugin](#lite-plugins).
 - An Integration `README` (such as [integration
-  tests](https://github.com/hyperledger/aries-acapy-plugins/blob/main/basicmessage_storage/integration/README.md)) **SHOULD** describe the
+  tests](https://github.com/openwallet-foundation/acapy-plugins/blob/main/basicmessage_storage/integration/README.md)) **SHOULD** describe the
   set of integration tests. When you generate a new plugin, you should have
   everything you need to start integration testing and a sample test will be
   provided.
@@ -109,13 +109,13 @@ Example Dockerfile:
 
 ```yaml
 
-FROM ghcr.io/hyperledger/aries-cloudagent-python:py3.9-0.11.0
+FROM ghcr.io/openwallet-foundation/acapy:py3.12-1.1.0
 
 USER root
 
 # install plugins as binaries
-RUN pip install git+https://github.com/hyperledger/aries-acapy-plugins@main#subdirectory=basicmessage_storage
-RUN pip install git+https://github.com/hyperledger/aries-acapy-plugins@main#subdirectory=connection_update
+RUN pip install git+https://github.com/openwallet-foundation/acapy-plugins@main#subdirectory=basicmessage_storage
+RUN pip install git+https://github.com/openwallet-foundation/acapy-plugins@main#subdirectory=connection_update
 
 USER $user
 COPY ./configs configs

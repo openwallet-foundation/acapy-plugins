@@ -1,5 +1,5 @@
 import pytest
-from aries_cloudagent.core.profile import Profile
+from acapy_agent.core.profile import Profile
 
 from oid4vc.models.exchange import OID4VCIExchangeRecord
 

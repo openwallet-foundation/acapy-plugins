@@ -1,8 +1,8 @@
 from unittest import IsolatedAsyncioTestCase
 from unittest.mock import MagicMock, Mock, patch
 
-from aries_cloudagent.core.event_bus import Event
-from aries_cloudagent.core.in_memory import InMemoryProfile
+from acapy_agent.core.event_bus import Event
+from acapy_agent.core.in_memory import InMemoryProfile
 from pydantic import BaseModel
 
 import basicmessage_storage.v1_0 as test_module

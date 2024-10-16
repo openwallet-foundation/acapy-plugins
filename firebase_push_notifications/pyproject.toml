@@ -1,7 +1,7 @@
 [tool.poetry]
 name = "firebase_push_notifications"
 version = "0.1.0"
-description = " (Supported aries-cloudagent version: 1.0.1) "
+description = " (Supported acapy-agent version: 1.1.0) "
 authors = []
 
 [tool.poetry.dependencies]
@@ -9,14 +9,14 @@ python = "^3.12"
 
 # Define ACA-Py as an optional/extra dependancy so it can be
 # explicitly installed with the plugin if desired.
-aries-cloudagent = { version = "~1.0.0", optional = true }
+acapy-agent = { version = "~1.1.0", optional = true }
 marshmallow = "^3.20.1"
 google-auth = "^2.33.0"
 google-api-python-client = "^2.147.0"
 requests = "^2.31.0"
 
 [tool.poetry.extras]
-aca-py = ["aries-cloudagent"]
+aca-py = ["acapy-agent"]
 
 [tool.poetry.dev-dependencies]
 ruff = "^0.6.9"
@@ -39,8 +39,18 @@ line-length = 90
 select = ["E", "F", "C", "D"]
 ignore = [
     # Google Python Doc Style
-    "D203", "D204", "D213", "D215", "D400", "D401", "D404", "D406", "D407",
-    "D408", "D409", "D413",
+    "D203",
+    "D204",
+    "D213",
+    "D215",
+    "D400",
+    "D401",
+    "D404",
+    "D406",
+    "D407",
+    "D408",
+    "D409",
+    "D413",
     "D202", # Allow blank line after docstring
     "D104", # Don't require docstring in public package
     # Things that we should fix, but are too much work right now
@@ -62,19 +72,11 @@ junit_family = "xunit1"
 asyncio_mode = "auto"
 
 [tool.coverage.run]
-omit = [
-    "*/tests/*",
-    "docker/*",
-    "integration/*",
-    "*/definition.py"
-]
+omit = ["*/tests/*", "docker/*", "integration/*", "*/definition.py"]
 data_file = ".test-reports/.coverage"
 
 [tool.coverage.report]
-exclude_lines = [
-    "pragma: no cover",
-    "@abstract"
-]
+exclude_lines = ["pragma: no cover", "@abstract"]
 precision = 2
 skip_covered = true
 show_missing = true

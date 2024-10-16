@@ -2,7 +2,7 @@
 
 import logging
 
-from aries_cloudagent.messaging.base_handler import (
+from acapy_agent.messaging.base_handler import (
     BaseHandler,
     BaseResponder,
     RequestContext,
@@ -31,8 +31,5 @@ class SetDeviceInfoHandler(BaseHandler):
         await save_device_token(context.profile, device_token, connection_id)
 
         await responder.send_reply(
-            SetDeviceInfo(
-                device_token=device_token,
-                device_platform=device_platform
-            )
+            SetDeviceInfo(device_token=device_token, device_platform=device_platform)
         )

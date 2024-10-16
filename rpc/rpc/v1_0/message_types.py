@@ -1,6 +1,6 @@
 """Message types for DIDComm RPC v1.0."""
 
-from aries_cloudagent.protocols.didcomm_prefix import DIDCommPrefix
+from acapy_agent.protocols.didcomm_prefix import DIDCommPrefix
 
 # Message types
 DRPC_REQUEST = "drpc/1.0/request"

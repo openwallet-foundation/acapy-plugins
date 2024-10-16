@@ -1,8 +1,8 @@
 import os
-from pycose.keys import CoseKey
 from binascii import hexlify
 
-from aries_cloudagent.wallet.util import b64_to_bytes
+from acapy_agent.wallet.util import b64_to_bytes
+from pycose.keys import CoseKey
 
 from ...mso import MsoIssuer
 from ...x509 import selfsigned_x509cert

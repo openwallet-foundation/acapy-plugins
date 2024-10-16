@@ -7,11 +7,11 @@ import re
 from string import Template
 from typing import Any, Optional, cast
 
-from aries_cloudagent.config.injection_context import InjectionContext
-from aries_cloudagent.core.event_bus import Event, EventBus, EventWithMetadata
-from aries_cloudagent.core.profile import Profile
-from aries_cloudagent.core.util import SHUTDOWN_EVENT_PATTERN, STARTUP_EVENT_PATTERN
-from aries_cloudagent.transport.error import TransportError
+from acapy_agent.config.injection_context import InjectionContext
+from acapy_agent.core.event_bus import Event, EventBus, EventWithMetadata
+from acapy_agent.core.profile import Profile
+from acapy_agent.core.util import SHUTDOWN_EVENT_PATTERN, STARTUP_EVENT_PATTERN
+from acapy_agent.transport.error import TransportError
 from redis.asyncio import RedisCluster
 from redis.exceptions import RedisClusterException, RedisError
 

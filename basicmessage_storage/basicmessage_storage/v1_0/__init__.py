@@ -1,11 +1,11 @@
 import logging
 import re
 
-from aries_cloudagent.config.injection_context import InjectionContext
-from aries_cloudagent.core.event_bus import Event, EventBus
-from aries_cloudagent.core.profile import Profile
-from aries_cloudagent.core.protocol_registry import ProtocolRegistry
-from aries_cloudagent.multitenant.admin.routes import (
+from acapy_agent.config.injection_context import InjectionContext
+from acapy_agent.core.event_bus import Event, EventBus
+from acapy_agent.core.profile import Profile
+from acapy_agent.core.protocol_registry import ProtocolRegistry
+from acapy_agent.multitenant.admin.routes import (
     ACAPY_LIFECYCLE_CONFIG_FLAG_ARGS_MAP,
 )
 
@@ -30,9 +30,7 @@ async def setup(context: InjectionContext):
     # acapy should create a separate map for plugin settings
     # add subwallet config, acapy will accept any child under basicmessage-storage
     # but will get filtered with `.config.get_config`
-    ACAPY_LIFECYCLE_CONFIG_FLAG_ARGS_MAP["basicmessage-storage"] = (
-        "basicmessage_storage"
-    )
+    ACAPY_LIFECYCLE_CONFIG_FLAG_ARGS_MAP["basicmessage-storage"] = "basicmessage_storage"
 
     event_bus.subscribe(BASIC_MESSAGE_EVENT_PATTERN, basic_message_event_handler)
     LOGGER.info("< basicmessage_storage plugin setup.")

@@ -7,8 +7,8 @@ from datetime import timedelta
 
 import google.auth.transport.requests
 import requests
-from aries_cloudagent.messaging.util import datetime_now, time_now
-from aries_cloudagent.storage.base import StorageNotFoundError
+from acapy_agent.messaging.util import datetime_now, time_now
+from acapy_agent.storage.base import StorageNotFoundError
 from dateutil import parser
 from google.oauth2 import service_account
 

@@ -1,12 +1,12 @@
 """Basic Messages Storage Model classes and schemas."""
 
-from aries_cloudagent.core.profile import ProfileSession
-from aries_cloudagent.messaging.models.base_record import BaseRecord, BaseRecordSchema
-from aries_cloudagent.messaging.valid import (
+from acapy_agent.core.profile import ProfileSession
+from acapy_agent.messaging.models.base_record import BaseRecord, BaseRecordSchema
+from acapy_agent.messaging.valid import (
     INDY_ISO8601_DATETIME_EXAMPLE,
     INDY_ISO8601_DATETIME_VALIDATE,
 )
-from aries_cloudagent.storage.base import BaseStorage
+from acapy_agent.storage.base import BaseStorage
 from marshmallow import fields
 
 

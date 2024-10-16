@@ -2,7 +2,7 @@
 
 from typing import Dict, List, Optional
 
-from aries_cloudagent.messaging.models.base_record import BaseRecord, BaseRecordSchema
+from acapy_agent.messaging.models.base_record import BaseRecord, BaseRecordSchema
 from marshmallow import fields
 
 

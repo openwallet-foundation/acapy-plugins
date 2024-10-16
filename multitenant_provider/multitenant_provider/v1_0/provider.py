@@ -2,11 +2,11 @@
 
 import logging
 
-from aries_cloudagent.config.base import InjectionError
-from aries_cloudagent.config.injector import BaseInjector
-from aries_cloudagent.config.settings import BaseSettings
-from aries_cloudagent.multitenant.manager_provider import MultitenantManagerProvider
-from aries_cloudagent.utils.classloader import ClassLoader, ClassNotFoundError
+from acapy_agent.config.base import InjectionError
+from acapy_agent.config.injector import BaseInjector
+from acapy_agent.config.settings import BaseSettings
+from acapy_agent.multitenant.manager_provider import MultitenantManagerProvider
+from acapy_agent.utils.classloader import ClassLoader, ClassNotFoundError
 
 from .config import MultitenantProviderConfig
 

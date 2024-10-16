@@ -16,9 +16,9 @@ cp LICENSE docs/LICENSE.md
 
 # Generate the main part of the mkdocs.yml file
 cat <<-EOF >${MKDOCS}
-site_name: Hyperledger Aries Cloud Agent Python Plugins
-repo_name: hyperledger/aries-acapy-plugins
-repo_url: https://github.com/hyperledger/aries-acapy-plugins
+site_name: ACA-Py Plugins
+repo_name: openwallet-foundation/acapy-plugins
+repo_url: https://github.com/openwallet-foundation/acapy-plugins
 theme:
   name: material
   logo: https://raw.githubusercontent.com/hyperledger/aries-acapy-docs/main/assets/Hyperledger_Aries_Logo_White.png

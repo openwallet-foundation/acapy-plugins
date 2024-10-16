@@ -3,14 +3,14 @@
 import logging
 
 import aiohttp_cors
+from acapy_agent.admin.base_server import BaseAdminServer
+from acapy_agent.admin.error import AdminSetupError
+from acapy_agent.admin.request_context import AdminRequestContext
+from acapy_agent.admin.server import debug_middleware, ready_middleware
+from acapy_agent.config.injection_context import InjectionContext
+from acapy_agent.core.profile import Profile
 from aiohttp import web
 from aiohttp_apispec import setup_aiohttp_apispec, validation_middleware
-from aries_cloudagent.admin.base_server import BaseAdminServer
-from aries_cloudagent.admin.error import AdminSetupError
-from aries_cloudagent.admin.request_context import AdminRequestContext
-from aries_cloudagent.admin.server import debug_middleware, ready_middleware
-from aries_cloudagent.config.injection_context import InjectionContext
-from aries_cloudagent.core.profile import Profile
 
 from .public_routes import register as public_routes_register
 

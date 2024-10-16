@@ -2,21 +2,21 @@
 
 import logging
 
-from aiohttp import web
-from aiohttp_apispec import docs, request_schema, response_schema
-from aries_cloudagent.admin.decorators.auth import admin_authentication
-from aries_cloudagent.admin.request_context import AdminRequestContext
-from aries_cloudagent.multitenant.admin.routes import (
+from acapy_agent.admin.decorators.auth import admin_authentication
+from acapy_agent.admin.request_context import AdminRequestContext
+from acapy_agent.multitenant.admin.routes import (
     CreateWalletRequestSchema,
     CreateWalletResponseSchema,
     CreateWalletTokenRequestSchema,
     CreateWalletTokenResponseSchema,
     wallet_create,
 )
-from aries_cloudagent.multitenant.base import BaseMultitenantManager
-from aries_cloudagent.multitenant.error import WalletKeyMissingError
-from aries_cloudagent.storage.error import StorageNotFoundError
-from aries_cloudagent.wallet.models.wallet_record import WalletRecord
+from acapy_agent.multitenant.base import BaseMultitenantManager
+from acapy_agent.multitenant.error import WalletKeyMissingError
+from acapy_agent.storage.error import StorageNotFoundError
+from acapy_agent.wallet.models.wallet_record import WalletRecord
+from aiohttp import web
+from aiohttp_apispec import docs, request_schema, response_schema
 from marshmallow import ValidationError, validates_schema
 
 from .config import MultitenantProviderConfig

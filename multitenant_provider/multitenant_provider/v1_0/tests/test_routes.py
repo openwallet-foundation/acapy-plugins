@@ -2,11 +2,11 @@ import json
 from unittest import IsolatedAsyncioTestCase
 from unittest.mock import AsyncMock, MagicMock, Mock, patch
 
+from acapy_agent.admin.request_context import AdminRequestContext
+from acapy_agent.core.in_memory import InMemoryProfile
+from acapy_agent.multitenant.base import BaseMultitenantManager
+from acapy_agent.wallet.models.wallet_record import WalletRecord
 from aiohttp import web
-from aries_cloudagent.admin.request_context import AdminRequestContext
-from aries_cloudagent.core.in_memory import InMemoryProfile
-from aries_cloudagent.multitenant.base import BaseMultitenantManager
-from aries_cloudagent.wallet.models.wallet_record import WalletRecord
 
 from .. import routes as test_module
 from ..config import MultitenantProviderConfig

@@ -2,12 +2,12 @@
 
 from typing import Any, Dict, Optional
 
-from aries_cloudagent.core.profile import ProfileSession
-from aries_cloudagent.messaging.models.base_record import (
+from acapy_agent.core.profile import ProfileSession
+from acapy_agent.messaging.models.base_record import (
     BaseExchangeRecord,
     BaseRecordSchema,
 )
-from aries_cloudagent.messaging.valid import Uri
+from acapy_agent.messaging.valid import Uri
 from marshmallow import fields
 
 
