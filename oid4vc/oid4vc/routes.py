@@ -318,9 +318,22 @@ class CredOfferSchema(OpenAPISchema):
     grants = fields.Nested(CredOfferGrantSchema(), required=True)
 
 
+class CredOfferResponseSchema(OpenAPISchema):
+    """Credential Offer Schema."""
+
+    offer_uri = fields.Str(
+        required=True,
+        metadata={
+            "description": "The URL of the credential issuer.",
+            "example": "openid-credential-offer://...",
+        },
+    )
+    offer = fields.Nested(CredOfferSchema(), required=True)
+
+
 @docs(tags=["oid4vci"], summary="Get a credential offer")
 @querystring_schema(CredOfferQuerySchema())
-@response_schema(CredOfferSchema(), 200)
+@response_schema(CredOfferResponseSchema(), 200)
 @tenant_authentication
 async def get_cred_offer(request: web.BaseRequest):
     """Endpoint to retrieve an OpenID4VCI compliant offer.
@@ -357,8 +370,14 @@ async def get_cred_offer(request: web.BaseRequest):
             }
         },
     }
+    offer_uri = quote(json.dumps(offer))
+    full_uri = f"openid-credential-offer://?credential_offer={offer_uri}"
+    offer_response = {
+        "offer": offer,
+        "offer_uri": full_uri,
+    }
 
-    return web.json_response(offer)
+    return web.json_response(offer_response)
 
 
 class SupportedCredCreateRequestSchema(OpenAPISchema):
