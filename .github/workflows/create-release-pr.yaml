@@ -58,7 +58,7 @@ jobs:
         id: current_available_version
         run: |
           remote_version=$(pip index versions acapy-agent)
-          version=$(grep -oP '(?<=Available versions: ).*?(?=,)' <<< "$remote_version")
+          version=$(grep -oP '(?<=Available versions: ).*?(?=$|,)' <<< "$remote_version")
           echo current_available_version=$version >> $GITHUB_OUTPUT
           echo "Remote version = $version"
       #----------------------------------------------
