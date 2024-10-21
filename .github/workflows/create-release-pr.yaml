@@ -19,6 +19,7 @@ jobs:
       contents: write
       pull-requests: write
     runs-on: ubuntu-latest
+    if: github.repository == 'openwallet-foundation/acapy-plugins'
     outputs:
       current_available_version: ${{ steps.current_available_version.outputs.version }}
       current_global_version: ${{ steps.current_global_version.outputs.version }}

@@ -12,6 +12,7 @@ permissions:
 jobs:
   deploy:
     runs-on: ubuntu-latest
+    if: github.repository == 'openwallet-foundation/acapy-plugins'
     steps:
       - uses: actions/checkout@v4
         with:
