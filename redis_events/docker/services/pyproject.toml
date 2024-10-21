@@ -9,7 +9,7 @@ python = "^3.12"
 redis = "^5.1.1"
 aiohttp = "^3.10.5"
 fastapi-slim = "^0.115.0"
-uvicorn = "^0.31.1"
+uvicorn = "^0.32.0"
 nest-asyncio = "^1.5.5"
 pydantic = "^2.7.0"
 
