@@ -46,11 +46,12 @@ class CredentialOffer:
     @classmethod
     def from_dict(cls, value: dict):
         """Parse from dict."""
+        offer = value["offer"]
         return cls(
-            value["credential_issuer"],
-            value["credentials"],
-            value.get("grants", {}).get("authorization_code"),
-            CredentialGrantPreAuth.from_grants(value.get("grants", {})),
+            offer["credential_issuer"],
+            offer["credentials"],
+            offer.get("grants", {}).get("authorization_code"),
+            CredentialGrantPreAuth.from_grants(offer.get("grants", {})),
         )
 
 
