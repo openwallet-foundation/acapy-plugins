@@ -13,7 +13,7 @@ acapy-agent = { version = "~1.1.0", optional = true }
 aiohttp = "^3.9.5"
 fastapi-slim = "^0.115.0"
 nest-asyncio = "^1.5.5"
-redis = "^5.1.1"
+redis = "^5.2.0"
 uvicorn = "^0.32.0"
 pydantic = "^2.7.0"
 
