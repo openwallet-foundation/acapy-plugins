@@ -18,7 +18,7 @@ pydantic = "^1.10.15"
 aca-py = ["aries-cloudagent"]
 
 [tool.poetry.dev-dependencies]
-ruff = "^0.7.0"
+ruff = "^0.7.1"
 black = "~24.4.2"
 pytest = "^8.3.1"
 pytest-asyncio = "^0.23.8"
