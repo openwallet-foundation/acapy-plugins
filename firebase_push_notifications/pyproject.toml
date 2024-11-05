@@ -12,7 +12,7 @@ python = "^3.12"
 acapy-agent = { version = "~1.1.0", optional = true }
 marshmallow = "^3.20.1"
 google-auth = "^2.33.0"
-google-api-python-client = "^2.147.0"
+google-api-python-client = "^2.151.0"
 requests = "^2.31.0"
 
 [tool.poetry.extras]
