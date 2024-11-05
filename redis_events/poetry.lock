@@ -985,18 +985,18 @@ test = ["hypothesis (>=4.43.0)", "mypy (==1.10.0)", "pytest (>=7.0.0)", "pytest-
 
 [[package]]
 name = "fastapi-slim"
-version = "0.115.2"
+version = "0.115.4"
 description = "FastAPI framework, high performance, easy to learn, fast to code, ready for production"
 optional = false
 python-versions = ">=3.8"
 files = [
-    {file = "fastapi_slim-0.115.2-py3-none-any.whl", hash = "sha256:7dd65a58e9b2a1558ebd479d35e621417d4572188d902a3e5564739914ddc81d"},
-    {file = "fastapi_slim-0.115.2.tar.gz", hash = "sha256:83a1ce1e385029cad305b49dcc03622d2be6a905b2ab65d2e7096285605cca8d"},
+    {file = "fastapi_slim-0.115.4-py3-none-any.whl", hash = "sha256:8947515618c21665590a1673a0bfe4c721db4267999c149d5301c3c0f7b3d9ce"},
+    {file = "fastapi_slim-0.115.4.tar.gz", hash = "sha256:6d37987e4d1f6adefb8c7119c9b804e59c9b3f1a488be5425994d52308e2f958"},
 ]
 
 [package.dependencies]
 pydantic = ">=1.7.4,<1.8 || >1.8,<1.8.1 || >1.8.1,<2.0.0 || >2.0.0,<2.0.1 || >2.0.1,<2.1.0 || >2.1.0,<3.0.0"
-starlette = ">=0.37.2,<0.41.0"
+starlette = ">=0.40.0,<0.42.0"
 typing-extensions = ">=4.8.0"
 
 [package.extras]
@@ -2927,4 +2927,4 @@ aca-py = ["acapy-agent"]
 [metadata]
 lock-version = "2.0"
 python-versions = "^3.12"
-content-hash = "fd25211848717da4c997f43a1584aaff484988c0065fe27774c38bea1b2e19d5"
+content-hash = "a4a7e2ccc45ac7a8a8d091d733aba546ce606cff7f667a1657634f572c87541b"
