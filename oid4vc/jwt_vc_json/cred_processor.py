@@ -98,13 +98,21 @@ class JwtVcJsonCredProcessor(Issuer, CredVerifier, PresVerifier):
         )
 
     async def verify_credential(
-        self, profile: Profile, credential: Any, aud: Optional[str] = None, nonce: Optional[str] = None
+        self,
+        profile: Profile,
+        credential: Any,
+        aud: Optional[str] = None,
+        nonce: Optional[str] = None,
     ) -> VerifyResult:
         """Verify a credential in JWT VC format."""
         return await self.verify(profile, credential)
 
     async def verify_presentation(
-        self, profile: Profile, presentation: Any, aud: Optional[str] = None, nonce: Optional[str] = None
+        self,
+        profile: Profile,
+        presentation: Any,
+        aud: Optional[str] = None,
+        nonce: Optional[str] = None,
     ) -> VerifyResult:
         """Verify a presentation in JWT VP format."""
         return await self.verify(profile, presentation)
