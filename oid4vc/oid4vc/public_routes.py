@@ -550,7 +550,12 @@ async def verify_presentation(
 
         pres_def = PresentationDefinition.deserialize(pres_def_entry.pres_def)
 
-    vp_result = await verifier.verify_presentation(profile=profile, presentation=vp_token, aud=config.endpoint, nonce=pres_def_entry.nonce)
+    vp_result = await verifier.verify_presentation(
+        profile=profile,
+        presentation=vp_token,
+        aud=config.endpoint,
+        nonce=pres_def_entry.nonce,
+    )
 
     evaluator = PresentationExchangeEvaluator.compile(pres_def)
     result = await evaluator.verify(profile, submission, vp_result.payload)
