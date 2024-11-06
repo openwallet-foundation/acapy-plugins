@@ -198,19 +198,19 @@ class SdJwtCredIssueProcessor(Issuer, CredVerifier, PresVerifier):
             raise ValueError(f"Invalid JSON pointer(s): {bad_pointer}")
 
     async def verify_presentation(
-        self, profile: Profile, presentation: Any
+        self, profile: Profile, presentation: Any, aud: Optional[str] = None, nonce: Optional[str] = None 
     ) -> VerifyResult:
         """Verify signature over credential or presentation."""
 
-        result = await sd_jwt_verify(profile, presentation)
+        result = await sd_jwt_verify(profile, presentation, aud, nonce)
         # TODO: This is a little hacky
         return VerifyResult(result.verified, presentation)
 
-    async def verify_credential(self, profile: Profile, credential: Any) -> VerifyResult:
+    async def verify_credential(self, profile: Profile, credential: Any, aud: Optional[str] = None, nonce: Optional[str] = None) -> VerifyResult:
         """Verify signature over credential."""
         # TODO: Can we optimize this? since we end up doing this twice in a row
 
-        result = await sd_jwt_verify(profile, credential)
+        result = await sd_jwt_verify(profile, credential, aud, nonce)
         return VerifyResult(result.verified, result.payload)
 
 

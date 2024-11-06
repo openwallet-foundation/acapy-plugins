@@ -434,6 +434,7 @@ async def get_request(request: web.Request):
                 session=session, request_id=request_id
             )
             pres.state = OID4VPPresentation.REQUEST_RETRIEVED
+            pres.nonce = token_urlsafe(NONCE_BYTES)
             await pres.save(session=session, reason="Retrieved presentation request")
 
             pres_def = await OID4VPPresDef.retrieve_by_id(session, record.pres_def_id)
@@ -456,7 +457,7 @@ async def get_request(request: web.Request):
         "client_id": config.endpoint,
         "response_uri": f"{config.endpoint}/oid4vp/response/{pres.presentation_id}",
         "state": pres.presentation_id,
-        "nonce": token_urlsafe(),
+        "nonce": pres.nonce,
         "id_token_signing_alg_values_supported": ["ES256", "EdDSA"],
         "request_object_signing_alg_values_supported": ["ES256", "EdDSA"],
         "response_types_supported": ["id_token", "vp_token"],
@@ -523,6 +524,9 @@ async def verify_presentation(
 ):
     """Verify a received presentation."""
 
+    context: AdminRequestContext = profile.context
+    config = Config.from_settings(context.settings)
+
     LOGGER.debug("Got: %s %s", submission, vp_token)
 
     processors = profile.inject(CredProcessors)
@@ -538,8 +542,6 @@ async def verify_presentation(
     verifier = processors.pres_verifier_for_format(submission.descriptor_maps[0].fmt)
     LOGGER.debug("VERIFIER: %s", verifier)
 
-    vp_result = await verifier.verify_presentation(profile=profile, presentation=vp_token)
-
     async with profile.session() as session:
         pres_def_entry = await OID4VPPresDef.retrieve_by_id(
             session,
@@ -547,6 +549,8 @@ async def verify_presentation(
         )
 
         pres_def = PresentationDefinition.deserialize(pres_def_entry.pres_def)
+
+    vp_result = await verifier.verify_presentation(profile=profile, presentation=vp_token, aud=config.endpoint, nonce=pres_def_entry.nonce)
 
     evaluator = PresentationExchangeEvaluator.compile(pres_def)
     result = await evaluator.verify(profile, submission, vp_result.payload)
