@@ -22,7 +22,6 @@ class OID4VPPresDef(BaseRecord):
         *,
         pres_def_id: Optional[str] = None,
         pres_def: Dict[str, Any],
-        nonce: Optional[str] = None,
         **kwargs,
     ) -> None:
         """Initialize an OID4VP Presentation instance."""
@@ -30,7 +29,6 @@ class OID4VPPresDef(BaseRecord):
         super().__init__(pres_def_id, **kwargs)
 
         self.pres_def = pres_def
-        self.nonce = nonce  # in request
 
     @property
     def pres_def_id(self) -> str:
@@ -63,8 +61,4 @@ class OID4VPPresDefSchema(BaseRecordSchema):
         metadata={
             "description": "Presentation definition",
         },
-    )
-
-    nonce = fields.Str(
-        required=False,
     )
