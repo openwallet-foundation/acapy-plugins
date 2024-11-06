@@ -3,7 +3,7 @@
 import datetime
 import logging
 import uuid
-from typing import Any
+from typing import Any, Optional
 
 from acapy_agent.admin.request_context import AdminRequestContext
 from acapy_agent.core.profile import Profile
@@ -97,12 +97,14 @@ class JwtVcJsonCredProcessor(Issuer, CredVerifier, PresVerifier):
             payload=res.payload,
         )
 
-    async def verify_credential(self, profile: Profile, credential: Any) -> VerifyResult:
+    async def verify_credential(
+        self, profile: Profile, credential: Any, aud: Optional[str] = None, nonce: Optional[str] = None
+    ) -> VerifyResult:
         """Verify a credential in JWT VC format."""
         return await self.verify(profile, credential)
 
     async def verify_presentation(
-        self, profile: Profile, presentation: Any
+        self, profile: Profile, presentation: Any, aud: Optional[str] = None, nonce: Optional[str] = None
     ) -> VerifyResult:
         """Verify a presentation in JWT VP format."""
         return await self.verify(profile, presentation)
