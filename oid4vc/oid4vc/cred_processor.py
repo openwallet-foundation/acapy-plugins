@@ -46,7 +46,9 @@ class Issuer(Protocol):
 class CredVerifier(Protocol):
     """Credential verifier protocol."""
 
-    async def verify_credential(self, profile: Profile, credential: Any) -> VerifyResult:
+    async def verify_credential(
+        self, profile: Profile, credential: Any, aud: Optional[str] = None, nonce: Optional[str] = None
+    ) -> VerifyResult:
         """Verify credential."""
         ...
 
@@ -55,7 +57,7 @@ class PresVerifier(Protocol):
     """Presentation verifier protocol."""
 
     async def verify_presentation(
-        self, profile: Profile, presentation: Any
+        self, profile: Profile, presentation: Any, aud: Optional[str] = None, nonce: Optional[str] = None
     ) -> VerifyResult:
         """Verify presentation."""
         ...
