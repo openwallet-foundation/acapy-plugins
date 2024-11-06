@@ -41,6 +41,7 @@ class OID4VPPresentation(BaseRecord):
         matched_credentials: Optional[Dict[str, Any]] = None,
         verified: Optional[bool] = None,
         request_id: str,
+        nonce: Optional[str] = None,
         **kwargs,
     ) -> None:
         """Initialize an OID4VP Presentation instance."""
@@ -52,6 +53,7 @@ class OID4VPPresentation(BaseRecord):
         self.matched_credentials = matched_credentials
         self.verified = verified
         self.request_id = request_id
+        self.nonce = nonce  # in request
 
     @property
     def presentation_id(self) -> str:
@@ -67,6 +69,7 @@ class OID4VPPresentation(BaseRecord):
                 "errors",
                 "matched_credentials",
                 "verified",
+                "nonce",
             )
         }
 
@@ -108,6 +111,10 @@ class OID4VPPresentationSchema(BaseRecordSchema):
         metadata={
             "description": "Identifier used to identify presentation request",
         },
+    )
+
+    nonce = fields.Str(
+        required=False,
     )
 
     errors = fields.List(

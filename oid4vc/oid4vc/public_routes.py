@@ -521,6 +521,7 @@ async def verify_presentation(
     submission: PresentationSubmission,
     vp_token: str,
     pres_def_id: str,
+    presentation: OID4VPPresentation,
 ):
     """Verify a received presentation."""
 
@@ -542,6 +543,13 @@ async def verify_presentation(
     verifier = processors.pres_verifier_for_format(submission.descriptor_maps[0].fmt)
     LOGGER.debug("VERIFIER: %s", verifier)
 
+    vp_result = await verifier.verify_presentation(
+        profile=profile,
+        presentation=vp_token,
+        aud=config.endpoint,
+        nonce=presentation.nonce,
+    )
+
     async with profile.session() as session:
         pres_def_entry = await OID4VPPresDef.retrieve_by_id(
             session,
@@ -549,13 +557,6 @@ async def verify_presentation(
         )
 
         pres_def = PresentationDefinition.deserialize(pres_def_entry.pres_def)
-
-    vp_result = await verifier.verify_presentation(
-        profile=profile,
-        presentation=vp_token,
-        aud=config.endpoint,
-        nonce=pres_def_entry.nonce,
-    )
 
     evaluator = PresentationExchangeEvaluator.compile(pres_def)
     result = await evaluator.verify(profile, submission, vp_result.payload)
@@ -593,6 +594,7 @@ async def post_response(request: web.Request):
             submission=presentation_submission,
             vp_token=vp_token,
             pres_def_id=record.pres_def_id,
+            presentation=record,
         )
 
     except StorageNotFoundError as err:
