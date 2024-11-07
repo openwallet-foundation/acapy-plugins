@@ -3,7 +3,7 @@
 import datetime
 import logging
 import uuid
-from typing import Any, Optional
+from typing import Any
 
 from acapy_agent.admin.request_context import AdminRequestContext
 from acapy_agent.core.profile import Profile

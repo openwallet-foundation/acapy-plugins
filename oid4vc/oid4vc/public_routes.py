@@ -525,9 +525,6 @@ async def verify_presentation(
 ):
     """Verify a received presentation."""
 
-    context: AdminRequestContext = profile.context
-    config = Config.from_settings(context.settings)
-
     LOGGER.debug("Got: %s %s", submission, vp_token)
 
     processors = profile.inject(CredProcessors)

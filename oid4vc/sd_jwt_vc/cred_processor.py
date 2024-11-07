@@ -209,7 +209,9 @@ class SdJwtCredIssueProcessor(Issuer, CredVerifier, PresVerifier):
         context: AdminRequestContext = profile.context
         config = Config.from_settings(context.settings)
 
-        result = await sd_jwt_verify(profile, presentation, config.endpoint, presentation_record.nonce)
+        result = await sd_jwt_verify(
+            profile, presentation, config.endpoint, presentation_record.nonce
+        )
         # TODO: This is a little hacky
         return VerifyResult(result.verified, presentation)
 
