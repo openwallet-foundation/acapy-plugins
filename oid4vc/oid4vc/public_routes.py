@@ -546,8 +546,7 @@ async def verify_presentation(
     vp_result = await verifier.verify_presentation(
         profile=profile,
         presentation=vp_token,
-        aud=config.endpoint,
-        nonce=presentation.nonce,
+        presentation_record=presentation,
     )
 
     async with profile.session() as session:

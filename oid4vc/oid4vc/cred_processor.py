@@ -8,6 +8,7 @@ from acapy_agent.core.error import BaseError
 from acapy_agent.core.profile import Profile
 
 from .models.exchange import OID4VCIExchangeRecord
+from .models.presentation import OID4VPPresentation
 from .models.supported_cred import SupportedCredential
 from .pop_result import PopResult
 
@@ -50,8 +51,6 @@ class CredVerifier(Protocol):
         self,
         profile: Profile,
         credential: Any,
-        aud: Optional[str] = None,
-        nonce: Optional[str] = None,
     ) -> VerifyResult:
         """Verify credential."""
         ...
@@ -64,8 +63,7 @@ class PresVerifier(Protocol):
         self,
         profile: Profile,
         presentation: Any,
-        aud: Optional[str] = None,
-        nonce: Optional[str] = None,
+        presentation_record: OID4VPPresentation,
     ) -> VerifyResult:
         """Verify presentation."""
         ...
