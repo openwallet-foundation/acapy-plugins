@@ -24,8 +24,10 @@ from oid4vc.cred_processor import (
     PresVerifier,
     VerifyResult,
 )
+from oid4vc.config import Config
 from oid4vc.jwt import jwt_sign, jwt_verify
 from oid4vc.models.exchange import OID4VCIExchangeRecord
+from oid4vc.models.presentation import OID4VPPresentation
 from oid4vc.models.supported_cred import SupportedCredential
 from oid4vc.pop_result import PopResult
 
@@ -201,12 +203,13 @@ class SdJwtCredIssueProcessor(Issuer, CredVerifier, PresVerifier):
         self,
         profile: Profile,
         presentation: Any,
-        aud: Optional[str] = None,
-        nonce: Optional[str] = None,
+        presentation_record: OID4VPPresentation,
     ) -> VerifyResult:
         """Verify signature over credential or presentation."""
+        context: AdminRequestContext = profile.context
+        config = Config.from_settings(context.settings)
 
-        result = await sd_jwt_verify(profile, presentation, aud, nonce)
+        result = await sd_jwt_verify(profile, presentation, config.endpoint, presentation_record.nonce)
         # TODO: This is a little hacky
         return VerifyResult(result.verified, presentation)
 
@@ -214,13 +217,11 @@ class SdJwtCredIssueProcessor(Issuer, CredVerifier, PresVerifier):
         self,
         profile: Profile,
         credential: Any,
-        aud: Optional[str] = None,
-        nonce: Optional[str] = None,
     ) -> VerifyResult:
         """Verify signature over credential."""
         # TODO: Can we optimize this? since we end up doing this twice in a row
 
-        result = await sd_jwt_verify(profile, credential, aud, nonce)
+        result = await sd_jwt_verify(profile, credential)
         return VerifyResult(result.verified, result.payload)
 
 
