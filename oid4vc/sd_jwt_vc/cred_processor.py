@@ -74,7 +74,7 @@ class SdJwtCredIssueProcessor(Issuer, CredVerifier, PresVerifier):
         assert supported.format_data
         assert supported.vc_additional_data
 
-        sd_list = supported.vc_additional_data.get("sd_list", [])
+        sd_list = supported.vc_additional_data.get("sd_list") or []
         assert isinstance(sd_list, list)
 
         if body.get("vct") != supported.format_data.get("vct"):
@@ -120,13 +120,15 @@ class SdJwtCredIssueProcessor(Issuer, CredVerifier, PresVerifier):
         except SDJWTError as error:
             raise CredProcessorError("Could not sign SD-JWT VC") from error
 
-    def validate_credential_subject(self, supported: SupportedCredential, subject: dict):
+    def validate_credential_subject(
+        self, supported: SupportedCredential, subject: dict
+    ):
         """Validate the credential subject."""
         vc_additional = supported.vc_additional_data
         assert vc_additional
         assert supported.format_data
         claims_metadata = supported.format_data.get("claims")
-        sd_list = vc_additional.get("sd_list", [])
+        sd_list = vc_additional.get("sd_list") or []
 
         # TODO this will only enforce mandatory fields that are selectively disclosable
         # We should validate that disclosed claims that are mandatory are also present
@@ -167,7 +169,7 @@ class SdJwtCredIssueProcessor(Issuer, CredVerifier, PresVerifier):
         if not vc_additional:
             raise ValueError("SD-JWT VC needs vc_additional_data")
 
-        sd_list = vc_additional.get("sd_list", [])
+        sd_list = vc_additional.get("sd_list") or []
 
         bad_claims = []
         for sd in sd_list:
