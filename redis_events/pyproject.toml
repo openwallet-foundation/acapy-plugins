@@ -10,7 +10,7 @@ python = "^3.12"
 # Define ACA-Py as an optional/extra dependancy so it can be
 # explicitly installed with the plugin if desired.
 acapy-agent = { version = "~1.1.0", optional = true }
-aiohttp = "^3.9.5"
+aiohttp = "^3.10.11"
 fastapi-slim = "^0.115.4"
 nest-asyncio = "^1.5.5"
 redis = "^5.2.0"
