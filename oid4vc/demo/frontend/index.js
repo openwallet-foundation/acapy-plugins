@@ -299,7 +299,7 @@ async function issue_sdjwt_credential(req, res) {
             "key1": {
               "key2": {
                 "key3": {
-                  "mandatory": True,
+                  "mandatory": true,
                   "value_type": "string",
                 },
               },
