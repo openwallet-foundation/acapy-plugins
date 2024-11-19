@@ -642,7 +642,12 @@ async function create_sd_jwt_presentation(req, res) {
               "path": [
                 "$.given_name"
               ]
-            }
+            },
+            {
+              "path": [
+                "$.something_nested.key1.key2.key3"
+              ]
+            },
           ]
         }
       }
