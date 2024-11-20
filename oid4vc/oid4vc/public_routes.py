@@ -91,13 +91,15 @@ async def credential_issuer_metadata(request: web.Request):
         # TODO If there's a lot, this will be a problem
         credentials_supported = await SupportedCredential.query(session)
 
-    metadata = {
-        "credential_issuer": f"{public_url}/",
-        "credential_endpoint": f"{public_url}/credential",
-        "credentials_supported": [
-            supported.to_issuer_metadata() for supported in credentials_supported
-        ],
-    }
+        wallet_id = request.match_info.get("wallet_id")
+        subpath = f"/tenant/{wallet_id}" if wallet_id else ""
+        metadata = {
+            "credential_issuer": f"{public_url}{subpath}",
+            "credential_endpoint": f"{public_url}{subpath}/credential",
+            "credentials_supported": [
+                supported.to_issuer_metadata() for supported in credentials_supported
+            ],
+        }
 
     LOGGER.debug("METADATA: %s", metadata)
 
@@ -618,20 +620,24 @@ async def post_response(request: web.Request):
     return web.Response(status=200)
 
 
-async def register(app: web.Application):
-    """Register routes."""
+async def register(app: web.Application, multitenant: bool):
+    """Register routes with support for multitenant mode.
+    
+    Adds the subpath with Wallet ID as a path parameter if multitenant is True.
+    """
+    subpath = "/tenant/{wallet_id}" if multitenant else ""
     app.add_routes(
         [
             web.get(
-                "/.well-known/openid-credential-issuer",
+                f"{subpath}/.well-known/openid-credential-issuer",
                 credential_issuer_metadata,
                 allow_head=False,
             ),
             # TODO Add .well-known/did-configuration.json
             # Spec: https://identity.foundation/.well-known/resources/did-configuration/
-            web.post("/token", token),
-            web.post("/credential", issue_cred),
-            web.get("/oid4vp/request/{request_id}", get_request),
-            web.post("/oid4vp/response/{presentation_id}", post_response),
+            web.post(f"{subpath}/token", token),
+            web.post(f"{subpath}/credential", issue_cred),
+            web.get(f"{subpath}/oid4vp/request/{{request_id}}", get_request),
+            web.post(f"{subpath}/oid4vp/response/{{presentation_id}}", post_response),
         ]
     )
