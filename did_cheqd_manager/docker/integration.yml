@@ -1,20 +1,52 @@
 label: did_cheqd_manager
 
-admin: [0.0.0.0, 3001]
+log-level: DEBUG
+auto-provision: true
+
+# Admin
+admin: [0.0.0.0, 8021]
 admin-insecure-mode: true
 
+# Transport
 inbound-transport:
-  - [http, 0.0.0.0, 3000]
+  - [http, 0.0.0.0, 8020]
+  - [ws, 0.0.0.0, 8022]
 outbound-transport: http
 endpoint:
-  - http://host.docker.internal:3000
+  - http://localhost:8020
+  - ws://localhost:8022
 
 plugin:
   - did_cheqd_manager.v1_0
 
-genesis-url: http://test.bcovrin.vonx.io/genesis
+# Ledger
+no-ledger: true
 
-log-level: info
+# plugin options
+# did_cheqd_manager:
+#   wallet_enabled: True
 
+# Connections
+debug-connections: true
+debug-credentials: true
+debug-presentations: true
 auto-accept-invites: true
-auto-respond-messages: true
+auto-accept-requests: true
+
+# Credentials and Presentations
+preserve-exchange-records: true
+auto-store-credential: true
+auto-respond-credential-proposal: true
+auto-respond-credential-offer: true
+auto-respond-credential-request: true
+auto-respond-presentation-proposal: true
+auto-respond-presentation-request: true
+auto-verify-presentation: true
+
+# Wallet
+wallet-name: cheq-1
+wallet-type: askar  #askar-anoncreds #askar
+wallet-key: "cheq-1"
+wallet-storage-type: postgres_storage
+wallet-storage-creds: '{"account":"postgres","password":"postgres","admin_account":"postgres","admin_password":"postgres"}'
+wallet-storage-config: '{"url":"host.docker.internal:5432","max_connections":5}'

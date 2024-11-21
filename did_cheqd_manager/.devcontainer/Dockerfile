@@ -15,8 +15,7 @@ RUN curl -sSL https://install.python-poetry.org | python3 - \
     && poetry completions zsh > /home/vscode/.zfunc/_poetry \
     && echo "fpath+=~/.zfunc\nautoload -Uz compinit && compinit" >> /home/vscode/.zshrc
 
-COPY pyproject.toml ./
-# COPY pyproject.toml poetry.lock ./
-RUN poetry config virtualenvs.create true \
+COPY pyproject.toml poetry.lock ./
+RUN poetry config virtualenvs.create false \
     && poetry install --no-root --no-interaction --with integration --extras "aca-py" \
     && rm -rf /root/.cache/pypoetry

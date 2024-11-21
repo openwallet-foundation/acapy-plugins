@@ -7,3 +7,8 @@
 ## Configuration
 
 < Replace this section with an outline of configuration options and basic defaults for deploying the plugin >
+
+```bash
+# Install the plugin locally
+pip install -e .
+```
