@@ -71,7 +71,9 @@ class CredentialIssuerMetadataSchema(OpenAPISchema):
     )
     authorization_server = fields.Str(
         required=False,
-        metadata={"description": "The authorization server endpoint. Currently ignored."},
+        metadata={
+            "description": "The authorization server endpoint. Currently ignored."
+        },
     )
     batch_credential_endpoint = fields.Str(
         required=False,
@@ -205,7 +207,9 @@ async def check_token(
     return result
 
 
-async def handle_proof_of_posession(profile: Profile, proof: Dict[str, Any], nonce: str):
+async def handle_proof_of_posession(
+    profile: Profile, proof: Dict[str, Any], nonce: str
+):
     """Handle proof of posession."""
     encoded_headers, encoded_payload, encoded_signature = proof["jwt"].split(".", 3)
     headers = b64_to_dict(encoded_headers)
@@ -311,7 +315,9 @@ async def issue_cred(request: web.Request):
     if "proof" not in body:
         raise web.HTTPBadRequest(reason=f"proof is required for {supported.format}")
 
-    pop = await handle_proof_of_posession(context.profile, body["proof"], ex_record.nonce)
+    pop = await handle_proof_of_posession(
+        context.profile, body["proof"], ex_record.nonce
+    )
     if not pop.verified:
         raise web.HTTPBadRequest(reason="Invalid proof")
 
@@ -449,6 +455,12 @@ async def get_request(request: web.Request):
 
     now = int(time.time())
     config = Config.from_settings(context.settings)
+    wallet_id = (
+        context.profile.settings.get("wallet.id")
+        if context.profile.settings.get("multitenant.enabled")
+        else None
+    )
+    subpath = f"/tenant/{wallet_id}" if wallet_id else ""
     payload = {
         "iss": jwk.did,
         "sub": jwk.did,
@@ -457,7 +469,9 @@ async def get_request(request: web.Request):
         "exp": now + 120,
         "jti": str(uuid.uuid4()),
         "client_id": config.endpoint,
-        "response_uri": f"{config.endpoint}/oid4vp/response/{pres.presentation_id}",
+        "response_uri": (
+            f"{config.endpoint}{subpath}/oid4vp/response/{pres.presentation_id}"
+        ),
         "state": pres.presentation_id,
         "nonce": pres.nonce,
         "id_token_signing_alg_values_supported": ["ES256", "EdDSA"],
@@ -531,7 +545,9 @@ async def verify_presentation(
 
     processors = profile.inject(CredProcessors)
     if not submission.descriptor_maps:
-        raise web.HTTPBadRequest(reason="Descriptor map of submission must not be empty")
+        raise web.HTTPBadRequest(
+            reason="Descriptor map of submission must not be empty"
+        )
 
     # TODO: Support longer descriptor map arrays
     if len(submission.descriptor_maps) != 1:
@@ -622,7 +638,7 @@ async def post_response(request: web.Request):
 
 async def register(app: web.Application, multitenant: bool):
     """Register routes with support for multitenant mode.
-    
+
     Adds the subpath with Wallet ID as a path parameter if multitenant is True.
     """
     subpath = "/tenant/{wallet_id}" if multitenant else ""
