@@ -2,16 +2,16 @@
 
 from http import HTTPStatus
 
+from acapy_agent.admin.decorators.auth import tenant_authentication
+from acapy_agent.admin.request_context import AdminRequestContext
+from acapy_agent.messaging.models.openapi import OpenAPISchema
+from acapy_agent.wallet.error import WalletError
 from aiohttp import web
 from aiohttp_apispec import docs, request_schema, response_schema
 from marshmallow import Schema, fields
 
-from acapy_agent.admin.decorators.auth import tenant_authentication
-from acapy_agent.admin.request_context import AdminRequestContext
-from acapy_agent.messaging.models.openapi import OpenAPISchema
-from .messaging.valid import CHEQD_DID_EXAMPLE, CHEQD_DID_VALIDATE
-from acapy_agent.wallet.error import WalletError
-from .cheqd_manager import DidCheqdManager
+from .cheqd_manager import CheqdDIDManager
+from .validation import CHEQD_DID_EXAMPLE, CHEQD_DID_VALIDATE, CHEQD_DIDSTATE_EXAMPLE
 
 
 class VerificationMethodSchema(Schema):
@@ -123,6 +123,12 @@ class CreateRequestSchema(OpenAPISchema):
 class CreateResponseSchema(OpenAPISchema):
     """Response schema for create DID endpoint."""
 
+    success = fields.Bool(
+        metadata={
+            "description": "Flag to denote if the operation was successful",
+            "example": True,
+        }
+    )
     did = fields.Str(
         metadata={
             "description": "DID created",
@@ -133,6 +139,12 @@ class CreateResponseSchema(OpenAPISchema):
         metadata={
             "description": "Verification key",
             "example": "BnSWTUQmdYCewSGFrRUhT6LmKdcCcSzRGqWXMPnEP168",
+        }
+    )
+    didState = fields.Dict(
+        metadata={
+            "description": "The published didState",
+            "example": CHEQD_DIDSTATE_EXAMPLE,
         }
     )
 
@@ -157,6 +169,12 @@ class DeactivateRequestSchema(OpenAPISchema):
 class DeactivateResponseSchema(OpenAPISchema):
     """Response schema for deactivate DID endpoint."""
 
+    success = fields.Bool(
+        metadata={
+            "description": "Flag to denote if the operation was successful",
+            "example": True,
+        }
+    )
     did = fields.Str(
         validate=CHEQD_DID_VALIDATE,
         metadata={
@@ -164,20 +182,11 @@ class DeactivateResponseSchema(OpenAPISchema):
             "example": CHEQD_DID_EXAMPLE,
         },
     )
-    did_document = fields.Dict(
-        required=False,
-        allow_none=True,
-        metadata={
-            "description": "The DID document, if available, after deactivation. \
-            For deactivated DIDs, this is usually set to None.",
-        },
-    )
-    did_document_metadata = fields.Dict(
+    didState = fields.Str(
         required=True,
         metadata={
-            "description": "Metadata related specific to the DID document, \
-            indicating status changes. This typically includes a 'deactivated' status \
-            flag to confirm the operation.",
+            "description": "State of the did update",
+            "example": CHEQD_DIDSTATE_EXAMPLE,
         },
     )
 
@@ -232,6 +241,12 @@ class UpdateRequestSchema(OpenAPISchema):
 class UpdateResponseSchema(OpenAPISchema):
     """Response schema for update DID endpoint."""
 
+    success = fields.Bool(
+        metadata={
+            "description": "Flag to denote if the operation was successful",
+            "example": True,
+        }
+    )
     did = fields.Str(
         validate=CHEQD_DID_VALIDATE,
         metadata={
@@ -239,9 +254,12 @@ class UpdateResponseSchema(OpenAPISchema):
             "example": CHEQD_DID_EXAMPLE,
         },
     )
-    did_state = fields.Str(
+    didState = fields.Str(
         required=True,
-        metadata={"description": "State of the did update", "example": "finished"},
+        metadata={
+            "description": "State of the did update",
+            "example": CHEQD_DIDSTATE_EXAMPLE,
+        },
     )
 
 
@@ -259,7 +277,7 @@ async def create_cheqd_did(request: web.BaseRequest):
         body = {}
 
     try:
-        return await DidCheqdManager(context.profile).register(body.get("options"))
+        return await CheqdDIDManager(context.profile).create(body.get("options"))
     except WalletError as e:
         raise web.HTTPBadRequest(reason=str(e))
 
@@ -278,7 +296,7 @@ async def update_cheqd_did(request: web.BaseRequest):
         body = {}
 
     try:
-        return await DidCheqdManager(context.profile).update(
+        return await CheqdDIDManager(context.profile).update(
             body.get("did"),
             body.get("didDocument"),
             body.get("options"),
@@ -302,7 +320,7 @@ async def deactivate_cheqd_did(request: web.BaseRequest):
         body = {}
 
     try:
-        return await DidCheqdManager(context.profile).deactivate(body.get("did"))
+        return await CheqdDIDManager(context.profile).deactivate(body.get("did"))
     except WalletError as e:
         raise web.HTTPBadRequest(reason=str(e))
 

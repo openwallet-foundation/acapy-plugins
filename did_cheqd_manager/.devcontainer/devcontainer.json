@@ -12,20 +12,23 @@
   },
   "customizations": {
     "vscode": {
-      "extensions": ["ms-python.python", "ms-python.vscode-pylance"],
+      "extensions": ["ms-python.python", "ms-python.vscode-pylance", "charliermarsh.ruff"],
       "settings": {
         "python.testing.pytestArgs": ["./did_cheqd_manager", "--no-cov"],
         "python.testing.unittestEnabled": false,
         "python.testing.pytestEnabled": true,
         "python.testing.pytestPath": "pytest",
+        "python.linting.enabled": true,
+        "python.linting.pylintEnabled": false,
         "editor.defaultFormatter": null,
         "editor.formatOnSave": false, // enable per language
         "[python]": {
           "editor.formatOnSave": true,
           "editor.codeActionsOnSave": {
-            "source.fixAll": true,
-            "source.organizeImports": true
+            "source.fixAll": "always",
+            "source.organizeImports": "always"
           },
+          "python.linting.ruffEnabled": true,
           "editor.defaultFormatter": "charliermarsh.ruff",
           "ruff.organizeImports": true
         },

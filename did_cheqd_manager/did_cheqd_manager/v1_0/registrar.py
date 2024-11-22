@@ -2,9 +2,11 @@
 
 from aiohttp import ClientSession, web
 
+from .base import BaseDIDRegistrar
 
-class DidCheqdRegistrar:
-    """DID Registrar for Cheqd."""
+
+class CheqdDIDRegistrar(BaseDIDRegistrar):
+    """DID Registrar implementation for did:cheqd."""
 
     DID_REGISTRAR_BASE_URL = "https://did-registrar.cheqd.net/1.0/"
 
@@ -22,7 +24,6 @@ class DidCheqdRegistrar:
                     },
                 ) as response:
                     if response.status == 200:
-                        # print(f"Response Text: {await response.text()}")
                         return await response.json()
                     else:
                         raise Exception(response)
@@ -76,3 +77,11 @@ class DidCheqdRegistrar:
                         raise web.HTTPInternalServerError()
             except Exception:
                 raise
+
+    async def update_resource(self, did: str, options: dict) -> dict:
+        """Update a DID Linked Resource."""
+        raise NotImplementedError("This method has not been implemented yet.")
+
+    async def deactivate_resource(self, did: str, options: dict) -> dict:
+        """Deactivate a DID Linked Resource."""
+        raise NotImplementedError("This method will not be implemented for did:cheqd.")

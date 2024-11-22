@@ -1,8 +1,16 @@
-from acapy_agent.wallet.did_method import DIDMethod, HolderDefinedDid
+"""Cheqd DID Method."""
+
+from acapy_agent.wallet.did_method import (
+    KEY,
+    PEER2,
+    PEER4,
+    SOV,
+    DIDMethod,
+    HolderDefinedDid,
+)
 from acapy_agent.wallet.key_type import ED25519
-from marshmallow import fields, validate
-from acapy_agent.wallet.did_method import (KEY,SOV, PEER2, PEER4)
 from acapy_agent.wallet.routes import DIDListQueryStringSchema
+from marshmallow import fields, validate
 
 CHEQD = DIDMethod(
     name="cheqd",
@@ -11,7 +19,10 @@ CHEQD = DIDMethod(
     holder_defined_did=HolderDefinedDid.ALLOWED,
 )
 
+
 class CustomDIDListQueryStringSchema(DIDListQueryStringSchema):
+    """Class to extend DIDListQueryStringSchema."""
+
     method = fields.Str(
         required=False,
         validate=validate.OneOf(

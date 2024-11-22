@@ -7,5 +7,8 @@ WORKSPACE_DIR=$(pwd)
 # install all ACA-Py requirements
 python -m pip install --upgrade pip
 
-# install black for formatting
-pip3 install black
+# install black and ruff for formatting
+pip install black ruff
+
+# install this plugin
+pip install -e .

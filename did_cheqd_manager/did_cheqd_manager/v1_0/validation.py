@@ -1,5 +1,9 @@
+"""Cheqd Validation."""
+
 import re
+
 from marshmallow.validate import Regexp
+
 
 class CheqdDID(Regexp):
     """Validate value against cheqd DID."""
@@ -17,6 +21,32 @@ class CheqdDID(Regexp):
         rf"^(did:cheqd:{NETWORK}:{METHOD_ID}{PARAMS}{QUERY}|did:cheqd:{NETWORK}:{METHOD_ID}/resources/{UUID}{QUERY})$"
     )
 
+    DIDSTATE_EXAMPLE = {
+        "did": EXAMPLE,
+        "state": "finished",
+        "secret": {
+            "signingResponse": [
+                {
+                    "kid": EXAMPLE + "#key-1",
+                    "signature": "SHFz...",
+                }
+            ]
+        },
+        "didDocument": {
+            "id": EXAMPLE,
+            "controller": [EXAMPLE],
+            "verificationMethod": [
+                {
+                    "id": EXAMPLE + "#key-1",
+                    "type": "Ed25519VerificationKey2020",
+                    "controller": EXAMPLE,
+                    "publicKeyMultibase": "z6Mk...",
+                }
+            ],
+            "authentication": [EXAMPLE + "#key-1"],
+        },
+    }
+
     def __init__(self):
         """Initialize the instance."""
 
@@ -24,5 +54,8 @@ class CheqdDID(Regexp):
             CheqdDID.PATTERN,
             error="Value {input} is not an cheqd decentralized identifier (DID)",
         )
+
+
 CHEQD_DID_VALIDATE = CheqdDID()
 CHEQD_DID_EXAMPLE = CheqdDID.EXAMPLE
+CHEQD_DIDSTATE_EXAMPLE = CheqdDID.DIDSTATE_EXAMPLE

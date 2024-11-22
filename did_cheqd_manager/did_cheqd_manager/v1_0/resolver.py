@@ -1,19 +1,24 @@
-"""Cheqd DID Resolver."""
+"""DID Resolver for Cheqd."""
 
 import json
 from typing import Optional, Pattern, Sequence, Text
 
+from acapy_agent.config.injection_context import InjectionContext
+from acapy_agent.core.profile import Profile
+from acapy_agent.resolver.base import (
+    BaseDIDResolver,
+    DIDNotFound,
+    ResolverError,
+    ResolverType,
+)
 from aiohttp import ClientSession
 from pydid import DIDDocument
 
-from acapy_agent.config.injection_context import InjectionContext
-from acapy_agent.core.profile import Profile
-from ..messaging.valid import CheqdDID
-from acapy_agent.resolver.base import BaseDIDResolver, DIDNotFound, ResolverError, ResolverType
+from .validation import CheqdDID
 
 
 class CheqdDIDResolver(BaseDIDResolver):
-    """Cheqd DID Resolver."""
+    """DID Resolver implementation for did:cheqd."""
 
     DID_RESOLVER_BASE_URL = "https://resolver.cheqd.net/1.0/identifiers/"
 
