@@ -8,7 +8,13 @@ from .base import BaseDIDRegistrar
 class CheqdDIDRegistrar(BaseDIDRegistrar):
     """DID Registrar implementation for did:cheqd."""
 
-    DID_REGISTRAR_BASE_URL = "https://did-registrar.cheqd.net/1.0/"
+    DID_REGISTRAR_BASE_URL = "http://localhost:3000/1.0/"
+
+    def __init__(self, registrar_url: str = None) -> None:
+        """Initialize the Cheqd Registrar."""
+        super().__init__()
+        if registrar_url:
+            self.DID_REGISTRAR_BASE_URL = registrar_url
 
     async def generate_did_doc(self, network: str, public_key_hex: str) -> dict | None:
         """Generates a did_document with the provided params."""

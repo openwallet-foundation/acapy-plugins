@@ -84,6 +84,7 @@ class BaseDIDManager(ABC):
             payload_to_sign = sign_req.get("serializedPayload")
             if verkey:
                 # Assign verkey to key ID in wallet
+                # TODO Fix this verkey part
                 await wallet.assign_kid_to_key(verkey, kid)
             else:
                 # Retrive verkey from wallet

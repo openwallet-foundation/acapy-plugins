@@ -22,13 +22,11 @@ endpoint:
 
 plugin:
   - did_cheqd_manager.v1_0
+# Plugin options
+# plugin-config: ./docker/plugin-config.yml
 
 # Ledger
 no-ledger: true
-
-# plugin options
-# did_cheqd_manager:
-#   wallet_enabled: True
 
 # Connections
 debug-connections: true
@@ -53,4 +51,4 @@ wallet-type: askar  #askar-anoncreds #askar
 wallet-key: "cheq-1"
 wallet-storage-type: postgres_storage
 wallet-storage-creds: '{"account":"postgres","password":"postgres","admin_account":"postgres","admin_password":"postgres"}'
-wallet-storage-config: '{"url":"host.docker.internal:5432","max_connections":5}'
+wallet-storage-config: '{"url":"localhost:5432","max_connections":5}'

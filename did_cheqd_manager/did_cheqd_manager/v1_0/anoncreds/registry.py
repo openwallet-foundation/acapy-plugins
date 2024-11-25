@@ -58,8 +58,17 @@ class DIDCheqdRegistry(BaseAnonCredsResolver, BaseAnonCredsRegistrar):
             None
 
         """
-        self.registrar = CheqdDIDRegistrar()
-        self.resolver = CheqdDIDResolver()
+
+    async def setup(
+        self,
+        context: InjectionContext,
+        registrar_url: str = None,
+        resolver_url: str = None,
+    ):
+        """Setup."""
+        self.registrar = CheqdDIDRegistrar(registrar_url)
+        self.resolver = CheqdDIDResolver(resolver_url)
+        print("Successfully registered DIDCheqdRegistry")
 
     @property
     def supported_identifiers_regex(self) -> Pattern:
@@ -83,10 +92,6 @@ class DIDCheqdRegistry(BaseAnonCredsResolver, BaseAnonCredsRegistrar):
         """Derive the ID for a schema."""
         ids = schema_id.split("/")
         return ids[0], ids[2]
-
-    async def setup(self, context: InjectionContext):
-        """Setup."""
-        print("Successfully registered DIDCheqdRegistry")
 
     async def get_schema(self, profile: Profile, schema_id: str) -> GetSchemaResult:
         """Get a schema from the registry."""

@@ -16,12 +16,18 @@ async def setup(context: InjectionContext):
     """Setup the plugin."""
 
     LOGGER.info("< did_cheqd_manager plugin setup...")
+    config = context.settings.get("plugin_config")
+    resolver_url = None
+    registrar_url = None
+    if config:
+        resolver_url = config.get("resolver_url")
+        registrar_url = config.get("registrar_url")
     # Register Cheqd DID Resolver
     resolver_registry = context.inject_or(DIDResolver)
     if not resolver_registry:
         LOGGER.warning("No DID Resolver instance found in context")
         return
-    resolver_registry.register_resolver(CheqdDIDResolver())
+    resolver_registry.register_resolver(CheqdDIDResolver(resolver_url))
 
     # Register Anoncreds provider
     anoncreds_registry = context.inject_or(AnonCredsRegistry)
@@ -33,7 +39,7 @@ async def setup(context: InjectionContext):
         # supported_identifiers=[],
         # method_name="did:cheqd",
     ).provide(context.settings, context.injector)
-    await cheqd_registry.setup(context)
+    await cheqd_registry.setup(context, registrar_url, resolver_url)
     anoncreds_registry.register(cheqd_registry)
 
     # Register Cheqd DID Method

@@ -20,11 +20,13 @@ from .validation import CheqdDID
 class CheqdDIDResolver(BaseDIDResolver):
     """DID Resolver implementation for did:cheqd."""
 
-    DID_RESOLVER_BASE_URL = "https://resolver.cheqd.net/1.0/identifiers/"
+    DID_RESOLVER_BASE_URL = "http://localhost:8080/1.0/identifiers/"
 
-    def __init__(self):
+    def __init__(self, resolver_url: str = None):
         """Initialize Cheqd Resolver."""
         super().__init__(ResolverType.NATIVE)
+        if resolver_url:
+            self.DID_RESOLVER_BASE_URL = resolver_url
 
     async def setup(self, context: InjectionContext):
         """Perform required setup for Cheqd DID resolution."""

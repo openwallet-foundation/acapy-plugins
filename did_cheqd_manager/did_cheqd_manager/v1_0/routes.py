@@ -194,35 +194,13 @@ class DeactivateResponseSchema(OpenAPISchema):
 class UpdateRequestSchema(OpenAPISchema):
     """Parameters and validators for update DID endpoint."""
 
-    EXAMPLE = {
-        "did": CHEQD_DID_EXAMPLE,
-        "didDocument": {
-            "id": CHEQD_DID_EXAMPLE,
-            "controller": [CHEQD_DID_EXAMPLE],
-            "verificationMethod": [
-                {
-                    "id": CHEQD_DID_EXAMPLE + "#key-1",
-                    "type": "Ed25519VerificationKey2018",
-                    "controller": CHEQD_DID_EXAMPLE,
-                    "publicKeyMultibase": "z6Mk...",
-                }
-            ],
-            "authentication": [CHEQD_DID_EXAMPLE + "#key-1"],
-            "service": [
-                {
-                    "id": CHEQD_DID_EXAMPLE + "#service-1",
-                    "type": "MessagingService",
-                    "serviceEndpoint": ["https://example.com/service"],
-                }
-            ],
-        },
-        "options": {"network": "testnet"},
-    }
-
     did = fields.Str(
         required=True,
         validate=CHEQD_DID_VALIDATE,
-        metadata={"description": "DID to update"},
+        metadata={
+            "description": "DID to update",
+            "example": CHEQD_DID_EXAMPLE,
+        },
     )
     options = fields.Dict(
         required=False,
@@ -234,7 +212,29 @@ class UpdateRequestSchema(OpenAPISchema):
     didDocument = fields.Nested(
         DIDDocumentSchema,
         required=True,
-        metadata={"description": "DID Document to update"},
+        metadata={
+            "description": "DID Document to update",
+            "example": {
+                "id": CHEQD_DID_EXAMPLE,
+                "controller": [CHEQD_DID_EXAMPLE],
+                "verificationMethod": [
+                    {
+                        "id": CHEQD_DID_EXAMPLE + "#key-1",
+                        "type": "Ed25519VerificationKey2018",
+                        "controller": CHEQD_DID_EXAMPLE,
+                        "publicKeyMultibase": "z6Mk...",
+                    }
+                ],
+                "authentication": [CHEQD_DID_EXAMPLE + "#key-1"],
+                "service": [
+                    {
+                        "id": CHEQD_DID_EXAMPLE + "#service-1",
+                        "type": "MessagingService",
+                        "serviceEndpoint": ["https://example.com/service"],
+                    }
+                ],
+            },
+        },
     )
 
 
@@ -283,7 +283,7 @@ async def create_cheqd_did(request: web.BaseRequest):
 
 
 @docs(tags=["did"], summary="Update a did:cheqd")
-@request_schema(UpdateRequestSchema(), example=UpdateRequestSchema.EXAMPLE)
+@request_schema(UpdateRequestSchema())
 @response_schema(UpdateResponseSchema, HTTPStatus.OK)
 @tenant_authentication
 async def update_cheqd_did(request: web.BaseRequest):

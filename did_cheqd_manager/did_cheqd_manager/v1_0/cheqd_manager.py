@@ -27,11 +27,16 @@ class CheqdDIDManager(BaseDIDManager):
     registrar: CheqdDIDRegistrar
     resolver: CheqdDIDResolver
 
-    def __init__(self, profile: Profile) -> None:
+    def __init__(
+        self,
+        profile: Profile,
+        registrar_url: str = None,
+        resolver_url: str = None,
+    ) -> None:
         """Initialize the Cheqd DID manager."""
         super().__init__(profile)
-        self.registrar = CheqdDIDRegistrar()
-        self.resolver = CheqdDIDResolver()
+        self.registrar = CheqdDIDRegistrar(registrar_url)
+        self.resolver = CheqdDIDResolver(resolver_url)
 
     async def create(self, did_doc: dict = None, options: dict = None) -> web.Response:
         """Create a new Cheqd DID."""

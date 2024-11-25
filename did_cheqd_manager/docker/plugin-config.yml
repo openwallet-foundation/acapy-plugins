@@ -1,0 +1,2 @@
+resolver_url: "http://localhost:8080/1.0/identifiers/"
+registrar_url: "http://localhost:3000/1.0/"
