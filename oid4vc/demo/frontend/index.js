@@ -95,6 +95,7 @@ async function issue_jwt_credential(req, res) {
   const commonHeaders = {
     accept: "application/json",
     "Content-Type": "application/json",
+    "Authorization": "Bearer " + token.token,
   };
   if (API_KEY) {
     commonHeaders["X-API-KEY"] =  API_KEY;
@@ -102,6 +103,8 @@ async function issue_jwt_credential(req, res) {
   axios.defaults.withCredentials = true;
   axios.defaults.headers.common["Access-Control-Allow-Origin"] = API_BASE_URL;
   axios.defaults.headers.common["X-API-KEY"] = API_KEY;
+  axios.defaults.headers.common["Authorization"] = "Bearer " + token.token;
+
 
   const fetchApiData = async (url, options) => {
     const response = await fetch(url, options);
@@ -253,6 +256,7 @@ async function issue_sdjwt_credential(req, res) {
   const commonHeaders = {
     accept: "application/json",
     "Content-Type": "application/json",
+    "Authorization": "Bearer " + token.token,
   };
   if (API_KEY) {
     commonHeaders["X-API-KEY"] =  API_KEY;
@@ -260,6 +264,7 @@ async function issue_sdjwt_credential(req, res) {
   axios.defaults.withCredentials = true;
   axios.defaults.headers.common["Access-Control-Allow-Origin"] = API_BASE_URL;
   axios.defaults.headers.common["X-API-KEY"] = API_KEY;
+  axios.defaults.headers.common["Authorization"] = "Bearer " + token.token;
 
   const fetchApiData = async (url, options) => {
     const response = await fetch(url, options);
@@ -442,6 +447,7 @@ async function create_jwt_vc_presentation(req, res) {
   const commonHeaders = {
     accept: "application/json",
     "Content-Type": "application/json",
+    "Authorization": "Bearer " + token.token,
   };
   if (API_KEY) {
     commonHeaders["X-API-KEY"] =  API_KEY;
@@ -449,6 +455,8 @@ async function create_jwt_vc_presentation(req, res) {
   axios.defaults.withCredentials = true;
   axios.defaults.headers.common["Access-Control-Allow-Origin"] = API_BASE_URL;
   axios.defaults.headers.common["X-API-KEY"] = API_KEY;
+  axios.defaults.headers.common["Authorization"] = "Bearer " + token.token;
+
 
   const fetchApiData = async (url, options) => {
     const response = await fetch(url, options);
@@ -595,6 +603,7 @@ async function create_sd_jwt_presentation(req, res) {
   const commonHeaders = {
     accept: "application/json",
     "Content-Type": "application/json",
+    "Authorization": "Bearer " + token.token,
   };
   if (API_KEY) {
     commonHeaders["X-API-KEY"] =  API_KEY;
@@ -602,6 +611,8 @@ async function create_sd_jwt_presentation(req, res) {
   axios.defaults.withCredentials = true;
   axios.defaults.headers.common["Access-Control-Allow-Origin"] = API_BASE_URL;
   axios.defaults.headers.common["X-API-KEY"] = API_KEY;
+  axios.defaults.headers.common["Authorization"] = "Bearer " + token.token;
+
 
   const fetchApiData = async (url, options) => {
     const response = await fetch(url, options);
@@ -837,6 +848,31 @@ function handleEvents(event_type, req, res) {
 app.get("/", (req, res) => {
   res.render("index", {"registrationId": uuidv4()});
 });
+
+const fetchApiData = async (url, options) => {
+  const response = await fetch(url, options);
+  return await response.json();
+};
+
+const token = await fetchApiData(
+  `${API_BASE_URL}/multitenancy/wallet`,
+  {
+    method: "POST",
+    headers: {
+      accept: "application/json",
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify(
+      {
+          "label": "Alice",
+          "wallet_type": "askar",
+      }
+    )
+  }
+);
+
+console.log("_______TOKEN________\n\n\n");
+console.log(token);
 
 // Render Credential Issuance form
 app.get("/issue", (req, res) => {

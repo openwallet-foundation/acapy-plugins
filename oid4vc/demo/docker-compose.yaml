@@ -43,6 +43,10 @@ services:
         --plugin oid4vc
         --plugin sd_jwt_vc
         --plugin mso_mdoc
+        --multitenant
+        --multitenant-admin
+        --jwt-secret insecure
+        --multitenancy-config wallet_type=single-wallet-askar key_derivation_method=RAW
     healthcheck:
       test: curl -s -o /dev/null -w '%{http_code}' "http://localhost:3001/status/live" | grep "200" > /dev/null
       start_period: 30s
@@ -89,3 +93,6 @@ services:
       - WDS_SOCKET_PORT=0
       - API_BASE_URL=http://issuer:3001
       - FORCE_COLOR=3
+    depends_on:
+      issuer:
+        condition: service_healthy
