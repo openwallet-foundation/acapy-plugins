@@ -140,8 +140,8 @@ class CheqdDIDManager(BaseDIDManager):
                     raise web.HTTPForbidden(reason="No wallet available")
 
                 # Resolve the DID and ensure it is not deactivated and is valid
-                did_doc = await self.resolver.resolve(self.profile, did)
-                if not did_doc or did_doc.get("deactivated"):
+                check_did_doc = await self.resolver.resolve(self.profile, did)
+                if not check_did_doc or check_did_doc.get("deactivated"):
                     raise DIDNotFound("DID is already deactivated or not found.")
 
                 # request deactivate did
@@ -219,8 +219,8 @@ class CheqdDIDManager(BaseDIDManager):
                 if not wallet:
                     raise web.HTTPForbidden(reason="No wallet available")
                 # Resolve the DID and ensure it is not deactivated and is valid
-                did_doc = await self.resolver.resolve(self.profile, did)
-                if not did_doc or did_doc.get("deactivated"):
+                check_did_doc = await self.resolver.resolve(self.profile, did)
+                if not check_did_doc or check_did_doc.get("deactivated"):
                     raise DIDNotFound("DID is already deactivated or not found.")
 
                 # request deactivate did
