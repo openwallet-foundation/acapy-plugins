@@ -294,12 +294,15 @@ class DIDCheqdRegistry(BaseAnonCredsResolver, BaseAnonCredsRegistrar):
         """Update a revocation list on the registry."""
         raise NotImplementedError()
 
-    @staticmethod
     async def _create_and_publish_resource(
-        profile: Profile, did: str, options: dict
+        self, profile: Profile, did: str, options: dict
     ) -> dict:
         """Create, Sign and Publish a Resource."""
-        cheqd_manager = CheqdDIDManager(profile)
+        cheqd_manager = CheqdDIDManager(
+            profile,
+            self.registrar.DID_REGISTRAR_BASE_URL,
+            self.resolver.DID_RESOLVER_BASE_URL,
+        )
         async with profile.session() as session:
             wallet = session.inject_or(BaseWallet)
             if not wallet:

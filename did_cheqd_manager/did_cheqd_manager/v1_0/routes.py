@@ -270,14 +270,21 @@ class UpdateResponseSchema(OpenAPISchema):
 async def create_cheqd_did(request: web.BaseRequest):
     """Create a Cheqd DID."""
     context: AdminRequestContext = request["context"]
-
+    config = context.settings.get("plugin_config")
+    resolver_url = None
+    registrar_url = None
+    if config:
+        registrar_url = config.get("registrar_url")
+        resolver_url = config.get("resolver_url")
     try:
         body = await request.json()
     except Exception:
         body = {}
 
     try:
-        return await CheqdDIDManager(context.profile).create(body.get("options"))
+        return await CheqdDIDManager(context.profile, registrar_url, resolver_url).create(
+            body.get("options")
+        )
     except WalletError as e:
         raise web.HTTPBadRequest(reason=str(e))
 
@@ -289,14 +296,19 @@ async def create_cheqd_did(request: web.BaseRequest):
 async def update_cheqd_did(request: web.BaseRequest):
     """Update a Cheqd DID."""
     context: AdminRequestContext = request["context"]
-
+    config = context.settings.get("plugin_config")
+    resolver_url = None
+    registrar_url = None
+    if config:
+        registrar_url = config.get("registrar_url")
+        resolver_url = config.get("resolver_url")
     try:
         body = await request.json()
     except Exception:
         body = {}
 
     try:
-        return await CheqdDIDManager(context.profile).update(
+        return await CheqdDIDManager(context.profile, registrar_url, resolver_url).update(
             body.get("did"),
             body.get("didDocument"),
             body.get("options"),
@@ -313,14 +325,21 @@ async def update_cheqd_did(request: web.BaseRequest):
 async def deactivate_cheqd_did(request: web.BaseRequest):
     """Deactivate a Cheqd DID."""
     context: AdminRequestContext = request["context"]
-
+    config = context.settings.get("plugin_config")
+    resolver_url = None
+    registrar_url = None
+    if config:
+        registrar_url = config.get("registrar_url")
+        resolver_url = config.get("resolver_url")
     try:
         body = await request.json()
     except Exception:
         body = {}
 
     try:
-        return await CheqdDIDManager(context.profile).deactivate(body.get("did"))
+        return await CheqdDIDManager(
+            context.profile, registrar_url, resolver_url
+        ).deactivate(body.get("did"))
     except WalletError as e:
         raise web.HTTPBadRequest(reason=str(e))
 

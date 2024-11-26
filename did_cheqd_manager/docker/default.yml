@@ -23,7 +23,7 @@ endpoint:
 plugin:
   - did_cheqd_manager.v1_0
 # Plugin options
-# plugin-config: ./docker/plugin-config.yml
+plugin-config: ./docker/plugin-config.yml
 
 # Ledger
 no-ledger: true
@@ -47,7 +47,7 @@ auto-verify-presentation: true
 
 # Wallet
 wallet-name: cheq-1
-wallet-type: askar  #askar-anoncreds #askar
+wallet-type: askar-anoncreds
 wallet-key: "cheq-1"
 wallet-storage-type: postgres_storage
 wallet-storage-creds: '{"account":"postgres","password":"postgres","admin_account":"postgres","admin_password":"postgres"}'
