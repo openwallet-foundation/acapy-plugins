@@ -85,10 +85,11 @@ class CheqdDIDManager(BaseDIDManager):
                     signing_requests: dict = did_state.get("signingRequest")
                     if not signing_requests:
                         raise WalletError("No signing requests available for create.")
+                    # Note: This assumes did create operation supports only one did
+                    kid: str = signing_requests[0].get("kid")
+                    await wallet.assign_kid_to_key(verkey, kid)
                     # sign all requests
-                    signed_responses = await self.sign_requests(
-                        wallet, signing_requests, verkey
-                    )
+                    signed_responses = await self.sign_requests(wallet, signing_requests)
                     # publish did
                     publish_did_res = await self.registrar.create(
                         {

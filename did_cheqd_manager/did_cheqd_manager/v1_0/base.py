@@ -64,16 +64,12 @@ class BaseDIDManager(ABC):
         """Deactivate an existing DID."""
         raise NotImplementedError("Subclasses must implement this method")
 
-    async def sign_requests(
-        self, wallet: BaseWallet, signing_requests: list, verkey: str = None
-    ) -> list:
+    async def sign_requests(self, wallet: BaseWallet, signing_requests: list) -> list:
         """Sign all requests in the signing_requests list.
 
         Args:
             wallet: Wallet instance used to sign messages.
             signing_requests: List of signing request dictionaries.
-            verkey (optional): Pre-determined verkey to use for signing. \
-                If None, retrieve verkey from the wallet.
 
         Returns:
             List of signed responses, each containing 'kid' and 'signature'.
@@ -82,16 +78,11 @@ class BaseDIDManager(ABC):
         for sign_req in signing_requests:
             kid = sign_req.get("kid")
             payload_to_sign = sign_req.get("serializedPayload")
-            if verkey:
-                # Assign verkey to key ID in wallet
-                # TODO Fix this verkey part
-                await wallet.assign_kid_to_key(verkey, kid)
-            else:
-                # Retrive verkey from wallet
-                key = await wallet.get_key_by_kid(kid)
-                if not key:
-                    raise ValueError(f"No key found for kid: {kid}")
-                verkey = key.verkey
+            # Retrive verkey from wallet
+            key = await wallet.get_key_by_kid(kid)
+            if not key:
+                raise ValueError(f"No key found for kid: {kid}")
+            verkey = key.verkey
             # sign payload
             signature_bytes = await wallet.sign_message(
                 b64_to_bytes(payload_to_sign), verkey
