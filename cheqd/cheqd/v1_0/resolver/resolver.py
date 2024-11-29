@@ -14,7 +14,7 @@ from acapy_agent.resolver.base import (
 from aiohttp import ClientSession
 from pydid import DIDDocument
 
-from .validation import CheqdDID
+from cheqd.cheqd.v1_0.validation import CheqdDID
 
 
 class CheqdDIDResolver(BaseDIDResolver):

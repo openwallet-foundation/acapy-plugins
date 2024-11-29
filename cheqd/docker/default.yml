@@ -2,7 +2,7 @@
 # this runs aca-py with a minumum set of parameters
 # run as:
 #    ./bin/aca-py start --arg-file ./docker/default.yml
-label: did_cheqd_manager
+label: cheqd
 
 log-level: DEBUG
 auto-provision: true
@@ -21,7 +21,7 @@ endpoint:
   - ws://localhost:8022
 
 plugin:
-  - did_cheqd_manager.v1_0
+  - cheqd.v1_0
 # Plugin options
 plugin-config: ./docker/plugin-config.yml
 

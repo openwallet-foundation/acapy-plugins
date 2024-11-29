@@ -15,13 +15,14 @@ LOGGER = logging.getLogger(__name__)
 async def setup(context: InjectionContext):
     """Setup the plugin."""
 
-    LOGGER.info("< did_cheqd_manager plugin setup...")
+    LOGGER.info("< cheqd plugin setup...")
     config = context.settings.get("plugin_config")
     resolver_url = None
     registrar_url = None
     if config:
         resolver_url = config.get("resolver_url")
         registrar_url = config.get("registrar_url")
+
     # Register Cheqd DID Resolver
     resolver_registry = context.inject_or(DIDResolver)
     if not resolver_registry:
@@ -35,7 +36,7 @@ async def setup(context: InjectionContext):
         LOGGER.warning("No Anoncreds Registry instance found in context")
         return
     cheqd_registry = ClassProvider(
-        "did_cheqd_manager.v1_0.anoncreds.registry.DIDCheqdRegistry",
+        "cheqd.v1_0.anoncreds.registry.DIDCheqdRegistry",
         # supported_identifiers=[],
         # method_name="did:cheqd",
     ).provide(context.settings, context.injector)
@@ -46,4 +47,4 @@ async def setup(context: InjectionContext):
     did_methods = context.inject_or(DIDMethods)
     did_methods.register(CHEQD)
 
-    LOGGER.info("< did_cheqd_manager plugin setup.")
+    LOGGER.info("< cheqd plugin setup.")

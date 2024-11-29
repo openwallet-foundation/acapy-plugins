@@ -1,4 +1,4 @@
-label: did_cheqd_manager
+label: cheqd
 
 log-level: DEBUG
 auto-provision: true
@@ -17,13 +17,13 @@ endpoint:
   - ws://localhost:8022
 
 plugin:
-  - did_cheqd_manager.v1_0
+  - cheqd.v1_0
 
 # Ledger
 no-ledger: true
 
 # plugin options
-# did_cheqd_manager:
+# cheqd:
 #   wallet_enabled: True
 
 # Connections

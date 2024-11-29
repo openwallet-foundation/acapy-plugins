@@ -37,8 +37,8 @@ from acapy_agent.wallet.jwt import dict_to_b64
 from acapy_agent.wallet.util import b64_to_bytes, bytes_to_b64
 from aiohttp import web
 
-from ..cheqd_manager import CheqdDIDManager
-from ..registrar import CheqdDIDRegistrar
+from cheqd.cheqd.v1_0.did.manager import CheqdDIDManager
+from cheqd.cheqd.v1_0.did.registrar import CheqdDIDRegistrar
 from ..resolver import CheqdDIDResolver
 from ..validation import CheqdDID
 
@@ -58,17 +58,8 @@ class DIDCheqdRegistry(BaseAnonCredsResolver, BaseAnonCredsRegistrar):
             None
 
         """
-
-    async def setup(
-        self,
-        context: InjectionContext,
-        registrar_url: str = None,
-        resolver_url: str = None,
-    ):
-        """Setup."""
-        self.registrar = CheqdDIDRegistrar(registrar_url)
-        self.resolver = CheqdDIDResolver(resolver_url)
-        print("Successfully registered DIDCheqdRegistry")
+        self.registrar = CheqdDIDRegistrar()
+        self.resolver = CheqdDIDResolver()
 
     @property
     def supported_identifiers_regex(self) -> Pattern:
@@ -120,7 +111,7 @@ class DIDCheqdRegistry(BaseAnonCredsResolver, BaseAnonCredsRegistrar):
         self,
         profile: Profile,
         schema: AnonCredsSchema,
-        options: Optional[dict] = None,
+        _options: Optional[dict] = None,
     ) -> SchemaResult:
         """Register a schema on the registry."""
         resource_type = "anonCredsSchema"
@@ -201,7 +192,7 @@ class DIDCheqdRegistry(BaseAnonCredsResolver, BaseAnonCredsRegistrar):
         profile: Profile,
         schema: GetSchemaResult,
         credential_definition: CredDef,
-        options: Optional[dict] = None,
+        _options: Optional[dict] = None,
     ) -> CredDefResult:
         """Register a credential definition on the registry."""
         resource_type = "anonCredsCredDef"
@@ -294,15 +285,12 @@ class DIDCheqdRegistry(BaseAnonCredsResolver, BaseAnonCredsRegistrar):
         """Update a revocation list on the registry."""
         raise NotImplementedError()
 
+    @staticmethod
     async def _create_and_publish_resource(
-        self, profile: Profile, did: str, options: dict
+        profile: Profile, did: str, options: dict
     ) -> dict:
         """Create, Sign and Publish a Resource."""
-        cheqd_manager = CheqdDIDManager(
-            profile,
-            self.registrar.DID_REGISTRAR_BASE_URL,
-            self.resolver.DID_RESOLVER_BASE_URL,
-        )
+        cheqd_manager = CheqdDIDManager(profile)
         async with profile.session() as session:
             wallet = session.inject_or(BaseWallet)
             if not wallet:
@@ -318,15 +306,12 @@ class DIDCheqdRegistry(BaseAnonCredsResolver, BaseAnonCredsRegistrar):
 
                 LOGGER.debug("JOBID %s", job_id)
                 if resource_state.get("state") == "action":
-                    sign_req: dict = resource_state.get("signingRequest")[0]
-                    kid: str = sign_req.get("kid")
-                    payload_to_sign: str = sign_req.get("serializedPayload")
-                    key = await wallet.get_key_by_kid(kid)
-                    verkey = key.verkey
-
-                    # sign payload
-                    signature_bytes = await wallet.sign_message(
-                        b64_to_bytes(payload_to_sign), verkey
+                    signing_requests = resource_state.get("signingRequest")
+                    if not signing_requests:
+                        raise Exception("No signing requests available for update.")
+                    # sign all requests
+                    signed_responses = await CheqdDIDManager.sign_requests(
+                        wallet, signing_requests
                     )
 
                     # publish resource
@@ -334,14 +319,7 @@ class DIDCheqdRegistry(BaseAnonCredsResolver, BaseAnonCredsRegistrar):
                         did,
                         {
                             "jobId": job_id,
-                            "secret": {
-                                "signingResponse": [
-                                    {
-                                        "kid": kid,
-                                        "signature": bytes_to_b64(signature_bytes),
-                                    }
-                                ],
-                            },
+                            "secret": {"signingResponse": signed_responses},
                         },
                     )
                     resource_state = publish_resource_res.get("resourceState")
@@ -356,3 +334,4 @@ class DIDCheqdRegistry(BaseAnonCredsResolver, BaseAnonCredsRegistrar):
                     )
             except Exception as err:
                 raise AnonCredsRegistrationError(f"{err}")
+

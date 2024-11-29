@@ -1,4 +1,4 @@
-# did:cheqd Manager
+# did:cheqd Plugin
 
 ## Description
 
@@ -93,7 +93,7 @@ FROM ghcr.io/openwallet-foundation/acapy:py3.12-1.1.0
 USER root
 
 # install plugins as binaries
-RUN pip install git+https://github.com/openwallet-foundation/acapy-plugins@main#subdirectory=did_cheqd_manager
+RUN pip install git+https://github.com/openwallet-foundation/acapy-plugins@main#subdirectory=cheqd
 
 USER $user
 COPY ./configs configs

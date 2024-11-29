@@ -13,10 +13,10 @@ from acapy_agent.wallet.key_type import ED25519
 from acapy_agent.wallet.util import b58_to_bytes
 from aiohttp import web
 
-from .base import BaseDIDManager
-from .did_method import CHEQD
+from cheqd.cheqd.v1_0.did.base import BaseDIDManager, CheqdDIDManagerError
+from cheqd.cheqd.v1_0.did_method import CHEQD
 from .registrar import CheqdDIDRegistrar
-from .resolver import CheqdDIDResolver
+from cheqd.cheqd.v1_0.resolver import CheqdDIDResolver
 
 LOGGER = logging.getLogger(__name__)
 
@@ -38,7 +38,7 @@ class CheqdDIDManager(BaseDIDManager):
         self.registrar = CheqdDIDRegistrar(registrar_url)
         self.resolver = CheqdDIDResolver(resolver_url)
 
-    async def create(self, did_doc: dict = None, options: dict = None) -> web.Response:
+    async def create(self, did_doc: dict = None, options: dict = None) -> dict:
         """Create a new Cheqd DID."""
         options = options or {}
 
@@ -58,7 +58,7 @@ class CheqdDIDManager(BaseDIDManager):
             try:
                 wallet = session.inject(BaseWallet)
                 if not wallet:
-                    raise web.HTTPForbidden(reason="No wallet available")
+                    raise WalletError(reason="No wallet available")
 
                 key = await wallet.create_key(key_type, seed)
                 verkey = key.verkey
@@ -70,10 +70,11 @@ class CheqdDIDManager(BaseDIDManager):
                     network, public_key_hex
                 )
                 if generate_res is None:
-                    raise WalletError("Error constructing DID Document")
+                    raise CheqdDIDManagerError("Error constructing DID Document")
 
                 did_document = generate_res.get("didDoc")
                 did: str = did_document.get("id")
+
                 # request create did
                 create_request_res = await self.registrar.create(
                     {"didDocument": did_document, "network": network}
@@ -82,14 +83,19 @@ class CheqdDIDManager(BaseDIDManager):
                 job_id: str = create_request_res.get("jobId")
                 did_state = create_request_res.get("didState")
                 if did_state.get("state") == "action":
-                    signing_requests: dict = did_state.get("signingRequest")
+                    signing_requests = did_state.get("signingRequest")
                     if not signing_requests:
-                        raise WalletError("No signing requests available for create.")
+                        raise CheqdDIDManagerError(
+                            "No signing requests available for create."
+                        )
+
                     # Note: This assumes did create operation supports only one did
                     kid: str = signing_requests[0].get("kid")
                     await wallet.assign_kid_to_key(verkey, kid)
                     # sign all requests
-                    signed_responses = await self.sign_requests(wallet, signing_requests)
+                    signed_responses = await CheqdDIDManager.sign_requests(
+                        wallet, signing_requests
+                    )
                     # publish did
                     publish_did_res = await self.registrar.create(
                         {
@@ -102,37 +108,27 @@ class CheqdDIDManager(BaseDIDManager):
                     )
                     publish_did_state = publish_did_res.get("didState")
                     if publish_did_state.get("state") != "finished":
-                        raise WalletError(
+                        raise CheqdDIDManagerError(
                             f"Error registering DID {publish_did_state.get("reason")}"
                         )
                 else:
-                    raise WalletError(f"Error registering DID {did_state.get("reason")}")
+                    raise CheqdDIDManagerError(
+                        f"Error registering DID {did_state.get("reason")}"
+                    )
 
                 # create public did record
                 await wallet.create_public_did(CHEQD, key_type, seed, did)
-                return web.json_response(
-                    {
-                        "success": True,
-                        "did": did,
-                        "verkey": verkey,
-                        "didState": publish_did_state,
-                    }
-                )
-            except WalletError as err:
-                return web.json_response(
-                    {"success": False, "error": f"Wallet Error: {err}"}, status=400
-                )
-            except Exception as e:
-                return web.json_response(
-                    {
-                        "success": False,
-                        "error": f"An unexpected error occurred: {str(e)}",
-                    },
-                    status=500,
-                )
+                await wallet.assign_kid_to_key(verkey, kid)
+            except Exception as ex:
+                raise ex
+        return {
+            "did": did,
+            "verkey": verkey,
+            "didDocument": publish_did_state.get("didDocument"),
+        }
 
-    async def update(self, did: str, did_doc: dict, options: dict = None) -> web.Response:
-        """Update an exisiting Cheqd DID."""
+    async def update(self, did: str, did_doc: dict, options: dict = None) -> dict:
+        """Update a Cheqd DID."""
 
         async with self.profile.session() as session:
             try:
@@ -141,8 +137,8 @@ class CheqdDIDManager(BaseDIDManager):
                     raise web.HTTPForbidden(reason="No wallet available")
 
                 # Resolve the DID and ensure it is not deactivated and is valid
-                check_did_doc = await self.resolver.resolve(self.profile, did)
-                if not check_did_doc or check_did_doc.get("deactivated"):
+                curr_did_doc = await self.resolver.resolve(self.profile, did)
+                if not curr_did_doc or curr_did_doc.get("deactivated"):
                     raise DIDNotFound("DID is already deactivated or not found.")
 
                 # request deactivate did
@@ -160,11 +156,13 @@ class CheqdDIDManager(BaseDIDManager):
                 did_state = update_request_res.get("didState")
 
                 if did_state.get("state") == "action":
-                    signing_requests: dict = did_state.get("signingRequest")
+                    signing_requests = did_state.get("signingRequest")
                     if not signing_requests:
-                        raise WalletError("No signing requests available for update.")
+                        raise Exception("No signing requests available for update.")
                     # sign all requests
-                    signed_responses = await self.sign_requests(wallet, signing_requests)
+                    signed_responses = await CheqdDIDManager.sign_requests(
+                        wallet, signing_requests
+                    )
 
                     # submit signed update
                     publish_did_res = await self.registrar.update(
@@ -178,40 +176,22 @@ class CheqdDIDManager(BaseDIDManager):
                     publish_did_state = publish_did_res.get("didState")
 
                     if publish_did_state.get("state") != "finished":
-                        raise WalletError(
+                        raise CheqdDIDManagerError(
                             f"Error publishing DID \
                                 update {publish_did_state.get("description")}"
                         )
                 else:
-                    raise WalletError(f"Error updating DID {did_state.get("reason")}")
-
-                return web.json_response(
-                    {
-                        "success": True,
-                        "did": did,
-                        "didState": publish_did_state,
-                    }
-                )
+                    raise CheqdDIDManagerError(
+                        f"Error updating DID {did_state.get("reason")}"
+                    )
             # TODO update new keys to wallet if necessary
-            except WalletError as err:
-                return web.json_response(
-                    {"success": False, "error": f"Wallet Error: {err}"}, status=400
-                )
-            except DIDNotFound as err:
-                return web.json_response(
-                    {"success": False, "error": f"DID Not Found: {err}"}, status=404
-                )
-            except Exception as e:
-                return web.json_response(
-                    {
-                        "success": False,
-                        "error": f"An unexpected error occurred: {str(e)}",
-                    },
-                    status=500,
-                )
+            except Exception as ex:
+                raise ex
 
-    async def deactivate(self, did: str, options: dict = None) -> web.Response:
-        """Deactivate an existing Cheqd DID."""
+        return {"did": did, "didDocument": publish_did_state.get("didDocument")}
+
+    async def deactivate(self, did: str, options: dict = None) -> dict:
+        """Deactivate a Cheqd DID."""
         LOGGER.debug("Deactivate did: %s", did)
 
         async with self.profile.session() as session:
@@ -220,8 +200,8 @@ class CheqdDIDManager(BaseDIDManager):
                 if not wallet:
                     raise web.HTTPForbidden(reason="No wallet available")
                 # Resolve the DID and ensure it is not deactivated and is valid
-                check_did_doc = await self.resolver.resolve(self.profile, did)
-                if not check_did_doc or check_did_doc.get("deactivated"):
+                did_doc = await self.resolver.resolve(self.profile, did)
+                if not did_doc or did_doc.get("deactivated"):
                     raise DIDNotFound("DID is already deactivated or not found.")
 
                 # request deactivate did
@@ -235,7 +215,9 @@ class CheqdDIDManager(BaseDIDManager):
                     if not signing_requests:
                         raise WalletError("No signing requests available for update.")
                     # sign all requests
-                    signed_responses = await self.sign_requests(wallet, signing_requests)
+                    signed_responses = await CheqdDIDManager.sign_requests(
+                        wallet, signing_requests
+                    )
                     # submit signed deactivate
                     publish_did_res = await self.registrar.deactivate(
                         {
@@ -259,26 +241,10 @@ class CheqdDIDManager(BaseDIDManager):
                 did_info = await wallet.get_local_did(did)
                 metadata = {**did_info.metadata, "deactivated": True}
                 await wallet.replace_local_did_metadata(did, metadata)
-                return web.json_response(
-                    {
-                        "success": True,
-                        "did": did,
-                        "didState": publish_did_state,
-                    }
-                )
-            except WalletError as err:
-                return web.json_response(
-                    {"success": False, "error": f"Wallet Error: {err}"}, status=400
-                )
-            except DIDNotFound as err:
-                return web.json_response(
-                    {"success": False, "error": f"DID Not Found: {err}"}, status=404
-                )
-            except Exception as e:
-                return web.json_response(
-                    {
-                        "success": False,
-                        "error": f"An unexpected error occurred: {str(e)}",
-                    },
-                    status=500,
-                )
+            except Exception as ex:
+                raise ex
+        return {
+            "did": did,
+            "did_document": publish_did_state.get("didDocument"),
+            "did_document_metadata": metadata,
+        }
