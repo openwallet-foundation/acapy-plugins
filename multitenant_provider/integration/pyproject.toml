@@ -6,7 +6,7 @@ authors = []
 
 [tool.poetry.dependencies]
 python = "^3.12"
-pytest = "^8.2.2"
+pytest = "^8.3.4"
 pytest-asyncio = "~0.23.7"
 requests = "^2.32.0"
 bcrypt = "^4.1.3"
