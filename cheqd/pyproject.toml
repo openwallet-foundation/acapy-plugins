@@ -57,11 +57,11 @@ ignore = [
 "**/{tests}/*" = ["F841", "D", "E501"]
 
 [tool.pytest.ini_options]
-testpaths = "did_cheqd_manager"
+testpaths = "cheqd"
 addopts = """
     -p no:warnings
     --quiet --junitxml=./.test-reports/junit.xml
-    --cov-config .coveragerc --cov=did_cheqd_manager --cov-report term --cov-report xml
+    --cov-config .coveragerc --cov=cheqd --cov-report term --cov-report xml
 """
 markers = []
 junit_family = "xunit1"

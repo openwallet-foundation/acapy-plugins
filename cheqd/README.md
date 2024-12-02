@@ -108,7 +108,7 @@ Now you can deploy a agent with as many plugins as you want as long as they are 
 
 ``` bash
 
-docker build -f <Dockerfile> --tag did_cheqd_manager .
-docker run -it -p 8020:8020 -p 8021:8021 --rm did_cheqd_manager start --arg-file=<config-file> -->
+docker build -f <Dockerfile> --tag cheqd .
+docker run -it -p 8020:8020 -p 8021:8021 --rm cheqd start --arg-file=<config-file> -->
 
 ```

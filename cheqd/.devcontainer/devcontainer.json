@@ -1,7 +1,7 @@
 // For format details, see https://aka.ms/devcontainer.json. For config options, see the
 // README at: https://github.com/devcontainers/templates/tree/main/src/python
 {
-  "name": "did_cheqd_manager",
+  "name": "cheqd",
   "build": {
     "dockerfile": "Dockerfile",
     "context": "..",
@@ -14,7 +14,7 @@
     "vscode": {
       "extensions": ["ms-python.python", "ms-python.vscode-pylance", "charliermarsh.ruff"],
       "settings": {
-        "python.testing.pytestArgs": ["./did_cheqd_manager", "--no-cov"],
+        "python.testing.pytestArgs": ["./cheqd", "--no-cov"],
         "python.testing.unittestEnabled": false,
         "python.testing.pytestEnabled": true,
         "python.testing.pytestPath": "pytest",
