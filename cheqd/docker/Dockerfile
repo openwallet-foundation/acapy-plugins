@@ -13,7 +13,7 @@ ENV PATH="/opt/poetry/bin:$PATH"
 RUN poetry config virtualenvs.in-project true
 
 # Setup project
-RUN mkdir did_cheqd_manager && touch did_cheqd_manager/__init__.py
+RUN mkdir cheqd && touch cheqd/__init__.py
 COPY pyproject.toml poetry.lock README.md ./
 ARG install_flags='--with integration --extras aca-py'
 RUN poetry install ${install_flags}
@@ -24,8 +24,8 @@ WORKDIR /usr/src/app
 COPY --from=base /usr/src/app/.venv /usr/src/app/.venv
 ENV PATH="/usr/src/app/.venv/bin:$PATH"
 
-COPY did_cheqd_manager/ did_cheqd_manager/
+COPY cheqd/ cheqd/
 COPY docker/*.yml ./
 
 ENTRYPOINT ["/bin/bash", "-c", "aca-py \"$@\"", "--"]
-CMD ["start", "--arg-file", "default.yml"]
+# CMD ["start", "--arg-file", "integration.yml"]
