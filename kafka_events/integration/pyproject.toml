@@ -7,7 +7,7 @@ license = "Apache-2.0"
 
 [tool.poetry.dependencies]
 python = "^3.9"
-pytest = "^8.2.0"
+pytest = "^8.3.4"
 pytest-asyncio = "~0.23.7"
 requests = "^2.31.0"
 pytest-cov = "^5.0.0"
