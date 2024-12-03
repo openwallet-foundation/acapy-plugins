@@ -38,7 +38,7 @@ from aiohttp import web
 from cheqd.v1_0.did.manager import CheqdDIDManager
 from cheqd.v1_0.did.registrar import CheqdDIDRegistrar
 
-from ..resolver import CheqdDIDResolver
+from ..resolver.resolver import CheqdDIDResolver
 from ..validation import CheqdDID
 
 LOGGER = logging.getLogger(__name__)

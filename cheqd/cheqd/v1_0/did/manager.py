@@ -15,7 +15,7 @@ from aiohttp import web
 
 from cheqd.v1_0.did.base import BaseDIDManager, CheqdDIDManagerError
 from cheqd.v1_0.did_method import CHEQD
-from cheqd.v1_0.resolver import CheqdDIDResolver
+from cheqd.v1_0.resolver.resolver import CheqdDIDResolver
 
 from .registrar import CheqdDIDRegistrar
 
