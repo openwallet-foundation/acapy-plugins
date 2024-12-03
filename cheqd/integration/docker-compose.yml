@@ -1,32 +1,38 @@
- services:
+services:
   issuer:
-    image: acapy-test
+    build:
+      context: ../
+      dockerfile: ./docker/Dockerfile
     ports:
       - "3001:3001"
     command: >
       start
-        --label Issuer
-        --inbound-transport http 0.0.0.0 3000
-        --outbound-transport http
-        --endpoint http://issuer:3000
-        --admin 0.0.0.0 3001
-        --admin-insecure-mode
-        --wallet-type askar-anoncreds
-        --wallet-name agency
-        --wallet-key insecure
-        --auto-provision
-        --log-level error
-        --debug-webhooks
-        --no-ledger
+      --label Issuer
+      --inbound-transport http 0.0.0.0 3000
+      --outbound-transport http
+      --endpoint http://issuer:3000
+      --admin 0.0.0.0 3001
+      --admin-insecure-mode
+      --wallet-type askar-anoncreds
+      --wallet-name agency
+      --wallet-key insecure
+      --auto-provision
+      --log-level debug
+      --debug-webhooks
+      --no-ledger
+      --plugin cheqd.v1_0
+      --plugin-config plugin-config-integration.yml
     healthcheck:
       test: curl -s -o /dev/null -w '%{http_code}' "http://localhost:3001/status/live" | grep "200" > /dev/null
       start_period: 30s
       interval: 7s
       timeout: 5s
       retries: 5
-
+      
   holder:
-    image: acapy-test
+    build:
+      context: ../
+      dockerfile: ./docker/Dockerfile
     ports:
       - "3002:3001"
     command: >
@@ -41,9 +47,11 @@
         --wallet-name holder
         --wallet-key insecure
         --auto-provision
-        --log-level error
+        --log-level debug
         --debug-webhooks
         --no-ledger
+        --plugin cheqd.v1_0
+        --plugin-config plugin-config-integration.yml
     healthcheck:
       test: curl -s -o /dev/null -w '%{http_code}' "http://localhost:3001/status/live" | grep "200" > /dev/null
       start_period: 30s
@@ -54,7 +62,7 @@
   example:
     container_name: controller
     build:
-      context: ../..
+      context: .
     environment:
       - ISSUER=http://issuer:3001
       - HOLDER=http://holder:3001
@@ -67,4 +75,34 @@
       holder:
         condition: service_healthy
 
+  did_registrar:
+    image: ghcr.io/cheqd/did-registrar:production-latest
+    ports:
+      - target: 3000
+        published: 3000
+        mode: host
+    restart: on-failure
+    environment:
+      - FEE_PAYER_TESTNET_MNEMONIC=${FEE_PAYER_TESTNET_MNEMONIC}
+      - ENV FEE_PAYER_MAINNET_MNEMONIC=${FEE_PAYER_MAINNET_MNEMONIC}
 
+  did_resolver:
+    image: ghcr.io/cheqd/did-resolver:latest
+    ports:
+      - target: 8080
+        published: 8080
+        mode: host
+    restart: on-failure
+    environment:
+      # Syntax: <grpc-endpoint-url:port>,boolean,time
+      # 1st parameter is gRPC endpoint
+      # 2nd (Boolean) parameter is whether to use TLS or not
+      # 3nd connection timeout
+      MAINNET_ENDPOINT: "grpc.cheqd.net:443,true,5s"
+      TESTNET_ENDPOINT: "grpc.cheqd.network:443,true,5s"
+
+      # Logging level
+      LOG_LEVEL: "warn"
+
+      # Interface and port to listen on in the container
+      RESOLVER_LISTENER: "0.0.0.0:8080"
