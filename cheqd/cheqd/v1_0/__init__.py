@@ -7,7 +7,7 @@ from acapy_agent.resolver.did_resolver import DIDResolver
 from acapy_agent.wallet.did_method import DIDMethods
 
 from .did_method import CHEQD
-from .resolver import CheqdDIDResolver
+from .resolver.resolver import CheqdDIDResolver
 
 LOGGER = logging.getLogger(__name__)
 

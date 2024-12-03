@@ -13,10 +13,11 @@ from acapy_agent.wallet.key_type import ED25519
 from acapy_agent.wallet.util import b58_to_bytes
 from aiohttp import web
 
-from cheqd.cheqd.v1_0.did.base import BaseDIDManager, CheqdDIDManagerError
-from cheqd.cheqd.v1_0.did_method import CHEQD
+from cheqd.v1_0.did.base import BaseDIDManager, CheqdDIDManagerError
+from cheqd.v1_0.did_method import CHEQD
+from cheqd.v1_0.resolver import CheqdDIDResolver
+
 from .registrar import CheqdDIDRegistrar
-from cheqd.cheqd.v1_0.resolver import CheqdDIDResolver
 
 LOGGER = logging.getLogger(__name__)
 
