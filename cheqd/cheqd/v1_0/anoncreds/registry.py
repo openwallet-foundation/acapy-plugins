@@ -30,6 +30,7 @@ from acapy_agent.anoncreds.models.anoncreds_schema import (
     SchemaResult,
     SchemaState,
 )
+from acapy_agent.config.injection_context import InjectionContext
 from acapy_agent.core.profile import Profile
 from acapy_agent.wallet.base import BaseWallet
 from acapy_agent.wallet.jwt import dict_to_b64
@@ -82,6 +83,10 @@ class DIDCheqdRegistry(BaseAnonCredsResolver, BaseAnonCredsRegistrar):
         """Derive the ID for a schema."""
         ids = schema_id.split("/")
         return ids[0], ids[2]
+
+    async def setup(self, context: InjectionContext, registrar_url, resolver_url):
+        """Setup."""
+        print("Successfully registered DIDCheqdRegistry")
 
     async def get_schema(self, profile: Profile, schema_id: str) -> GetSchemaResult:
         """Get a schema from the registry."""
