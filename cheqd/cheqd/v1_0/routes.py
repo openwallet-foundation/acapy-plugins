@@ -16,7 +16,7 @@ from cheqd.v1_0.validation import (
     CHEQD_DIDSTATE_EXAMPLE,
 )
 
-from .manager import CheqdDIDManager, CheqdDIDManagerError
+from .did.manager import CheqdDIDManager, CheqdDIDManagerError
 
 
 class VerificationMethodSchema(Schema):
@@ -287,7 +287,9 @@ async def create_cheqd_did(request: web.BaseRequest):
         body = {}
 
     try:
-        result = await CheqdDIDManager(context.profile).create(body.get("options"))
+        result = await CheqdDIDManager(
+            context.profile, registrar_url, resolver_url
+        ).create(body.get("options"))
         return web.json_response(
             {"did": result.get("did"), "verkey": result.get("verkey")}
         )
@@ -316,7 +318,9 @@ async def update_cheqd_did(request: web.BaseRequest):
         body = {}
 
     try:
-        result = await CheqdDIDManager(context.profile).update(
+        result = await CheqdDIDManager(
+            context.profile, registrar_url, resolver_url
+        ).update(
             body.get("did"),
             body.get("didDocument"),
             body.get("options"),
@@ -347,7 +351,9 @@ async def deactivate_cheqd_did(request: web.BaseRequest):
         body = {}
 
     try:
-        result = await CheqdDIDManager(context.profile).deactivate(body.get("did"))
+        result = await CheqdDIDManager(
+            context.profile, registrar_url, resolver_url
+        ).deactivate(body.get("did"))
         return web.json_response(result)
     except CheqdDIDManagerError as err:
         raise web.HTTPInternalServerError(reason=err.roll_up)
