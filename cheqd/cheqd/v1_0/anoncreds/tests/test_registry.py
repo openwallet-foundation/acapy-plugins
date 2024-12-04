@@ -2,13 +2,15 @@ from unittest.async_case import IsolatedAsyncioTestCase
 
 import pytest
 from acapy_agent.utils.testing import create_test_profile
-from acapy_agent.messaging.valid import CHEQD_DID_VALIDATE
-from acapy_agent.anoncreds.default.did_cheqd import registry as test_module
+
+from ....v1_0.validation import CHEQD_DID_VALIDATE
+from .. import registry as test_module
 
 TEST_CHEQD_DID = "did:cheqd:testnet:1686a962-6e82-46f3-bde7-e6711d63958c"
 TEST_CHEQD_SCHEMA_ID = "did:cheqd:testnet:1686a962-6e82-46f3-bde7-e6711d63958c/resources/e788d345-dd0c-427a-a74b-27faf1e608cd"
 TEST_CHEQD_CRED_DEF_ID = "did:cheqd:testnet:1686a962-6e82-46f3-bde7-e6711d63958c/resources/02229804-b46a-4be9-a6f1-13869109c7ea"
 TEST_CHEQD_REV_REG_ENTRY = "did:cheqd:testnet:1686a962-6e82-46f3-bde7-e6711d63958c?resourceName=test&resourceType=anoncredsRevRegEntry"
+
 
 @pytest.mark.anoncreds
 class TestCheqdRegistry(IsolatedAsyncioTestCase):

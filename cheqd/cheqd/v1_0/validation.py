@@ -64,7 +64,7 @@ class CheqdCredDefId(Regexp):
     """Validate value against cheqd credential definition identifier specification."""
 
     EXAMPLE = "did:cheqd:testnet:8a7e756c-d3b5-4947-af99-2dcd2e8cc5a2/resources/83f06db5-"
-    PATTERN = CheqdDID.RESOURCE_ID_PATTERN
+    PATTERN = CheqdDID.RESOURCE_ID_PATTERN.pattern
 
     def __init__(self):
         """Initialize the instance."""
@@ -79,7 +79,7 @@ class CheqdSchemaId(Regexp):
     """Validate value against cheqd schema identifier specification."""
 
     EXAMPLE = "did:cheqd:testnet:8a7e756c-d3b5-4947-af99-2dcd2e8cc5a2/resources/e8cc28f2-"
-    PATTERN = CheqdDID.RESOURCE_ID_PATTERN
+    PATTERN = CheqdDID.RESOURCE_ID_PATTERN.pattern
 
     def __init__(self):
         """Initialize the instance."""

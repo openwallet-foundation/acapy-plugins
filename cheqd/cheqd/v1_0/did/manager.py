@@ -84,7 +84,7 @@ class CheqdDIDManager(BaseDIDManager):
                 job_id: str = create_request_res.get("jobId")
                 did_state = create_request_res.get("didState")
                 if did_state.get("state") == "action":
-                    signing_requests = did_state.get("signingRequest")
+                    signing_requests: dict = did_state.get("signingRequest")
                     if not signing_requests:
                         raise CheqdDIDManagerError(
                             "No signing requests available for create."
@@ -157,7 +157,7 @@ class CheqdDIDManager(BaseDIDManager):
                 did_state = update_request_res.get("didState")
 
                 if did_state.get("state") == "action":
-                    signing_requests = did_state.get("signingRequest")
+                    signing_requests: dict = did_state.get("signingRequest")
                     if not signing_requests:
                         raise Exception("No signing requests available for update.")
                     # sign all requests

@@ -7,12 +7,12 @@ import asyncio
 import json
 from dataclasses import dataclass
 from os import getenv
-from typing import Tuple, Mapping, Optional
+from typing import Mapping, Optional, Tuple
 
 from acapy_controller import Controller
+from acapy_controller.controller import Minimal
 from acapy_controller.logging import logging_to_stdout
 from acapy_controller.protocols import didexchange
-from acapy_controller.controller import Minimal
 
 ISSUER = getenv("ISSUER", "http://issuer:3001")
 HOLDER = getenv("HOLDER", "http://holder:3001")

@@ -9,14 +9,14 @@ from acapy_agent.anoncreds.base import (
     BaseAnonCredsRegistrar,
     BaseAnonCredsResolver,
 )
-from acapy_agent.anoncreds.models.anoncreds_cred_def import (
+from acapy_agent.anoncreds.models.credential_definition import (
     CredDef,
     CredDefResult,
     CredDefState,
     CredDefValue,
     GetCredDefResult,
 )
-from acapy_agent.anoncreds.models.anoncreds_revocation import (
+from acapy_agent.anoncreds.models.revocation import (
     GetRevListResult,
     GetRevRegDefResult,
     RevList,
@@ -24,7 +24,7 @@ from acapy_agent.anoncreds.models.anoncreds_revocation import (
     RevRegDef,
     RevRegDefResult,
 )
-from acapy_agent.anoncreds.models.anoncreds_schema import (
+from acapy_agent.anoncreds.models.schema import (
     AnonCredsSchema,
     GetSchemaResult,
     SchemaResult,
@@ -58,8 +58,6 @@ class DIDCheqdRegistry(BaseAnonCredsResolver, BaseAnonCredsRegistrar):
             None
 
         """
-        self.registrar = CheqdDIDRegistrar()
-        self.resolver = CheqdDIDResolver()
 
     @property
     def supported_identifiers_regex(self) -> Pattern:
@@ -86,6 +84,8 @@ class DIDCheqdRegistry(BaseAnonCredsResolver, BaseAnonCredsRegistrar):
 
     async def setup(self, context: InjectionContext, registrar_url, resolver_url):
         """Setup."""
+        self.registrar = CheqdDIDRegistrar(registrar_url)
+        self.resolver = CheqdDIDResolver(resolver_url)
         print("Successfully registered DIDCheqdRegistry")
 
     async def get_schema(self, profile: Profile, schema_id: str) -> GetSchemaResult:
@@ -310,7 +310,7 @@ class DIDCheqdRegistry(BaseAnonCredsResolver, BaseAnonCredsRegistrar):
 
                 LOGGER.debug("JOBID %s", job_id)
                 if resource_state.get("state") == "action":
-                    signing_requests = resource_state.get("signingRequest")
+                    signing_requests: dict = resource_state.get("signingRequest")
                     if not signing_requests:
                         raise Exception("No signing requests available for update.")
                     # sign all requests
