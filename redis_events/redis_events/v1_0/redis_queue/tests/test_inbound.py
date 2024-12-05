@@ -4,8 +4,8 @@ from unittest import IsolatedAsyncioTestCase
 from unittest.mock import AsyncMock, MagicMock, PropertyMock, patch
 
 import redis
-from acapy_agent.core.in_memory import InMemoryProfile
 from acapy_agent.messaging.error import MessageParseError
+from acapy_agent.utils.testing import create_test_profile
 from aiohttp.test_utils import unused_port
 
 from .. import inbound as test_inbound
@@ -93,11 +93,12 @@ class TestRedisInbound(IsolatedAsyncioTestCase):
     async def asyncSetUp(self):
         self.port = unused_port()
         self.session = None
-        self.profile = InMemoryProfile.test_profile()
+        self.profile = await create_test_profile()
 
     async def test_init(self):
         self.profile.context.injector.bind_instance(
-            redis.asyncio.RedisCluster, MagicMock()
+            redis.asyncio.RedisCluster,
+            MagicMock(redis.asyncio.RedisCluster, auto_spec=True),
         )
         RedisInboundTransport.running = PropertyMock(
             side_effect=[True, True, True, False]
@@ -156,59 +157,60 @@ class TestRedisInbound(IsolatedAsyncioTestCase):
 
     async def test_start(self):
         self.profile.settings["emit_new_didcomm_mime_type"] = False
+
+        redis_cluster = MagicMock(redis.asyncio.RedisCluster, auto_spec=True)
+        redis_cluster.hset = AsyncMock()
+        redis_cluster.ping = AsyncMock()
+        redis_cluster.hget = AsyncMock(
+            side_effect=[
+                base64.urlsafe_b64encode(
+                    json.dumps(
+                        [
+                            "test_recip_key_1",
+                            "test_recip_key_2",
+                            "test_recip_key_3",
+                            "test_recip_key_5",
+                        ]
+                    ).encode("utf-8")
+                ).decode(),
+                b"1",
+                b"2",
+                b"1",
+                base64.urlsafe_b64encode(
+                    json.dumps(
+                        [
+                            "test_recip_key_1",
+                            "test_recip_key_2",
+                            "test_recip_key_4",
+                            "test_recip_key_3",
+                            "test_recip_key_5",
+                        ]
+                    ).encode("utf-8")
+                ).decode(),
+                b"1",
+                b"1",
+                b"2",
+                b"3",
+                None,
+            ]
+        )
+        redis_cluster.blpop = AsyncMock(
+            side_effect=[
+                (None, TEST_INBOUND_MSG_DIRECT_RESPONSE),
+                (None, TEST_INBOUND_MSG_A),
+                (None, TEST_INBOUND_MSG_B),
+                (None, TEST_INBOUND_INVALID),
+                (None, TEST_INBOUND_MSG_DIRECT_RESPONSE),
+                None,
+                (None, TEST_INBOUND_MSG_B),
+                (None, TEST_INBOUND_MSG_C),
+                (None, TEST_INBOUND_MSG_DIRECT_RESPONSE),
+            ]
+        )
+        redis_cluster.rpush = AsyncMock(side_effect=[redis.exceptions.RedisError, None])
+
         self.profile.context.injector.bind_instance(
-            redis.asyncio.RedisCluster,
-            MagicMock(
-                hset=AsyncMock(),
-                ping=AsyncMock(),
-                hget=AsyncMock(
-                    side_effect=[
-                        base64.urlsafe_b64encode(
-                            json.dumps(
-                                [
-                                    "test_recip_key_1",
-                                    "test_recip_key_2",
-                                    "test_recip_key_3",
-                                    "test_recip_key_5",
-                                ]
-                            ).encode("utf-8")
-                        ).decode(),
-                        b"1",
-                        b"2",
-                        b"1",
-                        base64.urlsafe_b64encode(
-                            json.dumps(
-                                [
-                                    "test_recip_key_1",
-                                    "test_recip_key_2",
-                                    "test_recip_key_4",
-                                    "test_recip_key_3",
-                                    "test_recip_key_5",
-                                ]
-                            ).encode("utf-8")
-                        ).decode(),
-                        b"1",
-                        b"1",
-                        b"2",
-                        b"3",
-                        None,
-                    ]
-                ),
-                blpop=AsyncMock(
-                    side_effect=[
-                        (None, TEST_INBOUND_MSG_DIRECT_RESPONSE),
-                        (None, TEST_INBOUND_MSG_A),
-                        (None, TEST_INBOUND_MSG_B),
-                        (None, TEST_INBOUND_INVALID),
-                        (None, TEST_INBOUND_MSG_DIRECT_RESPONSE),
-                        None,
-                        (None, TEST_INBOUND_MSG_B),
-                        (None, TEST_INBOUND_MSG_C),
-                        (None, TEST_INBOUND_MSG_DIRECT_RESPONSE),
-                    ]
-                ),
-                rpush=AsyncMock(side_effect=[redis.exceptions.RedisError, None]),
-            ),
+            redis.asyncio.RedisCluster, redis_cluster
         )
         with patch.object(test_inbound.asyncio, "sleep", AsyncMock()):
             RedisInboundTransport.running = PropertyMock(
@@ -243,45 +245,45 @@ class TestRedisInbound(IsolatedAsyncioTestCase):
 
     async def test_start_x(self):
         self.profile.settings["emit_new_didcomm_mime_type"] = True
+
+        redis_cluster = MagicMock(redis.asyncio.RedisCluster, auto_spec=True)
+        redis_cluster.hset = AsyncMock()
+        redis_cluster.ping = AsyncMock()
+        redis_cluster.hget = AsyncMock(
+            side_effect=[
+                redis.exceptions.RedisError,
+                redis.exceptions.RedisError,
+                redis.exceptions.RedisError,
+                redis.exceptions.RedisError,
+                redis.exceptions.RedisError,
+                redis.exceptions.RedisError,
+                base64.urlsafe_b64encode(
+                    json.dumps(
+                        [
+                            "test_recip_key_1",
+                            "test_recip_key_2",
+                            "test_recip_key_3",
+                        ]
+                    ).encode("utf-8")
+                ).decode(),
+                b"1",
+            ]
+        )
+        redis_cluster.blpop = AsyncMock(
+            side_effect=[
+                (None, b'{"test": "test"}'),
+                (None, TEST_INBOUND_MSG_DIRECT_RESPONSE),
+                redis.exceptions.RedisError,
+                redis.exceptions.RedisError,
+                redis.exceptions.RedisError,
+                redis.exceptions.RedisError,
+                redis.exceptions.RedisError,
+                redis.exceptions.RedisError,
+            ]
+        )
+        redis_cluster.rpush = AsyncMock(side_effect=[redis.exceptions.RedisError, None])
         self.profile.context.injector.bind_instance(
-            redis.asyncio.RedisCluster,
-            MagicMock(
-                hset=AsyncMock(),
-                ping=AsyncMock(),
-                hget=AsyncMock(
-                    side_effect=[
-                        redis.exceptions.RedisError,
-                        redis.exceptions.RedisError,
-                        redis.exceptions.RedisError,
-                        redis.exceptions.RedisError,
-                        redis.exceptions.RedisError,
-                        redis.exceptions.RedisError,
-                        base64.urlsafe_b64encode(
-                            json.dumps(
-                                [
-                                    "test_recip_key_1",
-                                    "test_recip_key_2",
-                                    "test_recip_key_3",
-                                ]
-                            ).encode("utf-8")
-                        ).decode(),
-                        b"1",
-                    ]
-                ),
-                blpop=AsyncMock(
-                    side_effect=[
-                        (None, b'{"test": "test"}'),
-                        (None, TEST_INBOUND_MSG_DIRECT_RESPONSE),
-                        redis.exceptions.RedisError,
-                        redis.exceptions.RedisError,
-                        redis.exceptions.RedisError,
-                        redis.exceptions.RedisError,
-                        redis.exceptions.RedisError,
-                        redis.exceptions.RedisError,
-                    ]
-                ),
-                rpush=AsyncMock(),
-            ),
+            redis.asyncio.RedisCluster, redis_cluster
         )
         with patch.object(test_inbound.asyncio, "sleep", AsyncMock()):
             RedisInboundTransport.running = PropertyMock(

@@ -5,7 +5,7 @@ from unittest.mock import AsyncMock, MagicMock, patch
 
 from acapy_agent.connections.models.connection_target import ConnectionTarget
 from acapy_agent.core.event_bus import Event, EventWithMetadata, MockEventBus
-from acapy_agent.core.in_memory import InMemoryProfile
+from acapy_agent.utils.testing import create_test_profile
 from acapy_agent.transport.error import TransportError
 from acapy_agent.transport.outbound.message import OutboundMessage
 from aiohttp.test_utils import unused_port
@@ -75,7 +75,7 @@ class TestRedisEvents(IsolatedAsyncioTestCase):
     async def asyncSetUp(self):
         self.port = unused_port()
         self.session = None
-        self.profile = InMemoryProfile.test_profile(
+        self.profile = await create_test_profile(
             {
                 "plugin_config": SETTINGS["plugin_config"],
             }
@@ -116,18 +116,18 @@ class TestRedisEvents(IsolatedAsyncioTestCase):
         await on_shutdown(self.profile, test_event)
 
     async def test_handle_event(self):
-        self.profile = InMemoryProfile.test_profile(
+        self.profile = await create_test_profile(
             {
                 "plugin_config": SETTINGS["plugin_config"],
                 "emit_new_didcomm_mime_type": True,
                 "wallet.id": "test_wallet_id",
             }
         )
+        redis_cluster = MagicMock(RedisCluster, auto_spec=True)
+        redis_cluster.rpush = AsyncMock()
         self.profile.context.injector.bind_instance(
             RedisCluster,
-            MagicMock(
-                rpush=AsyncMock(),
-            ),
+            redis_cluster
         )
         test_event_with_metadata = MagicMock(
             payload={
@@ -210,7 +210,7 @@ class TestRedisEvents(IsolatedAsyncioTestCase):
     async def test_handle_event_deliver_webhook(self):
         test_settings = deepcopy(SETTINGS)
         test_settings["plugin_config"]["redis_queue"]["event"] = {"deliver_webhook": True}
-        self.profile = InMemoryProfile.test_profile(
+        self.profile = await create_test_profile(
             {
                 "plugin_config": test_settings["plugin_config"],
                 "emit_new_didcomm_mime_type": True,
@@ -221,11 +221,11 @@ class TestRedisEvents(IsolatedAsyncioTestCase):
                 ],
             }
         )
+        redis_cluster = MagicMock(RedisCluster, auto_spec=True)
+        redis_cluster.rpush = AsyncMock()
         self.profile.context.injector.bind_instance(
             RedisCluster,
-            MagicMock(
-                rpush=AsyncMock(),
-            ),
+            redis_cluster
         )
         test_event_with_metadata = MagicMock(
             payload={
@@ -240,7 +240,7 @@ class TestRedisEvents(IsolatedAsyncioTestCase):
         await handle_event(self.profile, test_event_with_metadata)
 
     async def test_handle_event_x(self):
-        self.profile = InMemoryProfile.test_profile(
+        self.profile = await create_test_profile(
             {
                 "plugin_config": SETTINGS["plugin_config"],
                 "emit_new_didcomm_mime_type": False,

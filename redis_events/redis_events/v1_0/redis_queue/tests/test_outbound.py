@@ -6,13 +6,13 @@ from unittest import IsolatedAsyncioTestCase
 from unittest.mock import AsyncMock, MagicMock, PropertyMock, patch
 
 import redis
-from acapy_agent.core.in_memory import InMemoryProfile
 from acapy_agent.transport.outbound.base import (
     ConnectionTarget,
     OutboundMessage,
     QueuedOutboundMessage,
 )
 from acapy_agent.transport.wire_format import BaseWireFormat
+from acapy_agent.utils.testing import create_test_profile
 from aiohttp.test_utils import unused_port
 
 from .. import config as test_config
@@ -87,14 +87,13 @@ class TestRedisOutbound(IsolatedAsyncioTestCase):
     async def asyncSetUp(self):
         self.port = unused_port()
         self.session = None
-        self.profile = InMemoryProfile.test_profile()
+        self.profile = await create_test_profile()
 
     async def test_init(self):
+        redis_cluster = MagicMock(redis.asyncio.RedisCluster, auto_spec=True)
+        redis_cluster.ping = AsyncMock()
         self.profile.context.injector.bind_instance(
-            redis.asyncio.RedisCluster,
-            MagicMock(
-                ping=AsyncMock(),
-            ),
+            redis.asyncio.RedisCluster, redis_cluster
         )
         redis_outbound_inst = RedisOutboundQueue(
             root_profile=self.profile, wire_format=MagicMock()
@@ -334,7 +333,7 @@ class TestRedisOutbound(IsolatedAsyncioTestCase):
         self.profile.settings["emit_new_didcomm_mime_type"] = True
         self.profile.context.injector.bind_instance(
             redis.asyncio.RedisCluster,
-            MagicMock(),
+            MagicMock(redis.asyncio.RedisCluster, auto_spec=True),
         )
         wire_format = BaseWireFormat()
         redis_outbound_inst = RedisOutboundQueue(self.profile)
@@ -351,11 +350,10 @@ class TestRedisOutbound(IsolatedAsyncioTestCase):
                 q_out_msg,
                 None,
             )
+        redis_cluster = MagicMock(redis.asyncio.RedisCluster, auto_spec=True)
+        redis_cluster.rpush = AsyncMock(side_effect=redis.exceptions.RedisError)
         self.profile.context.injector.bind_instance(
-            redis.asyncio.RedisCluster,
-            MagicMock(
-                rpush=AsyncMock(side_effect=redis.exceptions.RedisError),
-            ),
+            redis.asyncio.RedisCluster, redis_cluster
         )
         redis_outbound_inst = RedisOutboundQueue(
             root_profile=self.profile, wire_format=wire_format
@@ -367,11 +365,10 @@ class TestRedisOutbound(IsolatedAsyncioTestCase):
         )
 
     async def test_handle_message(self):
+        redis_cluster = MagicMock(redis.asyncio.RedisCluster, auto_spec=True)
+        redis_cluster.rpush = AsyncMock(side_effect=redis.exceptions.RedisError)
         self.profile.context.injector.bind_instance(
-            redis.asyncio.RedisCluster,
-            MagicMock(
-                rpush=AsyncMock(side_effect=redis.exceptions.RedisError),
-            ),
+            redis.asyncio.RedisCluster, redis_cluster
         )
         with patch.object(
             test_outbound,
@@ -402,11 +399,10 @@ class TestRedisOutbound(IsolatedAsyncioTestCase):
 
     async def test_handle_message_mediator(self):
         self.profile.settings["emit_new_didcomm_mime_type"] = True
+        redis_cluster = MagicMock(redis.asyncio.RedisCluster, auto_spec=True)
+        redis_cluster.rpush = AsyncMock(side_effect=redis.exceptions.RedisError)
         self.profile.context.injector.bind_instance(
-            redis.asyncio.RedisCluster,
-            MagicMock(
-                rpush=AsyncMock(),
-            ),
+            redis.asyncio.RedisCluster, redis_cluster
         )
         with patch.object(
             test_outbound,

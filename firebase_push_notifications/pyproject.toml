@@ -7,9 +7,10 @@ authors = []
 [tool.poetry.dependencies]
 python = "^3.12"
 
-# Define ACA-Py as an optional/extra dependancy so it can be
+# Define ACA-Py as an optional/extra dependency so it can be
 # explicitly installed with the plugin if desired.
-acapy-agent = { version = "~1.1.0", optional = true }
+acapy-agent = { version = "~1.1.1", optional = true }
+
 marshmallow = "^3.20.1"
 google-auth = "^2.36.0"
 google-api-python-client = "^2.153.0"
@@ -87,3 +88,4 @@ output = ".test-reports/coverage.xml"
 [build-system]
 requires = ["setuptools", "poetry-core>=1.2"]
 build-backend = "poetry.core.masonry.api"
+

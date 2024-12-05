@@ -2,8 +2,8 @@ from unittest import IsolatedAsyncioTestCase
 from unittest.mock import Mock, patch
 
 from acapy_agent.config.base import InjectionError
-from acapy_agent.core.in_memory import InMemoryProfile
 from acapy_agent.utils.classloader import ClassLoader, ClassNotFoundError
+from acapy_agent.utils.testing import create_test_profile
 
 from multitenant_provider.v1_0.config import MultitenantProviderConfig
 
@@ -12,7 +12,7 @@ from ..provider import CustomMultitenantManagerProvider
 
 class TestProvider(IsolatedAsyncioTestCase):
     async def asyncSetUp(self) -> None:
-        self.profile = InMemoryProfile.test_profile()
+        self.profile = await create_test_profile()
         self.profile.inject = Mock()
         self.profile.inject.return_value = MultitenantProviderConfig.default()
 
