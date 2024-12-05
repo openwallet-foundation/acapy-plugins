@@ -8,6 +8,7 @@ from acapy_agent.utils.testing import create_test_profile
 from acapy_agent.wallet.did_method import DIDMethods
 from acapy_agent.wallet.key_type import KeyTypes
 
+from ...did_method import CHEQD
 from ..manager import CheqdDIDManager
 
 
@@ -15,6 +16,7 @@ from ..manager import CheqdDIDManager
 class TestCheqdDidManager(IsolatedAsyncioTestCase):
     async def asyncSetUp(self):
         did_methods = DIDMethods()
+        did_methods.register(CHEQD)
         self.profile = await create_test_profile(
             settings={"wallet.type": "askar-anoncreds"},
         )
