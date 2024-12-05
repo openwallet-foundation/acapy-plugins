@@ -59,16 +59,14 @@ services:
       timeout: 5s
       retries: 5
 
-  example:
-    container_name: controller
+  tests:
+    container_name: tests
     build:
       context: .
+      dockerfile: Dockerfile.test.runner
     environment:
       - ISSUER=http://issuer:3001
       - HOLDER=http://holder:3001
-    volumes:
-      - ./example.py:/usr/src/app/example.py:ro,z
-    command: python -m example
     depends_on:
       issuer:
         condition: service_healthy

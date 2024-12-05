@@ -1,21 +1,9 @@
-"""Minimal reproducible example script.
-
-This script is for you to use to reproduce a bug or demonstrate a feature.
-"""
-
-import asyncio
 import json
 from dataclasses import dataclass
-from os import getenv
 from typing import Mapping, Optional, Tuple
 
 from acapy_controller import Controller
 from acapy_controller.controller import Minimal
-from acapy_controller.logging import logging_to_stdout
-from acapy_controller.protocols import didexchange
-
-ISSUER = getenv("ISSUER", "http://issuer:3001")
-HOLDER = getenv("HOLDER", "http://holder:3001")
 
 
 @dataclass
@@ -281,52 +269,3 @@ async def issue_credential_v2(
         V20CredExRecordDetail(cred_ex_record=issuer_cred_ex),
         V20CredExRecordDetail(cred_ex_record=holder_cred_ex),
     )
-
-
-async def main():
-    """Test DID Cheqd workflow."""
-    async with Controller(base_url=ISSUER) as issuer, Controller(
-        base_url=HOLDER
-    ) as holder:
-        """
-            This section of the test script demonstrates the CRUD operations of a did
-            followed by creating schema, credential definition and credential issuance.
-        """
-        did = await create_did(issuer)
-
-        await resolve_did(issuer, did)
-
-        # updated_did_document = await update_did(issuer, did, did_document)
-
-        schema_id = await create_schema(issuer, did)
-        print(schema_id)
-
-        credential_definition_id = await create_credential_definition(
-            issuer, did, schema_id
-        )
-        print(credential_definition_id)
-
-        await assert_credential_definitions(issuer, credential_definition_id)
-        await assert_wallet_dids(issuer, did)
-
-        # Connect issuer and holder
-        issuer_conn_with_anoncreds_holder, holder_anoncreds_conn = await didexchange(
-            issuer, holder
-        )
-
-        issue_credential_result = await issue_credential_v2(
-            issuer,
-            holder,
-            issuer_conn_with_anoncreds_holder.connection_id,
-            holder_anoncreds_conn.connection_id,
-            credential_definition_id,
-            {"score": "99"},
-        )
-        print(issue_credential_result)
-
-        # await deactivate_did(issuer, did)
-
-
-if __name__ == "__main__":
-    logging_to_stdout()
-    asyncio.run(main())
