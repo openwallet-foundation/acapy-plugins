@@ -6,6 +6,7 @@ authors = []
 
 [tool.poetry.dependencies]
 python = "^3.12"
+cryptography = "<38.0.0"
 
 # Define ACA-Py as an optional/extra dependancy so it can be
 # explicitly installed with the plugin if desired.
