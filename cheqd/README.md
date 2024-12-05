@@ -74,9 +74,7 @@ To run the integration tests:
 
 ```shell
 cd integration
-docker compose build
-docker compose run tests
-docker compose down -v  # Clean up
+./run_integration_tests.sh
 ```
 
 ## Deploy

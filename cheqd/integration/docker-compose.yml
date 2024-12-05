@@ -1,4 +1,18 @@
 services:
+  tests:
+    container_name: tests
+    build:
+      context: .
+      dockerfile: Dockerfile.test.runner
+    environment:
+      - ISSUER=http://issuer:3001
+      - HOLDER=http://holder:3001
+    depends_on:
+      issuer:
+        condition: service_healthy
+      holder:
+        condition: service_healthy
+
   issuer:
     build:
       context: ../
@@ -28,6 +42,9 @@ services:
       interval: 7s
       timeout: 5s
       retries: 5
+    depends_on:
+      - did_registrar
+      - did_resolver
       
   holder:
     build:
@@ -58,20 +75,9 @@ services:
       interval: 7s
       timeout: 5s
       retries: 5
-
-  tests:
-    container_name: tests
-    build:
-      context: .
-      dockerfile: Dockerfile.test.runner
-    environment:
-      - ISSUER=http://issuer:3001
-      - HOLDER=http://holder:3001
     depends_on:
-      issuer:
-        condition: service_healthy
-      holder:
-        condition: service_healthy
+      - did_registrar
+      - did_resolver
 
   did_registrar:
     image: ghcr.io/cheqd/did-registrar:production-latest

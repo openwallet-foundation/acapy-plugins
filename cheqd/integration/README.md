@@ -9,6 +9,5 @@ The integration tests will start 2 agents - bob and alice - and a juggernaut con
 ```sh
 # open a terminal in vs code
 cd integration
-docker compose build
-docker compose up
+./run_integration_tests.sh
 ```
