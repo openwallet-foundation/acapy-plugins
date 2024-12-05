@@ -63,7 +63,7 @@ The did:cheqd Manager plugin supports `did:cheqd` for the following existing end
 
 ```bash
 # Run the tests using following
-poetry run pytest .
+poetry run pytest cheqd/
 ```
 A coverage report is created when ran from the devcontainer. 
 

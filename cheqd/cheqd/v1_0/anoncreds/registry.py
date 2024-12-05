@@ -36,9 +36,8 @@ from acapy_agent.wallet.base import BaseWallet
 from acapy_agent.wallet.jwt import dict_to_b64
 from aiohttp import web
 
-from cheqd.v1_0.did.manager import CheqdDIDManager
-from cheqd.v1_0.did.registrar import CheqdDIDRegistrar
-
+from ..did.manager import CheqdDIDManager
+from ..did.registrar import CheqdDIDRegistrar
 from ..resolver.resolver import CheqdDIDResolver
 from ..validation import CheqdDID
 

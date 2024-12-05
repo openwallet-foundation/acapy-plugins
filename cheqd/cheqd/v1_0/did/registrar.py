@@ -2,7 +2,7 @@
 
 from aiohttp import ClientSession, web
 
-from cheqd.v1_0.did.base import BaseDIDRegistrar
+from ..did.base import BaseDIDRegistrar
 
 
 class CheqdDIDRegistrar(BaseDIDRegistrar):
