@@ -17,6 +17,8 @@ plugin:
 
 plugin-config: plugins-config.yml
 
+# Wallet
+auto-provision: true
 wallet-type: askar
 wallet-name: test-wallet
 wallet-key: test-wallet-key
