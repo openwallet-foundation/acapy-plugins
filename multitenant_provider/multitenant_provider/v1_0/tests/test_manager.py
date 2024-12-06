@@ -4,9 +4,9 @@ from unittest.mock import AsyncMock, MagicMock, patch
 
 import bcrypt
 import jwt
-from acapy_agent.core.in_memory import InMemoryProfile
 from acapy_agent.multitenant.error import WalletKeyMissingError
 from acapy_agent.storage.error import StorageError
+from acapy_agent.utils.testing import create_test_profile
 from acapy_agent.wallet.models.wallet_record import WalletRecord
 
 from multitenant_provider.v1_0.config import (
@@ -37,8 +37,10 @@ class MockInjectMultitenantProviderConfig:
 class MockGetProfile:
     def __init__(self, always_check_key: Optional[bool] = False) -> None:
         self.context = MockInjectMultitenantProviderConfig(always_check_key)
+        self.settings = {"multitenant.jwt_secret": "secret"}
 
     context = MockInjectMultitenantProviderConfig(False)
+    settings = {"multitenant.jwt_secret": "secret"}
 
 
 class MockWalletRecordRequiresKey:
@@ -51,17 +53,10 @@ class MockWalletRecordRequiresKey:
 class TestMulittokenHandler(IsolatedAsyncioTestCase):
     async def asyncSetUp(self) -> None:
         self.session_inject = {}
-        self.manager = BasicMultitokenMultitenantManager(InMemoryProfile.test_profile())
-        self.get_profile = lambda: InMemoryProfile.test_profile()
+        self.profile = await create_test_profile()
+        self.manager = BasicMultitokenMultitenantManager(self.profile)
+        self.get_profile = lambda: self.profile
         self.context = MagicMock()
-
-    def get_create_token_side_effect(always_check_key: bool):
-        return [
-            MockGetProfile(always_check_key),
-            InMemoryProfile.test_profile(),
-            InMemoryProfile.test_profile(settings={"multitenant.jwt_secret": "secret"}),
-            InMemoryProfile.test_profile(),
-        ]
 
     async def test_multi_token_handler_constructor(self):
         multi_token_handler = MulittokenHandler(self.manager)
@@ -216,14 +211,13 @@ class TestMulittokenHandler(IsolatedAsyncioTestCase):
         ),
     )
     @patch.object(
-        MulittokenHandler,
-        "get_profile",
-        side_effect=get_create_token_side_effect(always_check_key=False),
-    )
-    @patch.object(
         WalletRecord,
         "save",
         return_value=WalletRecord(wallet_id="wallet-id-test"),
+    )
+    @patch.object(
+        MulittokenHandler,
+        "get_profile",
     )
     @patch.object(
         WalletTokenRecord,
@@ -235,7 +229,18 @@ class TestMulittokenHandler(IsolatedAsyncioTestCase):
         "checkpw",
         return_value=True,
     )
-    async def test_create_auth_token(self, mock_save_record, mock_save, *_):
+    async def test_create_auth_token(
+        self, mock_save_record, mock_save, mock_token_handler, *_
+    ):
+        secret_profile = await create_test_profile(
+            settings={"multitenant.jwt_secret": "secret"}
+        )
+        secret_profile.context.injector.bind_instance(
+            MultitenantProviderConfig,
+            MultitenantProviderConfig.default(),
+        )
+        mock_token_handler.return_value = secret_profile
+
         wallet_record = WalletRecord(
             jwt_iat="test-jwt-iat",
             wallet_id="wallet-id",
@@ -260,9 +265,18 @@ class TestMulittokenHandler(IsolatedAsyncioTestCase):
     @patch.object(
         MulittokenHandler,
         "get_profile",
-        side_effect=get_create_token_side_effect(always_check_key=False),
     )
-    async def test_create_auth_token_requires_key_without_key(self, _1, _2):
+    async def test_create_auth_token_requires_key_without_key(
+        self, mock_token_handler, _
+    ):
+        secret_profile = await create_test_profile(
+            settings={"multitenant.jwt_secret": "secret"}
+        )
+        secret_profile.context.injector.bind_instance(
+            MultitenantProviderConfig,
+            MultitenantProviderConfig.default(),
+        )
+        mock_token_handler.return_value = secret_profile
         wallet_record = MockWalletRecordRequiresKey(True)
         multi_token_handler = MulittokenHandler(self.manager)
         with self.assertRaises(WalletKeyMissingError):
@@ -277,18 +291,27 @@ class TestMulittokenHandler(IsolatedAsyncioTestCase):
     )
     @patch.object(
         MulittokenHandler,
-        "get_profile",
-        side_effect=get_create_token_side_effect(always_check_key=True),
-    )
-    @patch.object(
-        MulittokenHandler,
         "find_or_create_wallet_token_record",
         return_value=WalletTokenRecord(
             wallet_id="wallet-id",
         ),
     )
     @patch.object(MulittokenHandler, "check_wallet_key", return_value=False)
-    async def test_create_auth_token_always_check_key_mismatch(self, _1, _2, _3, _4):
+    @patch.object(
+        MulittokenHandler,
+        "get_profile",
+    )
+    async def test_create_auth_token_always_check_key_mismatch(
+        self, mock_token_handler, *_
+    ):
+        secret_profile = await create_test_profile(
+            settings={"multitenant.jwt_secret": "secret"}
+        )
+        secret_profile.context.injector.bind_instance(
+            MultitenantProviderConfig,
+            MultitenantProviderConfig.default(),
+        )
+        mock_token_handler.return_value = secret_profile
         wallet_record = WalletRecord(
             jwt_iat="test-jwt-iat",
             wallet_id="wallet-id",
@@ -302,16 +325,6 @@ class TestMulittokenHandler(IsolatedAsyncioTestCase):
                 wallet_record, wallet_key="wallet-key"
             )
 
-    @patch.object(
-        MulittokenHandler,
-        "get_profile",
-        side_effect=[
-            InMemoryProfile.test_profile(
-                settings={"multitenant.jwt_secret": "jwt-secret"}
-            ),
-            InMemoryProfile.test_profile(),
-        ],
-    )
     @patch.object(MulittokenHandler, "check_wallet_key", return_value=True)
     @patch.object(
         jwt,
@@ -321,6 +334,10 @@ class TestMulittokenHandler(IsolatedAsyncioTestCase):
             "wallet_key": "test-wallet-key",
             "iat": "test-iat",
         },
+    )
+    @patch.object(
+        MulittokenHandler,
+        "get_profile",
     )
     @patch.object(
         WalletRecord,
@@ -336,7 +353,14 @@ class TestMulittokenHandler(IsolatedAsyncioTestCase):
             wallet_id="wallet-id-test", issued_at_claims=["test-iat"]
         ),
     )
-    async def test_get_profile_for_token(self, get_wallet_token, get_wallet, _3, _4, _5):
+    async def test_get_profile_for_token(
+        self, get_wallet_token, get_wallet, multitoken_manager, *_
+    ):
+        secret_profile = await create_test_profile(
+            settings={"multitenant.jwt_secret": "jwt-secret"}
+        )
+        profile = await create_test_profile()
+        multitoken_manager.side_effect = [secret_profile, profile]
         self.manager.get_wallet_profile = AsyncMock()
         multi_token_handler = MulittokenHandler(self.manager)
         self.manager.get_wallet_profile.return_value = "profile"
@@ -348,16 +372,6 @@ class TestMulittokenHandler(IsolatedAsyncioTestCase):
         assert get_wallet_token.called
         assert get_wallet.called
 
-    @patch.object(
-        MulittokenHandler,
-        "get_profile",
-        side_effect=[
-            InMemoryProfile.test_profile(
-                settings={"multitenant.jwt_secret": "jwt-secret"}
-            ),
-            InMemoryProfile.test_profile(),
-        ],
-    )
     @patch.object(MulittokenHandler, "check_wallet_key", return_value=True)
     @patch.object(
         jwt,
@@ -372,7 +386,16 @@ class TestMulittokenHandler(IsolatedAsyncioTestCase):
         "query_by_wallet_id",
         return_value=MagicMock(WalletTokenRecord),
     )
-    async def test_get_profile_for_token_expired_signature(self, _1, _2, _3, _4):
+    @patch.object(
+        MulittokenHandler,
+        "get_profile",
+    )
+    async def test_get_profile_for_token_expired_signature(self, multitoken_manager, *_):
+        secret_profile = await create_test_profile(
+            settings={"multitenant.jwt_secret": "jwt-secret"}
+        )
+        profile = await create_test_profile()
+        multitoken_manager.side_effect = [secret_profile, profile]
         self.manager.get_wallet_profile = AsyncMock()
         multi_token_handler = MulittokenHandler(self.manager)
         self.manager.get_wallet_profile.return_value = "profile"

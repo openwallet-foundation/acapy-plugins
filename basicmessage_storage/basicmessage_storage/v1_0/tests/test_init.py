@@ -2,7 +2,7 @@ from unittest import IsolatedAsyncioTestCase
 from unittest.mock import MagicMock, Mock, patch
 
 from acapy_agent.core.event_bus import Event
-from acapy_agent.core.in_memory import InMemoryProfile
+from acapy_agent.utils.testing import create_test_profile
 from pydantic import BaseModel
 
 import basicmessage_storage.v1_0 as test_module
@@ -19,7 +19,7 @@ class TestInit(IsolatedAsyncioTestCase):
     async def asyncSetUp(self) -> None:
         self.session_inject = {}
         self.context = MagicMock()
-        self.profile = InMemoryProfile.test_profile()
+        self.profile = await create_test_profile()
 
     async def test_setup_injects_and_finishes_by_subscribing_to_event_bus(self):
         self.context.inject = Mock()

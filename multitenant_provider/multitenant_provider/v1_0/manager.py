@@ -9,8 +9,7 @@ from acapy_agent.askar.profile import AskarProfile
 from acapy_agent.config.injection_context import InjectionContext
 from acapy_agent.core.error import BaseError
 from acapy_agent.core.profile import Profile
-from acapy_agent.multitenant.base import MultitenantManagerError
-from acapy_agent.multitenant.error import WalletKeyMissingError
+from acapy_agent.multitenant.error import MultitenantManagerError, WalletKeyMissingError
 from acapy_agent.multitenant.manager import MultitenantManager
 from acapy_agent.multitenant.single_wallet_askar_manager import (
     SingleWalletAskarMultitenantManager,

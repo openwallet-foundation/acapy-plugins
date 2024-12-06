@@ -2,9 +2,9 @@ from unittest import IsolatedAsyncioTestCase
 from unittest.mock import MagicMock, Mock
 
 from acapy_agent.core.event_bus import Event, EventBus
-from acapy_agent.core.in_memory import InMemoryProfile
 from acapy_agent.core.protocol_registry import ProtocolRegistry
 from acapy_agent.multitenant.base import BaseMultitenantManager
+from acapy_agent.utils.testing import create_test_profile
 
 from .. import on_startup, setup
 
@@ -13,7 +13,7 @@ class TestInit(IsolatedAsyncioTestCase):
     async def asyncSetUp(self) -> None:
         self.session_inject = {}
         self.context = MagicMock()
-        self.profile = InMemoryProfile.test_profile()
+        self.profile = await create_test_profile()
 
     async def test_setup_injects_protocol_registry(self):
         self.context.inject = Mock()

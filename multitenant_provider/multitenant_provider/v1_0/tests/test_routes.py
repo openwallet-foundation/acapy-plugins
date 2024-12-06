@@ -3,8 +3,8 @@ from unittest import IsolatedAsyncioTestCase
 from unittest.mock import AsyncMock, MagicMock, Mock, patch
 
 from acapy_agent.admin.request_context import AdminRequestContext
-from acapy_agent.core.in_memory import InMemoryProfile
 from acapy_agent.multitenant.base import BaseMultitenantManager
+from acapy_agent.utils.testing import create_test_profile
 from acapy_agent.wallet.models.wallet_record import WalletRecord
 from aiohttp import web
 
@@ -40,7 +40,7 @@ class MockWalletRecordRequiresExternalKey:
 class TestRoutes(IsolatedAsyncioTestCase):
     async def asyncSetUp(self) -> None:
         self.session_inject = {}
-        self.profile = InMemoryProfile.test_profile(
+        self.profile = await create_test_profile(
             settings={
                 "admin.admin_api_key": "admin_api_key",
                 "admin.admin_insecure_mode": False,

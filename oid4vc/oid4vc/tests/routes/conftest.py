@@ -2,7 +2,7 @@ from unittest.mock import MagicMock
 
 import pytest
 from acapy_agent.admin.request_context import AdminRequestContext
-from acapy_agent.core.in_memory import InMemoryProfile
+from acapy_agent.utils.testing import create_test_profile
 from acapy_agent.core.profile import Profile
 from acapy_agent.resolver.did_resolver import DIDResolver
 
@@ -18,14 +18,14 @@ def resolver():
 
 
 @pytest.fixture
-def profile(resolver: DIDResolver):
+async def profile(resolver: DIDResolver):
     """Test Profile."""
     processors = CredProcessors(
         {"jwt_vc_json": JwtVcJsonCredProcessor()},
         {"jwt_vc_json": JwtVcJsonCredProcessor()},
         {"jwt_vc_json": JwtVcJsonCredProcessor()},
     )
-    yield InMemoryProfile.test_profile(
+    profile = await create_test_profile(
         {
             "admin.admin_insecure_mode": True,
             "plugin_config": {
@@ -35,19 +35,19 @@ def profile(resolver: DIDResolver):
                     "port": 8020,
                 }
             },
-        },
-        {
-            DIDResolver: resolver,
-            CredProcessors: processors,
-        },
-    )
+        })
+
+    profile.context.injector.bind_instance(DIDResolver, resolver)
+    profile.context.injector.bind_instance(CredProcessors, processors)
+
+    yield profile
+
 
 
 @pytest.fixture
 def context(profile: Profile):
     """Test AdminRequestContext."""
-    context = AdminRequestContext.test_context({}, profile)
-    yield context
+    yield AdminRequestContext(profile)
 
 
 @pytest.fixture
