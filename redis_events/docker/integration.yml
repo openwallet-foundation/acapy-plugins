@@ -17,7 +17,9 @@ plugin:
 
 plugin-config: plugins-config.yml
 
-wallet-key: "test-wallet-key"
+wallet-type: askar
+wallet-name: test-wallet
+wallet-key: test-wallet-key
 
 no-ledger: true
 
