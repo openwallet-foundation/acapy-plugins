@@ -71,7 +71,6 @@ class CheqdDIDRegistrar(BaseDIDRegistrar):
 
     async def create_resource(self, did: str, options: dict) -> dict:
         """Create a DID Linked Resource."""
-        print(options)
         async with ClientSession() as session:
             try:
                 async with session.post(

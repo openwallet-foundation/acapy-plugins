@@ -31,7 +31,7 @@ services:
       --wallet-name agency
       --wallet-key insecure
       --auto-provision
-      --log-level debug
+      --log-level info
       --debug-webhooks
       --no-ledger
       --plugin cheqd.v1_0
@@ -64,7 +64,7 @@ services:
         --wallet-name holder
         --wallet-key insecure
         --auto-provision
-        --log-level debug
+        --log-level info
         --debug-webhooks
         --no-ledger
         --plugin cheqd.v1_0
