@@ -26,8 +26,8 @@ async def test_issuer_metadata(context: AdminRequestContext, req: web.Request):
         await test_module.credential_issuer_metadata(req)
         mock_web.json_response.assert_called_once_with(
             {
-                "credential_issuer": "http://localhost:8020/",
-                "credential_endpoint": "http://localhost:8020/credential",
+                "credential_issuer": f"http://localhost:8020/tenant/{req.match_info.get()}",
+                "credential_endpoint": f"http://localhost:8020/tenant/{req.match_info.get()}/credential",
                 "credentials_supported": [
                     {
                         "format": "jwt_vc_json",
