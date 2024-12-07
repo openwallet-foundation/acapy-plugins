@@ -3,8 +3,8 @@
 from acapy_agent.core.profile import ProfileSession
 from acapy_agent.messaging.models.base_record import BaseRecord, BaseRecordSchema
 from acapy_agent.messaging.valid import (
-    INDY_ISO8601_DATETIME_EXAMPLE,
-    INDY_ISO8601_DATETIME_VALIDATE,
+    ISO8601_DATETIME_EXAMPLE,
+    ISO8601_DATETIME_VALIDATE,
 )
 from acapy_agent.storage.base import BaseStorage
 from marshmallow import fields
@@ -103,8 +103,8 @@ class BasicMessageRecordSchema(BaseRecordSchema):
     message_id = fields.Str(required=False)
     sent_time = fields.Str(
         required=False,
-        validate=INDY_ISO8601_DATETIME_VALIDATE,
-        example=INDY_ISO8601_DATETIME_EXAMPLE,
+        validate=ISO8601_DATETIME_VALIDATE,
+        example=ISO8601_DATETIME_EXAMPLE,
     )
     locale = fields.Str(required=False)
     content = fields.Str(required=False)

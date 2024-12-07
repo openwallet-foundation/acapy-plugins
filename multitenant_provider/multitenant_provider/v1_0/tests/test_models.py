@@ -1,15 +1,15 @@
 from unittest import IsolatedAsyncioTestCase
 from unittest.mock import patch
 
-from acapy_agent.core.in_memory import InMemoryProfile
 from acapy_agent.storage.error import StorageDuplicateError, StorageNotFoundError
+from acapy_agent.utils.testing import create_test_profile
 
 from ..models import WalletTokenRecord
 
 
 class TestModels(IsolatedAsyncioTestCase):
     async def asyncSetUp(self) -> None:
-        self.profile = InMemoryProfile.test_profile()
+        self.profile = await create_test_profile()
 
     @patch.object(
         WalletTokenRecord,

@@ -16,6 +16,10 @@ endpoint:
 plugin:
   - connection_update.v1_0
 
+# Wallet
+auto-provision: true
+wallet-test: true
+
 #config
 genesis-url: http://test.bcovrin.vonx.io/genesis
 

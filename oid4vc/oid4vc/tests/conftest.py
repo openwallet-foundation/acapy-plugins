@@ -1,7 +1,7 @@
 import pytest
-from acapy_agent.core.in_memory import InMemoryProfile
+from acapy_agent.utils.testing import create_test_profile
 
 
 @pytest.fixture
 async def profile():
-    yield InMemoryProfile.test_profile()
+    yield await create_test_profile()

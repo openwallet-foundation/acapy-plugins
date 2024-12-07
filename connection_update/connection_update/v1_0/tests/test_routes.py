@@ -3,7 +3,7 @@ from unittest.mock import AsyncMock, MagicMock, patch
 
 from acapy_agent.admin.request_context import AdminRequestContext
 from acapy_agent.connections.models.conn_record import ConnRecord
-from acapy_agent.core.in_memory.profile import InMemoryProfile
+from acapy_agent.utils.testing import create_test_profile
 
 from .. import routes as test_module
 
@@ -11,7 +11,7 @@ from .. import routes as test_module
 class TestRoutes(IsolatedAsyncioTestCase):
     async def asyncSetUp(self) -> None:
         self.session_inject = {}
-        self.profile = InMemoryProfile.test_profile(
+        self.profile = await create_test_profile(
             settings={
                 "admin.admin_api_key": "admin_api_key",
                 "admin.admin_insecure_mode": False,

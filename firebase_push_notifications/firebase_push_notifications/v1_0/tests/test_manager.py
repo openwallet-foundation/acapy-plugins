@@ -5,7 +5,7 @@ from unittest import IsolatedAsyncioTestCase
 from unittest.mock import Mock, patch
 
 import pytest
-from acapy_agent.core.in_memory import InMemoryProfile
+from acapy_agent.utils.testing import create_test_profile
 from acapy_agent.messaging.util import datetime_now, datetime_to_str
 from acapy_agent.storage.base import StorageNotFoundError
 
@@ -38,7 +38,7 @@ def mock_logger():
 
 class TestManager(IsolatedAsyncioTestCase):
     async def asyncSetUp(self):
-        self.profile = InMemoryProfile.test_profile()
+        self.profile = await create_test_profile()
         self.context = self.profile.context
         self.test_conn_id = "connection-id"
 

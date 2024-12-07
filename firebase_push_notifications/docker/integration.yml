@@ -14,6 +14,10 @@ plugin:
 
 no-ledger: true
 
+# Wallet
+auto-provision: true
+wallet-test: true
+
 # Mediation
 open-mediation: true
 enable-undelivered-queue: true
