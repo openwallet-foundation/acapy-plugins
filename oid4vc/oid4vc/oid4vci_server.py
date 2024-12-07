@@ -75,7 +75,8 @@ class Oid4vciServer(BaseAdminServer):
                 handler: The handler function to be executed.
 
             Returns:
-                The result of executing the handler function with the updated request context.
+                The result of executing the handler function with the updated request 
+                context.
             """
             multitenant = self.multitenant_manager
             wallet_id = request.match_info.get("wallet_id")
@@ -127,7 +128,6 @@ class Oid4vciServer(BaseAdminServer):
             ]
         )
 
-        """Passing multitenant_manager to public routes to register multitenant routes."""
         await public_routes_register(app, self.multitenant_manager)
 
         cors = aiohttp_cors.setup(
