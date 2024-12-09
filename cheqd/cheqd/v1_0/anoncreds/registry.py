@@ -139,6 +139,8 @@ class DIDCheqdRegistry(BaseAnonCredsResolver, BaseAnonCredsRegistrar):
         try:
             resource_state = await self._create_and_publish_resource(
                 profile,
+                self.registrar.DID_REGISTRAR_BASE_URL,
+                self.resolver.DID_RESOLVER_BASE_URL,
                 schema.issuer_id,
                 cheqd_schema,
             )
@@ -216,7 +218,11 @@ class DIDCheqdRegistry(BaseAnonCredsResolver, BaseAnonCredsRegistrar):
         }
 
         resource_state = await self._create_and_publish_resource(
-            profile, credential_definition.issuer_id, cred_def
+            profile,
+            self.registrar.DID_REGISTRAR_BASE_URL,
+            self.resolver.DID_RESOLVER_BASE_URL,
+            credential_definition.issuer_id,
+            cred_def,
         )
         job_id = resource_state.get("jobId")
         resource = resource_state.get("resource")
@@ -290,10 +296,10 @@ class DIDCheqdRegistry(BaseAnonCredsResolver, BaseAnonCredsRegistrar):
 
     @staticmethod
     async def _create_and_publish_resource(
-        profile: Profile, did: str, options: dict
+        profile: Profile, registrar_url: str, resolver_url: str, did: str, options: dict
     ) -> dict:
         """Create, Sign and Publish a Resource."""
-        cheqd_manager = CheqdDIDManager(profile)
+        cheqd_manager = CheqdDIDManager(profile, registrar_url, resolver_url)
         async with profile.session() as session:
             wallet = session.inject_or(BaseWallet)
             if not wallet:
