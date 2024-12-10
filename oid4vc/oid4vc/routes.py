@@ -362,8 +362,14 @@ async def get_cred_offer(request: web.BaseRequest):
         raise web.HTTPBadRequest(reason=err.roll_up) from err
 
     user_pin_required: bool = record.pin is not None
+    wallet_id = (
+        context.profile.settings.get("wallet.id")
+        if context.profile.settings.get("multitenant.enabled")
+        else None
+    )
+    subpath = f"/tenant/{wallet_id}" if wallet_id else ""
     offer = {
-        "credential_issuer": config.endpoint,
+        "credential_issuer": f"{config.endpoint}{subpath}",
         "credentials": [supported.identifier],
         "grants": {
             "urn:ietf:params:oauth:grant-type:pre-authorized_code": {
@@ -782,7 +788,13 @@ async def create_oid4vp_request(request: web.Request):
         await pres_record.save(session=session)
 
     config = Config.from_settings(context.settings)
-    request_uri = quote(f"{config.endpoint}/oid4vp/request/{req_record._id}")
+    wallet_id = (
+        context.profile.settings.get("wallet.id")
+        if context.profile.settings.get("multitenant.enabled")
+        else None
+    )
+    subpath = f"/tenant/{wallet_id}" if wallet_id else ""
+    request_uri = quote(f"{config.endpoint}{subpath}/oid4vp/request/{req_record._id}")
     full_uri = f"openid://?request_uri={request_uri}"
 
     return web.json_response(
