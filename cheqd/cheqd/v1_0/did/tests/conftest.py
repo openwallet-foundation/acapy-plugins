@@ -1,7 +1,26 @@
 import pytest
+from acapy_agent.cache.base import BaseCache
+from acapy_agent.cache.in_memory import InMemoryCache
+from acapy_agent.utils.testing import create_test_profile
+from acapy_agent.wallet.did_method import DIDMethods
+from acapy_agent.wallet.key_type import KeyTypes
 from yarl import URL
 
+from ...did_method import CHEQD
 from ..registrar import CheqdDIDRegistrar
+
+
+@pytest.fixture
+async def profile():
+    did_methods = DIDMethods()
+    did_methods.register(CHEQD)
+    profile = await create_test_profile(
+        settings={"wallet.type": "askar-anoncreds"},
+    )
+    profile.context.injector.bind_instance(DIDMethods, did_methods)
+    profile.context.injector.bind_instance(KeyTypes, KeyTypes())
+    profile.context.injector.bind_instance(BaseCache, InMemoryCache())
+    return profile
 
 
 @pytest.fixture
