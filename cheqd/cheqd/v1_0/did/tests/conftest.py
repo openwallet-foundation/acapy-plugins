@@ -53,3 +53,13 @@ def mock_options():
 @pytest.fixture
 def mock_response():
     return {"MOCK_KEY": "MOCK_VALUE"}
+
+
+@pytest.fixture
+def did():
+    return "did:cheqd:testnet:123456"
+
+
+@pytest.fixture
+def did_doc():
+    return {"MOCK_KEY": "MOCK_VALUE"}
