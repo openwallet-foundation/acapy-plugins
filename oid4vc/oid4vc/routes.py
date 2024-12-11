@@ -40,7 +40,7 @@ from marshmallow.validate import OneOf
 from oid4vc.cred_processor import CredProcessors
 from oid4vc.jwk import DID_JWK, P256
 from oid4vc.models.presentation import OID4VPPresentation, OID4VPPresentationSchema
-from oid4vc.models.presentation_definition import OID4VPPresDef
+from oid4vc.models.presentation_definition import OID4VPPresDef, OID4VPPresDefSchema
 from oid4vc.models.request import OID4VPRequest, OID4VPRequestSchema
 
 from .config import Config
@@ -874,7 +874,7 @@ class OID4VPPresListSchema(OpenAPISchema):
     """Result schema for an presentations query."""
 
     results = fields.Nested(
-        OID4VCIExchangeRecordSchema(),
+        OID4VPPresentationSchema(),
         many=True,
         metadata={"description": "Presentations"},
     )
@@ -911,6 +911,95 @@ async def list_oid4vp_presentations(request: web.Request):
     except (StorageError, BaseModelError, StorageNotFoundError) as err:
         raise web.HTTPBadRequest(reason=err.roll_up) from err
     return web.json_response({"results": results})
+
+
+class OID4VPPresDefListSchema(OpenAPISchema):
+    """Result schema for an presentations query."""
+
+    results = fields.Nested(
+        OID4VPPresDefSchema(),
+        many=True,
+        metadata={"description": "Presentation Definitions"},
+    )
+
+
+@docs(
+    tags=["oid4vp"],
+    summary="Fetch all Presentation Definitions.",
+)
+@response_schema(OID4VPPresDefListSchema())
+async def list_oid4vp_pres_defs(request: web.Request):
+    """Request handler for searching presentations."""
+
+    context: AdminRequestContext = request["context"]
+
+    try:
+        async with context.profile.session() as session:
+            records = await OID4VPPresDef.query(session=session)
+            results = [record.serialize() for record in records]
+    except (StorageError, BaseModelError, StorageNotFoundError) as err:
+        raise web.HTTPBadRequest(reason=err.roll_up) from err
+    return web.json_response({"results": results})
+
+
+class PresDefIDMatchSchema(OpenAPISchema):
+    """Path parameters and validators for request taking presentation id."""
+
+    pres_def_id = fields.Str(
+        required=True,
+        metadata={
+            "description": "Presentation identifier",
+        },
+    )
+
+
+@docs(
+    tags=["oid4vp"],
+    summary="Fetch presentation.",
+)
+@match_info_schema(PresDefIDMatchSchema())
+@response_schema(OID4VPPresDefSchema())
+async def get_oid4vp_pres_def_by_id(request: web.Request):
+    """Request handler for retrieving a presentation."""
+
+    context: AdminRequestContext = request["context"]
+    pres_def_id = request.match_info["pres_def_id"]
+
+    try:
+        async with context.session() as session:
+            record = await OID4VPPresDef.retrieve_by_id(session, pres_def_id)
+
+    except StorageNotFoundError as err:
+        raise web.HTTPNotFound(reason=err.roll_up) from err
+    except (StorageError, BaseModelError) as err:
+        raise web.HTTPBadRequest(reason=err.roll_up) from err
+
+    return web.json_response(record.serialize())
+
+
+@docs(
+    tags=["oid4vp"],
+    summary="Fetch presentation.",
+)
+@match_info_schema(PresDefIDMatchSchema())
+@response_schema(OID4VPPresDefSchema())
+async def oid4vp_pres_def_remove(request: web.Request):
+    """Request handler for retrieving a presentation."""
+
+    context: AdminRequestContext = request["context"]
+    pres_def_id = request.match_info["pres_def_id"]
+
+    try:
+        async with context.session() as session:
+            record = await OID4VPPresDef.retrieve_by_id(session, pres_def_id)
+            await record.delete_record(session)
+
+    except StorageNotFoundError as err:
+        raise web.HTTPNotFound(reason=err.roll_up) from err
+    except (StorageError, BaseModelError) as err:
+        raise web.HTTPBadRequest(reason=err.roll_up) from err
+
+    return web.json_response(record.serialize())
 
 
 class PresentationIDMatchSchema(OpenAPISchema):
@@ -1121,6 +1210,14 @@ async def register(app: web.Application):
             ),
             web.post("/oid4vp/request", create_oid4vp_request),
             web.post("/oid4vp/presentation-definition", create_oid4vp_pres_def),
+            web.get("/oid4vp/presentation-definitions", list_oid4vp_pres_defs),
+            web.get(
+                "/oid4vp/presentation-definition/{pres_def_id}",
+                get_oid4vp_pres_def_by_id,
+            ),
+            web.delete(
+                "/oid4vp/presentation-definition/{pres_def_id}", oid4vp_pres_def_remove
+            ),
             web.get("/oid4vp/presentations", list_oid4vp_presentations),
             web.get("/oid4vp/presentation/{request_id}", get_oid4vp_pres_by_id),
             web.delete("/oid4vp/presentation/{presentation_id}", oid4vp_pres_remove),
