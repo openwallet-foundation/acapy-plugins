@@ -1,6 +1,8 @@
 """DID Cheqd Anoncreds Registry."""
 
 import logging
+import time
+from datetime import datetime, timezone
 from typing import Optional, Pattern, Sequence
 from uuid import uuid4
 
@@ -21,8 +23,11 @@ from acapy_agent.anoncreds.models.revocation import (
     GetRevRegDefResult,
     RevList,
     RevListResult,
+    RevListState,
     RevRegDef,
     RevRegDefResult,
+    RevRegDefState,
+    RevRegDefValue,
 )
 from acapy_agent.anoncreds.models.schema import (
     AnonCredsSchema,
@@ -33,13 +38,12 @@ from acapy_agent.anoncreds.models.schema import (
 from acapy_agent.config.injection_context import InjectionContext
 from acapy_agent.core.profile import Profile
 from acapy_agent.wallet.base import BaseWallet
+from acapy_agent.wallet.error import WalletError
 from acapy_agent.wallet.jwt import dict_to_b64
-from acapy_agent.wallet.util import b64_to_bytes, bytes_to_b64
-from aiohttp import web
 
-from cheqd.cheqd.v1_0.did.manager import CheqdDIDManager
-from cheqd.cheqd.v1_0.did.registrar import CheqdDIDRegistrar
-from ..resolver import CheqdDIDResolver
+from ..did.manager import CheqdDIDManager
+from ..did.registrar import CheqdDIDRegistrar
+from ..resolver.resolver import CheqdDIDResolver
 from ..validation import CheqdDID
 
 LOGGER = logging.getLogger(__name__)

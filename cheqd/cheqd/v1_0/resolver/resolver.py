@@ -1,6 +1,7 @@
 """DID Resolver for Cheqd."""
 
 import json
+from dataclasses import dataclass
 from typing import Optional, Pattern, Sequence, Text
 
 from acapy_agent.config.injection_context import InjectionContext
