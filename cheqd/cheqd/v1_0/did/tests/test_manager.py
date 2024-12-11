@@ -8,12 +8,9 @@ from acapy_agent.wallet.error import WalletError
 from ...did.base import CheqdDIDManagerError
 from ..manager import CheqdDIDManager
 from .mocks import (
-    registrar_create_responses,
-    registrar_generate_did_doc_response,
     registrar_responses_network_fail,
     registrar_responses_no_signing_request,
     registrar_responses_not_finished,
-    registrar_update_responses,
     setup_mock_registrar,
     setup_mock_resolver,
 )
@@ -23,11 +20,7 @@ from .mocks import (
 @pytest.mark.asyncio
 async def test_create(mock_registrar_instance, profile):
     # Arrange
-    setup_mock_registrar(
-        mock_registrar_instance.return_value,
-        registrar_generate_did_doc_response,
-        registrar_create_responses,
-    )
+    setup_mock_registrar(mock_registrar_instance.return_value)
     manager = CheqdDIDManager(profile)
 
     # Act
@@ -71,11 +64,7 @@ async def test_create(mock_registrar_instance, profile):
 @pytest.mark.asyncio
 async def test_create_with_seed(mock_registrar_instance, profile):
     # Arrange
-    setup_mock_registrar(
-        mock_registrar_instance.return_value,
-        registrar_generate_did_doc_response,
-        registrar_create_responses,
-    )
+    setup_mock_registrar(mock_registrar_instance.return_value)
     profile.settings["wallet.allow_insecure_seed"] = True
     manager = CheqdDIDManager(profile)
 
@@ -93,11 +82,7 @@ async def test_create_with_seed(mock_registrar_instance, profile):
 @pytest.mark.asyncio
 async def test_create_with_insecure_seed(mock_registrar_instance, profile):
     # Arrange
-    setup_mock_registrar(
-        mock_registrar_instance.return_value,
-        registrar_generate_did_doc_response,
-        registrar_create_responses,
-    )
+    setup_mock_registrar(mock_registrar_instance.return_value)
     profile.settings["wallet.allow_insecure_seed"] = False
     manager = CheqdDIDManager(profile)
 
@@ -120,8 +105,7 @@ async def test_create_with_invalid_did_document(
     # Arrange
     setup_mock_registrar(
         mock_registrar_instance.return_value,
-        None,
-        registrar_create_responses,
+        generate_did_doc_response=None,
     )
     manager = CheqdDIDManager(profile)
 
@@ -143,8 +127,7 @@ async def test_create_with_signing_failure(
     # Arrange
     setup_mock_registrar(
         mock_registrar_instance.return_value,
-        registrar_generate_did_doc_response,
-        registrar_responses_no_signing_request,
+        create_responses=registrar_responses_no_signing_request,
     )
     manager = CheqdDIDManager(profile)
 
@@ -166,8 +149,7 @@ async def test_create_with_network_failure(
     # Arrange
     setup_mock_registrar(
         mock_registrar_instance.return_value,
-        registrar_generate_did_doc_response,
-        registrar_responses_network_fail,
+        create_responses=registrar_responses_network_fail,
     )
     manager = CheqdDIDManager(profile)
 
@@ -189,8 +171,7 @@ async def test_create_not_finished(
     # Arrange
     setup_mock_registrar(
         mock_registrar_instance.return_value,
-        registrar_generate_did_doc_response,
-        registrar_responses_not_finished,
+        create_responses=registrar_responses_not_finished,
     )
     manager = CheqdDIDManager(profile)
 
@@ -212,9 +193,6 @@ async def test_update(
     # Arrange
     setup_mock_registrar(
         mock_registrar_instance.return_value,
-        registrar_generate_did_doc_response,
-        registrar_create_responses,
-        registrar_update_responses,
     )
     setup_mock_resolver(mock_resolver_instance.return_value)
 
@@ -258,9 +236,6 @@ async def test_update_with_did_deactivated(
     # Arrange
     setup_mock_registrar(
         mock_registrar_instance.return_value,
-        registrar_generate_did_doc_response,
-        registrar_create_responses,
-        registrar_update_responses,
     )
     setup_mock_resolver(mock_resolver_instance.return_value, {"deactivated": True})
 
@@ -286,9 +261,7 @@ async def test_update_with_signing_failure(
     # Arrange
     setup_mock_registrar(
         mock_registrar_instance.return_value,
-        registrar_generate_did_doc_response,
-        registrar_create_responses,
-        registrar_responses_no_signing_request,
+        update_responses=registrar_responses_no_signing_request,
     )
     setup_mock_resolver(mock_resolver_instance.return_value)
 
@@ -314,9 +287,7 @@ async def test_update_with_network_failure(
     # Arrange
     setup_mock_registrar(
         mock_registrar_instance.return_value,
-        registrar_generate_did_doc_response,
-        registrar_create_responses,
-        registrar_responses_network_fail,
+        update_responses=registrar_responses_network_fail,
     )
     setup_mock_resolver(mock_resolver_instance.return_value)
 
@@ -342,9 +313,7 @@ async def test_update_not_finished(
     # Arrange
     setup_mock_registrar(
         mock_registrar_instance.return_value,
-        registrar_generate_did_doc_response,
-        registrar_create_responses,
-        registrar_responses_not_finished,
+        update_responses=registrar_responses_not_finished,
     )
     setup_mock_resolver(mock_resolver_instance.return_value)
 
@@ -361,4 +330,146 @@ async def test_update_not_finished(
     assert (
         str(e.value)
         == "Error publishing DID                                 update Not finished"
+    )
+
+
+@patch("cheqd.cheqd.v1_0.did.manager.CheqdDIDResolver")
+@patch("cheqd.cheqd.v1_0.did.manager.CheqdDIDRegistrar")
+@pytest.mark.asyncio
+async def test_deactivate(mock_registrar_instance, mock_resolver_instance, profile, did):
+    # Arrange
+    setup_mock_registrar(
+        mock_registrar_instance.return_value,
+    )
+    setup_mock_resolver(mock_resolver_instance.return_value)
+
+    manager = CheqdDIDManager(profile)
+
+    # Act
+    await manager.create()
+    response = await manager.deactivate(did)
+
+    # Assert
+    assert response["did"] == "did:cheqd:testnet:123456"
+    assert response["did_document"]["MOCK_KEY"] == "MOCK_VALUE_DEACTIVATED"
+    assert response["did_document_metadata"]["deactivated"] is True
+
+    mock_registrar_instance.return_value.deactivate.assert_has_calls(
+        [
+            call({"did": did}),
+            call(
+                {
+                    "jobId": "MOCK_ID",
+                    "secret": {
+                        "signingResponse": [{"kid": "MOCK_KID", "signature": ANY}]
+                    },
+                }
+            ),
+        ]
+    )
+
+
+@patch("cheqd.cheqd.v1_0.did.manager.CheqdDIDResolver")
+@patch("cheqd.cheqd.v1_0.did.manager.CheqdDIDRegistrar")
+@pytest.mark.asyncio
+async def test_deactivate_with_did_deactivated(
+    mock_registrar_instance, mock_resolver_instance, profile, did
+):
+    # Arrange
+    setup_mock_registrar(
+        mock_registrar_instance.return_value,
+    )
+    setup_mock_resolver(mock_resolver_instance.return_value, {"deactivated": True})
+
+    manager = CheqdDIDManager(profile)
+
+    # Act
+    await manager.create()
+
+    with pytest.raises(Exception) as e:
+        await manager.deactivate(did)
+
+    # Assert
+    assert isinstance(e.value, DIDNotFound)
+    assert str(e.value) == "DID is already deactivated or not found."
+
+
+@patch("cheqd.cheqd.v1_0.did.manager.CheqdDIDResolver")
+@patch("cheqd.cheqd.v1_0.did.manager.CheqdDIDRegistrar")
+@pytest.mark.asyncio
+async def test_deactivate_with_signing_failure(
+    mock_registrar_instance, mock_resolver_instance, profile, did
+):
+    # Arrange
+    setup_mock_registrar(
+        mock_registrar_instance.return_value,
+        deactivate_responses=registrar_responses_no_signing_request,
+    )
+    setup_mock_resolver(mock_resolver_instance.return_value)
+
+    manager = CheqdDIDManager(profile)
+
+    # Act
+    await manager.create()
+
+    with pytest.raises(Exception) as e:
+        await manager.deactivate(did)
+
+    # Assert
+    assert isinstance(e.value, Exception)
+    assert str(e.value) == "No signing requests available for update."
+
+
+@patch("cheqd.cheqd.v1_0.did.manager.CheqdDIDResolver")
+@patch("cheqd.cheqd.v1_0.did.manager.CheqdDIDRegistrar")
+@pytest.mark.asyncio
+async def test_deactivate_with_network_failure(
+    mock_registrar_instance, mock_resolver_instance, profile, did
+):
+    # Arrange
+    setup_mock_registrar(
+        mock_registrar_instance.return_value,
+        deactivate_responses=registrar_responses_network_fail,
+    )
+    setup_mock_resolver(mock_resolver_instance.return_value)
+
+    manager = CheqdDIDManager(profile)
+
+    # Act
+    await manager.create()
+
+    with pytest.raises(Exception) as e:
+        await manager.deactivate(did)
+
+    # Assert
+    assert isinstance(e.value, WalletError)
+    assert str(e.value) == "Error deactivating DID Network failure"
+
+
+@patch("cheqd.cheqd.v1_0.did.manager.CheqdDIDResolver")
+@patch("cheqd.cheqd.v1_0.did.manager.CheqdDIDRegistrar")
+@pytest.mark.asyncio
+async def test_deactivate_not_finished(
+    mock_registrar_instance, mock_resolver_instance, profile, did
+):
+    # Arrange
+    setup_mock_registrar(
+        mock_registrar_instance.return_value,
+        deactivate_responses=registrar_responses_not_finished,
+    )
+    setup_mock_resolver(mock_resolver_instance.return_value)
+
+    manager = CheqdDIDManager(profile)
+
+    # Act
+    await manager.create()
+
+    with pytest.raises(Exception) as e:
+        await manager.deactivate(did)
+
+    # Assert
+    assert isinstance(e.value, WalletError)
+    assert (
+        str(e.value)
+        == "Error publishing DID                                 deactivate Not finished"
     )

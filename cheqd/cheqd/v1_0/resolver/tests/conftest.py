@@ -18,9 +18,23 @@ def resolve_url(resolver_url, did):
     return resolver_url + did
 
 
-@pytest.fixture
-def resolve_resource_url(resolver_url, did):
-    return resolver_url + did
+@pytest.fixture(
+    params=[
+        ("did:cheqd:testnet:123/resources/456", "/metadata"),
+        (
+            "did:cheqd:testnet:123?resourceName=test&resourceType=anoncredsRevRegEntry",
+            "&resourceMetadata=true",
+        ),
+    ]
+)
+def resolve_resource_params(resolver_url, request):
+    did_resource, metadata_suffix = request.param
+
+    return (
+        did_resource,
+        resolver_url + did_resource,
+        resolver_url + did_resource + metadata_suffix,
+    )
 
 
 @pytest.fixture
