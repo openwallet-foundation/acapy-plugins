@@ -35,6 +35,7 @@ from acapy_agent.anoncreds.models.schema import (
     SchemaResult,
     SchemaState,
 )
+from acapy_agent.anoncreds.models.schema_info import AnoncredsSchemaInfo
 from acapy_agent.config.injection_context import InjectionContext
 from acapy_agent.core.profile import Profile
 from acapy_agent.wallet.base import BaseWallet
@@ -381,6 +382,18 @@ class DIDCheqdRegistry(BaseAnonCredsResolver, BaseAnonCredsRegistrar):
             resolution_metadata={},
             revocation_registry_metadata=metadata,
         )
+
+    async def get_schema_info_by_id(self, schema_id: str) -> AnoncredsSchemaInfo:
+        """Get a schema info from the registry."""
+        resource_with_metadata = await self.resolver.resolve_resource(schema_id)
+        schema = resource_with_metadata.resource
+        (did, resource_id) = self.split_schema_id(schema_id)
+        anoncreds_schema = AnoncredsSchemaInfo(
+            issuer_id=did,
+            name=schema["name"],
+            version=schema["version"],
+        )
+        return anoncreds_schema
 
     async def register_revocation_list(
         self,
