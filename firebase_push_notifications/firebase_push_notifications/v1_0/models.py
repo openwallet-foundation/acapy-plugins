@@ -2,7 +2,7 @@
 
 from acapy_agent.core.profile import ProfileSession
 from acapy_agent.messaging.models.base_record import BaseRecord, BaseRecordSchema
-from acapy_agent.messaging.valid import INDY_ISO8601_DATETIME_VALIDATE
+from acapy_agent.messaging.valid import ISO8601_DATETIME_VALIDATE
 from marshmallow import fields
 
 
@@ -57,4 +57,4 @@ class FirebaseConnectionRecordSchema(BaseRecordSchema):
 
     connection_id = fields.Str(required=True)
     device_token = fields.Str(required=True)
-    sent_time = fields.Str(required=False, validate=INDY_ISO8601_DATETIME_VALIDATE)
+    sent_time = fields.Str(required=False, validate=ISO8601_DATETIME_VALIDATE)

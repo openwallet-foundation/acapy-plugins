@@ -1,7 +1,7 @@
 from unittest import IsolatedAsyncioTestCase
 from unittest.mock import patch
 
-from acapy_agent.core.in_memory import InMemoryProfile
+from acapy_agent.utils.testing import create_test_profile
 
 from ..models import BasicMessageRecord
 
@@ -10,7 +10,7 @@ _id = "mytestid"
 
 class TestBasicMessageRecord(IsolatedAsyncioTestCase):
     async def asyncSetUp(self) -> None:
-        self.session = InMemoryProfile.test_session()
+        self.profile = await create_test_profile()
 
     async def test_init_creates_record_with_default_parameters(self):
         rec = BasicMessageRecord(record_id=_id)
@@ -40,7 +40,7 @@ class TestBasicMessageRecord(IsolatedAsyncioTestCase):
         _message_id = "messageid"
         mock_retrieve.return_value = BasicMessageRecord(record_id=_id)
 
-        rec = await BasicMessageRecord.retrieve_by_message_id(self.session, _message_id)
+        rec = await BasicMessageRecord.retrieve_by_message_id(self.profile.session, _message_id)
         args = mock_retrieve.call_args.args
         expected_args = {"message_id": _message_id}
 
