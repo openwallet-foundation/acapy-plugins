@@ -115,6 +115,7 @@ services:
 
   tails:
     image: ghcr.io/bcgov/tails-server:latest
+    platform: linux/amd64
     ports:
       - 6543:6543
     command: >

@@ -317,7 +317,11 @@ class DIDCheqdRegistry(BaseAnonCredsResolver, BaseAnonCredsRegistrar):
         }
 
         resource_state = await self._create_and_publish_resource(
-            profile, did, rev_reg_def
+            profile,
+            self.registrar.DID_REGISTRAR_BASE_URL,
+            self.resolver.DID_RESOLVER_BASE_URL,
+            did,
+            rev_reg_def,
         )
         job_id = resource_state.get("jobId")
         resource = resource_state.get("resource")
@@ -425,7 +429,11 @@ class DIDCheqdRegistry(BaseAnonCredsResolver, BaseAnonCredsRegistrar):
         }
 
         resource_state = await self._create_and_publish_resource(
-            profile, rev_reg_def.issuer_id, rev_status_list
+            profile,
+            self.registrar.DID_REGISTRAR_BASE_URL,
+            self.resolver.DID_RESOLVER_BASE_URL,
+            rev_reg_def.issuer_id,
+            rev_status_list,
         )
         job_id = resource_state.get("jobId")
         resource = resource_state.get("resource")
@@ -477,7 +485,11 @@ class DIDCheqdRegistry(BaseAnonCredsResolver, BaseAnonCredsRegistrar):
         }
 
         resource_state = await self._create_and_publish_resource(
-            profile, rev_reg_def.issuer_id, rev_status_list
+            profile,
+            self.registrar.DID_REGISTRAR_BASE_URL,
+            self.resolver.DID_RESOLVER_BASE_URL,
+            rev_reg_def.issuer_id,
+            rev_status_list,
         )
         job_id = resource_state.get("jobId")
         resource = resource_state.get("resource")
@@ -518,7 +530,7 @@ class DIDCheqdRegistry(BaseAnonCredsResolver, BaseAnonCredsRegistrar):
 
                 LOGGER.debug("JOBID %s", job_id)
                 if resource_state.get("state") == "action":
-                    signing_requests = resource_state.get("signingRequest")
+                    signing_requests: dict = resource_state.get("signingRequest")
                     if not signing_requests:
                         raise Exception("No signing requests available for update.")
                     # sign all requests

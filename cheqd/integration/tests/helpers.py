@@ -463,7 +463,7 @@ async def present_proof_v2(
         topic="present_proof_v2_0",
         event_type=V20PresExRecord,
         pres_ex_id=verifier_pres_ex_id,
-        state="presentation-received"
+        state="presentation-received",
     )
 
     await verifier.post(
