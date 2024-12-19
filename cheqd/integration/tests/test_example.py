@@ -14,29 +14,55 @@ from .helpers import (
     create_schema,
     deactivate_did,
     issue_credential_v2,
+    load_did,
+    load_schema,
     present_proof_v2,
     resolve_did,
+    save_did,
+    save_schema,
 )
 
 ISSUER = getenv("ISSUER", "http://issuer:3001")
-HOLDER = getenv("HOLDER", "http://holder:3001")
+HOLDER = getenv("HOLDER", "http://holder:4001")
+
+
+@pytest.fixture(scope="session")
+async def shared_did():
+    issuer = Controller(base_url=ISSUER)
+    did = load_did()
+    if not did:
+        did = await create_did(issuer)
+        save_did(did)
+    return did
+
+
+@pytest.fixture(scope="session")
+async def shared_schema():
+    issuer = Controller(base_url=ISSUER)
+    did = load_did()
+    schema_id = load_schema()
+    if not schema_id:
+        schema_id = await create_schema(issuer, did)
+        save_schema(schema_id)
+    return schema_id
 
 
 @pytest.mark.asyncio
-async def test_create_and_resolve_did():
+async def test_create_and_resolve_did(shared_did):
     """Test DID creation and resolution."""
+    did = await shared_did
     async with Controller(base_url=ISSUER) as issuer:
-        did = await create_did(issuer)
+        assert did.startswith("did:")
         await resolve_did(issuer, did)
         assert did is not None
 
 
 @pytest.mark.asyncio
-async def test_create_schema_and_credential_definition():
+async def test_create_schema_and_credential_definition(shared_schema):
     """Test schema and credential definition creation."""
+    did = load_did()
+    schema_id = await shared_schema
     async with Controller(base_url=ISSUER) as issuer:
-        did = await create_did(issuer)
-        schema_id = await create_schema(issuer, did)
         credential_definition_id = await create_credential_definition(
             issuer, did, schema_id
         )
@@ -47,11 +73,11 @@ async def test_create_schema_and_credential_definition():
 
 
 @pytest.mark.asyncio
-async def test_create_credential_definition_with_revocation():
+async def test_create_credential_definition_with_revocation(shared_schema):
     """Test schema and credential definition with revocation."""
+    did = load_did()
+    schema_id = load_schema()
     async with Controller(base_url=ISSUER) as issuer:
-        did = await create_did(issuer)
-        schema_id = await create_schema(issuer, did)
         credential_definition_id = await create_credential_definition(
             issuer, did, schema_id, True
         )
@@ -66,11 +92,11 @@ async def test_create_credential_definition_with_revocation():
 @pytest.mark.asyncio
 async def test_issue_credential():
     """Test credential issuance."""
+    did = load_did()
+    schema_id = load_schema()
     async with Controller(base_url=ISSUER) as issuer, Controller(
         base_url=HOLDER
     ) as holder:
-        did = await create_did(issuer)
-        schema_id = await create_schema(issuer, did)
         credential_definition_id = await create_credential_definition(
             issuer, did, schema_id
         )
@@ -108,11 +134,11 @@ async def test_issue_credential():
 @pytest.mark.asyncio
 async def test_issue_credential_with_revocation():
     """Test credential issuance."""
+    did = load_did()
+    schema_id = load_schema()
     async with Controller(base_url=ISSUER) as issuer, Controller(
         base_url=HOLDER
     ) as holder:
-        did = await create_did(issuer)
-        schema_id = await create_schema(issuer, did)
         # create credential definition with revocation
         credential_definition_id = await create_credential_definition(
             issuer, did, schema_id, True
@@ -147,16 +173,16 @@ async def test_issue_credential_with_revocation():
                     "restrictions": [{"cred_def_id": credential_definition_id}],
                 }
             ],
-            non_revoked={"to": int(time.time())},
+            non_revoked={"to": int(time.time()) + 300},
         )
-        assert verifier_pres_ex.verified
+        assert verifier_pres_ex.verified == "true", "Presentation is not verified"
 
         # Revoke credential
         await issuer.post(
             url="/anoncreds/revocation/revoke",
             json={
-                "rev_reg_id": issuer_cred_ex.details.rev_reg_id,
-                "cred_rev_id": issuer_cred_ex.details.cred_rev_id,
+                "rev_reg_id": issuer_cred_ex.details["rev_reg_id"],
+                "cred_rev_id": issuer_cred_ex.details["cred_rev_id"],
                 "publish": True,
             },
         )
@@ -177,12 +203,12 @@ async def test_issue_credential_with_revocation():
             ],
             non_revoked={"to": int(time.time())},
         )
-        assert not verifier_pres_ex.verified
+        assert verifier_pres_ex.verified == "false", "Presentation shouldn't be verified"
 
 
 @pytest.mark.asyncio
 async def test_deactivate_did():
     """Test DID deactivation."""
+    did = load_did()
     async with Controller(base_url=ISSUER) as issuer:
-        did = await create_did(issuer)
         await deactivate_did(issuer, did)

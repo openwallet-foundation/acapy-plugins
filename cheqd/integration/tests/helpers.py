@@ -1,12 +1,18 @@
 import json
+import os
+import time
 from dataclasses import dataclass
 from typing import Any, Dict, List, Mapping, Optional, Tuple, Type
+from urllib.parse import quote
 from uuid import uuid4
 
 from acapy_controller import Controller
 from acapy_controller.controller import Minimal, MinType
 from acapy_controller.models import V20PresExRecord
 from typing_extensions import Union
+
+DID_CACHE_FILE = "did_cache.json"
+SCHEMA_CACHE_FILE = "schema_cache.json"
 
 
 @dataclass
@@ -79,6 +85,50 @@ class PresSpec(Minimal):
 @dataclass
 class Settings(Minimal):
     """Settings information."""
+
+
+def save_did(did):
+    """Save the given DID to a JSON file."""
+    with open(DID_CACHE_FILE, "w") as f:
+        json.dump({"did": did}, f)
+
+
+def load_did():
+    """Load the DID from a JSON file if it exists."""
+    if os.path.exists(DID_CACHE_FILE):
+        with open(DID_CACHE_FILE, "r") as f:
+            try:
+                data = json.load(f)
+                return data.get("did")
+            except json.JSONDecodeError:
+                return None
+    return None
+
+
+def save_schema(schema_id):
+    """Save the given Schema ID to a JSON file."""
+    with open(SCHEMA_CACHE_FILE, "w") as f:
+        json.dump({"schema_id": schema_id}, f)
+
+
+def load_schema():
+    """Load the Schema from a JSON file if it exists."""
+    if os.path.exists(SCHEMA_CACHE_FILE):
+        with open(SCHEMA_CACHE_FILE, "r") as f:
+            try:
+                data = json.load(f)
+                return data.get("schema_id")
+            except json.JSONDecodeError:
+                return None
+    return None
+
+
+def remove_cache():
+    """Remove the cache files."""
+    if os.path.exists(DID_CACHE_FILE):
+        os.remove(DID_CACHE_FILE)
+    if os.path.exists(SCHEMA_CACHE_FILE):
+        os.remove(SCHEMA_CACHE_FILE)
 
 
 def format_json(json_to_format):
@@ -154,6 +204,7 @@ async def deactivate_did(issuer, did):
     ), "DID document metadata does not contain deactivated=true."
 
     print(f"Deactivated DID: {format_json(did_deactivate_result) }")
+    remove_cache()
 
 
 async def create_schema(issuer, did):
@@ -209,7 +260,6 @@ async def create_credential_definition(
         did in credential_definition_id
     ), "credential_definition_id does not contain the expected DID."
 
-    print(f"Created credential definition: {format_json(cred_def_create_result)}")
     return credential_definition_id
 
 
@@ -225,9 +275,8 @@ async def assert_credential_definitions(issuer, credential_definition_id):
 
 async def assert_active_revocation_registry(issuer, credential_definition_id):
     """cred_defs with revocation support should contain at least one active registry."""
-    get_result = await issuer.get(
-        f"/anoncreds/revocation/active-registry/{credential_definition_id}"
-    )
+    encoded_id = quote(credential_definition_id, safe="")
+    get_result = await issuer.get(f"/anoncreds/revocation/active-registry/{encoded_id}")
 
     assert get_result, "no active revocation registry for the credential_definition_id."
 
@@ -324,6 +373,9 @@ async def issue_credential_v2(
         cred_ex_id=issuer_cred_ex_id,
         state="done",
     )
+    issuer_anon_record = await issuer.event_with_values(
+        topic="issue_credential_v2_0_anoncreds",
+    )
 
     holder_cred_ex = await holder.event_with_values(
         topic="issue_credential_v2_0",
@@ -331,10 +383,13 @@ async def issue_credential_v2(
         cred_ex_id=holder_cred_ex_id,
         state="done",
     )
+    holder_anon_record = await holder.event_with_values(
+        topic="issue_credential_v2_0_anoncreds",
+    )
 
     return (
-        V20CredExRecordDetail(cred_ex_record=issuer_cred_ex),
-        V20CredExRecordDetail(cred_ex_record=holder_cred_ex),
+        V20CredExRecordDetail(cred_ex_record=issuer_cred_ex, details=issuer_anon_record),
+        V20CredExRecordDetail(cred_ex_record=holder_cred_ex, details=holder_anon_record),
     )
 
 
@@ -360,6 +415,7 @@ def auto_select_credentials_for_presentation_request(
             if pres_referrent in cred_precis.presentation_referents:
                 requested_predicates[pres_referrent] = {
                     "cred_id": cred_precis.cred_info.referent,
+                    "timestamp": int(time.time()),
                 }
 
     return PresSpec.deserialize(

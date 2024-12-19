@@ -5,7 +5,7 @@ description = ""
 authors = []
 
 [tool.poetry.dependencies]
-acapy-controller = {git = "https://github.com/indicio-tech/acapy-minimal-example.git", tag="v0.2.0"}
+acapy-controller = {git = "https://github.com/indicio-tech/acapy-minimal-example.git", rev = "main"}
 python = "^3.12"
 pytest = "^8.2.2"
 pytest-asyncio = "~0.23.7"
