@@ -96,13 +96,22 @@ class DIDCheqdRegistry(BaseAnonCredsResolver, BaseAnonCredsRegistrar):
         ids = schema_id.split("/")
         return ids[0], ids[2]
 
-    async def setup(self, context: InjectionContext, registrar_url, resolver_url):
+    async def setup(self, _context: InjectionContext, registrar_url, resolver_url):
         """Setup."""
         self.registrar = CheqdDIDRegistrar(registrar_url)
         self.resolver = CheqdDIDResolver(resolver_url)
         print("Successfully registered DIDCheqdRegistry")
 
-    async def get_schema(self, profile: Profile, schema_id: str) -> GetSchemaResult:
+    async def get_schema_info_by_schema_id(self, profile: Profile, schema_id: str) -> AnoncredsSchemaInfo:
+        """Get the schema info from the registry"""
+        schema = self.get_schema(profile, schema_id)
+        return {
+            "issuer_id": schema.issuer_id,
+            "name": schema.name,
+            "version": schema.version
+        }
+
+    async def get_schema(self, _profile: Profile, schema_id: str) -> GetSchemaResult:
         """Get a schema from the registry."""
         resource_with_metadata = await self.resolver.resolve_resource(schema_id)
         schema = resource_with_metadata.resource
@@ -530,7 +539,7 @@ class DIDCheqdRegistry(BaseAnonCredsResolver, BaseAnonCredsRegistrar):
 
                 LOGGER.debug("JOBID %s", job_id)
                 if resource_state.get("state") == "action":
-                    signing_requests: dict = resource_state.get("signingRequest")
+                    signing_requests = resource_state.get("signingRequest")
                     if not signing_requests:
                         raise Exception("No signing requests available for update.")
                     # sign all requests
