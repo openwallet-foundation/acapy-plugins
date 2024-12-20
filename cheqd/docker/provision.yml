@@ -1,0 +1,19 @@
+# see: https://pypi.org/project/ConfigArgParse/ for file format overview
+# this runs aca-py to provision the local wallet. Needed when new Wallet database is initialised
+# run as:
+#    ./bin/aca-py provision --arg-file ./docker/provision.yml
+
+endpoint:
+  - http://localhost:8020
+  - ws://localhost:8022
+
+# Ledger
+no-ledger: true
+
+# Wallet
+wallet-name: cheq-1
+wallet-type: askar-anoncreds  #askar-anoncreds #askar
+wallet-key: "cheq-1"
+wallet-storage-type: postgres_storage
+wallet-storage-creds: '{"account":"postgres","password":"postgres","admin_account":"postgres","admin_password":"postgres"}'
+wallet-storage-config: '{"url":"localhost:5432","max_connections":5}'

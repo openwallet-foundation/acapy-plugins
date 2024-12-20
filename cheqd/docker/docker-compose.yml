@@ -1,0 +1,59 @@
+#***************************************************************
+# docker compose file with postgres, registrar and resolver    *
+#***************************************************************
+
+services:
+  postgres:
+    image: postgres:latest
+    container_name: dev_postgres
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: cheq-1
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+  did_registrar:
+    image: ghcr.io/cheqd/did-registrar:production-latest
+    ports:
+      - target: 3000
+        published: 3000
+        mode: host
+    restart: on-failure
+    environment:
+      - FEE_PAYER_TESTNET_MNEMONIC=${FEE_PAYER_TESTNET_MNEMONIC}
+      - ENV FEE_PAYER_MAINNET_MNEMONIC=${FEE_PAYER_MAINNET_MNEMONIC}
+  did_resolver:
+    image: ghcr.io/cheqd/did-resolver:latest
+    ports:
+      - target: 8080
+        published: 8080
+        mode: host
+    restart: on-failure
+    environment:
+      # Syntax: <grpc-endpoint-url:port>,boolean,time
+      # 1st parameter is gRPC endpoint
+      # 2nd (Boolean) parameter is whether to use TLS or not
+      # 3nd connection timeout
+      MAINNET_ENDPOINT: "grpc.cheqd.net:443,true,5s"
+      TESTNET_ENDPOINT: "grpc.cheqd.network:443,true,5s"
+
+      # Logging level
+      LOG_LEVEL: "warn"
+
+      # Interface and port to listen on in the container
+      RESOLVER_LISTENER: "0.0.0.0:8080"
+  tails:
+    image: ghcr.io/bcgov/tails-server:latest
+    platform: linux/amd64
+    ports:
+      - 6543:6543
+    command: >
+      tails-server
+      --host 0.0.0.0
+      --port 6543
+      --storage-path /tmp/tails-files
+      --log-level info
+volumes:
+  postgres_data:

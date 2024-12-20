@@ -1,0 +1,2 @@
+resolver_url: "http://did_resolver:8080/1.0/identifiers/"
+registrar_url: "http://did_registrar:3000/1.0/"

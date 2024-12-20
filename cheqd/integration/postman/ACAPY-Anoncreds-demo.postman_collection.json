@@ -1,0 +1,1819 @@
+{
+	"info": {
+		"_postman_id": "51c33b98-f159-4b42-92f4-ac936f020cc2",
+		"name": "ACAPY-Anoncreds-demo",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+		"_exporter_id": "15319929"
+	},
+	"item": [
+		{
+			"name": "helpers",
+			"item": [
+				{
+					"name": "Get Wallet Dids",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{issuer-url}}/wallet/did",
+							"host": [
+								"{{issuer-url}}"
+							],
+							"path": [
+								"wallet",
+								"did"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Get Wallet Public Did",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{issuer-url}}/wallet/did/public",
+							"host": [
+								"{{issuer-url}}"
+							],
+							"path": [
+								"wallet",
+								"did",
+								"public"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Create Local DID",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"method\": \"cheqd\",\n  \"options\": {\n    \"did\": \"{{issuer-did}}\",\n    \"key_type\": \"ed25519\"\n  }\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{issuer-url}}/wallet/did/create",
+							"host": [
+								"{{issuer-url}}"
+							],
+							"path": [
+								"wallet",
+								"did",
+								"create"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Assign Public Did",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"url": {
+							"raw": "{{issuer-url}}/wallet/did/public?did={{issuer-did}}",
+							"host": [
+								"{{issuer-url}}"
+							],
+							"path": [
+								"wallet",
+								"did",
+								"public"
+							],
+							"query": [
+								{
+									"key": "did",
+									"value": "{{issuer-did}}"
+								}
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Get Holder Credentials",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{holder-url}}/credentials",
+							"host": [
+								"{{holder-url}}"
+							],
+							"path": [
+								"credentials"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Issuer gets revocation list",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{issuer-url}}/anoncreds/revocation/credential-record?cred_ex_id={{issuer-exc-id}}",
+							"host": [
+								"{{issuer-url}}"
+							],
+							"path": [
+								"anoncreds",
+								"revocation",
+								"credential-record"
+							],
+							"query": [
+								{
+									"key": "cred_ex_id",
+									"value": "{{issuer-exc-id}}"
+								}
+							]
+						}
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "Issuance and Presentation",
+			"item": [
+				{
+					"name": "Issuer creates DID",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status code is 200\", function () {",
+									"    pm.response.to.have.status(200);",
+									"});",
+									"var responseData = pm.response.json();",
+									"var did = responseData.did;",
+									"var verkey = responseData.verkey;",
+									"pm.test(\"Check did is created\", function () {",
+									"    pm.expect(did).to.not.be.empty;",
+									"});",
+									"pm.test(\"Check verkey is not empty\", function () {",
+									"    pm.expect(verkey).to.not.be.empty;",
+									"});",
+									"pm.environment.set(\"issuer-did\", did);",
+									""
+								],
+								"type": "text/javascript",
+								"packages": {}
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"options\": {\n    \"key_type\": \"ed25519\",\n    \"network\": \"testnet\"\n  }\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{issuer-url}}/did/cheqd/create",
+							"host": [
+								"{{issuer-url}}"
+							],
+							"path": [
+								"did",
+								"cheqd",
+								"create"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Issuer resolves did",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status code is 200\", function () {",
+									"    pm.response.to.have.status(200);",
+									"});",
+									"var responseData = pm.response.json();",
+									"var did_doc = responseData.did_document;",
+									"pm.test(\"Check did_document is not emppty\", function () {",
+									"    pm.expect(did_doc).to.not.be.empty;",
+									"});",
+									"pm.environment.set(\"issuer-did-doc\", JSON.stringify(did_doc));",
+									""
+								],
+								"type": "text/javascript",
+								"packages": {}
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{issuer-url}}/resolver/resolve/{{issuer-did}}",
+							"host": [
+								"{{issuer-url}}"
+							],
+							"path": [
+								"resolver",
+								"resolve",
+								"{{issuer-did}}"
+							],
+							"query": [
+								{
+									"key": "",
+									"value": null,
+									"disabled": true
+								}
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Issuer updates DID",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"// Removed the attempt to parse response as JSON",
+									"pm.test(\"Status code is 200\", function () {",
+									"    pm.response.to.have.status(200);",
+									"});",
+									""
+								],
+								"type": "text/javascript",
+								"packages": {}
+							}
+						},
+						{
+							"listen": "prerequest",
+							"script": {
+								"exec": [
+									"let didDoc = JSON.parse(pm.variables.get(\"issuer-did-doc\"));",
+									"pm.variables.set(\"did-auth\", didDoc.authentication);",
+									"pm.variables.set(\"did-controller\", didDoc.controller);",
+									"pm.variables.set(\"did-verification\", JSON.stringify(didDoc.verificationMethod));"
+								],
+								"type": "text/javascript",
+								"packages": {}
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"did\": \"{{issuer-did}}\",\n    \"didDocument\": {\n        \"id\": \"{{issuer-did}}\",\n        \"authentication\" : [\"{{did-auth}}\"],\n        \"controller\": [\"{{did-controller}}\"],\n        \"verificationMethod\": {{did-verification}},\n        \"service\": [\n            {\n            \"id\": \"{{issuer-did}}#service1\",\n            \"type\": \"MessagingService\",\n            \"serviceEndpoint\": [\n                    \"http://issuer:3002\"\n                ]\n            }\n        ]\n    }\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{issuer-url}}/did/cheqd/update",
+							"host": [
+								"{{issuer-url}}"
+							],
+							"path": [
+								"did",
+								"cheqd",
+								"update"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Issuer creates Schema",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"// Removed the attempt to parse response as JSON",
+									"pm.test(\"Status code is 200\", function () {",
+									"    pm.response.to.have.status(200);",
+									"});",
+									"var responseData = pm.response.json();",
+									"var schema_state = responseData.schema_state;",
+									"pm.test(\"Check schema_state is finished\", function () {",
+									"    pm.expect(schema_state.state).to.equal('finished');",
+									"});",
+									"pm.environment.set(\"schema-id\", schema_state.schema_id);",
+									""
+								],
+								"type": "text/javascript",
+								"packages": {}
+							}
+						},
+						{
+							"listen": "prerequest",
+							"script": {
+								"exec": [
+									""
+								],
+								"type": "text/javascript",
+								"packages": {}
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"schema\": {\n    \"attrNames\": [\n      \"score\"\n    ],\n    \"issuerId\": \"{{issuer-did}}\",\n    \"name\": \"Example schema\",\n    \"version\": \"1.0\"\n  }\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{issuer-url}}/anoncreds/schema",
+							"host": [
+								"{{issuer-url}}"
+							],
+							"path": [
+								"anoncreds",
+								"schema"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Get Schema ID(optional)",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"// Removed the attempt to parse response as JSON",
+									"pm.test(\"Status code is 200\", function () {",
+									"    pm.response.to.have.status(200);",
+									"});",
+									"var responseData = pm.response.json();",
+									"var schema_ids = responseData.schema_ids;",
+									"pm.environment.set(\"schema-id\", schema_ids[0]);",
+									""
+								],
+								"type": "text/javascript",
+								"packages": {}
+							}
+						},
+						{
+							"listen": "prerequest",
+							"script": {
+								"exec": [
+									""
+								],
+								"type": "text/javascript",
+								"packages": {}
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{issuer-url}}/anoncreds/schemas",
+							"host": [
+								"{{issuer-url}}"
+							],
+							"path": [
+								"anoncreds",
+								"schemas"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Issuer creates Cred Def",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"// Removed the attempt to parse response as JSON",
+									"pm.test(\"Status code is 200\", function () {",
+									"    pm.response.to.have.status(200);",
+									"});",
+									"var responseData = pm.response.json();",
+									"var cred_state = responseData.credential_definition_state;",
+									"pm.test(\"Check cred_state is finished\", function () {",
+									"    pm.expect(cred_state.state).to.equal('finished');",
+									"});",
+									"pm.environment.set(\"cred-def-id\", cred_state.credential_definition_id);",
+									""
+								],
+								"type": "text/javascript",
+								"packages": {}
+							}
+						},
+						{
+							"listen": "prerequest",
+							"script": {
+								"exec": [
+									""
+								],
+								"type": "text/javascript",
+								"packages": {}
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"credential_definition\": {\n    \"issuerId\": \"{{issuer-did}}\",\n    \"schemaId\": \"{{schema-id}}\",\n    \"tag\": \"default\"\n  },\n  \"options\": {\n    \"revocation_registry_size\": 1000,\n    \"support_revocation\": true\n  }\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{issuer-url}}/anoncreds/credential-definition",
+							"host": [
+								"{{issuer-url}}"
+							],
+							"path": [
+								"anoncreds",
+								"credential-definition"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Get CredDef ID(optional)",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"// Removed the attempt to parse response as JSON",
+									"pm.test(\"Status code is 200\", function () {",
+									"    pm.response.to.have.status(200);",
+									"});",
+									""
+								],
+								"type": "text/javascript",
+								"packages": {}
+							}
+						},
+						{
+							"listen": "prerequest",
+							"script": {
+								"exec": [
+									"// Get the raw value of `cred-def-id`",
+									"let rawCredDefId = pm.variables.get(\"cred-def-id\");",
+									"",
+									"// URL-encode the value",
+									"let encodedCredDefId = encodeURIComponent(rawCredDefId);",
+									"",
+									"// Save the encoded value back to a variable",
+									"pm.environment.set(\"encoded-cred-def-id\", encodedCredDefId);",
+									""
+								],
+								"type": "text/javascript",
+								"packages": {}
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{issuer-url}}/anoncreds/credential-definition/{{encoded-cred-def-id}}",
+							"host": [
+								"{{issuer-url}}"
+							],
+							"path": [
+								"anoncreds",
+								"credential-definition",
+								"{{encoded-cred-def-id}}"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Check Revocation Registry",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"// Removed the attempt to parse response as JSON",
+									"pm.test(\"Status code is 200\", function () {",
+									"    pm.response.to.have.status(200);",
+									"});",
+									"var responseData = pm.response.json();",
+									"var result = responseData.result;",
+									"pm.test(\"Check result is finished\", function () {",
+									"    pm.expect(result.state).to.equal('finished');",
+									"});",
+									"var credId = pm.variables.get(\"cred-def-id\");",
+									"pm.test(\"Check cred_def_id is matching\", function () {",
+									"    pm.expect(result.cred_def_id).to.equal(credId);",
+									"});",
+									"pm.test(\"Check tails_has exists\", function () {",
+									"    pm.expect(result.tails_hash).to.not.be.empty;",
+									"});",
+									"",
+									""
+								],
+								"type": "text/javascript",
+								"packages": {}
+							}
+						},
+						{
+							"listen": "prerequest",
+							"script": {
+								"exec": [
+									""
+								],
+								"type": "text/javascript",
+								"packages": {}
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{issuer-url}}/anoncreds/revocation/active-registry/{{encoded-cred-def-id}}",
+							"host": [
+								"{{issuer-url}}"
+							],
+							"path": [
+								"anoncreds",
+								"revocation",
+								"active-registry",
+								"{{encoded-cred-def-id}}"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Issuer creates Connection Invite",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"// Removed the attempt to parse response as JSON",
+									"pm.test(\"Status code is 200\", function () {",
+									"    pm.response.to.have.status(200);",
+									"});",
+									"var responseData = pm.response.json();",
+									"pm.test(\"Check oob_id is present\", function () {",
+									"    pm.expect(responseData.oob_id).to.be.not.empty;",
+									"});",
+									"pm.environment.set(\"invitation\", JSON.stringify(responseData.invitation));",
+									""
+								],
+								"type": "text/javascript",
+								"packages": {}
+							}
+						},
+						{
+							"listen": "prerequest",
+							"script": {
+								"exec": [
+									""
+								],
+								"type": "text/javascript",
+								"packages": {}
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"alias\": \"Holder\",\n    \"handshake_protocols\": [\"https://didcomm.org/didexchange/1.0\"],\n    \"use_public_did\": false,\n    \"my_label\": \"Invitation to Holder\"\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{issuer-url}}/out-of-band/create-invitation?auto_accept=true&create_unique_did=false&multi_use=false",
+							"host": [
+								"{{issuer-url}}"
+							],
+							"path": [
+								"out-of-band",
+								"create-invitation"
+							],
+							"query": [
+								{
+									"key": "auto_accept",
+									"value": "true"
+								},
+								{
+									"key": "create_unique_did",
+									"value": "false"
+								},
+								{
+									"key": "multi_use",
+									"value": "false"
+								}
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Holder receives Invitation",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"// Removed the attempt to parse response as JSON",
+									"pm.test(\"Status code is 200\", function () {",
+									"    pm.response.to.have.status(200);",
+									"});",
+									"var responseData = pm.response.json();",
+									"pm.test(\"Check oob_id is present\", function () {",
+									"    pm.expect(responseData.oob_id).to.be.not.empty;",
+									"});",
+									"pm.environment.set(\"holder-conn-id\", responseData.connection_id);",
+									""
+								],
+								"type": "text/javascript",
+								"packages": {}
+							}
+						},
+						{
+							"listen": "prerequest",
+							"script": {
+								"exec": [
+									""
+								],
+								"type": "text/javascript",
+								"packages": {}
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{{invitation}}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{holder-url}}/out-of-band/receive-invitation?alias=Holder&auto_accept=true&use_existing_connection=true",
+							"host": [
+								"{{holder-url}}"
+							],
+							"path": [
+								"out-of-band",
+								"receive-invitation"
+							],
+							"query": [
+								{
+									"key": "alias",
+									"value": "Holder"
+								},
+								{
+									"key": "auto_accept",
+									"value": "true"
+								},
+								{
+									"key": "use_existing_connection",
+									"value": "true"
+								}
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Issuer checks connection",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"// Removed the attempt to parse response as JSON",
+									"pm.test(\"Status code is 200\", function () {",
+									"    pm.response.to.have.status(200);",
+									"});",
+									"var responseData = pm.response.json();",
+									"var conn = responseData.results[0];",
+									"pm.test(\"Check connection_id is present\", function () {",
+									"    pm.expect(conn.connection_id).to.be.not.empty;",
+									"});",
+									"pm.environment.set(\"issuer-conn-id\", conn.connection_id);",
+									"",
+									""
+								],
+								"type": "text/javascript",
+								"packages": {}
+							}
+						},
+						{
+							"listen": "prerequest",
+							"script": {
+								"exec": [
+									""
+								],
+								"type": "text/javascript",
+								"packages": {}
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{issuer-url}}/connections?state=active",
+							"host": [
+								"{{issuer-url}}"
+							],
+							"path": [
+								"connections"
+							],
+							"query": [
+								{
+									"key": "state",
+									"value": "active"
+								}
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Issue Credential Offer",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"// Removed the attempt to parse response as JSON",
+									"pm.test(\"Status code is 200\", function () {",
+									"    pm.response.to.have.status(200);",
+									"});",
+									"var responseData = pm.response.json();",
+									"pm.test(\"Check cred_ex_id is present\", function () {",
+									"    pm.expect(responseData.cred_ex_id).to.be.not.empty;",
+									"});",
+									"pm.environment.set(\"issuer-exc-id\", responseData.cred_ex_id);",
+									""
+								],
+								"type": "text/javascript",
+								"packages": {}
+							}
+						},
+						{
+							"listen": "prerequest",
+							"script": {
+								"exec": [
+									""
+								],
+								"type": "text/javascript",
+								"packages": {}
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"auto_issue\": false,\n    \"auto_remove\": false,\n    \"comment\": \"Issue credential to Holder\",\n    \"trace\": false,\n    \"connection_id\": \"{{issuer-conn-id}}\",\n    \"filter\": {\n        \"anoncreds\": {\n            \"cred_def_id\": \"{{cred-def-id}}\"\n        }\n    },\n    \"credential_preview\": {\n        \"type\": \"issue-credential-2.0/2.0/credential-preview\",\n        \"attributes\": [\n            {\n                \"name\": \"score\",\n                \"value\": \"80\"\n            }\n        ]\n    }\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{issuer-url}}/issue-credential-2.0/send-offer",
+							"host": [
+								"{{issuer-url}}"
+							],
+							"path": [
+								"issue-credential-2.0",
+								"send-offer"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Holder checks Credential Offer",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"// Removed the attempt to parse response as JSON",
+									"pm.test(\"Status code is 200\", function () {",
+									"    pm.response.to.have.status(200);",
+									"});",
+									"var responseData = pm.response.json();",
+									"var cred = responseData.results[0].cred_ex_record;",
+									"pm.test(\"Check connection_id is present\", function () {",
+									"    pm.expect(cred.connection_id).to.be.not.empty;",
+									"});",
+									"pm.environment.set(\"holder-exc-id\", cred.cred_ex_id);",
+									""
+								],
+								"type": "text/javascript",
+								"packages": {}
+							}
+						},
+						{
+							"listen": "prerequest",
+							"script": {
+								"exec": [
+									""
+								],
+								"type": "text/javascript",
+								"packages": {}
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{holder-url}}/issue-credential-2.0/records?state=offer-received",
+							"host": [
+								"{{holder-url}}"
+							],
+							"path": [
+								"issue-credential-2.0",
+								"records"
+							],
+							"query": [
+								{
+									"key": "state",
+									"value": "offer-received"
+								}
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Holder accepts credential offer",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"// Removed the attempt to parse response as JSON",
+									"pm.test(\"Status code is 200\", function () {",
+									"    pm.response.to.have.status(200);",
+									"});",
+									"var responseData = pm.response.json();",
+									""
+								],
+								"type": "text/javascript",
+								"packages": {}
+							}
+						},
+						{
+							"listen": "prerequest",
+							"script": {
+								"exec": [
+									""
+								],
+								"type": "text/javascript",
+								"packages": {}
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [],
+						"url": {
+							"raw": "{{holder-url}}/issue-credential-2.0/records/{{holder-exc-id}}/send-request",
+							"host": [
+								"{{holder-url}}"
+							],
+							"path": [
+								"issue-credential-2.0",
+								"records",
+								"{{holder-exc-id}}",
+								"send-request"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Issue Credential",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"// Removed the attempt to parse response as JSON",
+									"pm.test(\"Status code is 200\", function () {",
+									"    pm.response.to.have.status(200);",
+									"});",
+									"var responseData = pm.response.json();",
+									"var cred = responseData.cred_ex_record;",
+									"pm.test(\"Check credential is issued\", function () {",
+									"    pm.expect(cred.state).to.equal('credential-issued');",
+									"});",
+									""
+								],
+								"type": "text/javascript",
+								"packages": {}
+							}
+						},
+						{
+							"listen": "prerequest",
+							"script": {
+								"exec": [
+									""
+								],
+								"type": "text/javascript",
+								"packages": {}
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{issuer-url}}/issue-credential-2.0/records/{{issuer-exc-id}}/issue",
+							"host": [
+								"{{issuer-url}}"
+							],
+							"path": [
+								"issue-credential-2.0",
+								"records",
+								"{{issuer-exc-id}}",
+								"issue"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Holder stores Credential",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status code is 200\", function () {\r",
+									"    pm.response.to.have.status(200);\r",
+									"});\r",
+									""
+								],
+								"type": "text/javascript",
+								"packages": {}
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{holder-url}}/issue-credential-2.0/records/{{holder-exc-id}}/store",
+							"host": [
+								"{{holder-url}}"
+							],
+							"path": [
+								"issue-credential-2.0",
+								"records",
+								"{{holder-exc-id}}",
+								"store"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Holder verifies Credential",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status code is 200\", function () {\r",
+									"    pm.response.to.have.status(200);\r",
+									"});\r",
+									"var responseData = pm.response.json();\r",
+									"var cred = responseData.results[0];\r",
+									"pm.environment.set(\"holder-cred-id\", cred.referent);"
+								],
+								"type": "text/javascript",
+								"packages": {}
+							}
+						}
+					],
+					"protocolProfileBehavior": {
+						"disableBodyPruning": true
+					},
+					"request": {
+						"method": "GET",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{holder-url}}/credentials",
+							"host": [
+								"{{holder-url}}"
+							],
+							"path": [
+								"credentials"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Issuer sends a Presentation Request",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status code is 200\", function () {\r",
+									"    pm.response.to.have.status(200);\r",
+									"});\r",
+									"var jsonData = pm.response.json();\r",
+									"pm.environment.set(\"presentation-exc-id\", jsonData.pres_ex_id);\r",
+									"pm.test(\"State is request\", function () {    \r",
+									"    pm.expect(jsonData.state).to.eql(\"request-sent\");\r",
+									"});"
+								],
+								"type": "text/javascript",
+								"packages": {}
+							}
+						},
+						{
+							"listen": "prerequest",
+							"script": {
+								"exec": [
+									"const currentTimestampSeconds = Math.floor(Date.now() / 1000);",
+									"// Set validation time to current time plus 5 minutes",
+									"const timestampPlusFiveMinutes = currentTimestampSeconds + 300;",
+									"",
+									"pm.variables.set(\"validationTime\", timestampPlusFiveMinutes);"
+								],
+								"type": "text/javascript",
+								"packages": {}
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\r\n  \"connection_id\": \"{{issuer-conn-id}}\",\r\n  \"auto_verify\": false,\r\n  \"auto_remove\": false,\r\n  \"comment\": \"Presentation request from Issuer\",\r\n  \"presentation_request\": {\r\n    \"anoncreds\": {\r\n        \"name\": \"proof\",\r\n        \"version\": \"1.0\",\r\n        \"requested_predicates\": {\r\n            \"additionalProp1\": {\r\n                \"name\": \"score\",\r\n                \"p_value\": 50,\r\n                \"p_type\": \">\",\r\n                \"restrictions\": [{\"cred_def_id\": \"{{cred-def-id}}\"}]\r\n            }\r\n        },\r\n        \"requested_attributes\": {},\r\n        \"non_revoked\": {\"to\": {{validationTime}}}\r\n    }\r\n  },\r\n  \"trace\": false\r\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{issuer-url}}/present-proof-2.0/send-request",
+							"host": [
+								"{{issuer-url}}"
+							],
+							"path": [
+								"present-proof-2.0",
+								"send-request"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Holder checks Presentation Request",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status code is 200\", function () {\r",
+									"    pm.response.to.have.status(200);\r",
+									"});\r",
+									"var responseData = pm.response.json();\r",
+									"var cred = responseData.results[0];\r",
+									"pm.environment.set(\"holder-pres-exc-id\", cred.pres_ex_id);\r",
+									"pm.environment.set(\"proof-request\",JSON.stringify(cred.by_format.pres_request.anoncreds))"
+								],
+								"type": "text/javascript",
+								"packages": {}
+							}
+						}
+					],
+					"protocolProfileBehavior": {
+						"disableBodyPruning": true
+					},
+					"request": {
+						"method": "GET",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{holder-url}}/present-proof-2.0/records?limit=1000&offset=0&state=request-received",
+							"host": [
+								"{{holder-url}}"
+							],
+							"path": [
+								"present-proof-2.0",
+								"records"
+							],
+							"query": [
+								{
+									"key": "limit",
+									"value": "1000"
+								},
+								{
+									"key": "offset",
+									"value": "0"
+								},
+								{
+									"key": "state",
+									"value": "request-received"
+								}
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Holder checks Credential",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status code is 200\", function () {\r",
+									"    pm.response.to.have.status(200);\r",
+									"});\r",
+									"var responseData = pm.response.json();\r",
+									"pm.environment.set(\"relevant-creds\", JSON.stringify(responseData));"
+								],
+								"type": "text/javascript",
+								"packages": {}
+							}
+						}
+					],
+					"protocolProfileBehavior": {
+						"disableBodyPruning": true
+					},
+					"request": {
+						"method": "GET",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{holder-url}}/present-proof-2.0/records/{{holder-pres-exc-id}}/credentials",
+							"host": [
+								"{{holder-url}}"
+							],
+							"path": [
+								"present-proof-2.0",
+								"records",
+								"{{holder-pres-exc-id}}",
+								"credentials"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Holder sends Presentation Proof",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status code is 200\", function () {\r",
+									"    pm.response.to.have.status(200);\r",
+									"});\r",
+									"var jsonData = pm.response.json();\r",
+									"pm.test(\"State is presentation-sent\", function () {    \r",
+									"    pm.expect(jsonData.state).to.equal(\"presentation-sent\");\r",
+									"});"
+								],
+								"type": "text/javascript",
+								"packages": {}
+							}
+						},
+						{
+							"listen": "prerequest",
+							"script": {
+								"exec": [
+									"let presentationRequest = pm.environment.get(\"proof-request\");",
+									"let relevantCreds = pm.environment.get(\"relevant-creds\");",
+									"// Convert JSON strings to objects if necessary",
+									"if (typeof presentationRequest === \"string\") {",
+									"    presentationRequest = JSON.parse(presentationRequest);",
+									"}",
+									"if (typeof relevantCreds === \"string\") {",
+									"    relevantCreds = JSON.parse(relevantCreds);",
+									"}",
+									"// Initialize requested attributes and predicates",
+									"let requestedAttributes = {};",
+									"let requestedPredicates = {};",
+									"",
+									"// Process requested attributes",
+									"for (let presReferent in presentationRequest.requested_attributes) {",
+									"    for (let credPrecis of relevantCreds) {",
+									"        if (credPrecis.presentation_referents.includes(presReferent)) {",
+									"            requestedAttributes[presReferent] = {",
+									"                cred_id: credPrecis.cred_info.referent,",
+									"                revealed: true",
+									"            };",
+									"            break; // Stop searching once a match is found",
+									"        }",
+									"    }",
+									"}",
+									"const timestampSeconds = Math.floor(Date.now() /1000);",
+									"// Process requested predicates",
+									"for (let presReferent in presentationRequest.requested_predicates) {",
+									"    for (let credPrecis of relevantCreds) {",
+									"        if (credPrecis.presentation_referents.includes(presReferent)) {",
+									"            requestedPredicates[presReferent] = {",
+									"                cred_id: credPrecis.cred_info.referent,",
+									"                timestamp: timestampSeconds",
+									"            };",
+									"            break; // Stop searching once a match is found",
+									"        }",
+									"    }",
+									"}",
+									"",
+									"// Construct the presentation specification",
+									"let presSpec = {",
+									"    requested_attributes: requestedAttributes,",
+									"    requested_predicates: requestedPredicates,",
+									"    self_attested_attributes: {}",
+									"};",
+									"",
+									"// Log the result for debugging",
+									"console.log(\"Generated Presentation Specification:\", JSON.stringify(presSpec));",
+									"",
+									"// Save the result to a variable for later use",
+									"pm.variables.set(\"proof\", JSON.stringify(presSpec));"
+								],
+								"type": "text/javascript",
+								"packages": {}
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"anoncreds\": {{proof}}\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{holder-url}}/present-proof-2.0/records/{{holder-pres-exc-id}}/send-presentation",
+							"host": [
+								"{{holder-url}}"
+							],
+							"path": [
+								"present-proof-2.0",
+								"records",
+								"{{holder-pres-exc-id}}",
+								"send-presentation"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Issuer verifies presentation",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status code is 200\", function () {\r",
+									"    pm.response.to.have.status(200);\r",
+									"});\r",
+									"var jsonData = pm.response.json();\r",
+									"pm.test(\"State is done\", function () {    \r",
+									"    pm.expect(jsonData.state).to.equal(\"done\");\r",
+									"});\r",
+									"pm.test(\"Verified\", function () {    \r",
+									"    pm.expect(jsonData.verified).to.equal(\"true\");\r",
+									"});"
+								],
+								"type": "text/javascript",
+								"packages": {}
+							}
+						},
+						{
+							"listen": "prerequest",
+							"script": {
+								"exec": [
+									""
+								],
+								"type": "text/javascript",
+								"packages": {}
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{issuer-url}}/present-proof-2.0/records/{{presentation-exc-id}}/verify-presentation",
+							"host": [
+								"{{issuer-url}}"
+							],
+							"path": [
+								"present-proof-2.0",
+								"records",
+								"{{presentation-exc-id}}",
+								"verify-presentation"
+							]
+						}
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "Revocation",
+			"item": [
+				{
+					"name": "Issuer revokes credential",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status code is 200\", function () {",
+									"    pm.response.to.have.status(200);",
+									"});",
+									""
+								],
+								"type": "text/javascript",
+								"packages": {}
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"comment\": \"Revoke issued credential\",\n    \"connection_id\": \"{{issuer-conn-id}}\",\n    \"cred_ex_id\": \"{{issuer-exc-id}}\",\n    \"notify\": true,\n    \"publish\": true\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{issuer-url}}/anoncreds/revocation/revoke",
+							"host": [
+								"{{issuer-url}}"
+							],
+							"path": [
+								"anoncreds",
+								"revocation",
+								"revoke"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Issuer sends a Presentation Request",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status code is 200\", function () {\r",
+									"    pm.response.to.have.status(200);\r",
+									"});\r",
+									"var jsonData = pm.response.json();\r",
+									"pm.environment.set(\"presentation-exc-id\", jsonData.pres_ex_id);\r",
+									"pm.test(\"State is request\", function () {    \r",
+									"    pm.expect(jsonData.state).to.eql(\"request-sent\");\r",
+									"});"
+								],
+								"type": "text/javascript",
+								"packages": {}
+							}
+						},
+						{
+							"listen": "prerequest",
+							"script": {
+								"exec": [
+									"const currentTimestampSeconds = Math.floor(Date.now() / 1000);",
+									"// Set validation time to current time plus 5 minutes",
+									"const timestampPlusFiveMinutes = currentTimestampSeconds + 300;",
+									"",
+									"pm.variables.set(\"validationTime\", timestampPlusFiveMinutes);"
+								],
+								"type": "text/javascript",
+								"packages": {}
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\r\n  \"connection_id\": \"{{issuer-conn-id}}\",\r\n  \"auto_verify\": false,\r\n  \"auto_remove\": false,\r\n  \"comment\": \"Presentation request from Issuer\",\r\n  \"presentation_request\": {\r\n    \"anoncreds\": {\r\n        \"name\": \"proof\",\r\n        \"version\": \"1.0\",\r\n        \"requested_predicates\": {\r\n            \"additionalProp1\": {\r\n                \"name\": \"score\",\r\n                \"p_value\": 50,\r\n                \"p_type\": \">\",\r\n                \"restrictions\": [{\"cred_def_id\": \"{{cred-def-id}}\"}]\r\n            }\r\n        },\r\n        \"requested_attributes\": {},\r\n        \"non_revoked\": {\"to\": {{validationTime}}}\r\n    }\r\n  },\r\n  \"trace\": false\r\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{issuer-url}}/present-proof-2.0/send-request",
+							"host": [
+								"{{issuer-url}}"
+							],
+							"path": [
+								"present-proof-2.0",
+								"send-request"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Holder checks Presentation Request",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status code is 200\", function () {\r",
+									"    pm.response.to.have.status(200);\r",
+									"});\r",
+									"var responseData = pm.response.json();\r",
+									"var cred = responseData.results[0];\r",
+									"pm.environment.set(\"holder-pres-exc-id\", cred.pres_ex_id);\r",
+									"pm.environment.set(\"proof-request\",JSON.stringify(cred.by_format.pres_request.anoncreds))"
+								],
+								"type": "text/javascript",
+								"packages": {}
+							}
+						}
+					],
+					"protocolProfileBehavior": {
+						"disableBodyPruning": true
+					},
+					"request": {
+						"method": "GET",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{holder-url}}/present-proof-2.0/records?limit=1000&offset=0&state=request-received",
+							"host": [
+								"{{holder-url}}"
+							],
+							"path": [
+								"present-proof-2.0",
+								"records"
+							],
+							"query": [
+								{
+									"key": "limit",
+									"value": "1000"
+								},
+								{
+									"key": "offset",
+									"value": "0"
+								},
+								{
+									"key": "state",
+									"value": "request-received"
+								}
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Holder checks Credential",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status code is 200\", function () {\r",
+									"    pm.response.to.have.status(200);\r",
+									"});\r",
+									"var responseData = pm.response.json();\r",
+									"pm.environment.set(\"relevant-creds\", JSON.stringify(responseData));"
+								],
+								"type": "text/javascript",
+								"packages": {}
+							}
+						}
+					],
+					"protocolProfileBehavior": {
+						"disableBodyPruning": true
+					},
+					"request": {
+						"method": "GET",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{holder-url}}/present-proof-2.0/records/{{holder-pres-exc-id}}/credentials",
+							"host": [
+								"{{holder-url}}"
+							],
+							"path": [
+								"present-proof-2.0",
+								"records",
+								"{{holder-pres-exc-id}}",
+								"credentials"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Holder sends Presentation Proof",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status code is 200\", function () {\r",
+									"    pm.response.to.have.status(200);\r",
+									"});\r",
+									"var jsonData = pm.response.json();\r",
+									"pm.test(\"State is presentation-sent\", function () {    \r",
+									"    pm.expect(jsonData.state).to.equal(\"presentation-sent\");\r",
+									"});"
+								],
+								"type": "text/javascript",
+								"packages": {}
+							}
+						},
+						{
+							"listen": "prerequest",
+							"script": {
+								"exec": [
+									"let presentationRequest = pm.environment.get(\"proof-request\");",
+									"let relevantCreds = pm.environment.get(\"relevant-creds\");",
+									"// Convert JSON strings to objects if necessary",
+									"if (typeof presentationRequest === \"string\") {",
+									"    presentationRequest = JSON.parse(presentationRequest);",
+									"}",
+									"if (typeof relevantCreds === \"string\") {",
+									"    relevantCreds = JSON.parse(relevantCreds);",
+									"}",
+									"// Initialize requested attributes and predicates",
+									"let requestedAttributes = {};",
+									"let requestedPredicates = {};",
+									"",
+									"// Process requested attributes",
+									"for (let presReferent in presentationRequest.requested_attributes) {",
+									"    for (let credPrecis of relevantCreds) {",
+									"        if (credPrecis.presentation_referents.includes(presReferent)) {",
+									"            requestedAttributes[presReferent] = {",
+									"                cred_id: credPrecis.cred_info.referent,",
+									"                revealed: true",
+									"            };",
+									"            break; // Stop searching once a match is found",
+									"        }",
+									"    }",
+									"}",
+									"const timestampSeconds = Math.floor(Date.now() /1000);",
+									"// Process requested predicates",
+									"for (let presReferent in presentationRequest.requested_predicates) {",
+									"    for (let credPrecis of relevantCreds) {",
+									"        if (credPrecis.presentation_referents.includes(presReferent)) {",
+									"            requestedPredicates[presReferent] = {",
+									"                cred_id: credPrecis.cred_info.referent,",
+									"                timestamp: timestampSeconds",
+									"            };",
+									"            break; // Stop searching once a match is found",
+									"        }",
+									"    }",
+									"}",
+									"",
+									"// Construct the presentation specification",
+									"let presSpec = {",
+									"    requested_attributes: requestedAttributes,",
+									"    requested_predicates: requestedPredicates,",
+									"    self_attested_attributes: {}",
+									"};",
+									"",
+									"// Log the result for debugging",
+									"console.log(\"Generated Presentation Specification:\", JSON.stringify(presSpec));",
+									"",
+									"// Save the result to a variable for later use",
+									"pm.variables.set(\"proof\", JSON.stringify(presSpec));"
+								],
+								"type": "text/javascript",
+								"packages": {}
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"anoncreds\": {{proof}}\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{holder-url}}/present-proof-2.0/records/{{holder-pres-exc-id}}/send-presentation",
+							"host": [
+								"{{holder-url}}"
+							],
+							"path": [
+								"present-proof-2.0",
+								"records",
+								"{{holder-pres-exc-id}}",
+								"send-presentation"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Issuer verifies presentation is revoked",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status code is 200\", function () {\r",
+									"    pm.response.to.have.status(200);\r",
+									"});\r",
+									"var jsonData = pm.response.json();\r",
+									"pm.test(\"State is done\", function () {    \r",
+									"    pm.expect(jsonData.state).to.equal(\"done\");\r",
+									"});\r",
+									"pm.test(\"Verified\", function () {    \r",
+									"    pm.expect(jsonData.verified).to.equal(\"false\");\r",
+									"});"
+								],
+								"type": "text/javascript",
+								"packages": {}
+							}
+						},
+						{
+							"listen": "prerequest",
+							"script": {
+								"exec": [
+									""
+								],
+								"type": "text/javascript",
+								"packages": {}
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{issuer-url}}/present-proof-2.0/records/{{presentation-exc-id}}/verify-presentation",
+							"host": [
+								"{{issuer-url}}"
+							],
+							"path": [
+								"present-proof-2.0",
+								"records",
+								"{{presentation-exc-id}}",
+								"verify-presentation"
+							]
+						}
+					},
+					"response": []
+				}
+			]
+		}
+	]
+}
