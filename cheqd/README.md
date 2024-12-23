@@ -70,7 +70,7 @@ aca-py start --arg-file ./docker/default.yml
 
 ```bash
 # Run the tests using following
-poetry run pytest cheqd/
+poetry run pytest
 ```
 A coverage report is created when ran from the devcontainer. 
 

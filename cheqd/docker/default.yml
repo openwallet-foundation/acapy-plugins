@@ -21,7 +21,7 @@ endpoint:
   - ws://localhost:8022
 
 plugin:
-  - cheqd.v1_0
+  - cheqd
 # Plugin options
 plugin-config: ./docker/plugin-config.yml
 

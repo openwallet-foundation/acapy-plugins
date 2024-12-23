@@ -15,7 +15,7 @@ async def test_create_cheqd_did(mock_request, mock_create_body, mock_manager):
     mock_request.json = mock_create_body
 
     with patch(
-        "cheqd.cheqd.v1_0.routes.CheqdDIDManager", return_value=mock_manager
+        "cheqd.cheqd.routes.CheqdDIDManager", return_value=mock_manager
     ) as mock_constructor:
         # Act
         response = await create_cheqd_did(mock_request)
@@ -35,7 +35,7 @@ async def test_create_cheqd_did(mock_request, mock_create_body, mock_manager):
 async def test_create_cheqd_did_missing_body(mock_request, mock_manager):
     # Arrange
     mock_request.json = AsyncMock(side_effect=Exception("Invalid JSON"))
-    with patch("cheqd.cheqd.v1_0.routes.CheqdDIDManager", return_value=mock_manager):
+    with patch("cheqd.cheqd.routes.CheqdDIDManager", return_value=mock_manager):
         # Act
         response = await create_cheqd_did(mock_request)
 
@@ -51,7 +51,7 @@ async def test_create_cheqd_did_missing_body(mock_request, mock_manager):
 async def test_create_cheqd_did_manager_error(mock_request, mock_manager):
     # Arrange
     mock_manager.create.side_effect = CheqdDIDManagerError("Manager error")
-    with patch("cheqd.cheqd.v1_0.routes.CheqdDIDManager", return_value=mock_manager):
+    with patch("cheqd.cheqd.routes.CheqdDIDManager", return_value=mock_manager):
         # Act
         with pytest.raises(web.HTTPInternalServerError) as e:
             await create_cheqd_did(mock_request)
@@ -65,7 +65,7 @@ async def test_create_cheqd_did_manager_error(mock_request, mock_manager):
 async def test_create_cheqd_did_wallet_error(mock_request, mock_manager):
     # Arrange
     mock_manager.create.side_effect = WalletError("Wallet error")
-    with patch("cheqd.cheqd.v1_0.routes.CheqdDIDManager", return_value=mock_manager):
+    with patch("cheqd.cheqd.routes.CheqdDIDManager", return_value=mock_manager):
         # Act
         with pytest.raises(web.HTTPBadRequest) as e:
             await create_cheqd_did(mock_request)
@@ -81,7 +81,7 @@ async def test_update_cheqd_did(mock_request, mock_update_body, mock_manager):
     mock_request.json = mock_update_body
 
     with patch(
-        "cheqd.cheqd.v1_0.routes.CheqdDIDManager", return_value=mock_manager
+        "cheqd.cheqd.routes.CheqdDIDManager", return_value=mock_manager
     ) as mock_constructor:
         # Act
         response = await update_cheqd_did(mock_request)
@@ -104,7 +104,7 @@ async def test_update_cheqd_did(mock_request, mock_update_body, mock_manager):
 async def test_update_cheqd_did_missing_body(mock_request, mock_manager):
     # Arrange
     mock_request.json = AsyncMock(side_effect=Exception("Invalid JSON"))
-    with patch("cheqd.cheqd.v1_0.routes.CheqdDIDManager", return_value=mock_manager):
+    with patch("cheqd.cheqd.routes.CheqdDIDManager", return_value=mock_manager):
         # Act
         response = await update_cheqd_did(mock_request)
 
@@ -119,7 +119,7 @@ async def test_update_cheqd_did_missing_body(mock_request, mock_manager):
 async def test_update_cheqd_did_manager_error(mock_request, mock_manager):
     # Arrange
     mock_manager.update.side_effect = CheqdDIDManagerError("Manager error")
-    with patch("cheqd.cheqd.v1_0.routes.CheqdDIDManager", return_value=mock_manager):
+    with patch("cheqd.cheqd.routes.CheqdDIDManager", return_value=mock_manager):
         # Act
         with pytest.raises(web.HTTPInternalServerError) as e:
             await update_cheqd_did(mock_request)
@@ -133,7 +133,7 @@ async def test_update_cheqd_did_manager_error(mock_request, mock_manager):
 async def test_update_cheqd_did_wallet_error(mock_request, mock_manager):
     # Arrange
     mock_manager.update.side_effect = WalletError("Wallet error")
-    with patch("cheqd.cheqd.v1_0.routes.CheqdDIDManager", return_value=mock_manager):
+    with patch("cheqd.cheqd.routes.CheqdDIDManager", return_value=mock_manager):
         # Act
         with pytest.raises(web.HTTPBadRequest) as e:
             await update_cheqd_did(mock_request)
@@ -149,7 +149,7 @@ async def test_deactivate_cheqd_did(mock_request, mock_deactivate_body, mock_man
     mock_request.json = mock_deactivate_body
 
     with patch(
-        "cheqd.cheqd.v1_0.routes.CheqdDIDManager", return_value=mock_manager
+        "cheqd.cheqd.routes.CheqdDIDManager", return_value=mock_manager
     ) as mock_constructor:
         # Act
         response = await deactivate_cheqd_did(mock_request)
@@ -170,7 +170,7 @@ async def test_deactivate_cheqd_did(mock_request, mock_deactivate_body, mock_man
 async def test_deactivate_cheqd_did_missing_body(mock_request, mock_manager):
     # Arrange
     mock_request.json = AsyncMock(side_effect=Exception("Invalid JSON"))
-    with patch("cheqd.cheqd.v1_0.routes.CheqdDIDManager", return_value=mock_manager):
+    with patch("cheqd.cheqd.routes.CheqdDIDManager", return_value=mock_manager):
         # Act
         response = await deactivate_cheqd_did(mock_request)
 
@@ -185,7 +185,7 @@ async def test_deactivate_cheqd_did_missing_body(mock_request, mock_manager):
 async def test_deactivate_cheqd_did_manager_error(mock_request, mock_manager):
     # Arrange
     mock_manager.deactivate.side_effect = CheqdDIDManagerError("Manager error")
-    with patch("cheqd.cheqd.v1_0.routes.CheqdDIDManager", return_value=mock_manager):
+    with patch("cheqd.cheqd.routes.CheqdDIDManager", return_value=mock_manager):
         # Act
         with pytest.raises(web.HTTPInternalServerError) as e:
             await deactivate_cheqd_did(mock_request)
@@ -199,7 +199,7 @@ async def test_deactivate_cheqd_did_manager_error(mock_request, mock_manager):
 async def test_deactivate_cheqd_did_wallet_error(mock_request, mock_manager):
     # Arrange
     mock_manager.deactivate.side_effect = WalletError("Wallet error")
-    with patch("cheqd.cheqd.v1_0.routes.CheqdDIDManager", return_value=mock_manager):
+    with patch("cheqd.cheqd.routes.CheqdDIDManager", return_value=mock_manager):
         # Act
         with pytest.raises(web.HTTPBadRequest) as e:
             await deactivate_cheqd_did(mock_request)

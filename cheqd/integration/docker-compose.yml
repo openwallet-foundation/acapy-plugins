@@ -36,7 +36,7 @@ services:
       --log-level debug
       --debug-webhooks
       --no-ledger
-      --plugin cheqd.v1_0
+      --plugin cheqd
       --plugin-config plugin-config-integration.yml
     healthcheck:
       test: curl -s -o /dev/null -w '%{http_code}' "http://localhost:3001/status/live" | grep "200" > /dev/null
@@ -71,7 +71,7 @@ services:
         --log-level info
         --debug-webhooks
         --no-ledger
-        --plugin cheqd.v1_0
+        --plugin cheqd
         --plugin-config plugin-config-integration.yml
     healthcheck:
       test: curl -s -o /dev/null -w '%{http_code}' "http://localhost:4001/status/live" | grep "200" > /dev/null

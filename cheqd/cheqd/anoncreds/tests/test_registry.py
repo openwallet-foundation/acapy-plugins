@@ -18,7 +18,6 @@ from acapy_agent.anoncreds.models.revocation import (
 from acapy_agent.anoncreds.models.schema import GetSchemaResult, SchemaResult
 from acapy_agent.anoncreds.models.schema_info import AnoncredsSchemaInfo
 
-from ....v1_0.validation import CHEQD_DID_VALIDATE
 from ...did.manager import CheqdDIDManager
 from ...did.tests.mocks import (
     registrar_responses_network_fail,
@@ -26,6 +25,7 @@ from ...did.tests.mocks import (
     registrar_responses_not_finished,
     setup_mock_registrar,
 )
+from ...validation import CHEQD_DID_VALIDATE
 from ..registry import DIDCheqdRegistry
 
 TEST_CHEQD_DID = "did:cheqd:testnet:1686a962-6e82-46f3-bde7-e6711d63958c"
@@ -104,7 +104,7 @@ async def test_get_schema(mock_profile, mock_resolver):
     schema_id = "PART0/PART1/PART2"
 
     with patch(
-        "cheqd.cheqd.v1_0.anoncreds.registry.CheqdDIDResolver", return_value=mock_resolver
+        "cheqd.cheqd.anoncreds.registry.CheqdDIDResolver", return_value=mock_resolver
     ):
         registry = DIDCheqdRegistry()
         result = await registry.get_schema(_profile=mock_profile, schema_id=schema_id)
@@ -126,7 +126,7 @@ async def test_register_schema(
 ):
     # Arrange
     with patch(
-        "cheqd.cheqd.v1_0.anoncreds.registry.DIDCheqdRegistry._create_and_publish_resource",
+        "cheqd.cheqd.anoncreds.registry.DIDCheqdRegistry._create_and_publish_resource",
         return_value=mock_create_and_publish_resource,
     ) as mock:
         # Act
@@ -165,7 +165,7 @@ async def test_register_schema_registration_error(mock_profile, mock_schema):
 
     # Act
     with patch(
-        "cheqd.cheqd.v1_0.anoncreds.registry.DIDCheqdRegistry._create_and_publish_resource",
+        "cheqd.cheqd.anoncreds.registry.DIDCheqdRegistry._create_and_publish_resource",
         mock_create_and_publish_resource,
     ):
         with pytest.raises(Exception) as e:
@@ -183,9 +183,9 @@ async def test_get_credential_definition(mock_profile, mock_resolver):
 
     # Act
     with patch(
-        "cheqd.cheqd.v1_0.anoncreds.registry.CheqdDIDResolver", return_value=mock_resolver
+        "cheqd.cheqd.anoncreds.registry.CheqdDIDResolver", return_value=mock_resolver
     ), patch(
-        "cheqd.cheqd.v1_0.anoncreds.registry.CredDefValue.deserialize",
+        "cheqd.cheqd.anoncreds.registry.CredDefValue.deserialize",
         return_value={"MOCK_KEY": "MOCK_VALUE"},
     ):
         registry = DIDCheqdRegistry()
@@ -216,7 +216,7 @@ async def test_register_credential_definition(
 ):
     # Arrange
     with patch(
-        "cheqd.cheqd.v1_0.anoncreds.registry.DIDCheqdRegistry._create_and_publish_resource",
+        "cheqd.cheqd.anoncreds.registry.DIDCheqdRegistry._create_and_publish_resource",
         return_value=mock_create_and_publish_resource,
     ) as mock:
         # Act
@@ -261,9 +261,9 @@ async def test_get_revocation_registry_definition(mock_profile, mock_resolver):
 
     # Act
     with patch(
-        "cheqd.cheqd.v1_0.anoncreds.registry.CheqdDIDResolver", return_value=mock_resolver
+        "cheqd.cheqd.anoncreds.registry.CheqdDIDResolver", return_value=mock_resolver
     ), patch(
-        "cheqd.cheqd.v1_0.anoncreds.registry.RevRegDefValue.deserialize",
+        "cheqd.cheqd.anoncreds.registry.RevRegDefValue.deserialize",
         return_value={"MOCK_KEY": "MOCK_VALUE"},
     ):
         registry = DIDCheqdRegistry()
@@ -294,10 +294,10 @@ async def test_register_revocation_registry_definition(
 ):
     # Arrange
     with patch(
-        "cheqd.cheqd.v1_0.anoncreds.registry.DIDCheqdRegistry.get_credential_definition",
+        "cheqd.cheqd.anoncreds.registry.DIDCheqdRegistry.get_credential_definition",
         return_value=mock_get_credential_definition_result,
     ), patch(
-        "cheqd.cheqd.v1_0.anoncreds.registry.DIDCheqdRegistry._create_and_publish_resource",
+        "cheqd.cheqd.anoncreds.registry.DIDCheqdRegistry._create_and_publish_resource",
         return_value=mock_create_and_publish_resource,
     ) as mock:
         # Act
@@ -342,9 +342,9 @@ async def test_get_revocation_list(mock_profile, mock_resolver, mock_rev_reg_def
 
     # Act
     with patch(
-        "cheqd.cheqd.v1_0.anoncreds.registry.CheqdDIDResolver", return_value=mock_resolver
+        "cheqd.cheqd.anoncreds.registry.CheqdDIDResolver", return_value=mock_resolver
     ), patch(
-        "cheqd.cheqd.v1_0.anoncreds.registry.DIDCheqdRegistry.get_revocation_registry_definition",
+        "cheqd.cheqd.anoncreds.registry.DIDCheqdRegistry.get_revocation_registry_definition",
         AsyncMock(return_value=mock_rev_reg_def),
     ):
         registry = DIDCheqdRegistry()
@@ -372,7 +372,7 @@ async def test_get_schema_info_by_id(mock_resolver, mock_profile):
 
     # Act
     with patch(
-        "cheqd.cheqd.v1_0.anoncreds.registry.CheqdDIDResolver", return_value=mock_resolver
+        "cheqd.cheqd.anoncreds.registry.CheqdDIDResolver", return_value=mock_resolver
     ):
         registry = DIDCheqdRegistry()
         result = await registry.get_schema_info_by_id(mock_profile, schema_id)
@@ -394,10 +394,10 @@ async def test_register_revocation_list(
 ):
     # Arrange
     with patch(
-        "cheqd.cheqd.v1_0.anoncreds.registry.DIDCheqdRegistry.get_revocation_registry_definition",
+        "cheqd.cheqd.anoncreds.registry.DIDCheqdRegistry.get_revocation_registry_definition",
         AsyncMock(return_value=mock_get_revocation_registry_definition),
     ) as mock1, patch(
-        "cheqd.cheqd.v1_0.anoncreds.registry.DIDCheqdRegistry._create_and_publish_resource",
+        "cheqd.cheqd.anoncreds.registry.DIDCheqdRegistry._create_and_publish_resource",
         return_value=mock_create_and_publish_resource,
     ) as mock2:
         # Act
@@ -439,10 +439,10 @@ async def test_update_revocation_list(
 ):
     # Arrange
     with patch(
-        "cheqd.cheqd.v1_0.anoncreds.registry.DIDCheqdRegistry.get_revocation_registry_definition",
+        "cheqd.cheqd.anoncreds.registry.DIDCheqdRegistry.get_revocation_registry_definition",
         AsyncMock(return_value=mock_get_revocation_registry_definition),
     ) as mock1, patch(
-        "cheqd.cheqd.v1_0.anoncreds.registry.DIDCheqdRegistry._create_and_publish_resource",
+        "cheqd.cheqd.anoncreds.registry.DIDCheqdRegistry._create_and_publish_resource",
         return_value=mock_create_and_publish_resource,
     ) as mock2:
         # Act
@@ -475,7 +475,7 @@ async def test_update_revocation_list(
         )
 
 
-@patch("cheqd.cheqd.v1_0.did.manager.CheqdDIDRegistrar")
+@patch("cheqd.cheqd.did.manager.CheqdDIDRegistrar")
 @pytest.mark.asyncio
 async def test_create_and_publish_resource(
     mock_registrar_instance, mock_profile_for_manager
@@ -518,7 +518,7 @@ async def test_create_and_publish_resource(
     )
 
 
-@patch("cheqd.cheqd.v1_0.did.manager.CheqdDIDRegistrar")
+@patch("cheqd.cheqd.did.manager.CheqdDIDRegistrar")
 @pytest.mark.asyncio
 async def test_create_and_publish_resourcewith_signing_failure(
     mock_registrar_instance,
@@ -547,7 +547,7 @@ async def test_create_and_publish_resourcewith_signing_failure(
     assert str(e.value) == "No signing requests available for update."
 
 
-@patch("cheqd.cheqd.v1_0.did.manager.CheqdDIDRegistrar")
+@patch("cheqd.cheqd.did.manager.CheqdDIDRegistrar")
 @pytest.mark.asyncio
 async def test_create_with_network_failure(
     mock_registrar_instance,
@@ -575,7 +575,7 @@ async def test_create_with_network_failure(
     assert str(e.value) == "Error publishing Resource Network failure"
 
 
-@patch("cheqd.cheqd.v1_0.did.manager.CheqdDIDRegistrar")
+@patch("cheqd.cheqd.did.manager.CheqdDIDRegistrar")
 @pytest.mark.asyncio
 async def test_create_not_finished(
     mock_registrar_instance,

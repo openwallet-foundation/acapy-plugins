@@ -17,7 +17,7 @@ endpoint:
   - ws://localhost:8022
 
 plugin:
-  - cheqd.v1_0
+  - cheqd
 
 # Ledger
 no-ledger: true
