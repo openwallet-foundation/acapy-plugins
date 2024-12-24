@@ -9,10 +9,10 @@
       
       
       
-        <link rel="prev" href="../oid4vc/">
+        <link rel="prev" href="../basicmessage_storage/">
       
       
-        <link rel="next" href="../rpc/">
+        <link rel="next" href="../connection_update/">
       
       
       <link rel="icon" href="https://raw.githubusercontent.com/hyperledger/aries-cloudagent-python/main/docs/assets/aries-favicon.png">
@@ -20,7 +20,7 @@
     
     
       
-        <title>Redis Events - ACA-Py Plugins</title>
+        <title>did:cheqd Plugin - ACA-Py Plugins</title>
       
     
     
@@ -72,7 +72,7 @@
     <div data-md-component="skip">
       
         
-        <a href="#redis-events" class="md-skip">
+        <a href="#didcheqd-plugin" class="md-skip">
           Skip to content
         </a>
       
@@ -111,7 +111,7 @@
         <div class="md-header__topic" data-md-component="header-topic">
           <span class="md-ellipsis">
             
-              Redis Events
+              did:cheqd Plugin
             
           </span>
         </div>
@@ -470,10 +470,30 @@
                 
   
   
+    
   
   
-    <li class="md-nav__item">
-      <a href="../cheqd/" class="md-nav__link">
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+      
+      
+        
+      
+      
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          
+  
+  <span class="md-ellipsis">
+    did:cheqd Plugin
+  </span>
+  
+
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <a href="./" class="md-nav__link md-nav__link--active">
         
   
   <span class="md-ellipsis">
@@ -482,6 +502,125 @@
   
 
       </a>
+      
+        
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#description" class="md-nav__link">
+    <span class="md-ellipsis">
+      Description
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Description">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#operations" class="md-nav__link">
+    <span class="md-ellipsis">
+      Operations
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#developer-notes" class="md-nav__link">
+    <span class="md-ellipsis">
+      Developer Notes
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#configuration" class="md-nav__link">
+    <span class="md-ellipsis">
+      Configuration
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Configuration">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#running-with-the-configuration" class="md-nav__link">
+    <span class="md-ellipsis">
+      Running with the configuration
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#testing" class="md-nav__link">
+    <span class="md-ellipsis">
+      Testing
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Testing">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#unit-tests" class="md-nav__link">
+    <span class="md-ellipsis">
+      Unit Tests
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#integration-tests" class="md-nav__link">
+    <span class="md-ellipsis">
+      Integration Tests
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#deploy" class="md-nav__link">
+    <span class="md-ellipsis">
+      Deploy
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+      
     </li>
   
 
@@ -596,30 +735,10 @@
                 
   
   
-    
   
   
-  
-    <li class="md-nav__item md-nav__item--active">
-      
-      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
-      
-      
-        
-      
-      
-        <label class="md-nav__link md-nav__link--active" for="__toc">
-          
-  
-  <span class="md-ellipsis">
-    Redis Events
-  </span>
-  
-
-          <span class="md-nav__icon md-icon"></span>
-        </label>
-      
-      <a href="./" class="md-nav__link md-nav__link--active">
+    <li class="md-nav__item">
+      <a href="../redis_events/" class="md-nav__link">
         
   
   <span class="md-ellipsis">
@@ -628,77 +747,6 @@
   
 
       </a>
-      
-        
-
-<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
-  
-  
-  
-    
-  
-  
-    <label class="md-nav__title" for="__toc">
-      <span class="md-nav__icon md-icon"></span>
-      Table of contents
-    </label>
-    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
-      
-        <li class="md-nav__item">
-  <a href="#description" class="md-nav__link">
-    <span class="md-ellipsis">
-      Description
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#configuration" class="md-nav__link">
-    <span class="md-ellipsis">
-      Configuration
-    </span>
-  </a>
-  
-    <nav class="md-nav" aria-label="Configuration">
-      <ul class="md-nav__list">
-        
-          <li class="md-nav__item">
-  <a href="#plugin-deployment" class="md-nav__link">
-    <span class="md-ellipsis">
-      Plugin deployment
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#status-endpoints" class="md-nav__link">
-    <span class="md-ellipsis">
-      Status Endpoints
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#basic-flow-diagrams" class="md-nav__link">
-    <span class="md-ellipsis">
-      Basic Flow Diagrams
-    </span>
-  </a>
-  
-</li>
-        
-      </ul>
-    </nav>
-  
-</li>
-      
-    </ul>
-  
-</nav>
-      
     </li>
   
 
@@ -896,6 +944,30 @@
     </span>
   </a>
   
+    <nav class="md-nav" aria-label="Description">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#operations" class="md-nav__link">
+    <span class="md-ellipsis">
+      Operations
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#developer-notes" class="md-nav__link">
+    <span class="md-ellipsis">
+      Developer Notes
+    </span>
+  </a>
+  
 </li>
       
         <li class="md-nav__item">
@@ -909,27 +981,9 @@
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
-  <a href="#plugin-deployment" class="md-nav__link">
+  <a href="#running-with-the-configuration" class="md-nav__link">
     <span class="md-ellipsis">
-      Plugin deployment
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#status-endpoints" class="md-nav__link">
-    <span class="md-ellipsis">
-      Status Endpoints
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#basic-flow-diagrams" class="md-nav__link">
-    <span class="md-ellipsis">
-      Basic Flow Diagrams
+      Running with the configuration
     </span>
   </a>
   
@@ -937,6 +991,48 @@
         
       </ul>
     </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#testing" class="md-nav__link">
+    <span class="md-ellipsis">
+      Testing
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Testing">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#unit-tests" class="md-nav__link">
+    <span class="md-ellipsis">
+      Unit Tests
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#integration-tests" class="md-nav__link">
+    <span class="md-ellipsis">
+      Integration Tests
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#deploy" class="md-nav__link">
+    <span class="md-ellipsis">
+      Deploy
+    </span>
+  </a>
   
 </li>
       
@@ -958,170 +1054,94 @@
   
 
 
-<h1 id="redis-events">Redis Events<a class="headerlink" href="#redis-events" title="Permanent link">&para;</a></h1>
+<h1 id="didcheqd-plugin">did:cheqd Plugin<a class="headerlink" href="#didcheqd-plugin" title="Permanent link">&para;</a></h1>
 <h2 id="description">Description<a class="headerlink" href="#description" title="Permanent link">&para;</a></h2>
-<p>This plugin provides mechanism to persist both inbound and outbound messages, deliver messages and webhooks, and dispatch events.</p>
-<p>For receiving inbound messages, you have an option to either setup a mediator or a relay [supports <a href="https://github.com/hyperledger/aries-rfcs/tree/main/features/0092-transport-return-route#aries-rfc-0092-transports-return-route">direct response</a>].</p>
-<pre class="mermaid"><code>  flowchart LR;
-      InboundMsg([Inbound Msg])--&gt;Mediator;
-      Mediator--&gt;InboundQueue[(Inbound Queue)];
-      InboundQueue--&gt;YourAgent{{Your Agent}};</code></pre>
-<p>For the relay scenario:</p>
-<pre class="mermaid"><code>  flowchart LR;
-      InboundMsg([Inbound Msg])--&gt;Relay;
-      Relay--&gt;InboundQueue[(Inbound Queue)];
-      InboundQueue--&gt;YourAgent{{Your Agent}};</code></pre>
-<p>The <code>deliverer</code> service dispatches the outbound messages and webhooks. For the <code>events</code>, the payload is pushed to the relevant Redis LIST [for the topic name, refer to <a href="#plugin-configuration">event.event_topic_maps</a>] and further action is delegated to the controllers.</p>
-<p>For the outbound scenario:</p>
-<pre class="mermaid"><code>  flowchart LR;
-      YourAgent{{Your Agent}}--&gt;OutboundQueue[(Outbound Queue)];
-      OutboundQueue--&gt;Deliverer;
-      Deliverer--&gt;OutboundMsg([Outbound Msg]);</code></pre>
-<p>The code for the Deliverer and Relay processes are in the <code>redis_events.v1_0.services.deliverer</code> and <code>redis_events.v1_0.services.redis_relay</code> directories, respectively. The <code>redis_events.v1_0.status_endpoint</code> directory contains code for health endpoints that is used by both of these processes.</p>
-<p>The <code>docker</code> <a href="https://github.com/hyperledger/aries-acapy-plugins/blob/main/redis_events/docker">directory</a> contains a dockerfile (and instructions) for running ACA-Py with the redis plugin.</p>
+<p>This plugin contains the components needed for ACA-Py to use <a href="https://cheqd.io">did:cheqd</a> method for did creation and Anoncreds issuance, presentation and revocation. It also contains the Base class definitions for <code>DIDRegistrar</code> and <code>DIDManager</code>. </p>
+<h3 id="operations">Operations<a class="headerlink" href="#operations" title="Permanent link">&para;</a></h3>
+<p>The did:cheqd Manager plugin supports following new endpoints:</p>
+<ol>
+<li>POST /did/cheqd/create</li>
+<li>POST /did/cheqd/update</li>
+<li>POST /did/cheqd/deactivate</li>
+</ol>
+<p>The did:cheqd Manager plugin supports <code>did:cheqd</code> for the following existing endpoints:</p>
+<ol>
+<li>POST /anoncreds/schema</li>
+<li>POST /anoncreds/credential-definition</li>
+<li>POST /anoncreds/revocation/revoke</li>
+<li>GET /resolver/resolve/{did}</li>
+<li>GET /wallet/did</li>
+<li>GET /wallet/did/public</li>
+</ol>
+<h2 id="developer-notes">Developer Notes<a class="headerlink" href="#developer-notes" title="Permanent link">&para;</a></h2>
+<p>The best way to develop and test this plugin is to use the DevContainer configured in this repository (configurations provided in the <code>.devcontainer</code> folder).</p>
+<ul>
+<li>Open devcontainer in VS Code.</li>
+<li>Python and all dependencies will be loaded.</li>
+<li>Poetry will be loaded and configured, dependencies will be installed.</li>
+<li>Docker and Docker Compose will be available.</li>
+</ul>
 <h2 id="configuration">Configuration<a class="headerlink" href="#configuration" title="Permanent link">&para;</a></h2>
-<p>The redis events plugin is configured using an external yaml file. An example yaml configuration is:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="nt">redis_queue</span><span class="p">:</span>
-<a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a><span class="w">  </span><span class="nt">connection</span><span class="p">:</span>
-<a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a><span class="w">    </span><span class="nt">connection_url</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;redis://default:test1234@172.28.0.103:6379&quot;</span>
-<a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a>
-<a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a><span class="w">  </span><span class="c1">### For Inbound ###</span>
-<a id="__codelineno-0-6" name="__codelineno-0-6" href="#__codelineno-0-6"></a><span class="w">  </span><span class="nt">inbound</span><span class="p">:</span>
-<a id="__codelineno-0-7" name="__codelineno-0-7" href="#__codelineno-0-7"></a><span class="w">    </span><span class="nt">acapy_inbound_topic</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;acapy_inbound&quot;</span>
-<a id="__codelineno-0-8" name="__codelineno-0-8" href="#__codelineno-0-8"></a><span class="w">    </span><span class="nt">acapy_direct_resp_topic</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;acapy_inbound_direct_resp&quot;</span>
+<ul>
+<li>The plugin expects a DID Registrar and a DID Resolver URL to be provided. It is recommended that the registrar and resolver are run locally. The URLs can be passed via <code>plugin-config.yml</code>.</li>
+<li>The plugin works only with <code>askar-anoncreds</code> wallet type.</li>
+<li>Using a Postgres DB as wallet storage type is also recommended.</li>
+</ul>
+<h3 id="running-with-the-configuration">Running with the configuration<a class="headerlink" href="#running-with-the-configuration" title="Permanent link">&para;</a></h3>
+<p>An example configuration for the plugin can be found in <a href="./docker/default.yml">default.yml</a></p>
+<h4 id="pre-requisites">Pre-requisites<a class="headerlink" href="#pre-requisites" title="Permanent link">&para;</a></h4>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="c1"># Install the plugin locally</span>
+<a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a>pip<span class="w"> </span>install<span class="w"> </span>-e<span class="w"> </span>.
+<a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a>
+<a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a><span class="c1"># If using local Cheqd DID registrar, set the environment variables</span>
+<a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a><span class="nb">export</span><span class="w"> </span><span class="nv">FEE_PAYER_TESTNET_MNEMONIC</span><span class="o">=</span><span class="s2">&quot;...&quot;</span>
+<a id="__codelineno-0-6" name="__codelineno-0-6" href="#__codelineno-0-6"></a><span class="nb">export</span><span class="w"> </span><span class="nv">FEE_PAYER_MAINNET_MNEMONIC</span><span class="o">=</span><span class="s2">&quot;...&quot;</span>
+<a id="__codelineno-0-7" name="__codelineno-0-7" href="#__codelineno-0-7"></a><span class="c1"># start the registrar, resolver and postgres-db services locally, if needed</span>
+<a id="__codelineno-0-8" name="__codelineno-0-8" href="#__codelineno-0-8"></a>docker-compose<span class="w"> </span>-f<span class="w"> </span>./docker/docker-compose.yml<span class="w"> </span>up<span class="w"> </span>-d
 <a id="__codelineno-0-9" name="__codelineno-0-9" href="#__codelineno-0-9"></a>
-<a id="__codelineno-0-10" name="__codelineno-0-10" href="#__codelineno-0-10"></a><span class="w">  </span><span class="c1">### For Outbound ###</span>
-<a id="__codelineno-0-11" name="__codelineno-0-11" href="#__codelineno-0-11"></a><span class="w">  </span><span class="nt">outbound</span><span class="p">:</span>
-<a id="__codelineno-0-12" name="__codelineno-0-12" href="#__codelineno-0-12"></a><span class="w">    </span><span class="nt">acapy_outbound_topic</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;acapy_outbound&quot;</span>
-<a id="__codelineno-0-13" name="__codelineno-0-13" href="#__codelineno-0-13"></a><span class="w">    </span><span class="nt">mediator_mode</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">false</span>
-<a id="__codelineno-0-14" name="__codelineno-0-14" href="#__codelineno-0-14"></a>
-<a id="__codelineno-0-15" name="__codelineno-0-15" href="#__codelineno-0-15"></a><span class="w">  </span><span class="c1">### For Event ###</span>
-<a id="__codelineno-0-16" name="__codelineno-0-16" href="#__codelineno-0-16"></a><span class="w">  </span><span class="nt">event</span><span class="p">:</span>
-<a id="__codelineno-0-17" name="__codelineno-0-17" href="#__codelineno-0-17"></a><span class="w">    </span><span class="nt">event_topic_maps</span><span class="p">:</span>
-<a id="__codelineno-0-18" name="__codelineno-0-18" href="#__codelineno-0-18"></a><span class="w">      </span><span class="nt">^acapy::webhook::(.*)$</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">acapy-webhook-$wallet_id</span>
-<a id="__codelineno-0-19" name="__codelineno-0-19" href="#__codelineno-0-19"></a><span class="w">      </span><span class="l l-Scalar l-Scalar-Plain">^acapy::record::([^:]*)::([^:]*)$</span><span class="p p-Indicator">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">acapy-record-with-state-$wallet_id</span>
-<a id="__codelineno-0-20" name="__codelineno-0-20" href="#__codelineno-0-20"></a><span class="w">      </span><span class="l l-Scalar l-Scalar-Plain">^acapy::record::([^:])?</span><span class="p p-Indicator">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">acapy-record-$wallet_id</span>
-<a id="__codelineno-0-21" name="__codelineno-0-21" href="#__codelineno-0-21"></a><span class="w">      </span><span class="nt">acapy::basicmessage::received</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">acapy-basicmessage-received</span>
-<a id="__codelineno-0-22" name="__codelineno-0-22" href="#__codelineno-0-22"></a><span class="w">      </span><span class="nt">acapy::problem_report</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">acapy-problem_report</span>
-<a id="__codelineno-0-23" name="__codelineno-0-23" href="#__codelineno-0-23"></a><span class="w">      </span><span class="nt">acapy::ping::received</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">acapy-ping-received</span>
-<a id="__codelineno-0-24" name="__codelineno-0-24" href="#__codelineno-0-24"></a><span class="w">      </span><span class="nt">acapy::ping::response_received</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">acapy-ping-response_received</span>
-<a id="__codelineno-0-25" name="__codelineno-0-25" href="#__codelineno-0-25"></a><span class="w">      </span><span class="nt">acapy::actionmenu::received</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">acapy-actionmenu-received</span>
-<a id="__codelineno-0-26" name="__codelineno-0-26" href="#__codelineno-0-26"></a><span class="w">      </span><span class="nt">acapy::actionmenu::get-active-menu</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">acapy-actionmenu-get-active-menu</span>
-<a id="__codelineno-0-27" name="__codelineno-0-27" href="#__codelineno-0-27"></a><span class="w">      </span><span class="nt">acapy::actionmenu::perform-menu-action</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">acapy-actionmenu-perform-menu-action</span>
-<a id="__codelineno-0-28" name="__codelineno-0-28" href="#__codelineno-0-28"></a><span class="w">      </span><span class="nt">acapy::keylist::updated</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">acapy-keylist-updated</span>
-<a id="__codelineno-0-29" name="__codelineno-0-29" href="#__codelineno-0-29"></a><span class="w">      </span><span class="nt">acapy::revocation-notification::received</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">acapy-revocation-notification-received</span>
-<a id="__codelineno-0-30" name="__codelineno-0-30" href="#__codelineno-0-30"></a><span class="w">      </span><span class="nt">acapy::revocation-notification-v2::received</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">acapy-revocation-notification-v2-received</span>
-<a id="__codelineno-0-31" name="__codelineno-0-31" href="#__codelineno-0-31"></a><span class="w">      </span><span class="nt">acapy::forward::received</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">acapy-forward-received</span>
-<a id="__codelineno-0-32" name="__codelineno-0-32" href="#__codelineno-0-32"></a><span class="w">    </span><span class="nt">event_webhook_topic_maps</span><span class="p">:</span>
-<a id="__codelineno-0-33" name="__codelineno-0-33" href="#__codelineno-0-33"></a><span class="w">      </span><span class="nt">acapy::basicmessage::received</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">basicmessages</span>
-<a id="__codelineno-0-34" name="__codelineno-0-34" href="#__codelineno-0-34"></a><span class="w">      </span><span class="nt">acapy::problem_report</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">problem_report</span>
-<a id="__codelineno-0-35" name="__codelineno-0-35" href="#__codelineno-0-35"></a><span class="w">      </span><span class="nt">acapy::ping::received</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">ping</span>
-<a id="__codelineno-0-36" name="__codelineno-0-36" href="#__codelineno-0-36"></a><span class="w">      </span><span class="nt">acapy::ping::response_received</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">ping</span>
-<a id="__codelineno-0-37" name="__codelineno-0-37" href="#__codelineno-0-37"></a><span class="w">      </span><span class="nt">acapy::actionmenu::received</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">actionmenu</span>
-<a id="__codelineno-0-38" name="__codelineno-0-38" href="#__codelineno-0-38"></a><span class="w">      </span><span class="nt">acapy::actionmenu::get-active-menu</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">get-active-menu</span>
-<a id="__codelineno-0-39" name="__codelineno-0-39" href="#__codelineno-0-39"></a><span class="w">      </span><span class="nt">acapy::actionmenu::perform-menu-action</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">perform-menu-action</span>
-<a id="__codelineno-0-40" name="__codelineno-0-40" href="#__codelineno-0-40"></a><span class="w">      </span><span class="nt">acapy::keylist::updated</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">keylist</span>
-<a id="__codelineno-0-41" name="__codelineno-0-41" href="#__codelineno-0-41"></a><span class="w">    </span><span class="nt">deliver_webhook</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">true</span>
+<a id="__codelineno-0-10" name="__codelineno-0-10" href="#__codelineno-0-10"></a><span class="c1"># For first time only, provision the wallet</span>
+<a id="__codelineno-0-11" name="__codelineno-0-11" href="#__codelineno-0-11"></a>aca-py<span class="w"> </span>provision<span class="w"> </span>--arg-file<span class="w"> </span>./docker/provision.yml
 </code></pre></div>
-<p>The configuration parameters in the above example are:</p>
-<p>Connection:</p>
+<h4 id="running-the-plugin">Running the plugin<a class="headerlink" href="#running-the-plugin" title="Permanent link">&para;</a></h4>
 <ul>
-<li><code>redis_queue.connection.connection_url</code>: This is required and is expected in <code>redis://{username}:{password}@{host}:{port}</code> format.</li>
+<li>If you are using your own DID registrar and resolver, update the urls in <a href="./docker/plugin-config.yml">plugin-config.yml</a> file.</li>
 </ul>
-<p>Inbound:</p>
-<ul>
-<li><code>redis_queue.inbound.acapy_inbound_topic</code>: This is the topic prefix for the inbound message queues. Recipient key of the message are also included in the complete topic name. The final topic will be in the following format <code>acapy_inbound_{recip_key}</code></li>
-<li><code>redis_queue.inbound.acapy_direct_resp_topic</code>: Queue topic name for direct responses to inbound message.</li>
-</ul>
-<p>Outbound:</p>
-<ul>
-<li><code>redis_queue.outbound.acapy_outbound_topic</code>: Queue topic name for the outbound messages. Used by Deliverer service to deliver the payloads to specified endpoint.</li>
-<li><code>redis_queue.outbound.mediator_mode</code>: Set to true, if using Redis as a http bridge when setting up a mediator agent. By default, it is set to false.</li>
-</ul>
-<p>Events:</p>
-<ul>
-<li><code>event.event_topic_maps</code>: Event topic map</li>
-<li><code>event.event_webhook_topic_maps</code>: Event to webhook topic map</li>
-<li><code>event.deliver_webhook</code>: When set to true, this will deliver webhooks to endpoints specified in <code>admin.webhook_urls</code>. By default, set to true.</li>
-</ul>
-<h3 id="plugin-deployment">Plugin deployment<a class="headerlink" href="#plugin-deployment" title="Permanent link">&para;</a></h3>
-<p>Once the plugin config is defined, it is possible to deploy the plugin inside ACA-Py.</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a>aca-py<span class="w"> </span>start<span class="w"> </span><span class="se">\</span>
-<a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a><span class="w">    </span>--plugin<span class="w"> </span>redis_events.v1_0.redis_queue.events<span class="w"> </span><span class="se">\</span>
-<a id="__codelineno-1-3" name="__codelineno-1-3" href="#__codelineno-1-3"></a><span class="w">    </span>--plugin-config<span class="w"> </span>plugins-config.yaml<span class="w"> </span><span class="se">\</span>
-<a id="__codelineno-1-4" name="__codelineno-1-4" href="#__codelineno-1-4"></a><span class="w">    </span>-it<span class="w"> </span>redis_events.v1_0.redis_queue.inbound<span class="w"> </span>redis<span class="w"> </span><span class="m">0</span><span class="w"> </span>-ot<span class="w"> </span>redis_events.v1_0.redis_queue.outbound
-<a id="__codelineno-1-5" name="__codelineno-1-5" href="#__codelineno-1-5"></a><span class="w">    </span><span class="c1"># ... the remainder of your startup arguments</span>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a><span class="c1"># Then start with same wallet config</span>
+<a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a>aca-py<span class="w"> </span>start<span class="w"> </span>--arg-file<span class="w"> </span>./docker/default.yml
 </code></pre></div>
-<h3 id="status-endpoints">Status Endpoints<a class="headerlink" href="#status-endpoints" title="Permanent link">&para;</a></h3>
-<p><code>Relay</code> and <code>Deliverer</code> service have the following service endpoints available:</p>
-<ul>
-<li><code>GET</code> &emsp; <code>http://{STATUS_ENDPOINT_HOST}:{STATUS_ENDPOINT_PORT}/status/ready</code></li>
-<li><code>GET</code> &emsp; <code>http://{STATUS_ENDPOINT_HOST}:{STATUS_ENDPOINT_PORT}/status/live</code></li>
-</ul>
-<p>The configuration for the endpoint service can be provided as following for <code>relay</code> and <code>deliverer</code>. The API KEY should be provided in the header with <code>access_token</code> as key name.</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a><span class="nt">environment</span><span class="p">:</span>
-<a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a><span class="w">    </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">STATUS_ENDPOINT_HOST=0.0.0.0</span>
-<a id="__codelineno-2-3" name="__codelineno-2-3" href="#__codelineno-2-3"></a><span class="w">    </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">STATUS_ENDPOINT_PORT=7001</span>
-<a id="__codelineno-2-4" name="__codelineno-2-4" href="#__codelineno-2-4"></a><span class="w">    </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">STATUS_ENDPOINT_API_KEY=test_api_key_1</span>
+<h2 id="testing">Testing<a class="headerlink" href="#testing" title="Permanent link">&para;</a></h2>
+<h3 id="unit-tests">Unit Tests<a class="headerlink" href="#unit-tests" title="Permanent link">&para;</a></h3>
+<p><div class="highlight"><pre><span></span><code><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a><span class="c1"># Run the tests using following</span>
+<a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a>poetry<span class="w"> </span>run<span class="w"> </span>pytest
 </code></pre></div>
-<h3 id="basic-flow-diagrams">Basic Flow Diagrams<a class="headerlink" href="#basic-flow-diagrams" title="Permanent link">&para;</a></h3>
-<p>Relay:</p>
-<pre class="mermaid"><code>  sequenceDiagram
-    box Alice
-    participant A as Alice
-    end
-    box Bob
-    participant R as Relay
-    participant IRQ as Inbound [Redis Queue]
-    participant ACA as ACA-PY Agent
-    participant ORQ as Outbound [Redis Queue]
-    participant D as Deliverer
-    end
-        A-&gt;&gt;R: 
-        R-&gt;&gt;IRQ: 
-        ACA-&gt;&gt;IRQ: consume 
-        ACA-&gt;&gt;ACA: process 
-        ACA-&gt;&gt;ORQ: 
-        D-&gt;&gt;ORQ: consume 
-        D-&gt;&gt;A: </code></pre>
-<p>Mediator:</p>
-<pre class="mermaid"><code>  sequenceDiagram
-  box Alice
-  participant A as Alice
-  participant ACAM as ACA-PY Mediator
-  end
-  box Bob
-  participant IRQ as Inbound [Redis Queue]
-  participant ACA as ACA-PY Agent
-  participant ORQ as Outbound [Redis Queue]
-  participant D as Deliverer
-  end
-      A-&gt;&gt;ACAM: 
-      ACAM-&gt;&gt;IRQ: 
-      ACA-&gt;&gt;IRQ: consume
-      ACA-&gt;&gt;ACA: process
-      ACA-&gt;&gt;ORQ: 
-      D-&gt;&gt;ORQ: consume
-      D-&gt;&gt;A: </code></pre>
-<p>Relay - Direct Response:</p>
-<pre class="mermaid"><code>  sequenceDiagram
-    box Alice
-    participant A as Alice
-    end
-    box Bob
-    participant R as Relay
-    participant IRQ as Inbound [Redis Queue]
-    participant ACA as ACA-PY Agent
-    participant ORQ as Outbound [Redis Queue]
-    participant D as Deliverer
-    end
-        A-&gt;&gt;R: 
-        R-&gt;&gt;IRQ: 
-        ACA-&gt;&gt;IRQ: consume 
-        ACA-&gt;&gt;ACA: process 
-        ACA-&gt;&gt;IRQ: inbound response 
-        R-&gt;&gt;IRQ: consume 
-        R-&gt;&gt;A: </code></pre>
+A coverage report is created when ran from the devcontainer. </p>
+<h3 id="integration-tests">Integration Tests<a class="headerlink" href="#integration-tests" title="Permanent link">&para;</a></h3>
+<p>All integrations tests and configurations are in <code>integration</code> folder.
+To run the integration tests:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a><span class="nb">cd</span><span class="w"> </span>integration
+<a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a>./run_integration_tests.sh
+</code></pre></div>
+<h2 id="deploy">Deploy<a class="headerlink" href="#deploy" title="Permanent link">&para;</a></h2>
+<p>For production use, this plugin should be installed as libraries to an ACA-Py image.</p>
+<p>This requires having a Dockerfile and a config file for your agent.</p>
+<p>Example Dockerfile:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a><span class="k">FROM</span><span class="w"> </span><span class="s">ghcr.io/openwallet-foundation/acapy:py3.12-1.1.0</span>
+<a id="__codelineno-4-2" name="__codelineno-4-2" href="#__codelineno-4-2"></a>
+<a id="__codelineno-4-3" name="__codelineno-4-3" href="#__codelineno-4-3"></a><span class="k">USER</span><span class="w"> </span><span class="s">root</span>
+<a id="__codelineno-4-4" name="__codelineno-4-4" href="#__codelineno-4-4"></a>
+<a id="__codelineno-4-5" name="__codelineno-4-5" href="#__codelineno-4-5"></a><span class="c"># install plugins as binaries</span>
+<a id="__codelineno-4-6" name="__codelineno-4-6" href="#__codelineno-4-6"></a><span class="k">RUN</span><span class="w"> </span>pip<span class="w"> </span>install<span class="w"> </span>git+https://github.com/openwallet-foundation/acapy-plugins@main#subdirectory<span class="o">=</span>cheqd
+<a id="__codelineno-4-7" name="__codelineno-4-7" href="#__codelineno-4-7"></a>
+<a id="__codelineno-4-8" name="__codelineno-4-8" href="#__codelineno-4-8"></a><span class="k">USER</span><span class="w"> </span><span class="s">$user</span>
+<a id="__codelineno-4-9" name="__codelineno-4-9" href="#__codelineno-4-9"></a><span class="k">COPY</span><span class="w"> </span>./configs<span class="w"> </span>configs
+<a id="__codelineno-4-10" name="__codelineno-4-10" href="#__codelineno-4-10"></a>
+<a id="__codelineno-4-11" name="__codelineno-4-11" href="#__codelineno-4-11"></a><span class="k">ENTRYPOINT</span><span class="w"> </span><span class="p">[</span><span class="s2">&quot;aca-py&quot;</span><span class="p">]</span>
+</code></pre></div>
+<p>An example config file is provided <a href="./docker/default.yml">here</a>.</p>
+<p>Now you can deploy a agent with as many plugins as you want as long as they are declared in your build config file and installed.</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a>docker<span class="w"> </span>build<span class="w"> </span>-f<span class="w"> </span>&lt;Dockerfile&gt;<span class="w"> </span>--tag<span class="w"> </span>cheqd<span class="w"> </span>.
+<a id="__codelineno-5-2" name="__codelineno-5-2" href="#__codelineno-5-2"></a>docker<span class="w"> </span>run<span class="w"> </span>-it<span class="w"> </span>-p<span class="w"> </span><span class="m">8020</span>:8020<span class="w"> </span>-p<span class="w"> </span><span class="m">8021</span>:8021<span class="w"> </span>--rm<span class="w"> </span>cheqd<span class="w"> </span>start<span class="w"> </span>--arg-file<span class="o">=</span>&lt;config-file&gt;<span class="w"> </span>--&gt;
+</code></pre></div>
 
 
 
@@ -1157,7 +1177,7 @@
       <nav class="md-footer__inner md-grid" aria-label="Footer" >
         
           
-          <a href="../oid4vc/" class="md-footer__link md-footer__link--prev" aria-label="Previous: OpenID4VCI Plugin for ACA-Py">
+          <a href="../basicmessage_storage/" class="md-footer__link md-footer__link--prev" aria-label="Previous: Basic Message Storage">
             <div class="md-footer__button md-icon">
               
               <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11h12Z"/></svg>
@@ -1167,20 +1187,20 @@
                 Previous
               </span>
               <div class="md-ellipsis">
-                OpenID4VCI Plugin for ACA-Py
+                Basic Message Storage
               </div>
             </div>
           </a>
         
         
           
-          <a href="../rpc/" class="md-footer__link md-footer__link--next" aria-label="Next: DIDComm RPC">
+          <a href="../connection_update/" class="md-footer__link md-footer__link--next" aria-label="Next: Connection Update">
             <div class="md-footer__title">
               <span class="md-footer__direction">
                 Next
               </span>
               <div class="md-ellipsis">
-                DIDComm RPC
+                Connection Update
               </div>
             </div>
             <div class="md-footer__button md-icon">
