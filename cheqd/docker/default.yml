@@ -1,0 +1,54 @@
+# see: https://pypi.org/project/ConfigArgParse/ for file format overview
+# this runs aca-py with a minumum set of parameters
+# run as:
+#    ./bin/aca-py start --arg-file ./docker/default.yml
+label: cheqd
+
+log-level: DEBUG
+auto-provision: true
+
+# Admin
+admin: [0.0.0.0, 8021]
+admin-insecure-mode: true
+
+# Transport
+inbound-transport:
+  - [http, 0.0.0.0, 8020]
+  - [ws, 0.0.0.0, 8022]
+outbound-transport: http
+endpoint:
+  - http://localhost:8020
+  - ws://localhost:8022
+
+plugin:
+  - cheqd
+# Plugin options
+plugin-config: ./docker/plugin-config.yml
+
+# Ledger
+no-ledger: true
+
+# Connections
+debug-connections: true
+debug-credentials: true
+debug-presentations: true
+auto-accept-invites: true
+auto-accept-requests: true
+
+# Credentials and Presentations
+preserve-exchange-records: true
+auto-store-credential: true
+auto-respond-credential-proposal: true
+auto-respond-credential-offer: true
+auto-respond-credential-request: true
+auto-respond-presentation-proposal: true
+auto-respond-presentation-request: true
+auto-verify-presentation: true
+
+# Wallet
+wallet-name: cheq-1
+wallet-type: askar-anoncreds
+wallet-key: "cheq-1"
+wallet-storage-type: postgres_storage
+wallet-storage-creds: '{"account":"postgres","password":"postgres","admin_account":"postgres","admin_password":"postgres"}'
+wallet-storage-config: '{"url":"localhost:5432","max_connections":5}'
