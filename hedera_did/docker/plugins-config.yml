@@ -1,0 +1,4 @@
+hedera_did:
+  operator_id: <OPERATOR_ID>
+  operator_key_der: <OPERATOR_KEY_DER>
+  network: <NETWORK>
