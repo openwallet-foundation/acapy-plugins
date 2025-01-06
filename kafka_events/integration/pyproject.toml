@@ -8,7 +8,7 @@ license = "Apache-2.0"
 [tool.poetry.dependencies]
 python = "^3.9"
 pytest = "^8.2.2"
-pytest-asyncio = "~0.23.7"
+pytest-asyncio = "~0.25.1"
 requests = "^2.32.0"
 pytest-cov = "^5.0.0"
 acapy-client = { git = "https://github.com/indicio-tech/acapy-client.git", branch = "acapy/main" }
@@ -27,3 +27,4 @@ pre-commit = "^2.13.0"
 [build-system]
 requires = ["poetry-core>=1.0.0"]
 build-backend = "poetry.core.masonry.api"
+

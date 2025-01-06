@@ -226,29 +226,29 @@ yaml = ["PyYAML (>=3.10)"]
 
 [[package]]
 name = "aries-askar"
-version = "0.3.2"
+version = "0.4.1"
 description = ""
 optional = false
 python-versions = ">=3.6.3"
 files = [
-    {file = "aries_askar-0.3.2-py3-none-macosx_10_9_universal2.whl", hash = "sha256:02ddbe1773ce72c57edafff5777a1337d4a678da7484596712949170fb3ca1dc"},
-    {file = "aries_askar-0.3.2-py3-none-manylinux2014_aarch64.whl", hash = "sha256:176eebcf833bb9974a162fd931c8d67669e4f0145b351ce9cb1289fd2d5a345c"},
-    {file = "aries_askar-0.3.2-py3-none-manylinux2014_x86_64.whl", hash = "sha256:63f9ab97db4778ced830a6d1135e1f8bd1ca564de27218bd114f1cffbd31b04c"},
-    {file = "aries_askar-0.3.2-py3-none-win_amd64.whl", hash = "sha256:6b4253377d5ed167ed94790e49c58584b68f897d2541ac4bb18fd37e9264164b"},
+    {file = "aries_askar-0.4.1-py3-none-macosx_10_9_universal2.whl", hash = "sha256:657548592a5ecd7767d4f70830f639ec394801019a9b9739326e6b816a15e71c"},
+    {file = "aries_askar-0.4.1-py3-none-manylinux2014_aarch64.whl", hash = "sha256:f0db2275a816b7284187be0aa6767ca14153a19ffe215a95c555a65ba8365ed6"},
+    {file = "aries_askar-0.4.1-py3-none-manylinux2014_x86_64.whl", hash = "sha256:3a8a5be123081f47c94a6de5f50672f5a908e2a91ce0f3ec737403bd59874c91"},
+    {file = "aries_askar-0.4.1-py3-none-win_amd64.whl", hash = "sha256:6bba372124b42509da4deaa4784af867bc0c162286aea1f6e706228fc274bcb6"},
 ]
 
 [package.dependencies]
-cached-property = ">=1.5.2,<1.6.0"
+cached-property = ">=2.0.0,<2.1.0"
 
 [[package]]
 name = "aries-cloudagent"
-version = "0.12.2"
+version = "0.12.3"
 description = "Hyperledger Aries Cloud Agent Python (ACA-Py) is a foundation for building decentralized identity applications and services running in non-mobile environments."
 optional = true
 python-versions = "<4.0,>=3.9"
 files = [
-    {file = "aries_cloudagent-0.12.2-py3-none-any.whl", hash = "sha256:61e8a15a7c0c18d5f375bcd0c3ea56819fcbf71c94c10be3555cd8a6c59b5ad9"},
-    {file = "aries_cloudagent-0.12.2.tar.gz", hash = "sha256:6df07b3b2973110c5e364fdfd5bd05af1f2a116f7a3f1e3d2154d858875cd4bc"},
+    {file = "aries_cloudagent-0.12.3-py3-none-any.whl", hash = "sha256:69a586991d1be871474770a784c80f3d771cac5d5d77bef9c329a1b2cef692f3"},
+    {file = "aries_cloudagent-0.12.3.tar.gz", hash = "sha256:560b8e831c9f65471143644a90eea05e74c070559a29340fad65ed08063b747f"},
 ]
 
 [package.dependencies]
@@ -382,13 +382,13 @@ uvloop = ["uvloop (>=0.15.2)"]
 
 [[package]]
 name = "cached-property"
-version = "1.5.2"
+version = "2.0.1"
 description = "A decorator for caching properties in classes."
 optional = false
-python-versions = "*"
+python-versions = ">=3.8"
 files = [
-    {file = "cached-property-1.5.2.tar.gz", hash = "sha256:9fa5755838eecbb2d234c3aa390bd80fbd3ac6b6869109bfc1b499f7bd89a130"},
-    {file = "cached_property-1.5.2-py2.py3-none-any.whl", hash = "sha256:df4f613cf7ad9a588cc381aaf4a512d26265ecebd5eb9e1ba12f1319eb85a6a0"},
+    {file = "cached_property-2.0.1-py3-none-any.whl", hash = "sha256:f617d70ab1100b7bcf6e42228f9ddcb78c676ffa167278d9f730d1c2fba69ccb"},
+    {file = "cached_property-2.0.1.tar.gz", hash = "sha256:484d617105e3ee0e4f1f58725e72a8ef9e93deee462222dbd51cd91230897641"},
 ]
 
 [[package]]
@@ -2878,4 +2878,4 @@ aca-py = ["aries-cloudagent"]
 [metadata]
 lock-version = "2.0"
 python-versions = "^3.9"
-content-hash = "ac396f963355f5de0d1f527823c988942f32e006d261b8181d091d383a4bc9ba"
+content-hash = "97fd834b92302834d4643e9bcd9aac89a568e2ee06e4acf8b7dd0df8c999cb74"
