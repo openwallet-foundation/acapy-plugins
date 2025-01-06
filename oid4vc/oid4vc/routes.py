@@ -39,6 +39,7 @@ from marshmallow.validate import OneOf
 
 from oid4vc.cred_processor import CredProcessors
 from oid4vc.jwk import DID_JWK, P256
+from oid4vc.models.dcql_query import CredentialQuery, CredentialSetQuery, DCQLQuery
 from oid4vc.models.presentation import OID4VPPresentation, OID4VPPresentationSchema
 from oid4vc.models.presentation_definition import OID4VPPresDef, OID4VPPresDefSchema
 from oid4vc.models.request import OID4VPRequest, OID4VPRequestSchema
@@ -754,6 +755,13 @@ class CreateOID4VPReqRequestSchema(OpenAPISchema):
         },
     )
 
+    dcql_query_id = fields.Str(
+        required=False,
+        metadata={
+            "description": "Identifier used to identify DCQL query",
+        },
+    )
+
     vp_formats = fields.Dict(
         required=True,
         metadata={
@@ -775,17 +783,29 @@ async def create_oid4vp_request(request: web.Request):
     body = await request.json()
 
     async with context.session() as session:
-        req_record = OID4VPRequest(
-            pres_def_id=body["pres_def_id"], vp_formats=body["vp_formats"]
-        )
-        await req_record.save(session=session)
 
-        pres_record = OID4VPPresentation(
-            pres_def_id=body["pres_def_id"],
-            state=OID4VPPresentation.REQUEST_CREATED,
-            request_id=req_record.request_id,
-        )
-        await pres_record.save(session=session)
+        if pres_def_id := body.get("pres_def_id"):
+            req_record = OID4VPRequest(
+                pres_def_id=pres_def_id, vp_formats=body["vp_formats"]
+            )
+            await req_record.save(session=session)
+
+            pres_record = OID4VPPresentation(
+                pres_def_id=pres_def_id,
+                state=OID4VPPresentation.REQUEST_CREATED,
+                request_id=req_record.request_id,
+            )
+            await pres_record.save(session=session)
+
+        elif dcql_query_id := body.get("dcql_query_id"):
+            req_record = OID4VPRequest(
+                dcql_query_id=dcql_query_id, vp_formats=body["vp_formats"]
+            )
+            await req_record.save(session=session)
+        else:
+            raise web.HTTPBadRequest(
+                reason="One of pres_def_id or dcql_query_id must be provided"
+            )
 
     config = Config.from_settings(context.settings)
     wallet_id = (
@@ -804,6 +824,66 @@ async def create_oid4vp_request(request: web.Request):
             "presentation": pres_record.serialize(),
         }
     )
+
+
+class CreateDCQLQueryRequestSchema(OpenAPISchema):
+    """Request schema for creating a DCQL Query."""
+
+    credentials = fields.List(
+        # TODO Does this work? The API data will just be raw json, so the schema
+        # validation might not work the way I want it to ~ mepeltier
+        CredentialQuery,
+        required=True,
+        metadata={"description": "A list of Credential Queries."},
+    )
+
+    credentials = fields.List(
+        CredentialSetQuery,
+        required=False,
+        metadata={"description": "A list of Credential Set Queries."},
+    )
+
+
+class CreateDCQLQueryResponseSchema(OpenAPISchema):
+    """Response schema from creating a DCQL Query."""
+
+    dcql_query = fields.Dict(
+        required=True,
+        metadata={
+            "description": "The DCQL query.",
+        },
+    )
+
+
+@docs(
+    tags=["oid4vp"],
+    summary="Create a DCQL Query record.",
+)
+@request_schema(CreateDCQLQueryRequestSchema())
+@request_schema(CreateDCQLQueryResponseSchema())
+async def create_dcql_query(request: web.Request):
+    """."""
+
+    body = await request.json()
+    context: AdminRequestContext = request["context"]
+
+    credentials = body["credentials"]
+    credential_sets = body["credential_sets"]
+
+    async with context.session() as session:
+
+        dcql_query = DCQLQuery(credentials=credentials, credential_sets=credential_sets)
+        await dcql_query.save(session=session)
+
+    return web.json_response(
+        {
+            "dcql_query": dcql_query.serialize(),
+            "dcql_query_id": dcql_query.dcql_query_id,
+        }
+    )
+
+
+# TODO: Add the RUD parts of the CRUD interface ~ mepeltier
 
 
 class CreateOID4VPPresDefResponseSchema(OpenAPISchema):
