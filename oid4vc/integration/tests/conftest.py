@@ -75,8 +75,6 @@ async def offer(controller: Controller, issuer_did: str, supported_cred_id: str)
         "/oid4vci/credential-offer",
         params={"exchange_id": exchange["exchange_id"]},
     )
-    # print(f"\n\n\nTESTING: {offer}\n\n\n")
-    # offer_uri = offer["offer_uri"]
     yield offer
 
 
