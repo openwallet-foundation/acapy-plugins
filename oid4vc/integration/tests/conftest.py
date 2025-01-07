@@ -1,6 +1,4 @@
-import json
 from os import getenv
-from urllib.parse import quote, urlencode
 from uuid import uuid4
 
 from acapy_controller.controller import Controller
