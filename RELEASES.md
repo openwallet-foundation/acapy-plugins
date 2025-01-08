@@ -7,7 +7,7 @@
 |cheqd | 1.2.0|
 |connection_update | 1.2.0|
 |firebase_push_notifications | 1.2.0|
-|kafka_events | 1.1.1|
+|kafka_events | 0.12.3|
 |multitenant_provider | 1.2.0|
 |oid4vc | 1.2.0|
 |redis_events | 1.2.0|
