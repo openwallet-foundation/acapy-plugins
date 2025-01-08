@@ -1,7 +1,7 @@
 [tool.poetry]
 name = "redis_events"
 version = "0.1.0"
-description = "ACA-PY persisted events using Redis (Supported acapy-agent version: 1.1.0) "
+description = "ACA-PY persisted events using Redis (Supported acapy-agent version: 1.2.0) "
 authors = ["Shaanjot Gill <gill.shaanjots@gmail.com>"]
 
 [tool.poetry.dependencies]
@@ -9,7 +9,7 @@ python = "^3.12"
 
 # Define ACA-Py as an optional/extra dependency so it can be
 # explicitly installed with the plugin if desired.
-acapy-agent = { version = "~1.1.1", optional = true }
+acapy-agent = { version = "~1.2.0", optional = true }
 
 aiohttp = "^3.11.11"
 fastapi-slim = "^0.115.6"
