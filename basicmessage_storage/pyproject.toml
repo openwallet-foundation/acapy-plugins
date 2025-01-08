@@ -1,7 +1,7 @@
 [tool.poetry]
 name = "basicmessage_storage"
 version = "0.1.0"
-description = " (Supported acapy-agent version: 1.1.0) "
+description = " (Supported acapy-agent version: 1.1.1) "
 authors = ["Jason Sherman <tools@usingtechnolo.gy>"]
 
 [tool.poetry.dependencies]
