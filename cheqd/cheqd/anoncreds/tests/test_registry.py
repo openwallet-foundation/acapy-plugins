@@ -182,11 +182,14 @@ async def test_get_credential_definition(mock_profile, mock_resolver):
     credential_definition_id = "PART0/PART1/PART2"
 
     # Act
-    with patch(
-        "cheqd.cheqd.anoncreds.registry.CheqdDIDResolver", return_value=mock_resolver
-    ), patch(
-        "cheqd.cheqd.anoncreds.registry.CredDefValue.deserialize",
-        return_value={"MOCK_KEY": "MOCK_VALUE"},
+    with (
+        patch(
+            "cheqd.cheqd.anoncreds.registry.CheqdDIDResolver", return_value=mock_resolver
+        ),
+        patch(
+            "cheqd.cheqd.anoncreds.registry.CredDefValue.deserialize",
+            return_value={"MOCK_KEY": "MOCK_VALUE"},
+        ),
     ):
         registry = DIDCheqdRegistry()
         result = await registry.get_credential_definition(
@@ -260,11 +263,14 @@ async def test_get_revocation_registry_definition(mock_profile, mock_resolver):
     revocation_registry_id = "PART0/PART1/PART2"
 
     # Act
-    with patch(
-        "cheqd.cheqd.anoncreds.registry.CheqdDIDResolver", return_value=mock_resolver
-    ), patch(
-        "cheqd.cheqd.anoncreds.registry.RevRegDefValue.deserialize",
-        return_value={"MOCK_KEY": "MOCK_VALUE"},
+    with (
+        patch(
+            "cheqd.cheqd.anoncreds.registry.CheqdDIDResolver", return_value=mock_resolver
+        ),
+        patch(
+            "cheqd.cheqd.anoncreds.registry.RevRegDefValue.deserialize",
+            return_value={"MOCK_KEY": "MOCK_VALUE"},
+        ),
     ):
         registry = DIDCheqdRegistry()
         result = await registry.get_revocation_registry_definition(
@@ -293,13 +299,16 @@ async def test_register_revocation_registry_definition(
     mock_create_and_publish_resource,
 ):
     # Arrange
-    with patch(
-        "cheqd.cheqd.anoncreds.registry.DIDCheqdRegistry.get_credential_definition",
-        return_value=mock_get_credential_definition_result,
-    ), patch(
-        "cheqd.cheqd.anoncreds.registry.DIDCheqdRegistry._create_and_publish_resource",
-        return_value=mock_create_and_publish_resource,
-    ) as mock:
+    with (
+        patch(
+            "cheqd.cheqd.anoncreds.registry.DIDCheqdRegistry.get_credential_definition",
+            return_value=mock_get_credential_definition_result,
+        ),
+        patch(
+            "cheqd.cheqd.anoncreds.registry.DIDCheqdRegistry._create_and_publish_resource",
+            return_value=mock_create_and_publish_resource,
+        ) as mock,
+    ):
         # Act
         registry = DIDCheqdRegistry()
         result = await registry.register_revocation_registry_definition(
@@ -341,11 +350,14 @@ async def test_get_revocation_list(mock_profile, mock_resolver, mock_rev_reg_def
     revocation_registry_id = "PART0/PART1/PART2"
 
     # Act
-    with patch(
-        "cheqd.cheqd.anoncreds.registry.CheqdDIDResolver", return_value=mock_resolver
-    ), patch(
-        "cheqd.cheqd.anoncreds.registry.DIDCheqdRegistry.get_revocation_registry_definition",
-        AsyncMock(return_value=mock_rev_reg_def),
+    with (
+        patch(
+            "cheqd.cheqd.anoncreds.registry.CheqdDIDResolver", return_value=mock_resolver
+        ),
+        patch(
+            "cheqd.cheqd.anoncreds.registry.DIDCheqdRegistry.get_revocation_registry_definition",
+            AsyncMock(return_value=mock_rev_reg_def),
+        ),
     ):
         registry = DIDCheqdRegistry()
         result = await registry.get_revocation_list(
@@ -393,13 +405,16 @@ async def test_register_revocation_list(
     mock_get_revocation_registry_definition,
 ):
     # Arrange
-    with patch(
-        "cheqd.cheqd.anoncreds.registry.DIDCheqdRegistry.get_revocation_registry_definition",
-        AsyncMock(return_value=mock_get_revocation_registry_definition),
-    ) as mock1, patch(
-        "cheqd.cheqd.anoncreds.registry.DIDCheqdRegistry._create_and_publish_resource",
-        return_value=mock_create_and_publish_resource,
-    ) as mock2:
+    with (
+        patch(
+            "cheqd.cheqd.anoncreds.registry.DIDCheqdRegistry.get_revocation_registry_definition",
+            AsyncMock(return_value=mock_get_revocation_registry_definition),
+        ) as mock1,
+        patch(
+            "cheqd.cheqd.anoncreds.registry.DIDCheqdRegistry._create_and_publish_resource",
+            return_value=mock_create_and_publish_resource,
+        ) as mock2,
+    ):
         # Act
         registry = DIDCheqdRegistry()
         result = await registry.register_revocation_list(
@@ -438,13 +453,16 @@ async def test_update_revocation_list(
     mock_get_revocation_registry_definition,
 ):
     # Arrange
-    with patch(
-        "cheqd.cheqd.anoncreds.registry.DIDCheqdRegistry.get_revocation_registry_definition",
-        AsyncMock(return_value=mock_get_revocation_registry_definition),
-    ) as mock1, patch(
-        "cheqd.cheqd.anoncreds.registry.DIDCheqdRegistry._create_and_publish_resource",
-        return_value=mock_create_and_publish_resource,
-    ) as mock2:
+    with (
+        patch(
+            "cheqd.cheqd.anoncreds.registry.DIDCheqdRegistry.get_revocation_registry_definition",
+            AsyncMock(return_value=mock_get_revocation_registry_definition),
+        ) as mock1,
+        patch(
+            "cheqd.cheqd.anoncreds.registry.DIDCheqdRegistry._create_and_publish_resource",
+            return_value=mock_create_and_publish_resource,
+        ) as mock2,
+    ):
         # Act
         registry = DIDCheqdRegistry()
         result = await registry.update_revocation_list(

@@ -42,8 +42,13 @@ from acapy_agent.wallet.base import BaseWallet
 from acapy_agent.wallet.error import WalletError
 from acapy_agent.wallet.jwt import dict_to_b64
 
-from ..did.base import ResourceCreateRequestOptions, Secret, SigningResponse, SubmitSignatureOptions, \
-    ResourceUpdateRequestOptions
+from ..did.base import (
+    ResourceCreateRequestOptions,
+    Secret,
+    SigningResponse,
+    SubmitSignatureOptions,
+    ResourceUpdateRequestOptions,
+)
 from ..did.helpers import CheqdAnoncredsResourceType
 from ..did.manager import CheqdDIDManager
 from ..did.registrar import CheqdDIDRegistrar
@@ -105,13 +110,15 @@ class DIDCheqdRegistry(BaseAnonCredsResolver, BaseAnonCredsRegistrar):
         self.resolver = CheqdDIDResolver(resolver_url)
         print("Successfully registered DIDCheqdRegistry")
 
-    async def get_schema_info_by_schema_id(self, profile: Profile, schema_id: str) -> AnoncredsSchemaInfo:
-        """Get the schema info from the registry"""
+    async def get_schema_info_by_schema_id(
+        self, profile: Profile, schema_id: str
+    ) -> AnoncredsSchemaInfo:
+        """Get the schema info from the registry."""
         schema = self.get_schema(profile, schema_id)
         return {
             "issuer_id": schema.issuer_id,
             "name": schema.name,
-            "version": schema.version
+            "version": schema.version,
         }
 
     async def get_schema(self, _profile: Profile, schema_id: str) -> GetSchemaResult:
@@ -225,7 +232,7 @@ class DIDCheqdRegistry(BaseAnonCredsResolver, BaseAnonCredsRegistrar):
     ) -> CredDefResult:
         """Register a credential definition on the registry."""
         resource_type = CheqdAnoncredsResourceType.credentialDefinition
-        resource_name = f"{schema.schema_value.name}-{credential_definition.tag}" # TODO: max chars are 31, on exceeding this should be hashed
+        resource_name = f"{schema.schema_value.name}-{credential_definition.tag}"  # TODO: max chars are 31, on exceeding this should be hashed
 
         cred_def = ResourceCreateRequestOptions(
             name=resource_name,
@@ -310,7 +317,7 @@ class DIDCheqdRegistry(BaseAnonCredsResolver, BaseAnonCredsRegistrar):
             profile, revocation_registry_definition.cred_def_id
         )
         cred_def_res = cred_def_result.credential_definition_metadata.get("resourceName")
-        resource_name = f"{cred_def_res}-{revocation_registry_definition.tag}" # TODO: max chars are 31, on exceeding this should be hashed
+        resource_name = f"{cred_def_res}-{revocation_registry_definition.tag}"  # TODO: max chars are 31, on exceeding this should be hashed
 
         did = revocation_registry_definition.issuer_id
         resource_type = CheqdAnoncredsResourceType.revocationRegistryDefinition
@@ -522,7 +529,11 @@ class DIDCheqdRegistry(BaseAnonCredsResolver, BaseAnonCredsRegistrar):
 
     @staticmethod
     async def _create_and_publish_resource(
-        profile: Profile, registrar_url: str, resolver_url: str, did: str, options: ResourceCreateRequestOptions
+        profile: Profile,
+        registrar_url: str,
+        resolver_url: str,
+        did: str,
+        options: ResourceCreateRequestOptions,
     ) -> dict:
         """Create, Sign and Publish a Resource."""
         cheqd_manager = CheqdDIDManager(profile, registrar_url, resolver_url)
@@ -555,7 +566,7 @@ class DIDCheqdRegistry(BaseAnonCredsResolver, BaseAnonCredsRegistrar):
                         SubmitSignatureOptions(
                             jobId=job_id,
                             secret=Secret(signingResponse=signed_responses),
-                        )
+                        ),
                     )
                     resource_state = publish_resource_res.get("resourceState")
                     if resource_state.get("state") != "finished":
@@ -572,7 +583,11 @@ class DIDCheqdRegistry(BaseAnonCredsResolver, BaseAnonCredsRegistrar):
 
     @staticmethod
     async def _update_and_publish_resource(
-        profile: Profile, registrar_url: str, resolver_url: str, did: str, options: ResourceUpdateRequestOptions
+        profile: Profile,
+        registrar_url: str,
+        resolver_url: str,
+        did: str,
+        options: ResourceUpdateRequestOptions,
     ) -> dict:
         """Update, Sign and Publish a Resource."""
         cheqd_manager = CheqdDIDManager(profile, registrar_url, resolver_url)
@@ -605,7 +620,7 @@ class DIDCheqdRegistry(BaseAnonCredsResolver, BaseAnonCredsRegistrar):
                         SubmitSignatureOptions(
                             jobId=job_id,
                             secret=Secret(signingResponse=signed_responses),
-                        )
+                        ),
                     )
                     resource_state = publish_resource_res.get("resourceState")
                     if resource_state.get("state") != "finished":

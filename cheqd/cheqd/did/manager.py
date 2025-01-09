@@ -13,8 +13,13 @@ from acapy_agent.wallet.key_type import ED25519
 from acapy_agent.wallet.util import b58_to_bytes
 from aiohttp import web
 
-from .helpers import create_verification_keys, create_did_verification_method, VerificationMethods, create_did_payload, \
-    bytes_to_base64
+from .helpers import (
+    create_verification_keys,
+    create_did_verification_method,
+    VerificationMethods,
+    create_did_payload,
+    bytes_to_base64,
+)
 from ..did.base import (
     BaseDIDManager,
     CheqdDIDManagerError,
@@ -73,12 +78,18 @@ class CheqdDIDManager(BaseDIDManager):
                 key = await wallet.create_key(key_type, seed)
                 verkey = key.verkey
                 public_key_b64 = bytes_to_base64(verkey)
-                verification_method = options.get("verification_method") or VerificationMethods.Ed255192020
+                verification_method = (
+                    options.get("verification_method") or VerificationMethods.Ed255192020
+                )
 
                 # generate payload
                 verification_keys = create_verification_keys(public_key_b64, network)
-                verification_methods = create_did_verification_method([verification_method], [verification_keys])
-                did_document = create_did_payload(verification_methods, [verification_keys])
+                verification_methods = create_did_verification_method(
+                    [verification_method], [verification_keys]
+                )
+                did_document = create_did_payload(
+                    verification_methods, [verification_keys]
+                )
                 did: str = did_document.get("id")
 
                 # request create did
@@ -108,7 +119,7 @@ class CheqdDIDManager(BaseDIDManager):
                         DidCreateRequestOptions(
                             jobId=job_id,
                             options=Options(
-                              network=network,
+                                network=network,
                             ),
                             secret=Secret(
                                 signingResponse=signed_responses,
@@ -176,10 +187,7 @@ class CheqdDIDManager(BaseDIDManager):
                     # submit signed update
                     publish_did_res = await self.registrar.update(
                         ResourceUpdateRequestOptions(
-                            jobId= job_id,
-                            secret=Secret(
-                                signingResponse=signed_responses
-                            )
+                            jobId=job_id, secret=Secret(signingResponse=signed_responses)
                         )
                     )
                     publish_did_state = publish_did_res.get("didState")
@@ -232,8 +240,8 @@ class CheqdDIDManager(BaseDIDManager):
                         DidDeactivateRequestOptions(
                             jobId=job_id,
                             secret=Secret(
-                              signingResponse=signed_responses,
-                            )
+                                signingResponse=signed_responses,
+                            ),
                         )
                     )
 

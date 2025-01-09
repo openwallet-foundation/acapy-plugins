@@ -106,9 +106,10 @@ async def test_issue_credential():
     """Test credential issuance."""
     did = load_did()
     schema_id = load_schema()
-    async with Controller(base_url=ISSUER) as issuer, Controller(
-        base_url=HOLDER
-    ) as holder:
+    async with (
+        Controller(base_url=ISSUER) as issuer,
+        Controller(base_url=HOLDER) as holder,
+    ):
         credential_definition_id = await create_credential_definition(
             issuer, did, schema_id
         )
@@ -148,9 +149,10 @@ async def test_issue_credential_with_revocation():
     """Test credential issuance with revocation."""
     did = load_did()
     schema_id = load_schema()
-    async with Controller(base_url=ISSUER) as issuer, Controller(
-        base_url=HOLDER
-    ) as holder:
+    async with (
+        Controller(base_url=ISSUER) as issuer,
+        Controller(base_url=HOLDER) as holder,
+    ):
         # create credential definition with revocation
         credential_definition_id = await create_credential_definition(
             issuer, did, schema_id, True

@@ -12,84 +12,129 @@ from typing import Optional, List
 
 from ..routes import DIDDocumentSchema
 
+
 class SigningResponse(BaseModel):
     """Signing Response."""
+
     kid: str
     signature: str
+
 
 # Secret Schema
 class Secret(BaseModel):
     """Secret."""
+
     signingResponse: List[SigningResponse]  # List of SigningResponse objects
+
 
 # Options Schema
 class Options(BaseModel):
     """Options."""
+
     network: str
+
 
 # BaseRequestSchema
 class SubmitSignatureOptions(BaseModel):
     """Base Request."""
-    jobId: str = Field(None, description="This input field is used to keep track of an ongoing operation process", example="4c0cf49a-1839-4900-b870-f63f386d0d43")
+
+    jobId: str = Field(
+        None,
+        description="This input field is used to keep track of an ongoing operation process",
+        example="4c0cf49a-1839-4900-b870-f63f386d0d43",
+    )
     options: Optional[Options] = None
     secret: Secret
+
 
 # DIDCreateRequestOptions Schema
 class DidCreateRequestOptions(BaseModel):
     """DID Create Request Schema."""
+
     didDocument: Optional[DIDDocumentSchema] = None
+
 
 # DIDUpdateRequestOptions Schema
 class DidUpdateRequestOptions(BaseModel):
     """DID Update Request Schema."""
+
     did: str
     didDocument: DIDDocumentSchema
+
 
 # DIDDeactivateRequestOptions Schema
 class DidDeactivateRequestOptions(BaseModel):
     """DID Deactivate Request Schema."""
-    did: str = Field(None, description="This input field indicates the DID that is the target of the DID deactivation operation.")
+
+    did: str = Field(
+        None,
+        description="This input field indicates the DID that is the target of the DID deactivation operation.",
+    )
+
 
 # ResourceCreateRequestOptions Schema
 class ResourceCreateRequestOptions(BaseModel):
     """DID Linked Resource Create Request Schema."""
-    did: str = Field(None, description="This input field indicates the DID that is the target of the DID Linked Resource create operation.")
-    relativeDidUrl: Optional[str] = Field(None, description="This input field indicates a relative DID URL that is the target of the DID URL create operation.")
-    content: str = Field(None, description="This input field contains Base64-encoded data that is the content of the resource associated with the DID URL.")
+
+    did: str = Field(
+        None,
+        description="This input field indicates the DID that is the target of the DID Linked Resource create operation.",
+    )
+    relativeDidUrl: Optional[str] = Field(
+        None,
+        description="This input field indicates a relative DID URL that is the target of the DID URL create operation.",
+    )
+    content: str = Field(
+        None,
+        description="This input field contains Base64-encoded data that is the content of the resource associated with the DID URL.",
+    )
     name: str
     type: str
     version: Optional[str]
 
+
 # ResourceUpdateRequestOptions Schema
 class ResourceUpdateRequestOptions(ResourceCreateRequestOptions):
     """DID Linked Resource Update Request Schema."""
+
     pass
+
 
 class BaseDIDRegistrar(ABC):
     """Base class for DID Registrars."""
 
     @abstractmethod
-    async def create(self, options: DidCreateRequestOptions | SubmitSignatureOptions) -> dict:
+    async def create(
+        self, options: DidCreateRequestOptions | SubmitSignatureOptions
+    ) -> dict:
         """Create a new DID."""
         raise NotImplementedError("Subclasses must implement this method")
 
     @abstractmethod
-    async def update(self, options: DidUpdateRequestOptions | SubmitSignatureOptions) -> dict:
+    async def update(
+        self, options: DidUpdateRequestOptions | SubmitSignatureOptions
+    ) -> dict:
         """Update an existing DID."""
         raise NotImplementedError("Subclasses must implement this method")
 
     @abstractmethod
-    async def deactivate(self, options: DidDeactivateRequestOptions | SubmitSignatureOptions) -> dict:
+    async def deactivate(
+        self, options: DidDeactivateRequestOptions | SubmitSignatureOptions
+    ) -> dict:
         """Deactivate an existing DID."""
         raise NotImplementedError("Subclasses must implement this method")
 
     @abstractmethod
-    async def create_resource(self, did: str, options: ResourceCreateRequestOptions | SubmitSignatureOptions) -> dict:
+    async def create_resource(
+        self, did: str, options: ResourceCreateRequestOptions | SubmitSignatureOptions
+    ) -> dict:
         """Create a DID Linked Resource."""
         raise NotImplementedError("Subclasses must implement this method")
 
     @abstractmethod
-    async def update_resource(self, did: str, options: ResourceUpdateRequestOptions | SubmitSignatureOptions) -> dict:
+    async def update_resource(
+        self, did: str, options: ResourceUpdateRequestOptions | SubmitSignatureOptions
+    ) -> dict:
         """Update a DID Linked Resource."""
         raise NotImplementedError("Subclasses must implement this method")
 
@@ -122,7 +167,9 @@ class BaseDIDManager(ABC):
         raise NotImplementedError("Subclasses must implement this method")
 
     @staticmethod
-    async def sign_requests(wallet: BaseWallet, signing_requests: list) -> List[SigningResponse]:
+    async def sign_requests(
+        wallet: BaseWallet, signing_requests: list
+    ) -> List[SigningResponse]:
         """Sign all requests in the signing_requests list.
 
         Args:
@@ -164,15 +211,14 @@ class BaseDIDManager(ABC):
         return True
 
     @staticmethod
-    def format_response(
-        success: bool, result: dict = None, error: str = None
-    ) -> dict:
+    def format_response(success: bool, result: dict = None, error: str = None) -> dict:
         """Format the response for operations."""
         return {
             "success": success,
             "result": result if success else None,
             "error": error if not success else None,
         }
+
 
 class CheqdDIDManagerError(BaseError):
     """Base class for did cheqd manager exceptions."""

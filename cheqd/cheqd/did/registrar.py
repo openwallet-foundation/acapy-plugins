@@ -1,4 +1,5 @@
 """DID Registrar for Cheqd."""
+
 from aiohttp import ClientSession, web
 
 from ..did.base import (
@@ -8,8 +9,9 @@ from ..did.base import (
     DidDeactivateRequestOptions,
     ResourceCreateRequestOptions,
     ResourceUpdateRequestOptions,
-    SubmitSignatureOptions
+    SubmitSignatureOptions,
 )
+
 
 class CheqdDIDRegistrar(BaseDIDRegistrar):
     """DID Registrar implementation for did:cheqd."""
@@ -42,7 +44,9 @@ class CheqdDIDRegistrar(BaseDIDRegistrar):
             except Exception:
                 raise
 
-    async def create(self, options: DidCreateRequestOptions | SubmitSignatureOptions) -> dict | None:
+    async def create(
+        self, options: DidCreateRequestOptions | SubmitSignatureOptions
+    ) -> dict | None:
         """Create a DID Document."""
         async with ClientSession() as session:
             try:
@@ -56,7 +60,9 @@ class CheqdDIDRegistrar(BaseDIDRegistrar):
             except Exception:
                 raise
 
-    async def update(self, options: DidUpdateRequestOptions | SubmitSignatureOptions) -> dict:
+    async def update(
+        self, options: DidUpdateRequestOptions | SubmitSignatureOptions
+    ) -> dict:
         """Update a DID Document."""
         async with ClientSession() as session:
             try:
@@ -70,7 +76,9 @@ class CheqdDIDRegistrar(BaseDIDRegistrar):
             except Exception:
                 raise
 
-    async def deactivate(self, options: DidDeactivateRequestOptions | SubmitSignatureOptions) -> dict:
+    async def deactivate(
+        self, options: DidDeactivateRequestOptions | SubmitSignatureOptions
+    ) -> dict:
         """Deactivate a DID Document."""
         async with ClientSession() as session:
             try:
@@ -84,7 +92,9 @@ class CheqdDIDRegistrar(BaseDIDRegistrar):
             except Exception:
                 raise
 
-    async def create_resource(self, did: str, options: ResourceCreateRequestOptions | SubmitSignatureOptions) -> dict:
+    async def create_resource(
+        self, did: str, options: ResourceCreateRequestOptions | SubmitSignatureOptions
+    ) -> dict:
         """Create a DID Linked Resource."""
         async with ClientSession() as session:
             try:
@@ -98,7 +108,9 @@ class CheqdDIDRegistrar(BaseDIDRegistrar):
             except Exception:
                 raise
 
-    async def update_resource(self, did: str, options: ResourceUpdateRequestOptions | SubmitSignatureOptions) -> dict:
+    async def update_resource(
+        self, did: str, options: ResourceUpdateRequestOptions | SubmitSignatureOptions
+    ) -> dict:
         """Update a DID Linked Resource."""
         async with ClientSession() as session:
             try:
