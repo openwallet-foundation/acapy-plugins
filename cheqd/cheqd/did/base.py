@@ -10,7 +10,32 @@ from aiohttp import web
 from pydantic import BaseModel, Field
 from typing import Optional, List
 
-from ..routes import DIDDocumentSchema
+
+class VerificationMethodSchema(BaseModel):
+    """Verification Method Schema."""
+
+    id: str
+    type: str
+    controller: str
+    publicKeyPem: Optional[str] = None
+
+
+class ServiceSchema(BaseModel):
+    """Service Endpoint Schema."""
+
+    id: str
+    type: str
+    serviceEndpoint: str
+
+
+class DIDDocumentSchema(BaseModel):
+    """DIDDocument Schema."""
+
+    id: str
+    controller: List[str]
+    verificationMethod: List[VerificationMethodSchema]
+    authentication: List[str]
+    service: Optional[List[ServiceSchema]]
 
 
 class SigningResponse(BaseModel):
@@ -20,27 +45,24 @@ class SigningResponse(BaseModel):
     signature: str
 
 
-# Secret Schema
 class Secret(BaseModel):
     """Secret."""
 
     signingResponse: List[SigningResponse]  # List of SigningResponse objects
 
 
-# Options Schema
 class Options(BaseModel):
     """Options."""
 
     network: str
 
 
-# BaseRequestSchema
 class SubmitSignatureOptions(BaseModel):
-    """Base Request."""
+    """Submit Signature Options."""
 
     jobId: str = Field(
         None,
-        description="This input field is used to keep track of an ongoing operation process",
+        description="Keeps track of an ongoing operation process",
         example="4c0cf49a-1839-4900-b870-f63f386d0d43",
     )
     options: Optional[Options] = None
@@ -68,7 +90,7 @@ class DidDeactivateRequestOptions(BaseModel):
 
     did: str = Field(
         None,
-        description="This input field indicates the DID that is the target of the DID deactivation operation.",
+        description="Target DID of the DID deactivation operation.",
     )
 
 
@@ -78,15 +100,15 @@ class ResourceCreateRequestOptions(BaseModel):
 
     did: str = Field(
         None,
-        description="This input field indicates the DID that is the target of the DID Linked Resource create operation.",
+        description="Target DID of the DID Linked Resource operation.",
     )
     relativeDidUrl: Optional[str] = Field(
         None,
-        description="This input field indicates a relative DID URL that is the target of the DID URL create operation.",
+        description="ResourceId of the DID URL create operation.",
     )
     content: str = Field(
         None,
-        description="This input field contains Base64-encoded data that is the content of the resource associated with the DID URL.",
+        description="This input field contains Base64-encoded data.",
     )
     name: str
     type: str

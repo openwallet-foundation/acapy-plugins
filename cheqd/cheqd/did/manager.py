@@ -10,7 +10,6 @@ from acapy_agent.wallet.did_method import DIDMethods
 from acapy_agent.wallet.did_parameters_validation import DIDParametersValidation
 from acapy_agent.wallet.error import WalletError
 from acapy_agent.wallet.key_type import ED25519
-from acapy_agent.wallet.util import b58_to_bytes
 from aiohttp import web
 
 from .helpers import (

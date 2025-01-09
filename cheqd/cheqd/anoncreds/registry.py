@@ -45,7 +45,6 @@ from acapy_agent.wallet.jwt import dict_to_b64
 from ..did.base import (
     ResourceCreateRequestOptions,
     Secret,
-    SigningResponse,
     SubmitSignatureOptions,
     ResourceUpdateRequestOptions,
 )
@@ -232,7 +231,8 @@ class DIDCheqdRegistry(BaseAnonCredsResolver, BaseAnonCredsRegistrar):
     ) -> CredDefResult:
         """Register a credential definition on the registry."""
         resource_type = CheqdAnoncredsResourceType.credentialDefinition
-        resource_name = f"{schema.schema_value.name}-{credential_definition.tag}"  # TODO: max chars are 31, on exceeding this should be hashed
+        # TODO: max chars are 31 for resource, on exceeding this should be hashed
+        resource_name = f"{schema.schema_value.name}-{credential_definition.tag}"
 
         cred_def = ResourceCreateRequestOptions(
             name=resource_name,
@@ -317,10 +317,10 @@ class DIDCheqdRegistry(BaseAnonCredsResolver, BaseAnonCredsRegistrar):
             profile, revocation_registry_definition.cred_def_id
         )
         cred_def_res = cred_def_result.credential_definition_metadata.get("resourceName")
-        resource_name = f"{cred_def_res}-{revocation_registry_definition.tag}"  # TODO: max chars are 31, on exceeding this should be hashed
-
-        did = revocation_registry_definition.issuer_id
+        # TODO: max chars are 31 for resource name, on exceeding this should be hashed
+        resource_name = f"{cred_def_res}-{revocation_registry_definition.tag}"
         resource_type = CheqdAnoncredsResourceType.revocationRegistryDefinition
+
         rev_reg_def = ResourceCreateRequestOptions(
             name=resource_name,
             type=resource_type,

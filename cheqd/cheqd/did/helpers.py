@@ -1,3 +1,5 @@
+"""Helpers for did:cheqd."""
+
 from typing import List, Dict, Union
 from enum import Enum
 from base64 import urlsafe_b64encode, b64decode
@@ -7,26 +9,30 @@ from multiformats import multibase
 
 
 class CheqdNetwork(Enum):
+    """Network types in cheqd."""
+
     Testnet = "testnet"
     Mainnet = "mainnet"
 
 
 class MethodSpecificIdAlgo(Enum):
+    """Method specific Identifies type."""
+
     Base58 = "base58"
     Uuid = "uuid"
 
 
 class VerificationMethods(Enum):
+    """Verification Method Type."""
+
     Ed255192020 = "Ed25519VerificationKey2020"
     Ed255192018 = "Ed25519VerificationKey2018"
     JWK = "JsonWebKey2020"
 
 
-class TVerificationKeyPrefix(Enum):
-    Placeholder = "prefix"
-
-
 class CheqdAnoncredsResourceType(Enum):
+    """Resource type values for anoncreds objects."""
+
     schema = "anonCredsSchema"
     credentialDefinition = "anonCredsCredDef"
     revocationRegistryDefinition = "anonCredsRevocRegDef"
@@ -40,10 +46,12 @@ DIDDocument = Dict[str, Union[str, List[str], List[VerificationMethod]]]
 
 
 def base64_to_bytes(data: str) -> bytes:
+    """Convert base64 str to bytes."""
     return b64decode(data)
 
 
 def bytes_to_base64(data: bytes) -> str:
+    """Convert bytes to base64 str."""
     return urlsafe_b64encode(data).decode("utf-8")
 
 
@@ -53,11 +61,19 @@ def create_verification_keys(
     algo: MethodSpecificIdAlgo = MethodSpecificIdAlgo.Uuid,
     key: TVerificationKey = "key-1",
 ) -> IVerificationKeys:
+    """Construct a verification key from a public key."""
     if algo == MethodSpecificIdAlgo.Base58:
         method_specific_id = multibase.encode(
             "base58btc", base64_to_bytes(public_key_b64)
         ).decode()
-        did_url = f"did:cheqd:{network.value}:{multibase.encode('base58btc', sha256(base64_to_bytes(public_key_b64)).digest()[:16]).decode()[1:]}"
+        did_url = f"did:cheqd:{network.value}:{
+            multibase.encode(
+                'base58btc', 
+                sha256(base64_to_bytes(public_key_b64))
+                .digest()[:16]
+            ).decode()[1:]
+        }"
+
         return {
             "methodSpecificId": method_specific_id,
             "didUrl": did_url,
@@ -81,6 +97,7 @@ def create_did_verification_method(
     verification_method_types: List[VerificationMethods],
     verification_keys: List[IVerificationKeys],
 ) -> List[VerificationMethod]:
+    """Construct Verification Method."""
     methods = []
     for idx, type_ in enumerate(verification_method_types):
         key = verification_keys[idx]
@@ -124,6 +141,7 @@ def create_did_payload(
     verification_methods: List[VerificationMethod],
     verification_keys: List[IVerificationKeys],
 ) -> DIDDocument:
+    """Construct DID Document."""
     if not verification_methods:
         raise ValueError("No verification methods provided")
     if not verification_keys:
