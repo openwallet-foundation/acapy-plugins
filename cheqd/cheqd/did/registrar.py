@@ -93,7 +93,7 @@ class CheqdDIDRegistrar(BaseDIDRegistrar):
                 raise
 
     async def create_resource(
-        self, did: str, options: ResourceCreateRequestOptions | SubmitSignatureOptions
+        self, options: ResourceCreateRequestOptions | SubmitSignatureOptions
     ) -> dict:
         """Create a DID Linked Resource."""
         async with ClientSession() as session:
@@ -109,7 +109,7 @@ class CheqdDIDRegistrar(BaseDIDRegistrar):
                 raise
 
     async def update_resource(
-        self, did: str, options: ResourceUpdateRequestOptions | SubmitSignatureOptions
+        self, options: ResourceUpdateRequestOptions | SubmitSignatureOptions
     ) -> dict:
         """Update a DID Linked Resource."""
         async with ClientSession() as session:
@@ -124,6 +124,6 @@ class CheqdDIDRegistrar(BaseDIDRegistrar):
             except Exception:
                 raise
 
-    async def deactivate_resource(self, did: str, options: dict) -> dict:
+    async def deactivate_resource(self, options: dict) -> dict:
         """Deactivate a DID Linked Resource."""
         raise NotImplementedError("This method will not be implemented for did:cheqd.")

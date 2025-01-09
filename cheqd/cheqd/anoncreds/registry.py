@@ -166,6 +166,7 @@ class DIDCheqdRegistry(BaseAnonCredsResolver, BaseAnonCredsRegistrar):
                     "attrNames": schema.attr_names,
                 }
             ),
+            did=schema.issuer_id,
         )
 
         LOGGER.debug("schema value: %s", cheqd_schema)
@@ -174,7 +175,6 @@ class DIDCheqdRegistry(BaseAnonCredsResolver, BaseAnonCredsRegistrar):
                 profile,
                 self.registrar.DID_REGISTRAR_BASE_URL,
                 self.resolver.DID_RESOLVER_BASE_URL,
-                schema.issuer_id,
                 cheqd_schema,
             )
             job_id = resource_state.get("jobId")
@@ -246,13 +246,13 @@ class DIDCheqdRegistry(BaseAnonCredsResolver, BaseAnonCredsRegistrar):
                 }
             ),
             version=credential_definition.tag,
+            did=credential_definition.issuer_id,
         )
 
         resource_state = await self._create_and_publish_resource(
             profile,
             self.registrar.DID_REGISTRAR_BASE_URL,
             self.resolver.DID_RESOLVER_BASE_URL,
-            credential_definition.issuer_id,
             cred_def,
         )
         job_id = resource_state.get("jobId")
@@ -333,13 +333,13 @@ class DIDCheqdRegistry(BaseAnonCredsResolver, BaseAnonCredsRegistrar):
                 }
             ),
             version=revocation_registry_definition.tag,
+            did=revocation_registry_definition.issuer_id,
         )
 
         resource_state = await self._create_and_publish_resource(
             profile,
             self.registrar.DID_REGISTRAR_BASE_URL,
             self.resolver.DID_RESOLVER_BASE_URL,
-            did,
             rev_reg_def,
         )
         job_id = resource_state.get("jobId")
@@ -444,13 +444,13 @@ class DIDCheqdRegistry(BaseAnonCredsResolver, BaseAnonCredsRegistrar):
                 }
             ),
             version=str(uuid4()),
+            did=rev_reg_def.issuer_id,
         )
 
         resource_state = await self._create_and_publish_resource(
             profile,
             self.registrar.DID_REGISTRAR_BASE_URL,
             self.resolver.DID_RESOLVER_BASE_URL,
-            rev_reg_def.issuer_id,
             rev_status_list,
         )
         job_id = resource_state.get("jobId")
@@ -489,7 +489,7 @@ class DIDCheqdRegistry(BaseAnonCredsResolver, BaseAnonCredsRegistrar):
             "resourceName"
         )
         resource_type = CheqdAnoncredsResourceType.revocationStatusList
-        rev_status_list = ResourceCreateRequestOptions(
+        rev_status_list = ResourceUpdateRequestOptions(
             name=resource_name,
             type=resource_type,
             content=dict_to_b64(
@@ -500,13 +500,13 @@ class DIDCheqdRegistry(BaseAnonCredsResolver, BaseAnonCredsRegistrar):
                 }
             ),
             version=str(uuid4()),
+            did=rev_reg_def.issuer_id,
         )
 
         resource_state = await self._update_and_publish_resource(
             profile,
             self.registrar.DID_REGISTRAR_BASE_URL,
             self.resolver.DID_RESOLVER_BASE_URL,
-            rev_reg_def.issuer_id,
             rev_status_list,
         )
         job_id = resource_state.get("jobId")
@@ -532,7 +532,6 @@ class DIDCheqdRegistry(BaseAnonCredsResolver, BaseAnonCredsRegistrar):
         profile: Profile,
         registrar_url: str,
         resolver_url: str,
-        did: str,
         options: ResourceCreateRequestOptions,
     ) -> dict:
         """Create, Sign and Publish a Resource."""
@@ -544,7 +543,7 @@ class DIDCheqdRegistry(BaseAnonCredsResolver, BaseAnonCredsRegistrar):
             try:
                 # request create resource operation
                 create_request_res = await cheqd_manager.registrar.create_resource(
-                    did, options
+                    options
                 )
 
                 job_id: str = create_request_res.get("jobId")
@@ -562,7 +561,6 @@ class DIDCheqdRegistry(BaseAnonCredsResolver, BaseAnonCredsRegistrar):
 
                     # publish resource
                     publish_resource_res = await cheqd_manager.registrar.create_resource(
-                        did,
                         SubmitSignatureOptions(
                             jobId=job_id,
                             secret=Secret(signingResponse=signed_responses),
@@ -586,7 +584,6 @@ class DIDCheqdRegistry(BaseAnonCredsResolver, BaseAnonCredsRegistrar):
         profile: Profile,
         registrar_url: str,
         resolver_url: str,
-        did: str,
         options: ResourceUpdateRequestOptions,
     ) -> dict:
         """Update, Sign and Publish a Resource."""
@@ -598,7 +595,7 @@ class DIDCheqdRegistry(BaseAnonCredsResolver, BaseAnonCredsRegistrar):
             try:
                 # request update resource operation
                 create_request_res = await cheqd_manager.registrar.update_resource(
-                    did, options
+                    options
                 )
 
                 job_id: str = create_request_res.get("jobId")
@@ -616,7 +613,6 @@ class DIDCheqdRegistry(BaseAnonCredsResolver, BaseAnonCredsRegistrar):
 
                     # publish resource
                     publish_resource_res = await cheqd_manager.registrar.update_resource(
-                        did,
                         SubmitSignatureOptions(
                             jobId=job_id,
                             secret=Secret(signingResponse=signed_responses),

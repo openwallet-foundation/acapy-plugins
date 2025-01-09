@@ -126,20 +126,20 @@ class BaseDIDRegistrar(ABC):
 
     @abstractmethod
     async def create_resource(
-        self, did: str, options: ResourceCreateRequestOptions | SubmitSignatureOptions
+        self, options: ResourceCreateRequestOptions | SubmitSignatureOptions
     ) -> dict:
         """Create a DID Linked Resource."""
         raise NotImplementedError("Subclasses must implement this method")
 
     @abstractmethod
     async def update_resource(
-        self, did: str, options: ResourceUpdateRequestOptions | SubmitSignatureOptions
+        self, options: ResourceUpdateRequestOptions | SubmitSignatureOptions
     ) -> dict:
         """Update a DID Linked Resource."""
         raise NotImplementedError("Subclasses must implement this method")
 
     @abstractmethod
-    async def deactivate_resource(self, did: str, options: dict) -> dict:
+    async def deactivate_resource(self, options: dict) -> dict:
         """Deactivate a DID Linked Resource."""
         raise NotImplementedError("Subclasses must implement this method")
 
