@@ -13,7 +13,17 @@ from acapy_agent.wallet.key_type import ED25519
 from acapy_agent.wallet.util import b58_to_bytes
 from aiohttp import web
 
-from ..did.base import BaseDIDManager, CheqdDIDManagerError
+from .helpers import create_verification_keys, create_did_verification_method, VerificationMethods, create_did_payload, \
+    bytes_to_base64
+from ..did.base import (
+    BaseDIDManager,
+    CheqdDIDManagerError,
+    ResourceUpdateRequestOptions,
+    Secret,
+    DidDeactivateRequestOptions,
+    DidCreateRequestOptions,
+    Options,
+)
 from ..did_method import CHEQD
 from ..resolver.resolver import CheqdDIDResolver
 from .registrar import CheqdDIDRegistrar
@@ -62,49 +72,48 @@ class CheqdDIDManager(BaseDIDManager):
 
                 key = await wallet.create_key(key_type, seed)
                 verkey = key.verkey
-                verkey_bytes = b58_to_bytes(verkey)
-                public_key_hex = verkey_bytes.hex()
+                public_key_b64 = bytes_to_base64(verkey)
+                verification_method = options.get("verification_method") or VerificationMethods.Ed255192020
 
                 # generate payload
-                generate_res = await self.registrar.generate_did_doc(
-                    network, public_key_hex
-                )
-                if generate_res is None:
-                    raise CheqdDIDManagerError("Error constructing DID Document")
-
-                did_document = generate_res.get("didDoc")
+                verification_keys = create_verification_keys(public_key_b64, network)
+                verification_methods = create_did_verification_method([verification_method], [verification_keys])
+                did_document = create_did_payload(verification_methods, [verification_keys])
                 did: str = did_document.get("id")
 
                 # request create did
                 create_request_res = await self.registrar.create(
-                    {"didDocument": did_document, "network": network}
+                    DidCreateRequestOptions(didDocument=did_document, network=network)
                 )
 
                 job_id: str = create_request_res.get("jobId")
                 did_state = create_request_res.get("didState")
                 if did_state.get("state") == "action":
-                    signing_requests: dict = did_state.get("signingRequest")
+                    signing_requests = did_state.get("signingRequest")
                     if not signing_requests:
                         raise CheqdDIDManagerError(
                             "No signing requests available for create."
                         )
 
-                    # Note: This assumes did create operation supports only one did
+                    # Note: This assumes did create operation supports only one key
                     kid: str = signing_requests[0].get("kid")
                     await wallet.assign_kid_to_key(verkey, kid)
+
                     # sign all requests
                     signed_responses = await CheqdDIDManager.sign_requests(
                         wallet, signing_requests
                     )
                     # publish did
                     publish_did_res = await self.registrar.create(
-                        {
-                            "jobId": job_id,
-                            "network": network,
-                            "secret": {
-                                "signingResponse": signed_responses,
-                            },
-                        }
+                        DidCreateRequestOptions(
+                            jobId=job_id,
+                            options=Options(
+                              network=network,
+                            ),
+                            secret=Secret(
+                                signingResponse=signed_responses,
+                            ),
+                        )
                     )
                     publish_did_state = publish_did_res.get("didState")
                     if publish_did_state.get("state") != "finished":
@@ -145,18 +154,18 @@ class CheqdDIDManager(BaseDIDManager):
                 # TODO If registrar supports other operation,
                 #       take didDocumentOperation as input
                 update_request_res = await self.registrar.update(
-                    {
-                        "did": did,
-                        "didDocumentOperation": ["setDidDocument"],
-                        "didDocument": [did_doc],
-                    }
+                    ResourceUpdateRequestOptions(
+                        did=did,
+                        didDocumentOperation=["setDidDocument"],
+                        didDocument=[did_doc],
+                    )
                 )
 
                 job_id: str = update_request_res.get("jobId")
                 did_state = update_request_res.get("didState")
 
                 if did_state.get("state") == "action":
-                    signing_requests: dict = did_state.get("signingRequest")
+                    signing_requests = did_state.get("signingRequest")
                     if not signing_requests:
                         raise Exception("No signing requests available for update.")
                     # sign all requests
@@ -166,12 +175,12 @@ class CheqdDIDManager(BaseDIDManager):
 
                     # submit signed update
                     publish_did_res = await self.registrar.update(
-                        {
-                            "jobId": job_id,
-                            "secret": {
-                                "signingResponse": signed_responses,
-                            },
-                        }
+                        ResourceUpdateRequestOptions(
+                            jobId= job_id,
+                            secret=Secret(
+                                signingResponse=signed_responses
+                            )
+                        )
                     )
                     publish_did_state = publish_did_res.get("didState")
 
@@ -220,12 +229,12 @@ class CheqdDIDManager(BaseDIDManager):
                     )
                     # submit signed deactivate
                     publish_did_res = await self.registrar.deactivate(
-                        {
-                            "jobId": job_id,
-                            "secret": {
-                                "signingResponse": signed_responses,
-                            },
-                        }
+                        DidDeactivateRequestOptions(
+                            jobId=job_id,
+                            secret=Secret(
+                              signingResponse=signed_responses,
+                            )
+                        )
                     )
 
                     publish_did_state = publish_did_res.get("didState")
