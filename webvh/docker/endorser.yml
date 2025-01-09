@@ -1,0 +1,36 @@
+label: webvh-endorser
+
+auto-provision: true
+
+admin: [0.0.0.0, 3001]
+admin-insecure-mode: false
+admin-api-key: change-me
+
+inbound-transport:
+  - [http, 0.0.0.0, 3000]
+  - [ws, 0.0.0.0, 3002]
+outbound-transport: http
+endpoint:
+  - http://host.docker.internal:3000
+
+plugin:
+  - webvh
+
+no-ledger: true
+
+# Wallet
+wallet-type: askar-anoncreds
+wallet-name: endorser-wallet
+wallet-key: insecure
+
+
+log-level: info
+
+auto-accept-invites: true
+auto-respond-messages: true
+
+# Plugin
+plugin-config-value:
+   - did-webvh.server_url=https://localhost:8000
+   - did-webvh.role=endorser
+   - did-webvh.auto_endorse=true
