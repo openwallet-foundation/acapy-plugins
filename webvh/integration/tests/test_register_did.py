@@ -1,0 +1,135 @@
+"""
+    Integration tests for the register DID protocol.
+"""
+
+import asyncio
+from os import getenv
+from typing import Optional
+
+from acapy_controller import Controller
+from acapy_controller.controller import params
+from acapy_controller.protocols import (
+    ConnRecord,
+    InvitationMessage,
+    OobRecord,
+    oob_invitation,
+)
+import pytest
+
+ENDORSER = getenv("ENDORSER", "http://endorser:3001")
+AUTHOR = getenv("AUTHOR", "http://author:3001")
+
+
+async def didexchange(
+    inviter: Controller,
+    invitee: Controller,
+    *,
+    invite: Optional[InvitationMessage] = None,
+    use_existing_connection: bool = False,
+    alias: Optional[str] = None,
+):
+    """Connect two agents using did exchange protocol."""
+    if not invite:
+        invite = await oob_invitation(inviter)
+
+    invitee_oob_record = await invitee.post(
+        "/out-of-band/receive-invitation",
+        json=invite,
+        params=params(
+            use_existing_connection=use_existing_connection,
+            alias=alias,
+        ),
+        response=OobRecord,
+    )
+
+    if use_existing_connection and invitee_oob_record == "reuse-accepted":
+        inviter_oob_record = await inviter.event_with_values(
+            topic="out_of_band",
+            invi_msg_id=invite.id,
+            event_type=OobRecord,
+        )
+        inviter_conn = await inviter.get(
+            f"/connections/{inviter_oob_record.connection_id}",
+            response=ConnRecord,
+        )
+        invitee_conn = await invitee.get(
+            f"/connections/{invitee_oob_record.connection_id}",
+            response=ConnRecord,
+        )
+        return inviter_conn, invitee_conn
+
+    invitee_conn = await invitee.post(
+        f"/didexchange/{invitee_oob_record.connection_id}/accept-invitation",
+        response=ConnRecord,
+    )
+    inviter_oob_record = await inviter.event_with_values(
+        topic="out_of_band",
+        invi_msg_id=invite.id,
+        state="done",
+        event_type=OobRecord,
+    )
+    inviter_conn = await inviter.event_with_values(
+        topic="connections",
+        event_type=ConnRecord,
+        rfc23_state="request-received",
+        invitation_key=inviter_oob_record.our_recipient_key,
+    )
+    # TODO Remove after ACA-Py 0.12.0
+    # There's a bug with race conditions in the OOB multiuse handling
+    await asyncio.sleep(1)
+    inviter_conn = await inviter.post(
+        f"/didexchange/{inviter_conn.connection_id}/accept-request",
+        response=ConnRecord,
+    )
+
+    await invitee.event_with_values(
+        topic="connections",
+        connection_id=invitee_conn.connection_id,
+        rfc23_state="response-received",
+    )
+    invitee_conn = await invitee.event_with_values(
+        topic="connections",
+        connection_id=invitee_conn.connection_id,
+        rfc23_state="completed",
+        event_type=ConnRecord,
+    )
+    inviter_conn = await inviter.event_with_values(
+        topic="connections",
+        connection_id=inviter_conn.connection_id,
+        rfc23_state="completed",
+        event_type=ConnRecord,
+    )
+
+    return inviter_conn, invitee_conn
+
+@pytest.mark.asyncio
+async def test_create_with_endorsement():
+    """Test Controller protocols."""
+    async with (
+        Controller(base_url=ENDORSER) as endorser,
+        Controller(base_url=AUTHOR) as author,
+    ):
+        endorser_config = (await endorser.get("/status/config"))["config"]
+        server_url = endorser_config["plugin_config"]["did-webvh"]["server_url"]
+
+        # Create the endorsers key for server auth
+        await endorser.post(
+            "/wallet/keys",
+            json={
+                "seed": "00000000000000000000000000000000",
+                "alg": "ed25519",
+                "kid": "server",
+            },
+        )
+
+        # Create the connection with endorser specific alias
+        await didexchange(endorser, author, alias=f"{server_url}-endorser")
+
+        # Create the initial did
+        response = await author.post(
+            "/did/webvh/create",
+            json={"options": {"namespace": "test"}},
+        )
+
+        assert response["metadata"]["state"] == "posted"
+        assert response["did_document"] is not None

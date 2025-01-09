@@ -1,0 +1,86 @@
+services:
+  endorser:
+    image: plugin-image
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile
+      args:
+        - install_flags=--no-interaction --with integration --extras aca-py
+    command: >
+      start
+        --label Endorser
+        --inbound-transport http 0.0.0.0 3000
+        --outbound-transport http
+        --endpoint http://endorser:3000
+        --admin 0.0.0.0 3001
+        --admin-insecure-mode
+        --no-ledger
+        --wallet-type askar-anoncreds
+        --wallet-name endorser
+        --wallet-key insecure
+        --auto-provision
+        --log-level info
+        --notify-revocation
+        --plugin webvh
+        --plugin-config-value did-webvh.server_url=http://server:8000
+        --plugin-config-value did-webvh.role=endorser
+        --plugin-config-value did-webvh.auto_endorse=true
+        --wallet-allow-insecure-seed
+
+  author:
+    image: plugin-image
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile
+      args:
+        - install_flags=--no-interaction --with integration --extras aca-py
+    command: >
+      start
+        --label Author
+        --inbound-transport http 0.0.0.0 3000
+        --outbound-transport http
+        --endpoint http://author:3000
+        --admin 0.0.0.0 3001
+        --admin-insecure-mode
+        --no-ledger
+        --wallet-type askar-anoncreds
+        --wallet-name author
+        --wallet-key insecure
+        --auto-provision
+        --log-level info
+        --monitor-revocation-notification
+        --plugin webvh
+        --plugin-config-value did-webvh.server_url=http://server:8000
+        --plugin-config-value did-webvh.role=author
+
+  server:
+    build:
+      context: .
+      dockerfile: Dockerfile.server
+    environment:
+      DOMAIN: server
+      SECRET_KEY: insecure
+      ENDORSER_MULTIKEY: z6MkgKA7yrw5kYSiDuQFcye4bMaJpcfHFry3Bx45pdWh3s8i
+    ports:
+      - 8000:8000
+    labels:
+      - traefik.enable=true
+      - traefik.http.routers.server.rule=Host(`server`)
+      - traefik.http.routers.server.entrypoints=web
+      - traefik.http.services.server.loadbalancer.server.port=8000
+
+  tests:
+      container_name: juggernaut
+      build:
+        context: .
+        dockerfile: Dockerfile.test.runner
+      environment:
+        - WAIT_BEFORE_HOSTS=3
+        - WAIT_HOSTS=endorser:3000, author:3000
+        - WAIT_HOSTS_TIMEOUT=60
+        - WAIT_SLEEP_INTERVAL=1
+        - WAIT_HOST_CONNECT_TIMEOUT=30
+      depends_on:
+        - endorser
+        - author
+        - server
