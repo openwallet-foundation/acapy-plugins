@@ -22,6 +22,7 @@ from oid4vc.models.presentation import OID4VPPresentation
 from oid4vc.models.supported_cred import SupportedCredential
 from oid4vc.pop_result import PopResult
 from oid4vc.public_routes import types_are_subset
+from oid4vc.status_handler import StatusHandler
 
 LOGGER = logging.getLogger(__name__)
 
@@ -73,6 +74,12 @@ class JwtVcJsonCredProcessor(Issuer, CredVerifier, PresVerifier):
             "sub": subject,
         }
 
+        status_handler = StatusHandler(context)
+        if credential_status := await status_handler.assign_credential_status(
+            supported.supported_cred_id
+        ):
+            payload["vc"]["credentialStatus"] = credential_status
+
         jws = await jwt_sign(
             context.profile,
             {},
@@ -82,7 +89,9 @@ class JwtVcJsonCredProcessor(Issuer, CredVerifier, PresVerifier):
 
         return jws
 
-    def validate_credential_subject(self, supported: SupportedCredential, subject: dict):
+    def validate_credential_subject(
+        self, supported: SupportedCredential, subject: dict
+    ):
         """Validate the credential subject."""
         pass
 
