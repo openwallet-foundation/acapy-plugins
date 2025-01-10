@@ -2,9 +2,10 @@
 
 from typing import List, Dict, Union
 from enum import Enum
-from base64 import urlsafe_b64encode, b64decode
+from uuid import uuid4
+
+from acapy_agent.wallet.util import b64_to_bytes, bytes_to_b64, bytes_to_b58
 from hashlib import sha256
-import uuid
 from multiformats import multibase
 
 
@@ -45,16 +46,6 @@ VerificationMethod = Dict[str, Union[str, Dict[str, str]]]
 DIDDocument = Dict[str, Union[str, List[str], List[VerificationMethod]]]
 
 
-def base64_to_bytes(data: str) -> bytes:
-    """Convert base64 str to bytes."""
-    return b64decode(data)
-
-
-def bytes_to_base64(data: bytes) -> str:
-    """Convert bytes to base64 str."""
-    return urlsafe_b64encode(data).decode("utf-8")
-
-
 def create_verification_keys(
     public_key_b64: str,
     network: CheqdNetwork = CheqdNetwork.Testnet,
@@ -63,15 +54,13 @@ def create_verification_keys(
 ) -> IVerificationKeys:
     """Construct a verification key from a public key."""
     if algo == MethodSpecificIdAlgo.Base58:
-        method_specific_id = multibase.encode(
-            "base58btc", base64_to_bytes(public_key_b64)
-        ).decode()
+        method_specific_id = bytes_to_b58(b64_to_bytes(public_key_b64))
         did_url = f"did:cheqd:{network.value}:{
             multibase.encode(
-                'base58btc', 
-                sha256(base64_to_bytes(public_key_b64))
-                .digest()[:16]
-            ).decode()[1:]
+                sha256(b64_to_bytes(public_key_b64))
+                .digest()[:16],
+                "base58btc"
+            )[1:]
         }"
 
         return {
@@ -81,16 +70,35 @@ def create_verification_keys(
             "publicKey": public_key_b64,
         }
     elif algo == MethodSpecificIdAlgo.Uuid:
-        method_specific_id = multibase.encode(
-            "base58btc", base64_to_bytes(public_key_b64)
-        ).decode()
-        did_url = f"did:cheqd:{network.value}:{uuid.uuid4()}"
+        method_specific_id = uuid4()
+        did_url = f"did:cheqd:{network}:{method_specific_id}"
         return {
             "methodSpecificId": method_specific_id,
             "didUrl": did_url,
             "keyId": f"{did_url}#{key}",
             "publicKey": public_key_b64,
         }
+
+
+MULTICODEC_ED25519_HEADER = bytes([0xED, 0x01])
+
+
+def to_multibase_raw(key: bytes) -> str:
+    """Converts a raw key to multibase with the MULTICODEC_ED25519_HEADER.
+
+    Args:
+        key (bytes): The raw key as bytes.
+
+    Returns:
+        str: Multibase-encoded key as a Base58btc string.
+    """
+    # Concatenate the header and the key
+    multibase_data = MULTICODEC_ED25519_HEADER + key
+
+    # Encode to Base58btc multibase
+    multibase_encoded = multibase.encode(multibase_data, "base58btc")
+
+    return multibase_encoded
 
 
 def create_did_verification_method(
@@ -107,9 +115,9 @@ def create_did_verification_method(
                     "id": key["keyId"],
                     "type": type_.value,
                     "controller": key["didUrl"],
-                    "publicKeyMultibase": multibase.encode(
-                        "base58btc", base64_to_bytes(key["publicKey"])
-                    ).decode(),
+                    "publicKeyMultibase": to_multibase_raw(
+                        b64_to_bytes(key["publicKey"])
+                    ),
                 }
             )
         elif type_ == VerificationMethods.Ed255192018:
@@ -130,7 +138,7 @@ def create_did_verification_method(
                     "publicKeyJwk": {
                         "crv": "Ed25519",
                         "kty": "OKP",
-                        "x": bytes_to_base64(base64_to_bytes(key["publicKey"])),
+                        "x": bytes_to_b64(b64_to_bytes(key["publicKey"])),
                     },
                 }
             )

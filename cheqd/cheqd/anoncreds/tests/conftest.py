@@ -62,6 +62,15 @@ def mock_create_and_publish_resource():
 
 
 @pytest.fixture
+def mock_update_and_publish_resource():
+    return {
+        "jobId": "MOCK_JOB_ID",
+        "resource": {"id": "MOCK_RESOURCE_ID"},
+        "id": "MOCK_ID",
+    }
+
+
+@pytest.fixture
 def mock_credential_definition():
     credential_definition = MagicMock()
     credential_definition.issuer_id = "MOCK_ISSUER_ID"

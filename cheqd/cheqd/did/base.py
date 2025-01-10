@@ -17,7 +17,9 @@ class VerificationMethodSchema(BaseModel):
     id: str
     type: str
     controller: str
-    publicKeyPem: Optional[str] = None
+    publicKeyMultibase: Optional[str] = None
+    publicKeyBase58: Optional[str] = None
+    publicKeyJwk: Optional[dict] = None
 
 
 class ServiceSchema(BaseModel):
@@ -35,7 +37,17 @@ class DIDDocumentSchema(BaseModel):
     controller: List[str]
     verificationMethod: List[VerificationMethodSchema]
     authentication: List[str]
-    service: Optional[List[ServiceSchema]]
+    service: Optional[List[ServiceSchema]] = []
+
+
+class PartialDIDDocumentSchema(BaseModel):
+    """Partial DIDDocument Schema."""
+
+    id: Optional[str] = None
+    controller: Optional[List[str]] = None
+    verificationMethod: Optional[List["VerificationMethodSchema"]] = None
+    authentication: Optional[List[str]] = None
+    service: Optional[List["ServiceSchema"]] = None
 
 
 class SigningResponse(BaseModel):
@@ -81,7 +93,8 @@ class DidUpdateRequestOptions(BaseModel):
     """DID Update Request Schema."""
 
     did: str
-    didDocument: DIDDocumentSchema
+    didDocument: List[PartialDIDDocumentSchema]
+    didDocumentOperation: Optional[List[str]]
 
 
 # DIDDeactivateRequestOptions Schema
@@ -116,10 +129,24 @@ class ResourceCreateRequestOptions(BaseModel):
 
 
 # ResourceUpdateRequestOptions Schema
-class ResourceUpdateRequestOptions(ResourceCreateRequestOptions):
+class ResourceUpdateRequestOptions(BaseModel):
     """DID Linked Resource Update Request Schema."""
 
-    pass
+    did: str = Field(
+        None,
+        description="Target DID of the DID Linked Resource operation.",
+    )
+    relativeDidUrl: Optional[str] = Field(
+        None,
+        description="ResourceId of the DID URL create operation.",
+    )
+    content: str = Field(
+        None,
+        description="This input field contains Base64-encoded data.",
+    )
+    name: Optional[str]
+    type: Optional[str]
+    version: Optional[str]
 
 
 class BaseDIDRegistrar(ABC):

@@ -1,5 +1,6 @@
 """DID Registrar for Cheqd."""
 
+import json
 from aiohttp import ClientSession, web
 
 from ..did.base import (
@@ -24,26 +25,6 @@ class CheqdDIDRegistrar(BaseDIDRegistrar):
         if registrar_url:
             self.DID_REGISTRAR_BASE_URL = registrar_url
 
-    async def generate_did_doc(self, network: str, public_key_hex: str) -> dict | None:
-        """Generates a did_document with the provided params."""
-        async with ClientSession() as session:
-            try:
-                async with session.get(
-                    self.DID_REGISTRAR_BASE_URL + "did-document",
-                    params={
-                        "verificationMethod": "Ed25519VerificationKey2020",
-                        "methodSpecificIdAlgo": "uuid",
-                        "network": network,
-                        "publicKeyHex": public_key_hex,
-                    },
-                ) as response:
-                    if response.status == 200:
-                        return await response.json()
-                    else:
-                        raise Exception(response)
-            except Exception:
-                raise
-
     async def create(
         self, options: DidCreateRequestOptions | SubmitSignatureOptions
     ) -> dict | None:
@@ -51,7 +32,7 @@ class CheqdDIDRegistrar(BaseDIDRegistrar):
         async with ClientSession() as session:
             try:
                 async with session.post(
-                    self.DID_REGISTRAR_BASE_URL + "create", json=options
+                    self.DID_REGISTRAR_BASE_URL + "create", json=json.dumps(options)
                 ) as response:
                     if response.status == 200 or response.status == 201:
                         return await response.json()
@@ -67,7 +48,7 @@ class CheqdDIDRegistrar(BaseDIDRegistrar):
         async with ClientSession() as session:
             try:
                 async with session.post(
-                    self.DID_REGISTRAR_BASE_URL + "update", json=options
+                    self.DID_REGISTRAR_BASE_URL + "update", json=json.dumps(options)
                 ) as response:
                     if response.status == 200:
                         return await response.json()
@@ -83,7 +64,7 @@ class CheqdDIDRegistrar(BaseDIDRegistrar):
         async with ClientSession() as session:
             try:
                 async with session.post(
-                    self.DID_REGISTRAR_BASE_URL + "deactivate", json=options
+                    self.DID_REGISTRAR_BASE_URL + "deactivate", json=json.dumps(options)
                 ) as response:
                     if response.status == 200:
                         return await response.json()
@@ -99,7 +80,8 @@ class CheqdDIDRegistrar(BaseDIDRegistrar):
         async with ClientSession() as session:
             try:
                 async with session.post(
-                    self.DID_REGISTRAR_BASE_URL + "/createResource", json=options
+                    self.DID_REGISTRAR_BASE_URL + "/createResource",
+                    json=json.dumps(options),
                 ) as response:
                     if response.status == 200 or response.status == 201:
                         return await response.json()
@@ -115,7 +97,8 @@ class CheqdDIDRegistrar(BaseDIDRegistrar):
         async with ClientSession() as session:
             try:
                 async with session.post(
-                    self.DID_REGISTRAR_BASE_URL + "/updateResource", json=options
+                    self.DID_REGISTRAR_BASE_URL + "/updateResource",
+                    json=json.dumps(options),
                 ) as response:
                     if response.status == 200:
                         return await response.json()

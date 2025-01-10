@@ -10,19 +10,24 @@ from acapy_agent.wallet.did_method import DIDMethods
 from acapy_agent.wallet.did_parameters_validation import DIDParametersValidation
 from acapy_agent.wallet.error import WalletError
 from acapy_agent.wallet.key_type import ED25519
+from acapy_agent.wallet.util import b58_to_bytes, bytes_to_b64
 from aiohttp import web
 
+from .base import (
+    DidUpdateRequestOptions,
+    SubmitSignatureOptions,
+    PartialDIDDocumentSchema,
+    DIDDocumentSchema,
+)
 from .helpers import (
     create_verification_keys,
     create_did_verification_method,
     VerificationMethods,
     create_did_payload,
-    bytes_to_base64,
 )
 from ..did.base import (
     BaseDIDManager,
     CheqdDIDManagerError,
-    ResourceUpdateRequestOptions,
     Secret,
     DidDeactivateRequestOptions,
     DidCreateRequestOptions,
@@ -52,7 +57,9 @@ class CheqdDIDManager(BaseDIDManager):
         self.registrar = CheqdDIDRegistrar(registrar_url)
         self.resolver = CheqdDIDResolver(resolver_url)
 
-    async def create(self, did_doc: dict = None, options: dict = None) -> dict:
+    async def create(
+        self, did_doc: DIDDocumentSchema = None, options: dict = None
+    ) -> dict:
         """Create a new Cheqd DID."""
         options = options or {}
 
@@ -76,19 +83,24 @@ class CheqdDIDManager(BaseDIDManager):
 
                 key = await wallet.create_key(key_type, seed)
                 verkey = key.verkey
-                public_key_b64 = bytes_to_base64(verkey)
+                verkey_bytes = b58_to_bytes(verkey)
+                public_key_b64 = bytes_to_b64(verkey_bytes)
                 verification_method = (
                     options.get("verification_method") or VerificationMethods.Ed255192020
                 )
 
-                # generate payload
-                verification_keys = create_verification_keys(public_key_b64, network)
-                verification_methods = create_did_verification_method(
-                    [verification_method], [verification_keys]
-                )
-                did_document = create_did_payload(
-                    verification_methods, [verification_keys]
-                )
+                if did_doc is None:
+                    # generate payload
+                    verification_keys = create_verification_keys(public_key_b64, network)
+                    verification_methods = create_did_verification_method(
+                        [verification_method], [verification_keys]
+                    )
+                    did_document = create_did_payload(
+                        verification_methods, [verification_keys]
+                    )
+                else:
+                    did_document = did_doc
+
                 did: str = did_document.get("id")
 
                 # request create did
@@ -115,7 +127,7 @@ class CheqdDIDManager(BaseDIDManager):
                     )
                     # publish did
                     publish_did_res = await self.registrar.create(
-                        DidCreateRequestOptions(
+                        SubmitSignatureOptions(
                             jobId=job_id,
                             options=Options(
                                 network=network,
@@ -146,7 +158,9 @@ class CheqdDIDManager(BaseDIDManager):
             "didDocument": publish_did_state.get("didDocument"),
         }
 
-    async def update(self, did: str, did_doc: dict, options: dict = None) -> dict:
+    async def update(
+        self, did: str, did_doc: PartialDIDDocumentSchema, options: dict = None
+    ) -> dict:
         """Update a Cheqd DID."""
 
         async with self.profile.session() as session:
@@ -164,7 +178,7 @@ class CheqdDIDManager(BaseDIDManager):
                 # TODO If registrar supports other operation,
                 #       take didDocumentOperation as input
                 update_request_res = await self.registrar.update(
-                    ResourceUpdateRequestOptions(
+                    DidUpdateRequestOptions(
                         did=did,
                         didDocumentOperation=["setDidDocument"],
                         didDocument=[did_doc],
@@ -185,7 +199,7 @@ class CheqdDIDManager(BaseDIDManager):
 
                     # submit signed update
                     publish_did_res = await self.registrar.update(
-                        ResourceUpdateRequestOptions(
+                        SubmitSignatureOptions(
                             jobId=job_id, secret=Secret(signingResponse=signed_responses)
                         )
                     )
@@ -221,7 +235,9 @@ class CheqdDIDManager(BaseDIDManager):
                     raise DIDNotFound("DID is already deactivated or not found.")
 
                 # request deactivate did
-                deactivate_request_res = await self.registrar.deactivate({"did": did})
+                deactivate_request_res = await self.registrar.deactivate(
+                    DidDeactivateRequestOptions(did=did)
+                )
 
                 job_id: str = deactivate_request_res.get("jobId")
                 did_state = deactivate_request_res.get("didState")
@@ -236,7 +252,7 @@ class CheqdDIDManager(BaseDIDManager):
                     )
                     # submit signed deactivate
                     publish_did_res = await self.registrar.deactivate(
-                        DidDeactivateRequestOptions(
+                        SubmitSignatureOptions(
                             jobId=job_id,
                             secret=Secret(
                                 signingResponse=signed_responses,
