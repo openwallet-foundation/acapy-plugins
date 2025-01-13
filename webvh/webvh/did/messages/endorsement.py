@@ -1,8 +1,8 @@
 """Endorsement messages."""
 
+from acapy_agent.messaging.agent_message import AgentMessage, AgentMessageSchema
 from marshmallow import EXCLUDE, fields
 
-from acapy_agent.messaging.agent_message import AgentMessage, AgentMessageSchema
 from ..message_types import ENDORSEMENT_REQUEST, ENDORSEMENT_RESPONSE
 
 HANDLER_MODULE = "webvh.did.handlers.handler"
@@ -18,10 +18,11 @@ class EndorsementRequest(AgentMessage):
         message_type = ENDORSEMENT_REQUEST
         schema_class = "EndorsementRequestSchema"
 
-    def __init__(self, document: dict, **kwargs):
+    def __init__(self, document: dict, parameters: dict, **kwargs):
         """Initialize RequestEndorsement."""
         super().__init__(**kwargs)
         self.document = document
+        self.parameters = parameters
 
 
 class EndorsementRequestSchema(AgentMessageSchema):
@@ -39,6 +40,12 @@ class EndorsementRequestSchema(AgentMessageSchema):
         required=True,
         metadata={"description": "document to endorse"},
     )
+    parameters = fields.Dict(
+        required=False,
+        metadata={
+            "description": "parameters for the initial did",
+        },
+    )
 
 
 class EndorsementResponse(AgentMessage):
@@ -51,11 +58,12 @@ class EndorsementResponse(AgentMessage):
         message_type = ENDORSEMENT_RESPONSE
         schema_class = "EndorsementResponseSchema"
 
-    def __init__(self, state: str, document: dict, **kwargs):
+    def __init__(self, state: str, document: dict, parameters: dict, **kwargs):
         """Initialize ResponseEndorsement."""
         super().__init__(**kwargs)
         self.state = state
         self.document = document
+        self.parameters = parameters
 
 
 class EndorsementResponseSchema(AgentMessageSchema):
@@ -80,5 +88,11 @@ class EndorsementResponseSchema(AgentMessageSchema):
         required=False,
         metadata={
             "description": "document to endorse",
+        },
+    )
+    parameters = fields.Dict(
+        required=False,
+        metadata={
+            "description": "parameters for the initial did",
         },
     )
