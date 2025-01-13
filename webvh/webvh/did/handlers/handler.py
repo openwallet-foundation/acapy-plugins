@@ -12,6 +12,7 @@ from acapy_agent.wallet.keys.manager import MultikeyManager
 from ..endorsement_manager import EndorsementManager
 from ..messages.endorsement import EndorsementRequest, EndorsementResponse
 from ..operations_manager import DidWebvhOperationsManager
+from ..utils import get_url_decoded_domain
 
 LOGGER = logging.getLogger(__name__)
 
@@ -29,11 +30,7 @@ class EndorsementRequestHandler(BaseHandler):
     ):
         """Handle automatic endorsement."""
         domain = proof.get("domain")
-        # Replace %3A with : if domain is URL encoded
-        if "%3A" in domain:
-            url_decoded_domain = domain.replace("%3A", ":")
-        else:
-            url_decoded_domain = domain
+        url_decoded_domain = get_url_decoded_domain(domain)
 
         async with context.profile.session() as session:
             # Attempt to get the endorsement key for the domain
@@ -101,7 +98,7 @@ class EndorsementRequestHandler(BaseHandler):
                 "endorse the log entry."
             )
             # Save the log entry to the wallet for manual endorsement
-            await EndorsementManager(context.profile).save_document(
+            await EndorsementManager(context.profile).save_log_entry(
                 document, connection_id=context.connection_record.connection_id
             )
             await responder.send(

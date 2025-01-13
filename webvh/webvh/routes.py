@@ -86,7 +86,7 @@ class IdRequestParamSchema(OpenAPISchema):
         required=True,
         metadata={
             "description": "ID of the DID to endorse",
-            "example": "did:webvh:prod:1",
+            "example": "did:web:server.localhost%3A8000:prod:1",
         },
     )
 
