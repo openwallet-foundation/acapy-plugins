@@ -8,8 +8,10 @@ from acapy_agent.messaging.responder import BaseResponder
 from acapy_agent.vc.data_integrity.manager import DataIntegrityManager
 from acapy_agent.vc.data_integrity.models.options import DataIntegrityProofOptions
 from acapy_agent.wallet.keys.manager import MultikeyManager
-from ..manager import DidWebvhManager
+
+from ..endorsement_manager import EndorsementManager
 from ..messages.endorsement import EndorsementRequest, EndorsementResponse
+from ..operations_manager import DidWebvhOperationsManager
 
 LOGGER = logging.getLogger(__name__)
 
@@ -23,10 +25,11 @@ class EndorsementRequestHandler(BaseHandler):
         responder: BaseResponder,
         proof: dict,
         document: dict,
+        parameters: dict,
     ):
         """Handle automatic endorsement."""
         domain = proof.get("domain")
-        # Replace %3A with : is domain is URL encoded
+        # Replace %3A with : if domain is URL encoded
         if "%3A" in domain:
             url_decoded_domain = domain.replace("%3A", ":")
         else:
@@ -37,7 +40,7 @@ class EndorsementRequestHandler(BaseHandler):
             if not await MultikeyManager(session).kid_exists(url_decoded_domain):
                 # If the key is not found, return an error
                 LOGGER.error(
-                    f"Endorsement key not found for domain: {domain}. The administrator "
+                    f"Endorsement key not found for domain: {url_decoded_domain}. The administrator "
                     "must add the key to the wallet that matches the key on the server."
                 )
                 return
@@ -63,6 +66,7 @@ class EndorsementRequestHandler(BaseHandler):
             message=EndorsementResponse(
                 state="posted",
                 document=endorsed_document,
+                parameters=parameters,
             ),
             connection_id=context.connection_record.connection_id,
         )
@@ -87,20 +91,23 @@ class EndorsementRequestHandler(BaseHandler):
             .get("did-webvh", {})
             .get("auto_endorse")
         ):
-            await self._handle_auto_endorse(context, responder, proof, document)
+            await self._handle_auto_endorse(
+                context, responder, proof, document, context.message.parameters
+            )
         else:
             LOGGER.info(
                 "Auto endorsement is not enabled. The administrator must manually "
                 "endorse the log entry."
             )
             # Save the log entry to the wallet for manual endorsement
-            await DidWebvhManager(context.profile).save_document(
+            await EndorsementManager(context.profile).save_document(
                 document, connection_id=context.connection_record.connection_id
             )
             await responder.send(
                 message=EndorsementResponse(
                     state="pending",
                     document=document,
+                    parameters=context.message.parameters,
                 ),
                 connection_id=context.connection_record.connection_id,
             )
@@ -117,6 +124,8 @@ class EndorsementResponseHandler(BaseHandler):
         )
         assert isinstance(context.message, EndorsementResponse)
 
-        await DidWebvhManager(context.profile).finish_create(
-            context.message.document, state=context.message.state
+        await DidWebvhOperationsManager(context.profile).finish_create(
+            context.message.document,
+            state=context.message.state,
+            parameters=context.message.parameters,
         )

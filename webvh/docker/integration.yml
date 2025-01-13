@@ -7,12 +7,12 @@ inbound-transport:
   - [http, 0.0.0.0, 3000]
 outbound-transport: http
 endpoint:
-  - http://host.docker.internal:3000
+  - http://localhost:3000
 
 plugin:
-  - webvh.v1_0
+  - webvh
 
-genesis-url: http://test.bcovrin.vonx.io/genesis
+no-ledger: true
 
 log-level: info
 

@@ -3,15 +3,14 @@ label: webvh-endorser
 auto-provision: true
 
 admin: [0.0.0.0, 3001]
-admin-insecure-mode: false
-admin-api-key: change-me
+admin-insecure-mode: true
 
 inbound-transport:
   - [http, 0.0.0.0, 3000]
   - [ws, 0.0.0.0, 3002]
 outbound-transport: http
 endpoint:
-  - http://host.docker.internal:3000
+  - http://localhost:3000
 
 plugin:
   - webvh
@@ -23,6 +22,7 @@ wallet-type: askar-anoncreds
 wallet-name: endorser-wallet
 wallet-key: insecure
 
+wallet-allow-insecure-seed: true # Don't do this in production
 
 log-level: info
 

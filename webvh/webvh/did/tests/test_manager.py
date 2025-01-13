@@ -1,10 +1,6 @@
 import asyncio
 from unittest import IsolatedAsyncioTestCase
 
-from aiohttp import ClientConnectionError
-
-from acapy_agent.tests import mock
-
 from acapy_agent.connections.models.conn_record import ConnRecord
 from acapy_agent.core.event_bus import EventBus
 from acapy_agent.messaging.models.base import BaseModelError
@@ -13,12 +9,14 @@ from acapy_agent.protocols.coordinate_mediation.v1_0.route_manager import RouteM
 from acapy_agent.protocols.out_of_band.v1_0.manager import OutOfBandManager
 from acapy_agent.resolver.base import ResolutionMetadata, ResolutionResult, ResolverType
 from acapy_agent.resolver.did_resolver import DIDResolver
+from acapy_agent.tests import mock
 from acapy_agent.utils.testing import create_test_profile
 from acapy_agent.wallet.key_type import KeyTypes
 from acapy_agent.wallet.keys.manager import MultikeyManager
+from aiohttp import ClientConnectionError
 
 from ..exceptions import ConfigurationError, DidCreationError, EndorsementError
-from ..manager import DidWebvhManager
+from ..operations_manager import DidWebvhOperationsManager
 
 log_entry_response = {
     "logEntry": {
@@ -85,7 +83,7 @@ class TestManager(IsolatedAsyncioTestCase):
     async def asyncSetUp(self):
         self.profile = await create_test_profile({"wallet.type": "askar-anoncreds"})
 
-    @mock.patch.object(DidWebvhManager, "_get_active_endorser_connection")
+    @mock.patch.object(DidWebvhOperationsManager, "_get_active_endorser_connection")
     async def test_auto_endorsement_setup_as_endorser(
         self, mock_get_active_endorser_connection
     ):
@@ -93,7 +91,7 @@ class TestManager(IsolatedAsyncioTestCase):
             "plugin_config",
             {"did-webvh": {"role": "endorser"}},
         )
-        await DidWebvhManager(self.profile).auto_endorsement_setup()
+        await DidWebvhOperationsManager(self.profile).auto_endorsement_setup()
         assert not mock_get_active_endorser_connection.called
 
     async def test_auto_endorsement_setup_as_author_no_server_url(self):
@@ -102,7 +100,7 @@ class TestManager(IsolatedAsyncioTestCase):
             {"did-webvh": {"role": "author"}},
         )
         with self.assertRaises(ConfigurationError):
-            await DidWebvhManager(self.profile).auto_endorsement_setup()
+            await DidWebvhOperationsManager(self.profile).auto_endorsement_setup()
 
     async def test_auto_endorsement_setup_as_author_with_previous_connection(self):
         self.profile.settings.set_value(
@@ -115,14 +113,14 @@ class TestManager(IsolatedAsyncioTestCase):
                 state="active",
             )
             await record.save(session)
-        await DidWebvhManager(self.profile).auto_endorsement_setup()
+        await DidWebvhOperationsManager(self.profile).auto_endorsement_setup()
 
     async def test_auto_endorsement_setup_as_author_no_endorser_invitation(self):
         self.profile.settings.set_value(
             "plugin_config",
             {"did-webvh": {"role": "author", "server_url": "http://localhost:8000"}},
         )
-        await DidWebvhManager(self.profile).auto_endorsement_setup()
+        await DidWebvhOperationsManager(self.profile).auto_endorsement_setup()
 
     @mock.patch.object(OutOfBandManager, "receive_invitation")
     async def test_auto_endorsement_setup_as_author_bad_invitation(
@@ -144,7 +142,7 @@ class TestManager(IsolatedAsyncioTestCase):
         )
         mock_receive_invitation.side_effect = BaseModelError("Bad invitation")
         with self.assertRaises(EndorsementError):
-            await DidWebvhManager(self.profile).auto_endorsement_setup()
+            await DidWebvhOperationsManager(self.profile).auto_endorsement_setup()
 
     @mock.patch.object(OutOfBandManager, "receive_invitation")
     @mock.patch.object(asyncio, "sleep")
@@ -163,7 +161,7 @@ class TestManager(IsolatedAsyncioTestCase):
         self.profile.context.injector.bind_instance(
             RouteManager, mock.AsyncMock(RouteManager, autospec=True)
         )
-        await DidWebvhManager(self.profile).auto_endorsement_setup()
+        await DidWebvhOperationsManager(self.profile).auto_endorsement_setup()
 
     @mock.patch.object(OutOfBandManager, "receive_invitation")
     async def test_auto_endorsement_setup_as_author_conn_becomes_active(self, *_):
@@ -192,7 +190,7 @@ class TestManager(IsolatedAsyncioTestCase):
                 await record.save(session)
 
         asyncio.create_task(_create_connection())
-        await DidWebvhManager(self.profile).auto_endorsement_setup()
+        await DidWebvhOperationsManager(self.profile).auto_endorsement_setup()
 
     async def test_create_invalid(self):
         self.profile.settings.set_value(
@@ -200,7 +198,7 @@ class TestManager(IsolatedAsyncioTestCase):
         )
         # No server url
         with self.assertRaises(ConfigurationError):
-            await DidWebvhManager(self.profile).create(options={})
+            await DidWebvhOperationsManager(self.profile).create(options={})
 
         self.profile.settings.set_value(
             "plugin_config",
@@ -208,7 +206,7 @@ class TestManager(IsolatedAsyncioTestCase):
         )
         # No namespace
         with self.assertRaises(DidCreationError):
-            await DidWebvhManager(self.profile).create(options={})
+            await DidWebvhOperationsManager(self.profile).create(options={})
 
     @mock.patch(
         "aiohttp.ClientSession.get",
@@ -247,7 +245,9 @@ class TestManager(IsolatedAsyncioTestCase):
             EventBus, mock.MagicMock(EventBus, autospec=True)
         )
 
-        await DidWebvhManager(self.profile).create(options={"namespace": "test"})
+        await DidWebvhOperationsManager(self.profile).create(
+            options={"namespace": "test"}
+        )
 
     @mock.patch(
         "aiohttp.ClientSession.get",
@@ -296,17 +296,23 @@ class TestManager(IsolatedAsyncioTestCase):
         )
         self.profile.context.injector.bind_instance(KeyTypes, KeyTypes())
 
-        await DidWebvhManager(self.profile).create(options={"namespace": "test"})
+        await DidWebvhOperationsManager(self.profile).create(
+            options={"namespace": "test"}
+        )
 
         # Same thing with existing key now
-        await DidWebvhManager(self.profile).create(options={"namespace": "test"})
+        await DidWebvhOperationsManager(self.profile).create(
+            options={"namespace": "test"}
+        )
 
     @mock.patch(
         "aiohttp.ClientSession.get",
         request_namespace,
     )
     @mock.patch.object(
-        DidWebvhManager, "_wait_for_endorsement", mock.AsyncMock(return_value=None)
+        DidWebvhOperationsManager,
+        "_wait_for_endorsement",
+        mock.AsyncMock(return_value=None),
     )
     async def test_create_as_author(self):
         self.profile.settings.set_value(
@@ -325,7 +331,9 @@ class TestManager(IsolatedAsyncioTestCase):
 
         # No active connection
         with self.assertRaises(EndorsementError):
-            await DidWebvhManager(self.profile).create(options={"namespace": "test"})
+            await DidWebvhOperationsManager(self.profile).create(
+                options={"namespace": "test"}
+            )
 
         # Has connection
         async with self.profile.session() as session:
@@ -335,7 +343,9 @@ class TestManager(IsolatedAsyncioTestCase):
             )
             await record.save(session)
 
-        await DidWebvhManager(self.profile).create(options={"namespace": "test"})
+        await DidWebvhOperationsManager(self.profile).create(
+            options={"namespace": "test"}
+        )
 
     @mock.patch(
         "aiohttp.ClientSession.get",
@@ -352,7 +362,9 @@ class TestManager(IsolatedAsyncioTestCase):
             },
         )
         with self.assertRaises(DidCreationError):
-            await DidWebvhManager(self.profile).create(options={"namespace": "test"})
+            await DidWebvhOperationsManager(self.profile).create(
+                options={"namespace": "test"}
+            )
 
     @mock.patch("aiohttp.ClientSession.get", request_namespace_fail)
     async def test_create_bad_request(self):
@@ -366,7 +378,9 @@ class TestManager(IsolatedAsyncioTestCase):
         )
 
         with self.assertRaises(DidCreationError):
-            await DidWebvhManager(self.profile).create(options={"namespace": "test"})
+            await DidWebvhOperationsManager(self.profile).create(
+                options={"namespace": "test"}
+            )
 
     @mock.patch(
         "aiohttp.ClientSession.get",
@@ -403,14 +417,18 @@ class TestManager(IsolatedAsyncioTestCase):
         )
 
         with self.assertRaises(DidCreationError):
-            await DidWebvhManager(self.profile).create(options={"namespace": "test"})
+            await DidWebvhOperationsManager(self.profile).create(
+                options={"namespace": "test"}
+            )
 
     @mock.patch(
         "aiohttp.ClientSession.get",
         request_namespace,
     )
     @mock.patch.object(
-        DidWebvhManager, "_wait_for_endorsement", mock.AsyncMock(return_value=None)
+        DidWebvhOperationsManager,
+        "_wait_for_endorsement",
+        mock.AsyncMock(return_value=None),
     )
     async def test_create_as_author_with_existing_key(self):
         self.profile.settings.set_value(
@@ -438,4 +456,6 @@ class TestManager(IsolatedAsyncioTestCase):
                 kid="did:web:server.localhost%3A8000:prod:1#author",
             )
 
-        await DidWebvhManager(self.profile).create(options={"namespace": "test"})
+        await DidWebvhOperationsManager(self.profile).create(
+            options={"namespace": "test"}
+        )
