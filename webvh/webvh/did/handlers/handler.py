@@ -40,8 +40,9 @@ class EndorsementRequestHandler(BaseHandler):
             if not await MultikeyManager(session).kid_exists(url_decoded_domain):
                 # If the key is not found, return an error
                 LOGGER.error(
-                    f"Endorsement key not found for domain: {url_decoded_domain}. The administrator "
-                    "must add the key to the wallet that matches the key on the server."
+                    f"Endorsement key not found for domain: {url_decoded_domain}. The "
+                    "administrator must add the key to the wallet that matches the key on"
+                    " the server."
                 )
                 return
 
