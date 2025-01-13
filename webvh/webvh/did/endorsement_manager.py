@@ -22,7 +22,12 @@ from aries_askar import AskarError
 from .exceptions import EndorsementError
 from .messages.endorsement import EndorsementRequest, EndorsementResponse
 from .registration_state import RegistrationState
-from .utils import get_plugin_settings, get_server_info, is_author
+from .utils import (
+    get_plugin_settings,
+    get_server_info,
+    get_url_decoded_domain,
+    is_controller,
+)
 
 LOGGER = logging.getLogger(__name__)
 
@@ -55,7 +60,7 @@ class EndorsementManager:
 
     async def endorse_registration_document(
         self,
-        author_secured_document: dict,
+        controller_secured_document: dict,
         expiration: str,
         domain: str,
         challenge: str,
@@ -67,11 +72,7 @@ class EndorsementManager:
             # Self endorsement
             if not role or role == "endorser":
                 try:
-                    # Replace %3A with : if domain is URL encoded
-                    if "%3A" in domain:
-                        url_decoded_domain = domain.replace("%3A", ":")
-                    else:
-                        url_decoded_domain = domain
+                    url_decoded_domain = get_url_decoded_domain(domain)
 
                     key_info_endorser = await MultikeyManager(session).create(
                         kid=url_decoded_domain,
@@ -82,7 +83,7 @@ class EndorsementManager:
                         url_decoded_domain
                     )
                 return await DataIntegrityManager(session).add_proof(
-                    author_secured_document,
+                    controller_secured_document,
                     DataIntegrityProofOptions(
                         type="DataIntegrityProof",
                         cryptosuite="eddsa-jcs-2022",
@@ -102,13 +103,13 @@ class EndorsementManager:
                     raise EndorsementError("No active endorser connection found.")
 
                 await responder.send(
-                    message=EndorsementRequest(author_secured_document, parameters),
+                    message=EndorsementRequest(controller_secured_document, parameters),
                     connection_id=endorser_connection.connection_id,
                 )
 
     async def auto_endorsement_setup(self) -> None:
         """Automatically set up the endorsement the connection."""
-        if not is_author(self.profile):
+        if not is_controller(self.profile):
             return
 
         # Get the endorser connection is already set up
@@ -178,11 +179,7 @@ class EndorsementManager:
             proof = document_json.get("proof")[0]
 
             domain = proof.get("domain")
-            # Replace %3A with : if domain is URL encoded
-            if "%3A" in domain:
-                url_decoded_domain = domain.replace("%3A", ":")
-            else:
-                url_decoded_domain = domain
+            url_decoded_domain = get_url_decoded_domain(domain)
 
             # Attempt to get the endorsement key for the domain
             if not await MultikeyManager(session).kid_exists(url_decoded_domain):

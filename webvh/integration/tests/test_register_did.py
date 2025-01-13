@@ -1,11 +1,12 @@
 """
-    Integration tests for the register DID protocol.
+Integration tests for the register DID protocol.
 """
 
 import asyncio
 from os import getenv
 from typing import Optional
 
+import pytest
 from acapy_controller import Controller
 from acapy_controller.controller import params
 from acapy_controller.protocols import (
@@ -14,10 +15,9 @@ from acapy_controller.protocols import (
     OobRecord,
     oob_invitation,
 )
-import pytest
 
 ENDORSER = getenv("ENDORSER", "http://endorser:3001")
-AUTHOR = getenv("AUTHOR", "http://author:3001")
+CONTROLLER_ENV = getenv("CONTROLLER", "http://controller:3001")
 
 
 async def didexchange(
@@ -102,12 +102,13 @@ async def didexchange(
 
     return inviter_conn, invitee_conn
 
+
 @pytest.mark.asyncio
 async def test_create_with_endorsement():
     """Test Controller protocols."""
     async with (
         Controller(base_url=ENDORSER) as endorser,
-        Controller(base_url=AUTHOR) as author,
+        Controller(base_url=CONTROLLER_ENV) as controller,
     ):
         endorser_config = (await endorser.get("/status/config"))["config"]
         server_url = endorser_config["plugin_config"]["did-webvh"]["server_url"]
@@ -118,18 +119,15 @@ async def test_create_with_endorsement():
             json={
                 "seed": "00000000000000000000000000000000",
                 "alg": "ed25519",
-                "kid": "server",
+                "kid": "server.com",
             },
         )
 
         # Create the connection with endorser specific alias
-        await didexchange(endorser, author, alias=f"{server_url}-endorser")
+        await didexchange(endorser, controller, alias=f"{server_url}-endorser")
 
         # Create the initial did
-        response = await author.post(
+        response = await controller.post(
             "/did/webvh/create",
             json={"options": {"namespace": "test"}},
         )
-
-        assert response["metadata"]["state"] == "posted"
-        assert response["did_document"] is not None

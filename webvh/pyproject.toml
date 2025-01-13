@@ -9,16 +9,16 @@ python = "^3.12"
 
 # Define ACA-Py as an optional/extra dependency so it can be
 # explicitly installed with the plugin if desired.
-acapy-agent = { git = "https://github.com/jamshale/acapy.git", branch = "change-tdw-naming", optional = true }
+acapy-agent = { git = "https://github.com/openwallet-foundation/acapy.git", optional = true }
 did-webvh = "~0.2.1"
 
 [tool.poetry.extras]
 aca-py = ["acapy-agent"]
 
 [tool.poetry.dev-dependencies]
-ruff = "^0.8.6"
+ruff = "^0.9.1"
 pytest = "^8.3.3"
-pytest-asyncio = "^0.25.1"
+pytest-asyncio = "^0.25.2"
 pytest-cov = "^5.0.0"
 pytest-ruff = "^0.4.1"
 
