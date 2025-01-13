@@ -27,13 +27,14 @@ from pydid import DIDDocument
 from .endorsement_manager import EndorsementManager
 from .exceptions import DidCreationError
 from .registration_state import RegistrationState
-from .utils import get_server_info
+from .utils import get_server_info, use_strict_ssl
 
 LOGGER = logging.getLogger(__name__)
 
 WEBVH_METHOD = "did:webvh:0.4"
 ENDORSEMENT_WAIT_TIMEOUT_SECONDS = 2
 ENDORSEMENT_EVENT = "endorsement_response::"
+AUTHORIZED_KEY_ID = "authorizedKey"
 
 
 class DidWebvhOperationsManager:
@@ -49,7 +50,7 @@ class DidWebvhOperationsManager:
     async def fetch_jsonl(self, url):
         """Fetch a JSONL file from the given URL."""
         async with ClientSession() as session:
-            async with session.get(url, ssl=False) as response:
+            async with session.get(url, ssl=use_strict_ssl(self.profile)) as response:
                 # Check if the response is OK
                 response.raise_for_status()
 
@@ -70,7 +71,7 @@ class DidWebvhOperationsManager:
                         "namespace": namespace,
                         "identifier": identifier,
                     },
-                    ssl=False,
+                    ssl=use_strict_ssl(self.profile),
                 )
             except ClientConnectionError as err:
                 raise DidCreationError(f"Failed to connect to Webvh server: {err}")
@@ -94,22 +95,27 @@ class DidWebvhOperationsManager:
                     "Invalid response from Webvh server requesting identifier"
                 )
 
-    async def _get_or_create_author_key(self, did):
+    async def _get_or_create_authorized_key(self, did):
         async with self.profile.session() as session:
             try:
-                key_info_author = await MultikeyManager(session).create(
+                # NOTE: kid management needs to be addressed with key rotation
+                authorized_key_info = await MultikeyManager(session).create(
                     alg="ed25519",
-                    kid=f"{did}#author",
+                    kid=f"{did}#{AUTHORIZED_KEY_ID}",
                 )
             except MultikeyManagerError:
-                key_info_author = await MultikeyManager(session).from_kid(f"{did}#author")
+                authorized_key_info = await MultikeyManager(session).from_kid(
+                    f"{did}#{AUTHORIZED_KEY_ID}"
+                )
 
-        return key_info_author
+        return authorized_key_info
 
-    async def _create_author_signed_registration_document(
-        self, did, author_key_info, expiration, domain, challenge
+    async def _create_controller_signed_registration_document(
+        self, did, authorized_key_info, expiration, domain, challenge
     ):
         async with self.profile.session() as session:
+            # NOTE: The authorized key is used as the verification method. This needs to
+            # be discussed and potentially changed to a different key.
             return await DataIntegrityManager(session).add_proof(
                 DIDDocument(
                     context=[
@@ -117,14 +123,14 @@ class DidWebvhOperationsManager:
                         "https://w3id.org/security/multikey/v1",
                     ],
                     id=did,
-                    authentication=[author_key_info.get("kid")],
-                    assertion_method=[author_key_info.get("kid")],
+                    authentication=[authorized_key_info.get("kid")],
+                    assertion_method=[authorized_key_info.get("kid")],
                     verification_method=[
                         {
-                            "id": author_key_info.get("kid"),
+                            "id": authorized_key_info.get("kid"),
                             "type": "Multikey",
                             "controller": did,
-                            "publicKeyMultibase": author_key_info.get("multikey"),
+                            "publicKeyMultibase": authorized_key_info.get("multikey"),
                         }
                     ],
                 ).serialize(),
@@ -132,7 +138,7 @@ class DidWebvhOperationsManager:
                     type="DataIntegrityProof",
                     cryptosuite="eddsa-jcs-2022",
                     proof_purpose="assertionMethod",
-                    verification_method=f"did:key:{author_key_info.get('multikey')}#{author_key_info.get('multikey')}",
+                    verification_method=f"did:key:{authorized_key_info.get('multikey')}#{authorized_key_info.get('multikey')}",
                     expires=expiration,
                     domain=domain,
                     challenge=challenge,
@@ -148,7 +154,7 @@ class DidWebvhOperationsManager:
             return await self.finish_create(
                 event.payload.get("document"),
                 state=RegistrationState.FINISHED.value,
-                author_key_info=event.payload.get("author_key_info"),
+                authorized_key_info=event.payload.get("authorized_key_info"),
                 parameters=event.payload.get("metadata", {}).get("parameters"),
             )
 
@@ -156,8 +162,7 @@ class DidWebvhOperationsManager:
         """Register identities."""
 
         server_url = get_server_info(self.profile)
-
-        namespace = options.get("namespace")
+        namespace = options.get("namespace", "default")
 
         if namespace is None:
             raise DidCreationError("Namespace is required.")
@@ -170,14 +175,16 @@ class DidWebvhOperationsManager:
             server_url, namespace, identifier
         )
 
-        author_key_info = await self._get_or_create_author_key(did)
-        author_secured_document = await self._create_author_signed_registration_document(
-            did, author_key_info, expiration, domain, challenge
+        authorized_key_info = await self._get_or_create_authorized_key(did)
+        controller_secured_document = (
+            await self._create_controller_signed_registration_document(
+                did, authorized_key_info, expiration, domain, challenge
+            )
         )
 
         parameters = options.get("parameters", {})
         result = await EndorsementManager(self.profile).endorse_registration_document(
-            author_secured_document, expiration, domain, challenge, parameters
+            controller_secured_document, expiration, domain, challenge, parameters
         )
 
         if isinstance(result, dict):
@@ -185,7 +192,7 @@ class DidWebvhOperationsManager:
                 result,
                 parameters=parameters,
                 state=RegistrationState.SUCCESS.value,
-                author_key_info=author_key_info,
+                authorized_key_info=authorized_key_info,
             )
 
         try:
@@ -206,15 +213,15 @@ class DidWebvhOperationsManager:
         namespace: str,
         identifier: str,
         parameters: dict,
-        author_key_info: dict,
+        authorized_key_info: dict,
     ):
         initial_doc = {
             "@context": "https://www.w3.org/ns/did/v1",
-            "id": r"did:webvh:{SCID}:" + domain + ":" + namespace + ":" + identifier,
+            "id": r"did:webvh:{SCID}:" + f"{domain}:{namespace}:{identifier}",
         }
         doc_state = DocumentState.initial(
             {
-                "updateKeys": [author_key_info.get("multikey")],
+                "updateKeys": [authorized_key_info.get("multikey")],
                 "prerotation": parameters.get("prerotation", False),
                 "portable": parameters.get("portable", False),
                 "method": WEBVH_METHOD,
@@ -222,14 +229,15 @@ class DidWebvhOperationsManager:
             initial_doc,
         )
 
-        # Add author proof to the log entry
+        # Add controller authorized proof to the log entry
+        # NOTE: The authorized key is used as the verification method.
         return await DataIntegrityManager(session).add_proof(
             doc_state.history_line(),
             DataIntegrityProofOptions(
                 type="DataIntegrityProof",
                 cryptosuite="eddsa-jcs-2022",
                 proof_purpose="assertionMethod",
-                verification_method=f"did:key:{author_key_info.get('multikey')}#{author_key_info.get('multikey')}",
+                verification_method=f"did:key:{authorized_key_info.get('multikey')}#{authorized_key_info.get('multikey')}",
             ),
         )
 
@@ -238,10 +246,9 @@ class DidWebvhOperationsManager:
         endorsed_document: dict,
         parameters: dict,
         state: str = RegistrationState.SUCCESS.value,
-        author_key_info: Optional[dict] = None,
+        authorized_key_info: Optional[dict] = None,
     ):
         """Finish the creation of a Webvh DID."""
-
         if state == RegistrationState.POSTED.value:
             event_bus = self.profile.inject(EventBus)
             await event_bus.notify(
@@ -282,14 +289,14 @@ class DidWebvhOperationsManager:
             response = await http_session.post(
                 server_url,
                 json={"didDocument": endorsed_document},
-                ssl=False,
+                ssl=use_strict_ssl(self.profile),
             )
             response_json = await response.json()
             if response.status == http.HTTPStatus.BAD_REQUEST:
                 raise DidCreationError(response_json.get("detail"))
 
-            if not author_key_info:
-                author_key_info = await self._get_or_create_author_key(
+            if not authorized_key_info:
+                authorized_key_info = await self._get_or_create_authorized_key(
                     endorsed_document["id"]
                 )
 
@@ -304,14 +311,14 @@ class DidWebvhOperationsManager:
                 namespace,
                 identifier,
                 parameters,
-                author_key_info,
+                authorized_key_info,
             )
 
             # Submit the initial log entry
             response = await http_session.post(
                 f"{server_url}/{namespace}/{identifier}",
                 json={"logEntry": signed_initial_log_entry},
-                ssl=False,
+                ssl=use_strict_ssl(self.profile),
             )
 
             if response.status == http.HTTPStatus.INTERNAL_SERVER_ERROR:
@@ -328,7 +335,7 @@ class DidWebvhOperationsManager:
                 did,
                 value_json={
                     "did": did,
-                    "verkey": multikey_to_verkey(author_key_info.get("multikey")),
+                    "verkey": multikey_to_verkey(authorized_key_info.get("multikey")),
                     "metadata": {
                         "posted": True,
                         "namespace": namespace,
@@ -384,7 +391,7 @@ class DidWebvhOperationsManager:
         for feature, values in features.items():
             document[feature].extend([values])
 
-        author_key_info = await self._get_or_create_author_key(
+        authorized_key_info = await self._get_or_create_authorized_key(
             document_state.document["id"]
         )
 
@@ -394,6 +401,7 @@ class DidWebvhOperationsManager:
 
         async with ClientSession() as http_session, self.profile.session() as session:
             # Submit the log entry
+            # NOTE: The authorized key is used as the verification method.
             log_entry = document_state.history_line()
             signed_log_entry = await DataIntegrityManager(session).add_proof(
                 log_entry,
@@ -401,14 +409,14 @@ class DidWebvhOperationsManager:
                     type="DataIntegrityProof",
                     cryptosuite="eddsa-jcs-2022",
                     proof_purpose="assertionMethod",
-                    verification_method=f"did:key:{author_key_info.get('multikey')}#{author_key_info.get('multikey')}",
+                    verification_method=f"did:key:{authorized_key_info.get('multikey')}#{authorized_key_info.get('multikey')}",
                 ),
             )
 
             response = await http_session.put(
                 f"{server_url}/{namespace}/{identifier}",
                 json={"logEntry": signed_log_entry},
-                ssl=False,
+                ssl=use_strict_ssl(self.profile),
             )
 
             response_json = await response.json()
@@ -450,7 +458,7 @@ class DidWebvhOperationsManager:
         document["authentication"] = []
         document["assertionMethod"] = []
 
-        author_key_info = await self._get_or_create_author_key(
+        authorized_key_info = await self._get_or_create_authorized_key(
             document_state.document["id"]
         )
 
@@ -465,6 +473,7 @@ class DidWebvhOperationsManager:
 
         async with ClientSession() as http_session, self.profile.session() as session:
             # Submit the log entry
+            # NOTE: The authorized key is used as the verification method.
             log_entry = document_state.history_line()
             signed_log_entry = await DataIntegrityManager(session).add_proof(
                 log_entry,
@@ -472,14 +481,14 @@ class DidWebvhOperationsManager:
                     type="DataIntegrityProof",
                     cryptosuite="eddsa-jcs-2022",
                     proof_purpose="assertionMethod",
-                    verification_method=f"did:key:{author_key_info.get('multikey')}#{author_key_info.get('multikey')}",
+                    verification_method=f"did:key:{authorized_key_info.get('multikey')}#{authorized_key_info.get('multikey')}",
                 ),
             )
 
             response = await http_session.delete(
                 f"{server_url}/{namespace}/{identifier}",
                 json={"logEntry": signed_log_entry},
-                ssl=False,
+                ssl=use_strict_ssl(self.profile),
             )
 
             response_json = await response.json()

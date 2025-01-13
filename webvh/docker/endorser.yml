@@ -34,3 +34,4 @@ plugin-config-value:
    - did-webvh.server_url=https://localhost:8000
    - did-webvh.role=endorser
    - did-webvh.auto_endorse=true
+   - did-webvh.strict_ssl=false

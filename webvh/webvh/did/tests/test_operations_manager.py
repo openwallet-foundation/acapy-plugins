@@ -81,7 +81,7 @@ class TestOperationsManager(IsolatedAsyncioTestCase):
 
     async def test_create_invalid(self):
         self.profile.settings.set_value(
-            "plugin_config", {"did-webvh": {"role": "author"}}
+            "plugin_config", {"did-webvh": {"role": "controller"}}
         )
         # No server url
         with self.assertRaises(ConfigurationError):
@@ -89,7 +89,7 @@ class TestOperationsManager(IsolatedAsyncioTestCase):
 
         self.profile.settings.set_value(
             "plugin_config",
-            {"did-webvh": {"role": "author", "server_url": "http://localhost:8000"}},
+            {"did-webvh": {"role": "controller", "server_url": "http://localhost:8000"}},
         )
         # No namespace
         with self.assertRaises(DidCreationError):
@@ -201,13 +201,13 @@ class TestOperationsManager(IsolatedAsyncioTestCase):
         "_wait_for_endorsement",
         mock.AsyncMock(return_value=None),
     )
-    async def test_create_as_author(self):
+    async def test_create_as_controller(self):
         self.profile.settings.set_value(
             "plugin_config",
             {
                 "did-webvh": {
                     "server_url": "http://localhost:8000",
-                    "role": "author",
+                    "role": "controller",
                 }
             },
         )
@@ -244,7 +244,7 @@ class TestOperationsManager(IsolatedAsyncioTestCase):
             {
                 "did-webvh": {
                     "server_url": "http://localhost:8000",
-                    "role": "author",
+                    "role": "controller",
                 }
             },
         )
@@ -317,13 +317,13 @@ class TestOperationsManager(IsolatedAsyncioTestCase):
         "_wait_for_endorsement",
         mock.AsyncMock(return_value=None),
     )
-    async def test_create_as_author_with_existing_key(self):
+    async def test_create_as_controller_with_existing_key(self):
         self.profile.settings.set_value(
             "plugin_config",
             {
                 "did-webvh": {
                     "server_url": "http://localhost:8000",
-                    "role": "author",
+                    "role": "controller",
                 }
             },
         )
@@ -340,7 +340,7 @@ class TestOperationsManager(IsolatedAsyncioTestCase):
             await record.save(session)
             await MultikeyManager(session).create(
                 alg="ed25519",
-                kid="did:web:server.localhost%3A8000:prod:1#author",
+                kid="did:web:server.localhost%3A8000:prod:1#authorized",
             )
 
         await DidWebvhOperationsManager(self.profile).create(
