@@ -98,7 +98,7 @@ class DIDCheqdRegistry(BaseAnonCredsResolver, BaseAnonCredsRegistrar):
         return f"{revocation_registry_definition.issuer_id}/resources/{resource_id}"
 
     @staticmethod
-    def split_schema_id(schema_id: str) -> (str, str):
+    def split_did_url(schema_id: str) -> (str, str):
         """Derive the ID for a schema."""
         ids = schema_id.split("/")
         return ids[0], ids[2]
@@ -126,7 +126,7 @@ class DIDCheqdRegistry(BaseAnonCredsResolver, BaseAnonCredsRegistrar):
         schema = resource_with_metadata.resource
         metadata = resource_with_metadata.metadata
 
-        (did, resource_id) = self.split_schema_id(schema_id)
+        (did, resource_id) = self.split_did_url(schema_id)
 
         anoncreds_schema = AnonCredsSchema(
             issuer_id=did,
@@ -170,20 +170,29 @@ class DIDCheqdRegistry(BaseAnonCredsResolver, BaseAnonCredsRegistrar):
 
         LOGGER.debug("schema value: %s", cheqd_schema)
         try:
-            resource_state = await self._create_and_publish_resource(
-                profile,
-                self.registrar.DID_REGISTRAR_BASE_URL,
-                self.resolver.DID_RESOLVER_BASE_URL,
-                cheqd_schema,
-            )
-            job_id = resource_state.get("jobId")
-            resource = resource_state.get("resource")
-            resource_id = resource.get("id")
-            schema_id = self.make_schema_id(schema, resource_id)
+            # check if schema already exists
+            existing_schema = self.resolver.resolve_resource(f"{schema.issuer_id}?resourceName={resource_name}&resourceType={resource_type}")
+            if existing_schema is not None:
+                (job_id, resource_state) = await self._update_and_publish_resource(
+                    profile,
+                    self.registrar.DID_REGISTRAR_BASE_URL,
+                    self.resolver.DID_RESOLVER_BASE_URL,
+                    cheqd_schema,
+                )
+            else:
+                (job_id, resource_state) = await self._create_and_publish_resource(
+                    profile,
+                    self.registrar.DID_REGISTRAR_BASE_URL,
+                    self.resolver.DID_RESOLVER_BASE_URL,
+                    cheqd_schema,
+                )
+            LOGGER.debug("resource state: %s", resource_state)
+            schema_id = resource_state.get("didUrl")
+            (_, resource_id) = self.split_did_url(schema_id)
         except Exception as err:
             raise AnonCredsRegistrationError(f"{err}")
         return SchemaResult(
-            job_id=job_id,
+            job_id=schema_id,
             schema_state=SchemaState(
                 state=SchemaState.STATE_FINISHED,
                 schema_id=schema_id,
@@ -205,7 +214,7 @@ class DIDCheqdRegistry(BaseAnonCredsResolver, BaseAnonCredsRegistrar):
         )
         credential_definition = resource_with_metadata.resource
         metadata = resource_with_metadata.metadata
-        (did, resource_id) = self.split_schema_id(credential_definition_id)
+        (did, resource_id) = self.split_did_url(credential_definition_id)
 
         anoncreds_credential_definition = CredDef(
             issuer_id=did,
@@ -249,22 +258,17 @@ class DIDCheqdRegistry(BaseAnonCredsResolver, BaseAnonCredsRegistrar):
             did=credential_definition.issuer_id,
         )
 
-        resource_state = await self._create_and_publish_resource(
+        (job_id, resource_state) = await self._create_and_publish_resource(
             profile,
             self.registrar.DID_REGISTRAR_BASE_URL,
             self.resolver.DID_RESOLVER_BASE_URL,
             cred_def,
         )
-        job_id = resource_state.get("jobId")
-        resource = resource_state.get("resource")
-        resource_id = resource.get("id")
-
-        credential_definition_id = self.make_credential_definition_id(
-            credential_definition, resource_id
-        )
+        credential_definition_id = resource_state.get("didUrl")
+        (_, resource_id) = self.split_did_url(credential_definition_id)
 
         return CredDefResult(
-            job_id=job_id,
+            job_id=credential_definition_id,
             credential_definition_state=CredDefState(
                 state=CredDefState.STATE_FINISHED,
                 credential_definition_id=credential_definition_id,
@@ -288,7 +292,7 @@ class DIDCheqdRegistry(BaseAnonCredsResolver, BaseAnonCredsRegistrar):
         revocation_registry_definition = resource_with_metadata.resource
         metadata = resource_with_metadata.metadata
 
-        (did, resource_id) = self.split_schema_id(revocation_registry_id)
+        (did, resource_id) = self.split_did_url(revocation_registry_id)
 
         anoncreds_revocation_registry_definition = RevRegDef(
             issuer_id=did,
@@ -336,23 +340,20 @@ class DIDCheqdRegistry(BaseAnonCredsResolver, BaseAnonCredsRegistrar):
             did=revocation_registry_definition.issuer_id,
         )
 
-        resource_state = await self._create_and_publish_resource(
+        (job_id, resource_state) = await self._create_and_publish_resource(
             profile,
             self.registrar.DID_REGISTRAR_BASE_URL,
             self.resolver.DID_RESOLVER_BASE_URL,
             rev_reg_def,
         )
-        job_id = resource_state.get("jobId")
-        resource = resource_state.get("resource")
-        resource_id = resource.get("id")
+        revocation_registry_definition_id = resource_state.get("didUrl")
+        (_, resource_id) = self.split_did_url(revocation_registry_definition_id)
 
         return RevRegDefResult(
-            job_id=job_id,
+            job_id=revocation_registry_definition_id,
             revocation_registry_definition_state=RevRegDefState(
                 state=RevRegDefState.STATE_FINISHED,
-                revocation_registry_definition_id=self.make_revocation_registry_id(
-                    revocation_registry_definition, resource_id
-                ),
+                revocation_registry_definition_id=revocation_registry_definition_id,
                 revocation_registry_definition=revocation_registry_definition,
             ),
             registration_metadata={
@@ -378,7 +379,7 @@ class DIDCheqdRegistry(BaseAnonCredsResolver, BaseAnonCredsRegistrar):
         resource_name = revocation_registry_definition.revocation_registry_metadata.get(
             "resourceName"
         )
-        (did, resource_id) = self.split_schema_id(revocation_registry_id)
+        (did, resource_id) = self.split_did_url(revocation_registry_id)
 
         resource_type = CheqdAnoncredsResourceType.revocationStatusList.value
         epoch_time = timestamp_to or int(time.time())
@@ -409,7 +410,7 @@ class DIDCheqdRegistry(BaseAnonCredsResolver, BaseAnonCredsRegistrar):
         """Get a schema info from the registry."""
         resource_with_metadata = await self.resolver.resolve_resource(schema_id)
         schema = resource_with_metadata.resource
-        (did, resource_id) = self.split_schema_id(schema_id)
+        (did, resource_id) = self.split_did_url(schema_id)
         anoncreds_schema = AnoncredsSchemaInfo(
             issuer_id=did,
             name=schema["name"],
@@ -447,18 +448,17 @@ class DIDCheqdRegistry(BaseAnonCredsResolver, BaseAnonCredsRegistrar):
             did=rev_reg_def.issuer_id,
         )
 
-        resource_state = await self._create_and_publish_resource(
+        (job_id, resource_state) = await self._create_and_publish_resource(
             profile,
             self.registrar.DID_REGISTRAR_BASE_URL,
             self.resolver.DID_RESOLVER_BASE_URL,
             rev_status_list,
         )
-        job_id = resource_state.get("jobId")
-        resource = resource_state.get("resource")
-        resource_id = resource.get("id")
+        did_url = resource_state.get("didUrl")
+        (_, resource_id) = self.split_did_url(did_url)
 
         return RevListResult(
-            job_id=job_id,
+            job_id=did_url,
             revocation_list_state=RevListState(
                 state=RevListState.STATE_FINISHED,
                 revocation_list=rev_list,
@@ -503,18 +503,17 @@ class DIDCheqdRegistry(BaseAnonCredsResolver, BaseAnonCredsRegistrar):
             did=rev_reg_def.issuer_id,
         )
 
-        resource_state = await self._update_and_publish_resource(
+        job_id, resource_state = await self._update_and_publish_resource(
             profile,
             self.registrar.DID_REGISTRAR_BASE_URL,
             self.resolver.DID_RESOLVER_BASE_URL,
             rev_status_list,
         )
-        job_id = resource_state.get("jobId")
-        resource = resource_state.get("resource")
-        resource_id = resource.get("id")
+        did_url = resource_state.get("didUrl")
+        (_, resource_id) = self.split_did_url(did_url)
 
         return RevListResult(
-            job_id=job_id,
+            job_id=did_url,
             revocation_list_state=RevListState(
                 state=RevListState.STATE_FINISHED,
                 revocation_list=curr_list,
@@ -533,7 +532,7 @@ class DIDCheqdRegistry(BaseAnonCredsResolver, BaseAnonCredsRegistrar):
         registrar_url: str,
         resolver_url: str,
         options: ResourceCreateRequestOptions,
-    ) -> dict:
+    ) -> (str, dict):
         """Create, Sign and Publish a Resource."""
         cheqd_manager = CheqdDIDManager(profile, registrar_url, resolver_url)
         async with profile.session() as session:
@@ -547,7 +546,9 @@ class DIDCheqdRegistry(BaseAnonCredsResolver, BaseAnonCredsRegistrar):
                 )
 
                 job_id: str = create_request_res.get("jobId")
-                resource_state = create_request_res.get("resourceState")
+                resource_state = create_request_res.get("didUrlState")
+                if not resource_state:
+                    raise Exception("No signing requests available for update.")
 
                 LOGGER.debug("JOBID %s", job_id)
                 if resource_state.get("state") == "action":
@@ -558,23 +559,25 @@ class DIDCheqdRegistry(BaseAnonCredsResolver, BaseAnonCredsRegistrar):
                     signed_responses = await CheqdDIDManager.sign_requests(
                         wallet, signing_requests
                     )
+                    LOGGER.debug("Signed Responses %s", signed_responses)
 
                     # publish resource
                     publish_resource_res = await cheqd_manager.registrar.create_resource(
                         SubmitSignatureOptions(
                             jobId=job_id,
                             secret=Secret(signingResponse=signed_responses),
+                            did=options.did,
                         ),
                     )
-                    resource_state = publish_resource_res.get("resourceState")
+                    resource_state = publish_resource_res.get("didUrlState")
                     if resource_state.get("state") != "finished":
                         raise AnonCredsRegistrationError(
-                            f"Error publishing Resource {resource_state.get("reason")}"
+                            f"Error publishing Resource {resource_state.get('reason')}"
                         )
-                    return resource_state
+                    return job_id, resource_state
                 else:
                     raise AnonCredsRegistrationError(
-                        f"Error publishing Resource {resource_state.get("reason")}"
+                        f"Error publishing Resource {resource_state.get('reason')}"
                     )
             except Exception as err:
                 raise AnonCredsRegistrationError(f"{err}")
@@ -585,7 +588,7 @@ class DIDCheqdRegistry(BaseAnonCredsResolver, BaseAnonCredsRegistrar):
         registrar_url: str,
         resolver_url: str,
         options: ResourceUpdateRequestOptions,
-    ) -> dict:
+    ) -> (str, dict):
         """Update, Sign and Publish a Resource."""
         cheqd_manager = CheqdDIDManager(profile, registrar_url, resolver_url)
         async with profile.session() as session:
@@ -599,7 +602,7 @@ class DIDCheqdRegistry(BaseAnonCredsResolver, BaseAnonCredsRegistrar):
                 )
 
                 job_id: str = create_request_res.get("jobId")
-                resource_state = create_request_res.get("resourceState")
+                resource_state = create_request_res.get("didUrlState")
 
                 LOGGER.debug("JOBID %s", job_id)
                 if resource_state.get("state") == "action":
@@ -610,23 +613,24 @@ class DIDCheqdRegistry(BaseAnonCredsResolver, BaseAnonCredsRegistrar):
                     signed_responses = await CheqdDIDManager.sign_requests(
                         wallet, signing_requests
                     )
-
+                    LOGGER.debug("Signed Responses %s", signed_responses)
                     # publish resource
                     publish_resource_res = await cheqd_manager.registrar.update_resource(
                         SubmitSignatureOptions(
                             jobId=job_id,
                             secret=Secret(signingResponse=signed_responses),
+                            did=options.did,
                         ),
                     )
-                    resource_state = publish_resource_res.get("resourceState")
+                    resource_state = publish_resource_res.get("didUrlState")
                     if resource_state.get("state") != "finished":
                         raise AnonCredsRegistrationError(
-                            f"Error publishing Resource {resource_state.get("reason")}"
+                            f"Error publishing Resource {resource_state.get('reason')}"
                         )
-                    return resource_state
+                    return job_id, resource_state
                 else:
                     raise AnonCredsRegistrationError(
-                        f"Error publishing Resource {resource_state.get("reason")}"
+                        f"Error publishing Resource {resource_state.get('reason')}"
                     )
             except Exception as err:
                 raise AnonCredsRegistrationError(f"{err}")

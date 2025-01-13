@@ -74,6 +74,10 @@ async def test_create_schema_and_credential_definition(shared_schema):
     """Test schema and credential definition creation."""
     did = load_did()
     schema_id = await shared_schema
+
+    if not schema_id:
+        assert False, "Schema creation failed"
+
     async with Controller(base_url=ISSUER) as issuer:
         credential_definition_id = await create_credential_definition(
             issuer, did, schema_id
@@ -91,7 +95,7 @@ async def test_create_credential_definition_with_revocation():
     schema_id = load_schema()
     async with Controller(base_url=ISSUER) as issuer:
         credential_definition_id = await create_credential_definition(
-            issuer, did, schema_id, True
+            issuer, did, schema_id, True, "revocable1"
         )
 
         await assert_credential_definitions(issuer, credential_definition_id)
@@ -111,7 +115,7 @@ async def test_issue_credential():
         Controller(base_url=HOLDER) as holder,
     ):
         credential_definition_id = await create_credential_definition(
-            issuer, did, schema_id
+            issuer, did, schema_id, False, "default2"
         )
 
         # Connect issuer and holder
@@ -155,7 +159,7 @@ async def test_issue_credential_with_revocation():
     ):
         # create credential definition with revocation
         credential_definition_id = await create_credential_definition(
-            issuer, did, schema_id, True
+            issuer, did, schema_id, True, "revocable2"
         )
 
         # Connect issuer and holder

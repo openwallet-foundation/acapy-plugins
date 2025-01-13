@@ -28,7 +28,7 @@ registrar_responses_no_signing_request = [
             "state": "action",
             "signingRequest": [],
         },
-        "resourceState": {
+        "didUrlState": {
             "state": "action",
             "signingRequest": [],
         },
@@ -42,7 +42,7 @@ registrar_responses_network_fail = [
             "state": "error",
             "reason": "Network failure",
         },
-        "resourceState": {
+        "didUrlState": {
             "state": "error",
             "reason": "Network failure",
         },
@@ -56,7 +56,7 @@ registrar_responses_not_finished = [
             "state": "action",
             "signingRequest": [{"kid": "MOCK_KID", "serializedPayload": "MOCK"}],
         },
-        "resourceState": {
+        "didUrlState": {
             "state": "action",
             "signingRequest": [{"kid": "MOCK_KID", "serializedPayload": "MOCK"}],
         },
@@ -68,7 +68,7 @@ registrar_responses_not_finished = [
             "description": "Not finished",
             "reason": "Not finished",
         },
-        "resourceState": {
+        "didUrlState": {
             "state": "error",
             "description": "Not finished",
             "reason": "Not finished",
@@ -113,14 +113,14 @@ registrar_deactivate_responses = [
 registrar_create_resource_responses = [
     {
         "jobId": "MOCK_ID",
-        "resourceState": {
+        "didUrlState": {
             "state": "action",
             "signingRequest": [{"kid": "MOCK_KID", "serializedPayload": "MOCK"}],
         },
     },
     {
         "jobId": "MOCK_ID",
-        "resourceState": {
+        "didUrlState": {
             "state": "finished",
             "didDocument": {"MOCK_KEY": "MOCK_VALUE"},
         },
@@ -130,16 +130,16 @@ registrar_create_resource_responses = [
 registrar_update_resource_responses = [
     {
         "jobId": "MOCK_ID",
-        "resourceState": {
+        "didUrl": {
             "state": "action",
             "signingRequest": [{"kid": "MOCK_KID", "serializedPayload": "MOCK"}],
         },
     },
     {
         "jobId": "MOCK_ID",
-        "resourceState": {
+        "didUrlState": {
             "state": "finished",
-            "didDocument": {"MOCK_KEY": "MOCK_VALUE"},
+            "content": {"MOCK_KEY": "MOCK_VALUE"},
         },
     },
 ]

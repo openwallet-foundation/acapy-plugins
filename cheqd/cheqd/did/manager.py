@@ -24,6 +24,7 @@ from .helpers import (
     create_did_verification_method,
     VerificationMethods,
     create_did_payload,
+    CheqdNetwork,
 )
 from ..did.base import (
     BaseDIDManager,
@@ -69,7 +70,7 @@ class CheqdDIDManager(BaseDIDManager):
         if seed:
             seed = validate_seed(seed)
 
-        network = options.get("network") or "testnet"
+        network = options.get("network") or CheqdNetwork.Testnet.value
         key_type = ED25519
 
         did_validation = DIDParametersValidation(self.profile.inject(DIDMethods))
@@ -105,7 +106,9 @@ class CheqdDIDManager(BaseDIDManager):
 
                 # request create did
                 create_request_res = await self.registrar.create(
-                    DidCreateRequestOptions(didDocument=did_document, network=network)
+                    DidCreateRequestOptions(
+                        didDocument=did_document, options=Options(network=network)
+                    )
                 )
 
                 job_id: str = create_request_res.get("jobId")
@@ -140,11 +143,11 @@ class CheqdDIDManager(BaseDIDManager):
                     publish_did_state = publish_did_res.get("didState")
                     if publish_did_state.get("state") != "finished":
                         raise CheqdDIDManagerError(
-                            f"Error registering DID {publish_did_state.get("reason")}"
+                            f"Error registering DID {publish_did_state.get('reason')}"
                         )
                 else:
                     raise CheqdDIDManagerError(
-                        f"Error registering DID {did_state.get("reason")}"
+                        f"Error registering DID {did_state.get('reason')}"
                     )
 
                 # create public did record
@@ -159,7 +162,7 @@ class CheqdDIDManager(BaseDIDManager):
         }
 
     async def update(
-        self, did: str, did_doc: PartialDIDDocumentSchema, options: dict = None
+        self, did: str, did_doc: dict, options: dict = None
     ) -> dict:
         """Update a Cheqd DID."""
 
@@ -200,7 +203,8 @@ class CheqdDIDManager(BaseDIDManager):
                     # submit signed update
                     publish_did_res = await self.registrar.update(
                         SubmitSignatureOptions(
-                            jobId=job_id, secret=Secret(signingResponse=signed_responses)
+                            jobId=job_id,
+                            secret=Secret(signingResponse=signed_responses)
                         )
                     )
                     publish_did_state = publish_did_res.get("didState")
@@ -208,11 +212,11 @@ class CheqdDIDManager(BaseDIDManager):
                     if publish_did_state.get("state") != "finished":
                         raise CheqdDIDManagerError(
                             f"Error publishing DID \
-                                update {publish_did_state.get("description")}"
+                                update {publish_did_state.get('description')}"
                         )
                 else:
                     raise CheqdDIDManagerError(
-                        f"Error updating DID {did_state.get("reason")}"
+                        f"Error updating DID {did_state.get('reason')}"
                     )
             # TODO update new keys to wallet if necessary
             except Exception as ex:
@@ -265,10 +269,10 @@ class CheqdDIDManager(BaseDIDManager):
                     if publish_did_state.get("state") != "finished":
                         raise WalletError(
                             f"Error publishing DID \
-                                deactivate {publish_did_state.get("description")}"
+                                deactivate {publish_did_state.get('description')}"
                         )
                 else:
-                    raise WalletError(f"Error deactivating DID {did_state.get("reason")}")
+                    raise WalletError(f"Error deactivating DID {did_state.get('reason')}")
                 # update local did metadata
                 did_info = await wallet.get_local_did(did)
                 metadata = {**did_info.metadata, "deactivated": True}

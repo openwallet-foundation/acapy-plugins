@@ -1,6 +1,5 @@
 """DID Registrar for Cheqd."""
 
-import json
 from aiohttp import ClientSession, web
 
 from ..did.base import (
@@ -32,10 +31,15 @@ class CheqdDIDRegistrar(BaseDIDRegistrar):
         async with ClientSession() as session:
             try:
                 async with session.post(
-                    self.DID_REGISTRAR_BASE_URL + "create", json=json.dumps(options)
+                    self.DID_REGISTRAR_BASE_URL + "create",
+                    json=options.dict(exclude_none=True),
                 ) as response:
                     if response.status == 200 or response.status == 201:
                         return await response.json()
+                    elif response.status == 400:
+                        res = await response.json()
+                        did_state = res.get("didState")
+                        raise web.HTTPBadRequest(reason=did_state.get("reason"))
                     else:
                         raise web.HTTPInternalServerError()
             except Exception:
@@ -48,10 +52,15 @@ class CheqdDIDRegistrar(BaseDIDRegistrar):
         async with ClientSession() as session:
             try:
                 async with session.post(
-                    self.DID_REGISTRAR_BASE_URL + "update", json=json.dumps(options)
+                    self.DID_REGISTRAR_BASE_URL + "update",
+                    json=options.dict(exclude_none=True),
                 ) as response:
-                    if response.status == 200:
+                    if response.status == 200 or response.status == 201:
                         return await response.json()
+                    elif response.status == 400:
+                        res = await response.json()
+                        did_state = res.get("didState")
+                        raise web.HTTPBadRequest(reason=did_state.get("reason"))
                     else:
                         raise web.HTTPInternalServerError()
             except Exception:
@@ -64,10 +73,15 @@ class CheqdDIDRegistrar(BaseDIDRegistrar):
         async with ClientSession() as session:
             try:
                 async with session.post(
-                    self.DID_REGISTRAR_BASE_URL + "deactivate", json=json.dumps(options)
+                    self.DID_REGISTRAR_BASE_URL + "deactivate",
+                    json=options.dict(exclude_none=True),
                 ) as response:
-                    if response.status == 200:
+                    if response.status == 200 or response.status == 201:
                         return await response.json()
+                    elif response.status == 400:
+                        res = await response.json()
+                        did_state = res.get("didState")
+                        raise web.HTTPBadRequest(reason=did_state.get("reason"))
                     else:
                         raise web.HTTPInternalServerError()
             except Exception:
@@ -80,8 +94,8 @@ class CheqdDIDRegistrar(BaseDIDRegistrar):
         async with ClientSession() as session:
             try:
                 async with session.post(
-                    self.DID_REGISTRAR_BASE_URL + "/createResource",
-                    json=json.dumps(options),
+                    self.DID_REGISTRAR_BASE_URL + "createResource",
+                    json=options.dict(exclude_none=True),
                 ) as response:
                     if response.status == 200 or response.status == 201:
                         return await response.json()
@@ -97,10 +111,10 @@ class CheqdDIDRegistrar(BaseDIDRegistrar):
         async with ClientSession() as session:
             try:
                 async with session.post(
-                    self.DID_REGISTRAR_BASE_URL + "/updateResource",
-                    json=json.dumps(options),
+                    self.DID_REGISTRAR_BASE_URL + "updateResource",
+                    json=options.dict(exclude_none=True),
                 ) as response:
-                    if response.status == 200:
+                    if response.status == 200 or response.status == 201:
                         return await response.json()
                     else:
                         raise web.HTTPInternalServerError()

@@ -8,7 +8,7 @@ from acapy_agent.wallet.base import BaseWallet
 from acapy_agent.wallet.util import b64_to_bytes, bytes_to_b64
 from aiohttp import web
 from pydantic import BaseModel, Field
-from typing import Optional, List
+from typing import Optional, List, Union
 
 
 class VerificationMethodSchema(BaseModel):
@@ -27,7 +27,7 @@ class ServiceSchema(BaseModel):
 
     id: str
     type: str
-    serviceEndpoint: str
+    serviceEndpoint: Union[str, List[str]]
 
 
 class DIDDocumentSchema(BaseModel):
@@ -79,6 +79,7 @@ class SubmitSignatureOptions(BaseModel):
     )
     options: Optional[Options] = None
     secret: Secret
+    did: Optional[str] = None
 
 
 # DIDCreateRequestOptions Schema
@@ -86,6 +87,7 @@ class DidCreateRequestOptions(BaseModel):
     """DID Create Request Schema."""
 
     didDocument: Optional[DIDDocumentSchema] = None
+    options: Optional[Options] = None
 
 
 # DIDUpdateRequestOptions Schema
@@ -94,7 +96,8 @@ class DidUpdateRequestOptions(BaseModel):
 
     did: str
     didDocument: List[PartialDIDDocumentSchema]
-    didDocumentOperation: Optional[List[str]]
+    didDocumentOperation: Optional[List[str]] = None
+    options: Optional[Options] = None
 
 
 # DIDDeactivateRequestOptions Schema
@@ -105,6 +108,7 @@ class DidDeactivateRequestOptions(BaseModel):
         None,
         description="Target DID of the DID deactivation operation.",
     )
+    options: Optional[Options] = None
 
 
 # ResourceCreateRequestOptions Schema
@@ -125,7 +129,8 @@ class ResourceCreateRequestOptions(BaseModel):
     )
     name: str
     type: str
-    version: Optional[str]
+    version: Optional[str] = None
+    options: Optional[Options] = None
 
 
 # ResourceUpdateRequestOptions Schema
@@ -144,9 +149,51 @@ class ResourceUpdateRequestOptions(BaseModel):
         None,
         description="This input field contains Base64-encoded data.",
     )
-    name: Optional[str]
-    type: Optional[str]
-    version: Optional[str]
+    name: Optional[str] = None
+    type: Optional[str] = None
+    version: Optional[str] = None
+    options: Optional[Options] = None
+
+
+class DidUrlState(BaseModel):
+    """Did Url State."""
+
+    state: str
+    didUrl: str
+    content: str
+
+
+class DidState(BaseModel):
+    """Did State."""
+
+    state: str
+    didUrl: str
+    content: str
+
+
+class DidCreateResponse(BaseModel):
+    """Did Create Response."""
+
+    jobId: str
+    didState: DidState
+
+
+class CreateResourceResponse(BaseModel):
+    """Resource Create Response."""
+
+    jobId: str
+    didUrlState: DidUrlState
+    didRegistrationMetadata: dict
+    contentMetadata: dict
+
+
+class UpdateResourceResponse(BaseModel):
+    """Resource Update Response."""
+
+    jobId: str
+    didUrlState: DidUrlState
+    didRegistrationMetadata: dict
+    contentMetadata: dict
 
 
 class BaseDIDRegistrar(ABC):

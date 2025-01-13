@@ -57,9 +57,7 @@ def create_verification_keys(
         method_specific_id = bytes_to_b58(b64_to_bytes(public_key_b64))
         did_url = f"did:cheqd:{network.value}:{
             multibase.encode(
-                sha256(b64_to_bytes(public_key_b64))
-                .digest()[:16],
-                "base58btc"
+                sha256(b64_to_bytes(public_key_b64)).digest()[:16], 'base58btc'
             )[1:]
         }"
 

@@ -6,6 +6,13 @@ from acapy_agent.wallet.did_method import DIDMethods
 from acapy_agent.wallet.key_type import KeyTypes
 from yarl import URL
 
+from ..base import (
+    DidCreateRequestOptions,
+    DidUpdateRequestOptions,
+    DidDeactivateRequestOptions,
+    ResourceCreateRequestOptions,
+    ResourceUpdateRequestOptions,
+)
 from ...did_method import CHEQD
 from ..registrar import CheqdDIDRegistrar
 
@@ -48,6 +55,35 @@ def mock_did_document_url(registrar_url):
 @pytest.fixture
 def mock_options():
     return {"MOCK_KEY": "MOCK_VALUE"}
+
+
+@pytest.fixture
+def mock_did_create_options():
+    return DidCreateRequestOptions()
+
+
+@pytest.fixture
+def mock_did_update_options():
+    return DidUpdateRequestOptions(did="MOCK_VALUE", didDocument=[])
+
+
+@pytest.fixture
+def mock_did_deactivate_options():
+    return DidDeactivateRequestOptions(did="MOCK_VALUE")
+
+
+@pytest.fixture
+def mock_resource_create_options():
+    return ResourceCreateRequestOptions(
+        did="MOCK_VALUE", content="MOCK_VALUE", name="MOCK_VALUE", type="MOCK_VALUE"
+    )
+
+
+@pytest.fixture
+def mock_resource_update_options():
+    return ResourceUpdateRequestOptions(
+        did="MOCK_VALUE", content="MOCK_VALUE", name="MOCK_VALUE", type="MOCK_VALUE"
+    )
 
 
 @pytest.fixture

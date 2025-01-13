@@ -15,7 +15,7 @@ services:
     volumes:
       - postgres_data:/var/lib/postgresql/data
   did_registrar:
-    image: ghcr.io/cheqd/did-registrar:production-latest
+    image: ghcr.io/cheqd/did-registrar:staging-latest
     ports:
       - target: 3000
         published: 3000
@@ -23,7 +23,7 @@ services:
     restart: on-failure
     environment:
       - FEE_PAYER_TESTNET_MNEMONIC=${FEE_PAYER_TESTNET_MNEMONIC}
-      - ENV FEE_PAYER_MAINNET_MNEMONIC=${FEE_PAYER_MAINNET_MNEMONIC}
+      - FEE_PAYER_MAINNET_MNEMONIC=${FEE_PAYER_MAINNET_MNEMONIC}
   did_resolver:
     image: ghcr.io/cheqd/did-resolver:latest
     ports:
