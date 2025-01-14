@@ -119,7 +119,7 @@ async def test_create_with_endorsement():
             json={
                 "seed": "00000000000000000000000000000000",
                 "alg": "ed25519",
-                "kid": "server.com",
+                "kid": "server.server:8000",
             },
         )
 
@@ -131,3 +131,7 @@ async def test_create_with_endorsement():
             "/did/webvh/create",
             json={"options": {"namespace": "test"}},
         )
+
+        assert response["did_document"]
+        assert response["metadata"]["resolver"] == "WebvhDIDResolver"
+        assert response["metadata"]["state"] == "posted"
