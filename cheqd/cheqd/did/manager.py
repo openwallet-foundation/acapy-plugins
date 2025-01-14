@@ -16,7 +16,6 @@ from aiohttp import web
 from .base import (
     DidUpdateRequestOptions,
     SubmitSignatureOptions,
-    PartialDIDDocumentSchema,
     DIDDocumentSchema,
 )
 from .helpers import (

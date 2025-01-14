@@ -20,7 +20,6 @@ from .helpers import (
     resolve_did,
     save_did,
     save_schema,
-    update_did,
 )
 
 ISSUER = getenv("ISSUER", "http://issuer:3001")

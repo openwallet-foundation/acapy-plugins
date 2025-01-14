@@ -61,6 +61,7 @@ LOGGER = logging.getLogger(__name__)
 
 
 class PublishResourceResponse(BaseModel):
+    """Publish Resource Response."""
     job_id: str
     did_url: str
     content: Union[dict, str]
@@ -166,9 +167,6 @@ class DIDCheqdRegistry(BaseAnonCredsResolver, BaseAnonCredsRegistrar):
         try:
             # check if schema already exists
             try:
-                LOGGER.debug(
-                    f"RESOLVING DID URL {f'{schema.issuer_id}?resourceName={resource_name}&resourceType={resource_type}'}"
-                )
                 existing_schema = await self.resolver.resolve_resource(
                     f"{schema.issuer_id}?resourceName={resource_name}&resourceType={resource_type}"
                 )
