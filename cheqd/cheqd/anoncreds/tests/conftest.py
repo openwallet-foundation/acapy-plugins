@@ -9,6 +9,7 @@ from acapy_agent.wallet.key_type import KeyTypes
 
 from ...did_method import CHEQD
 from ...did.base import ResourceCreateRequestOptions, ResourceUpdateRequestOptions
+from ..registry import PublishResourceResponse
 
 
 @pytest.fixture
@@ -55,22 +56,20 @@ def mock_schema():
 
 @pytest.fixture
 def mock_create_and_publish_resource():
-    return "MOCK_JOB_ID", {
-        "id": "MOCK_ID",
-        "didUrl": "MOCK_ISSUER_ID/resources/MOCK_RESOURCE_ID",
-        "state": "finished",
-        "content": "MOCK_VALUE",
-    }
+    return PublishResourceResponse(
+        job_id="MOCK_ID",
+        did_url="MOCK_ISSUER_ID/resources/MOCK_RESOURCE_ID",
+        content="MOCK_VALUE",
+    )
 
 
 @pytest.fixture
 def mock_update_and_publish_resource():
-    return "MOCK_JOB_ID", {
-        "resource": {"id": "MOCK_RESOURCE_ID"},
-        "id": "MOCK_ID",
-        "didUrl": "MOCK_ISSUER_ID/resources/MOCK_RESOURCE_ID",
-        "state": "finished",
-    }
+    return PublishResourceResponse(
+        job_id="MOCK_ID",
+        did_url="MOCK_ISSUER_ID/resources/MOCK_RESOURCE_ID",
+        content="MOCK_VALUE",
+    )
 
 
 @pytest.fixture

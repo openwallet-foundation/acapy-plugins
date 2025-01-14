@@ -41,6 +41,9 @@ from acapy_agent.core.profile import Profile
 from acapy_agent.wallet.base import BaseWallet
 from acapy_agent.wallet.error import WalletError
 from acapy_agent.wallet.jwt import dict_to_b64
+from acapy_agent.resolver.base import DIDNotFound
+from pydantic import BaseModel
+from typing import Union
 
 from ..did.base import (
     ResourceCreateRequestOptions,
@@ -55,6 +58,12 @@ from ..resolver.resolver import CheqdDIDResolver
 from ..validation import CheqdDID
 
 LOGGER = logging.getLogger(__name__)
+
+
+class PublishResourceResponse(BaseModel):
+    job_id: str
+    did_url: str
+    content: Union[dict, str]
 
 
 class DIDCheqdRegistry(BaseAnonCredsResolver, BaseAnonCredsRegistrar):
@@ -154,40 +163,72 @@ class DIDCheqdRegistry(BaseAnonCredsResolver, BaseAnonCredsRegistrar):
         resource_version = schema.version
 
         LOGGER.debug("Registering schema")
-        cheqd_schema = ResourceCreateRequestOptions(
-            name=resource_name,
-            type=resource_type,
-            version=resource_version,
-            content=dict_to_b64(
-                {
-                    "name": schema.name,
-                    "version": schema.version,
-                    "attrNames": schema.attr_names,
-                }
-            ),
-            did=schema.issuer_id,
-        )
-
-        LOGGER.debug("schema value: %s", cheqd_schema)
         try:
             # check if schema already exists
-            existing_schema = self.resolver.resolve_resource(f"{schema.issuer_id}?resourceName={resource_name}&resourceType={resource_type}")
+            try:
+                LOGGER.debug(
+                    f"RESOLVING DID URL {f'{schema.issuer_id}?resourceName={resource_name}&resourceType={resource_type}'}"
+                )
+                existing_schema = await self.resolver.resolve_resource(
+                    f"{schema.issuer_id}?resourceName={resource_name}&resourceType={resource_type}"
+                )
+            except DIDNotFound:
+                existing_schema = None
+            except Exception as ex:
+                raise ex
+
+            LOGGER.debug("Existing schema %s", existing_schema)
+            # update if schema exists
             if existing_schema is not None:
-                (job_id, resource_state) = await self._update_and_publish_resource(
+                LOGGER.debug("UPDATING SCHEMA")
+                cheqd_schema = ResourceUpdateRequestOptions(
+                    name=resource_name,
+                    type=resource_type,
+                    version=resource_version,
+                    content=dict_to_b64(
+                        {
+                            "name": schema.name,
+                            "version": schema.version,
+                            "attrNames": schema.attr_names,
+                        }
+                    ),
+                    did=schema.issuer_id,
+                )
+
+                LOGGER.debug("schema value: %s", cheqd_schema)
+                publish_resource_res = await self._update_and_publish_resource(
                     profile,
                     self.registrar.DID_REGISTRAR_BASE_URL,
                     self.resolver.DID_RESOLVER_BASE_URL,
                     cheqd_schema,
                 )
             else:
-                (job_id, resource_state) = await self._create_and_publish_resource(
+                LOGGER.debug("CREATING SCHEMA")
+                cheqd_schema = ResourceCreateRequestOptions(
+                    name=resource_name,
+                    type=resource_type,
+                    version=resource_version,
+                    content=dict_to_b64(
+                        {
+                            "name": schema.name,
+                            "version": schema.version,
+                            "attrNames": schema.attr_names,
+                        }
+                    ),
+                    did=schema.issuer_id,
+                )
+
+                LOGGER.debug("schema value: %s", cheqd_schema)
+                publish_resource_res = await self._create_and_publish_resource(
                     profile,
                     self.registrar.DID_REGISTRAR_BASE_URL,
                     self.resolver.DID_RESOLVER_BASE_URL,
                     cheqd_schema,
                 )
-            LOGGER.debug("resource state: %s", resource_state)
-            schema_id = resource_state.get("didUrl")
+
+            LOGGER.debug("Published resource %s", publish_resource_res)
+
+            schema_id = publish_resource_res.did_url
             (_, resource_id) = self.split_did_url(schema_id)
         except Exception as err:
             raise AnonCredsRegistrationError(f"{err}")
@@ -258,13 +299,13 @@ class DIDCheqdRegistry(BaseAnonCredsResolver, BaseAnonCredsRegistrar):
             did=credential_definition.issuer_id,
         )
 
-        (job_id, resource_state) = await self._create_and_publish_resource(
+        publish_resource_res = await self._create_and_publish_resource(
             profile,
             self.registrar.DID_REGISTRAR_BASE_URL,
             self.resolver.DID_RESOLVER_BASE_URL,
             cred_def,
         )
-        credential_definition_id = resource_state.get("didUrl")
+        credential_definition_id = publish_resource_res.did_url
         (_, resource_id) = self.split_did_url(credential_definition_id)
 
         return CredDefResult(
@@ -340,13 +381,13 @@ class DIDCheqdRegistry(BaseAnonCredsResolver, BaseAnonCredsRegistrar):
             did=revocation_registry_definition.issuer_id,
         )
 
-        (job_id, resource_state) = await self._create_and_publish_resource(
+        publish_resource_res = await self._create_and_publish_resource(
             profile,
             self.registrar.DID_REGISTRAR_BASE_URL,
             self.resolver.DID_RESOLVER_BASE_URL,
             rev_reg_def,
         )
-        revocation_registry_definition_id = resource_state.get("didUrl")
+        revocation_registry_definition_id = publish_resource_res.did_url
         (_, resource_id) = self.split_did_url(revocation_registry_definition_id)
 
         return RevRegDefResult(
@@ -448,13 +489,13 @@ class DIDCheqdRegistry(BaseAnonCredsResolver, BaseAnonCredsRegistrar):
             did=rev_reg_def.issuer_id,
         )
 
-        (job_id, resource_state) = await self._create_and_publish_resource(
+        publish_resource_res = await self._create_and_publish_resource(
             profile,
             self.registrar.DID_REGISTRAR_BASE_URL,
             self.resolver.DID_RESOLVER_BASE_URL,
             rev_status_list,
         )
-        did_url = resource_state.get("didUrl")
+        did_url = publish_resource_res.did_url
         (_, resource_id) = self.split_did_url(did_url)
 
         return RevListResult(
@@ -503,13 +544,13 @@ class DIDCheqdRegistry(BaseAnonCredsResolver, BaseAnonCredsRegistrar):
             did=rev_reg_def.issuer_id,
         )
 
-        job_id, resource_state = await self._update_and_publish_resource(
+        publish_resource_res = await self._update_and_publish_resource(
             profile,
             self.registrar.DID_REGISTRAR_BASE_URL,
             self.resolver.DID_RESOLVER_BASE_URL,
             rev_status_list,
         )
-        did_url = resource_state.get("didUrl")
+        did_url = publish_resource_res.did_url
         (_, resource_id) = self.split_did_url(did_url)
 
         return RevListResult(
@@ -532,7 +573,7 @@ class DIDCheqdRegistry(BaseAnonCredsResolver, BaseAnonCredsRegistrar):
         registrar_url: str,
         resolver_url: str,
         options: ResourceCreateRequestOptions,
-    ) -> (str, dict):
+    ) -> PublishResourceResponse:
         """Create, Sign and Publish a Resource."""
         cheqd_manager = CheqdDIDManager(profile, registrar_url, resolver_url)
         async with profile.session() as session:
@@ -574,7 +615,11 @@ class DIDCheqdRegistry(BaseAnonCredsResolver, BaseAnonCredsRegistrar):
                         raise AnonCredsRegistrationError(
                             f"Error publishing Resource {resource_state.get('reason')}"
                         )
-                    return job_id, resource_state
+                    return PublishResourceResponse(
+                        job_id=job_id,
+                        content=resource_state.get("content"),
+                        did_url=resource_state.get("didUrl"),
+                    )
                 else:
                     raise AnonCredsRegistrationError(
                         f"Error publishing Resource {resource_state.get('reason')}"
@@ -588,7 +633,7 @@ class DIDCheqdRegistry(BaseAnonCredsResolver, BaseAnonCredsRegistrar):
         registrar_url: str,
         resolver_url: str,
         options: ResourceUpdateRequestOptions,
-    ) -> (str, dict):
+    ) -> PublishResourceResponse:
         """Update, Sign and Publish a Resource."""
         cheqd_manager = CheqdDIDManager(profile, registrar_url, resolver_url)
         async with profile.session() as session:
@@ -627,7 +672,11 @@ class DIDCheqdRegistry(BaseAnonCredsResolver, BaseAnonCredsRegistrar):
                         raise AnonCredsRegistrationError(
                             f"Error publishing Resource {resource_state.get('reason')}"
                         )
-                    return job_id, resource_state
+                    return PublishResourceResponse(
+                        job_id=job_id,
+                        content=resource_state.get("content"),
+                        did_url=resource_state.get("didUrl"),
+                    )
                 else:
                     raise AnonCredsRegistrationError(
                         f"Error publishing Resource {resource_state.get('reason')}"

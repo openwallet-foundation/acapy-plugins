@@ -161,9 +161,7 @@ class CheqdDIDManager(BaseDIDManager):
             "didDocument": publish_did_state.get("didDocument"),
         }
 
-    async def update(
-        self, did: str, did_doc: dict, options: dict = None
-    ) -> dict:
+    async def update(self, did: str, did_doc: dict, options: dict = None) -> dict:
         """Update a Cheqd DID."""
 
         async with self.profile.session() as session:
@@ -203,8 +201,7 @@ class CheqdDIDManager(BaseDIDManager):
                     # submit signed update
                     publish_did_res = await self.registrar.update(
                         SubmitSignatureOptions(
-                            jobId=job_id,
-                            secret=Secret(signingResponse=signed_responses)
+                            jobId=job_id, secret=Secret(signingResponse=signed_responses)
                         )
                     )
                     publish_did_state = publish_did_res.get("didState")

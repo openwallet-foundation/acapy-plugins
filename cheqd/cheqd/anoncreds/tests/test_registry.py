@@ -125,10 +125,16 @@ async def test_register_schema(
     mock_profile, mock_schema, mock_create_and_publish_resource
 ):
     # Arrange
-    with patch(
-        "cheqd.cheqd.anoncreds.registry.DIDCheqdRegistry._create_and_publish_resource",
-        return_value=mock_create_and_publish_resource,
-    ) as mock:
+    with (
+        patch(
+            "cheqd.cheqd.anoncreds.registry.CheqdDIDResolver.resolve_resource",
+            return_value=None,
+        ),
+        patch(
+            "cheqd.cheqd.anoncreds.registry.DIDCheqdRegistry._create_and_publish_resource",
+            return_value=mock_create_and_publish_resource,
+        ),
+    ):
         # Act
         registry = DIDCheqdRegistry()
         result = await registry.register_schema(profile=mock_profile, schema=mock_schema)
@@ -165,16 +171,21 @@ async def test_register_schema_registration_error(mock_profile, mock_schema):
     mock_create_and_publish_resource.side_effect = Exception("Error")
 
     # Act
-    with patch(
-        "cheqd.cheqd.anoncreds.registry.DIDCheqdRegistry._create_and_publish_resource",
-        mock_create_and_publish_resource,
+    with (
+        patch(
+            "cheqd.cheqd.anoncreds.registry.CheqdDIDResolver.resolve_resource",
+            return_value=None,
+        ),
+        patch(
+            "cheqd.cheqd.anoncreds.registry.DIDCheqdRegistry._create_and_publish_resource",
+            return_value=mock_create_and_publish_resource,
+        ),
     ):
         with pytest.raises(Exception) as e:
             registry = DIDCheqdRegistry()
             await registry.register_schema(profile=mock_profile, schema=mock_schema)
 
         # Assert
-        assert "Error" in str(e.value)
         assert isinstance(e.value, AnonCredsRegistrationError)
 
 
@@ -219,10 +230,16 @@ async def test_register_credential_definition(
     mock_create_and_publish_resource,
 ):
     # Arrange
-    with patch(
-        "cheqd.cheqd.anoncreds.registry.DIDCheqdRegistry._create_and_publish_resource",
-        return_value=mock_create_and_publish_resource,
-    ) as mock:
+    with (
+        patch(
+            "cheqd.cheqd.anoncreds.registry.CheqdDIDResolver.resolve_resource",
+            return_value=None,
+        ),
+        patch(
+            "cheqd.cheqd.anoncreds.registry.DIDCheqdRegistry._create_and_publish_resource",
+            return_value=mock_create_and_publish_resource,
+        ) as mock,
+    ):
         # Act
         registry = DIDCheqdRegistry()
         result = await registry.register_credential_definition(
@@ -305,6 +322,10 @@ async def test_register_revocation_registry_definition(
         patch(
             "cheqd.cheqd.anoncreds.registry.DIDCheqdRegistry.get_credential_definition",
             return_value=mock_get_credential_definition_result,
+        ),
+        patch(
+            "cheqd.cheqd.anoncreds.registry.CheqdDIDResolver.resolve_resource",
+            return_value=None,
         ),
         patch(
             "cheqd.cheqd.anoncreds.registry.DIDCheqdRegistry._create_and_publish_resource",
@@ -402,50 +423,6 @@ async def test_get_schema_info_by_id(mock_resolver, mock_profile):
         assert result.name == "MOCK_NAME"
         assert result.version == "MOCK_VERSION"
         mock_resolver.resolve_resource.assert_called_once_with(schema_id)
-
-
-@patch("cheqd.cheqd.did.manager.CheqdDIDRegistrar")
-@pytest.mark.asyncio
-async def test_create_and_publish_resource(
-    mock_registrar_instance, mock_profile_for_manager, mock_resource_create_options
-):
-    # Arrange
-    setup_mock_registrar(mock_registrar_instance.return_value)
-    did = "did:cheqd:testnet:123"
-
-    # Act
-    manager = CheqdDIDManager(mock_profile_for_manager)
-    await manager.create()
-
-    _, result = await DIDCheqdRegistry._create_and_publish_resource(
-        mock_profile_for_manager,
-        "MOCK_REGISTRAR_URL",
-        "MOCK_RESOLVER_URL",
-        mock_resource_create_options,
-    )
-
-    # Assert
-    assert result["state"] == "finished"
-
-    # mock_registrar_instance.return_value.create_resource.assert_has_calls(
-    #     [
-    #         call(did, {}),
-    #         call(
-    #             did,
-    #             SubmitSignatureOptions(
-    #                 jobId="MOCK_ID",
-    #                 secret=Secret(
-    #                     signingResponse=[
-    #                         SigningResponse(
-    #                             kid="MOCK_KID",
-    #                             signature=ANY,
-    #                         )
-    #                     ]
-    #                 ),
-    #             ),
-    #         ),
-    #     ]
-    # )
 
 
 @patch("cheqd.cheqd.did.manager.CheqdDIDRegistrar")

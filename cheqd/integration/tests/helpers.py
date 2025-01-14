@@ -234,7 +234,11 @@ async def create_schema(issuer, did):
 
 
 async def create_credential_definition(
-    issuer, did: str, schema_id: str, support_revocation: bool = False, tag: str = "default"
+    issuer,
+    did: str,
+    schema_id: str,
+    support_revocation: bool = False,
+    tag: str = "default",
 ):
     """Create a credential definition on the connected datastore."""
     cred_def_create_result = await issuer.post(
@@ -245,7 +249,7 @@ async def create_credential_definition(
                 "schemaId": schema_id,
                 "tag": tag,
             },
-            "options": {"support_revocation": support_revocation },
+            "options": {"support_revocation": support_revocation},
         },
     )
 
