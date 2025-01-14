@@ -288,7 +288,7 @@ async def create_cheqd_did(request: web.BaseRequest):
     try:
         result = await CheqdDIDManager(
             context.profile, registrar_url, resolver_url
-        ).create(body.get("options"))
+        ).create(body.get("didDocument"), body.get("options"))
         return web.json_response(
             {"did": result.get("did"), "verkey": result.get("verkey")}
         )

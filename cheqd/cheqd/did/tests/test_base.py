@@ -3,7 +3,7 @@ from unittest.mock import AsyncMock
 import pytest
 from aiohttp import web
 
-from ..base import BaseDIDManager
+from ..base import BaseDIDManager, SigningResponse
 
 
 @pytest.mark.asyncio
@@ -87,8 +87,8 @@ async def test_sign_requests():
     ]
 
     expected_responses = [
-        {"kid": "key1", "signature": "c2lnbmF0dXJlMQ=="},
-        {"kid": "key2", "signature": "c2lnbmF0dXJlMg=="},
+        SigningResponse(kid="key1", signature="c2lnbmF0dXJlMQ=="),
+        SigningResponse(kid="key2", signature="c2lnbmF0dXJlMg=="),
     ]
 
     # Act

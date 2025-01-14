@@ -25,7 +25,9 @@ async def test_create_cheqd_did(mock_request, mock_create_body, mock_manager):
     response_json = json.loads(response.text)
     assert response_json["did"] == "did:cheqd:testnet:123"
     assert response_json["verkey"] == "MOCK_VERIFICATION_KEY"
-    mock_manager.create.assert_called_with({"network": "testnet", "key_type": "ed25519"})
+    mock_manager.create.assert_called_with(
+        None, {"network": "testnet", "key_type": "ed25519"}
+    )
     mock_constructor.assert_called_once_with(
         mock_request["context"].profile, "MOCK_REGISTRAR_URL", "MOCK_RESOLVER_URL"
     )
@@ -44,7 +46,7 @@ async def test_create_cheqd_did_missing_body(mock_request, mock_manager):
     response_json = json.loads(response.text)
     assert response_json["did"] == "did:cheqd:testnet:123"
     assert response_json["verkey"] == "MOCK_VERIFICATION_KEY"
-    mock_manager.create.assert_called_with(None)
+    mock_manager.create.assert_called_with(None, None)
 
 
 @pytest.mark.asyncio
