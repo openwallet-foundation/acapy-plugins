@@ -58,14 +58,14 @@ services:
       context: .
       dockerfile: Dockerfile.server
     environment:
-      DOMAIN: server.com
+      DOMAIN: server.server%3A8000
       SECRET_KEY: insecure
       ENDORSER_MULTIKEY: z6MkgKA7yrw5kYSiDuQFcye4bMaJpcfHFry3Bx45pdWh3s8i
     ports:
       - 8000:8000
     labels:
       - traefik.enable=true
-      - traefik.http.routers.server.rule=Host(`server.com`)
+      - traefik.http.routers.server.rule=Host(`server.server%3A8000`)
       - traefik.http.routers.server.entrypoints=web
       - traefik.http.services.server.loadbalancer.server.port=8000
 
