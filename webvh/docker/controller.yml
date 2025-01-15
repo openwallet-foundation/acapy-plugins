@@ -1,0 +1,37 @@
+label: webvh-controller
+
+auto-provision: true
+
+admin: [0.0.0.0, 4001]
+admin-insecure-mode: true
+
+inbound-transport:
+  - [http, 0.0.0.0, 4000]
+  - [ws, 0.0.0.0, 4002]
+outbound-transport: http
+endpoint:
+  - http://localhost:4000
+
+plugin:
+  - webvh
+
+no-ledger: true
+
+# Wallet
+wallet-type: askar-anoncreds
+wallet-name: controller-wallet
+wallet-key: insecure
+
+
+log-level: info
+
+auto-accept-invites: true
+auto-respond-messages: true
+
+# Plugin
+plugin-config-value:
+plugin-config-value:
+  - did-webvh.server_url=https://localhost:8000
+  - did-webvh.role=controller
+  - did-webvh.endorser_invitation=http://localhost:3000?oob=eyJAdHlwZSI6ICJodHRwczovL2RpZGNvbW0ub3JnL291dC1vZi1iYW5kLzEuMS9pbnZpdGF0aW9uIiwgIkBpZCI6ICJlMzI5OGIyNS1mZjRlLTRhZmItOTI2Yi03ZDcyZmVlMjQ1ODgiLCAibGFiZWwiOiAid2VidmgtZW5kb3JzZXIiLCAiaGFuZHNoYWtlX3Byb3RvY29scyI6IFsiaHR0cHM6Ly9kaWRjb21tLm9yZy9kaWRleGNoYW5nZS8xLjAiXSwgInNlcnZpY2VzIjogW3siaWQiOiAiI2lubGluZSIsICJ0eXBlIjogImRpZC1jb21tdW5pY2F0aW9uIiwgInJlY2lwaWVudEtleXMiOiBbImRpZDprZXk6ejZNa3FDQ1pxNURSdkdMcDV5akhlZlZTa2JhN0tYWlQ1Nld2SlJacEQ2Z3RvRzU0I3o2TWtxQ0NacTVEUnZHTHA1eWpIZWZWU2tiYTdLWFpUNTZXdkpSWnBENmd0b0c1NCJdLCAic2VydmljZUVuZHBvaW50IjogImh0dHA6Ly9sb2NhbGhvc3Q6MzAwMCJ9XX0
+  - did-webvh.strict_ssl=false
