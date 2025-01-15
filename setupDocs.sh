@@ -103,15 +103,16 @@ EOF
 
 # Generate the per-plugin navigation entries
 for d in */ ; do
-  if [ ${d}  != "docs/" ] && [ ${d}  != "plugin_globals/" ]; then
+  if [ ${d}  != "docs/" ] && [ -f ${d}README.md ] && [ ${d}  != "plugin_globals/" ]; then
     echo "   - " $(head -1 ${d}README.md | sed "s/^[# ]*//") ":" ${d}README.md >>${MKDOCS}
     mkdir -p docs/${d}
     cp ${d}README.md docs/${d}
   fi
 done
 
-# Generate the contributing navigation entries
+# Generate the remaining navigation entries
 cat <<-EOF >>${MKDOCS}
+- Archived: archived_plugins.md
 - Contributing:
     - How to Contribute: CONTRIBUTING.md
     - Maintainers: MAINTAINERS.md
