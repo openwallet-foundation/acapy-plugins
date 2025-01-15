@@ -110,8 +110,9 @@ for d in */ ; do
   fi
 done
 
-# Generate the contributing navigation entries
+# Generate the remaining navigation entries
 cat <<-EOF >>${MKDOCS}
+- Archived: archived_plugins.md
 - Contributing:
     - How to Contribute: CONTRIBUTING.md
     - Maintainers: MAINTAINERS.md
