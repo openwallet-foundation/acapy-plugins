@@ -1,4 +1,4 @@
-label: webvh-endorser
+label: webvh-witness
 
 auto-provision: true
 
@@ -19,7 +19,7 @@ no-ledger: true
 
 # Wallet
 wallet-type: askar-anoncreds
-wallet-name: endorser-wallet
+wallet-name: witness-wallet
 wallet-key: insecure
 
 wallet-allow-insecure-seed: true # Don't do this in production
@@ -29,9 +29,15 @@ log-level: info
 auto-accept-invites: true
 auto-respond-messages: true
 
+# Multi-tenancy
+multitenant: true
+jwt-secret: insecure-jwt-secret
+multitenant-admin: true
+
+
 # Plugin
 plugin-config-value:
    - did-webvh.server_url=https://localhost:8000
-   - did-webvh.role=endorser
-   - did-webvh.auto_endorse=true
+   - did-webvh.role=witness
+   - did-webvh.auto_attest=true
    - did-webvh.strict_ssl=false

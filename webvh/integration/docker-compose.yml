@@ -1,5 +1,5 @@
 services:
-  endorser:
+  witness:
     image: plugin-image
     build:
       context: ..
@@ -8,23 +8,23 @@ services:
         - install_flags=--no-interaction --with integration --extras aca-py
     command: >
       start
-        --label Endorser
+        --label Witness
         --inbound-transport http 0.0.0.0 3000
         --outbound-transport http
-        --endpoint http://endorser:3000
+        --endpoint http://witness:3000
         --admin 0.0.0.0 3001
         --admin-insecure-mode
         --no-ledger
         --wallet-type askar-anoncreds
-        --wallet-name endorser
+        --wallet-name witness
         --wallet-key insecure
         --auto-provision
         --log-level info
         --notify-revocation
         --plugin webvh
         --plugin-config-value did-webvh.server_url=http://server:8000
-        --plugin-config-value did-webvh.role=endorser
-        --plugin-config-value did-webvh.auto_endorse=true
+        --plugin-config-value did-webvh.role=witness
+        --plugin-config-value did-webvh.auto_attest=true
         --wallet-allow-insecure-seed
 
   controller:
@@ -76,11 +76,11 @@ services:
         dockerfile: Dockerfile.test.runner
       environment:
         - WAIT_BEFORE_HOSTS=3
-        - WAIT_HOSTS=endorser:3000, controller:3000
+        - WAIT_HOSTS=witness:3000, controller:3000
         - WAIT_HOSTS_TIMEOUT=60
         - WAIT_SLEEP_INTERVAL=1
         - WAIT_HOST_CONNECT_TIMEOUT=30
       depends_on:
-        - endorser
+        - witness
         - controller
         - server

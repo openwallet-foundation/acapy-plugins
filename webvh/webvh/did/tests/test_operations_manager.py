@@ -11,7 +11,7 @@ from acapy_agent.wallet.key_type import KeyTypes
 from acapy_agent.wallet.keys.manager import MultikeyManager
 from aiohttp import ClientConnectionError
 
-from ..exceptions import ConfigurationError, DidCreationError, EndorsementError
+from ..exceptions import ConfigurationError, DidCreationError, WitnessError
 from ..operations_manager import DidWebvhOperationsManager
 
 log_entry_response = {
@@ -109,7 +109,7 @@ class TestOperationsManager(IsolatedAsyncioTestCase):
             )
         ),
     )
-    async def test_create_self_endorsement(self):
+    async def test_create_self_witness(self):
         self.profile.settings.set_value(
             "plugin_config",
             {"did-webvh": {"server_url": "http://localhost:8000"}},
@@ -159,10 +159,10 @@ class TestOperationsManager(IsolatedAsyncioTestCase):
             )
         ),
     )
-    async def test_create_self_endorsement_as_endorser(self):
+    async def test_create_self_witness_as_witness(self):
         self.profile.settings.set_value(
             "plugin_config",
-            {"did-webvh": {"server_url": "http://localhost:8000", "role": "endorser"}},
+            {"did-webvh": {"server_url": "http://localhost:8000", "role": "witness"}},
         )
 
         resolver = mock.MagicMock(DIDResolver, autospec=True)
@@ -198,7 +198,7 @@ class TestOperationsManager(IsolatedAsyncioTestCase):
     )
     @mock.patch.object(
         DidWebvhOperationsManager,
-        "_wait_for_endorsement",
+        "_wait_for_witness",
         mock.AsyncMock(return_value=None),
     )
     async def test_create_as_controller(self):
@@ -217,7 +217,7 @@ class TestOperationsManager(IsolatedAsyncioTestCase):
         self.profile.context.injector.bind_instance(KeyTypes, KeyTypes())
 
         # No active connection
-        with self.assertRaises(EndorsementError):
+        with self.assertRaises(WitnessError):
             await DidWebvhOperationsManager(self.profile).create(
                 options={"namespace": "test"}
             )
@@ -225,7 +225,7 @@ class TestOperationsManager(IsolatedAsyncioTestCase):
         # Has connection
         async with self.profile.session() as session:
             record = ConnRecord(
-                alias="http://localhost:8000-endorser",
+                alias="http://localhost:8000@Witness",
                 state="active",
             )
             await record.save(session)
@@ -298,7 +298,7 @@ class TestOperationsManager(IsolatedAsyncioTestCase):
             {
                 "did-webvh": {
                     "server_url": "http://localhost:8000",
-                    "role": "endorser",
+                    "role": "witness",
                 }
             },
         )
@@ -314,7 +314,7 @@ class TestOperationsManager(IsolatedAsyncioTestCase):
     )
     @mock.patch.object(
         DidWebvhOperationsManager,
-        "_wait_for_endorsement",
+        "_wait_for_witness",
         mock.AsyncMock(return_value=None),
     )
     async def test_create_as_controller_with_existing_key(self):
@@ -334,7 +334,7 @@ class TestOperationsManager(IsolatedAsyncioTestCase):
 
         async with self.profile.session() as session:
             record = ConnRecord(
-                alias="http://localhost:8000-endorser",
+                alias="http://localhost:8000@Witness",
                 state="active",
             )
             await record.save(session)

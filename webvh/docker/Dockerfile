@@ -28,4 +28,4 @@ COPY webvh/ webvh/
 COPY docker/*.yml ./
 
 ENTRYPOINT ["/bin/bash", "-c", "aca-py \"$@\"", "--"]
-CMD ["start", "--arg-file", "endorser.yml"]
+CMD ["start", "--arg-file", "witness.yml"]

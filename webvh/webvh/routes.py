@@ -11,14 +11,14 @@ from aiohttp import web
 from aiohttp_apispec import docs, querystring_schema, request_schema, response_schema
 from marshmallow import fields
 
-from .did.endorsement_manager import EndorsementManager
 from .did.exceptions import (
     ConfigurationError,
     DidCreationError,
     DidUpdateError,
-    EndorsementError,
+    WitnessError,
 )
 from .did.operations_manager import DidWebvhOperationsManager
+from .did.witness_manager import WitnessManager
 
 
 class WebvhCreateSchema(OpenAPISchema):
@@ -85,7 +85,7 @@ class IdRequestParamSchema(OpenAPISchema):
     entry_id = fields.Str(
         required=True,
         metadata={
-            "description": "ID of the DID to endorse",
+            "description": "ID of the DID to attest",
             "example": "did:web:server.localhost%3A8000:prod:1",
         },
     )
@@ -105,7 +105,7 @@ async def create(request: web.BaseRequest):
                 options=request["data"]["options"]
             )
         )
-    except (DidCreationError, EndorsementError, ConfigurationError) as err:
+    except (DidCreationError, WitnessError, ConfigurationError) as err:
         return web.json_response({"status": "error", "message": str(err)})
 
 
@@ -144,27 +144,29 @@ async def deactivate(request: web.BaseRequest):
         return web.json_response({"status": "error", "message": str(err)})
 
 
-@docs(tags=["did"], summary="Get all pending log entry endorsements")
+@docs(tags=["did"], summary="Get all pending log entry attestations")
 @tenant_authentication
-async def endorser_get_pending(request: web.BaseRequest):
+async def witness_get_pending(request: web.BaseRequest):
     """Get all pending log entries."""
     context: AdminRequestContext = request["context"]
-    return web.json_response(await EndorsementManager(context.profile).get_pending())
+    return web.json_response(
+        await WitnessManager(context.profile).get_pending_did_request_docs()
+    )
 
 
-@docs(tags=["did"], summary="Endorse a log entry")
+@docs(tags=["did"], summary="Attest a log entry")
 @querystring_schema(IdRequestParamSchema())
 @tenant_authentication
-async def endorse_log_entry(request: web.BaseRequest):
+async def attest_log_entry(request: web.BaseRequest):
     """Get all pending log entries."""
     context: AdminRequestContext = request["context"]
 
     try:
         entry_id = request.query.get("entry_id")
         return web.json_response(
-            await EndorsementManager(context.profile).endorse_entry(entry_id)
+            await WitnessManager(context.profile).attest_did_request_doc(entry_id)
         )
-    except EndorsementError as err:
+    except WitnessError as err:
         return web.json_response({"status": "error", "message": str(err)})
 
 
@@ -174,9 +176,9 @@ def register_events(event_bus: EventBus):
 
 
 async def on_startup_event(profile: Profile, event: Event):
-    """Handle the endorsement setup."""
+    """Handle the witness setup."""
 
-    await EndorsementManager(profile).auto_endorsement_setup()
+    await WitnessManager(profile).auto_witness_setup()
 
 
 async def register(app: web.Application):
@@ -184,8 +186,8 @@ async def register(app: web.Application):
     app.add_routes([web.post("/did/webvh/create", create)])
     app.add_routes([web.post("/did/webvh/update", update)])
     app.add_routes([web.post("/did/webvh/deactivate", deactivate)])
-    app.add_routes([web.post("/did/webvh/endorsement/pending", endorser_get_pending)])
-    app.add_routes([web.post("/did/webvh/endorsement/endorse", endorse_log_entry)])
+    app.add_routes([web.post("/did/webvh/witness/attest", witness_get_pending)])
+    app.add_routes([web.post("/did/webvh/witness/pending", attest_log_entry)])
 
 
 def post_process_routes(app: web.Application):
