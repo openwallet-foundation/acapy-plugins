@@ -16,7 +16,7 @@ from acapy_controller.protocols import (
     oob_invitation,
 )
 
-ENDORSER = getenv("ENDORSER", "http://endorser:3001")
+WITNESS = getenv("WITNESS", "http://witness:3001")
 CONTROLLER_ENV = getenv("CONTROLLER", "http://controller:3001")
 
 
@@ -104,17 +104,17 @@ async def didexchange(
 
 
 @pytest.mark.asyncio
-async def test_create_with_endorsement():
+async def test_create_with_witness():
     """Test Controller protocols."""
     async with (
-        Controller(base_url=ENDORSER) as endorser,
+        Controller(base_url=WITNESS) as witness,
         Controller(base_url=CONTROLLER_ENV) as controller,
     ):
-        endorser_config = (await endorser.get("/status/config"))["config"]
-        server_url = endorser_config["plugin_config"]["did-webvh"]["server_url"]
+        witness_config = (await witness.get("/status/config"))["config"]
+        server_url = witness_config["plugin_config"]["did-webvh"]["server_url"]
 
-        # Create the endorsers key for server auth
-        await endorser.post(
+        # Create the witness key for server auth
+        await witness.post(
             "/wallet/keys",
             json={
                 "seed": "00000000000000000000000000000000",
@@ -123,8 +123,8 @@ async def test_create_with_endorsement():
             },
         )
 
-        # Create the connection with endorser specific alias
-        await didexchange(endorser, controller, alias=f"{server_url}-endorser")
+        # Create the connection with witness specific alias
+        await didexchange(witness, controller, alias=f"{server_url}@Witness")
 
         # Create the initial did
         response = await controller.post(

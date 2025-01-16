@@ -13,14 +13,14 @@ class DidUpdateError(Exception):
     pass
 
 
-class EndorsementSetupError(Exception):
-    """Exception for endorsement setup errors."""
+class WitnessSetupError(Exception):
+    """Exception for witness setup errors."""
 
     pass
 
 
-class EndorsementError(Exception):
-    """Exception for endorsement errors."""
+class WitnessError(Exception):
+    """Exception for witness errors."""
 
     pass
 

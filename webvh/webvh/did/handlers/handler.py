@@ -1,4 +1,4 @@
-"""Handler for endorsement operations."""
+"""Handler for witness operations."""
 
 import logging
 
@@ -9,18 +9,19 @@ from acapy_agent.vc.data_integrity.manager import DataIntegrityManager
 from acapy_agent.vc.data_integrity.models.options import DataIntegrityProofOptions
 from acapy_agent.wallet.keys.manager import MultikeyManager
 
-from ..endorsement_manager import EndorsementManager
-from ..messages.endorsement import EndorsementRequest, EndorsementResponse
+from ..messages.witness import WitnessRequest, WitnessResponse
 from ..operations_manager import DidWebvhOperationsManager
+from ..registration_state import RegistrationState
 from ..utils import get_url_decoded_domain
+from ..witness_manager import WitnessManager
 
 LOGGER = logging.getLogger(__name__)
 
 
-class EndorsementRequestHandler(BaseHandler):
-    """Message handler class for endorsement requests."""
+class WitnessRequestHandler(BaseHandler):
+    """Message handler class for witness requests."""
 
-    async def _handle_auto_endorse(
+    async def _handle_auto_witness(
         self,
         context: RequestContext,
         responder: BaseResponder,
@@ -28,52 +29,51 @@ class EndorsementRequestHandler(BaseHandler):
         document: dict,
         parameters: dict,
     ):
-        """Handle automatic endorsement."""
+        """Handle automatic witness."""
         domain = proof.get("domain")
         url_decoded_domain = get_url_decoded_domain(domain)
 
         async with context.profile.session() as session:
-            # Attempt to get the endorsement key for the domain
+            # Attempt to get the witness key for the domain
             if not await MultikeyManager(session).kid_exists(url_decoded_domain):
                 # If the key is not found, return an error
                 LOGGER.error(
-                    f"Endorsement key not found for domain: {url_decoded_domain}. The "
+                    f"Witness key not found for domain: {url_decoded_domain}. The "
                     "administrator must add the key to the wallet that matches the key on"
                     " the server."
                 )
                 return
 
-            # If the key is found, perform endorsement
-            endorsement_key_info = await MultikeyManager(session).from_kid(
-                url_decoded_domain
-            )
-            endorsed_document = await DataIntegrityManager(session).add_proof(
+            # If the key is found, perform witness
+            witness_key_info = await MultikeyManager(session).from_kid(url_decoded_domain)
+            # Note: The witness key is used as the verification method
+            witnessed_document = await DataIntegrityManager(session).add_proof(
                 document,
                 DataIntegrityProofOptions(
                     type="DataIntegrityProof",
                     cryptosuite="eddsa-jcs-2022",
                     proof_purpose="assertionMethod",
-                    verification_method=f"did:key:{endorsement_key_info.get('multikey')}#{endorsement_key_info.get('multikey')}",
+                    verification_method=f"did:key:{witness_key_info.get('multikey')}#{witness_key_info.get('multikey')}",
                     expires=proof.get("expires"),
                     domain=domain,
                     challenge=proof.get("challenge"),
                 ),
             )
-        # If the endorsement is successful, return a success message
+        # If the witness is successful, return a success message
         await responder.send(
-            message=EndorsementResponse(
+            message=WitnessResponse(
                 state="posted",
-                document=endorsed_document,
+                document=witnessed_document,
                 parameters=parameters,
             ),
             connection_id=context.connection_record.connection_id,
         )
 
     async def handle(self, context: RequestContext, responder: BaseResponder):
-        """Message handler logic for endorsement requests."""
-        assert isinstance(context.message, EndorsementRequest)
+        """Message handler logic for witness requests."""
+        assert isinstance(context.message, WitnessRequest)
         self._logger.debug(
-            "Received endorsement request: %s",
+            "Received witness request: %s",
             context.message.document,
         )
 
@@ -87,23 +87,23 @@ class EndorsementRequestHandler(BaseHandler):
         if (
             context.profile.settings.get("plugin_config", {})
             .get("did-webvh", {})
-            .get("auto_endorse")
+            .get("auto_attest")
         ):
-            await self._handle_auto_endorse(
+            await self._handle_auto_witness(
                 context, responder, proof, document, context.message.parameters
             )
         else:
             LOGGER.info(
-                "Auto endorsement is not enabled. The administrator must manually "
-                "endorse the log entry."
+                "Auto attest is not enabled. The administrator must manually "
+                "attest the did request document."
             )
-            # Save the log entry to the wallet for manual endorsement
-            await EndorsementManager(context.profile).save_log_entry(
+            # Save the did request document to the wallet for manual witness
+            await WitnessManager(context.profile).save_did_request_doc_for_witnessing(
                 document, connection_id=context.connection_record.connection_id
             )
             await responder.send(
-                message=EndorsementResponse(
-                    state="pending",
+                message=WitnessResponse(
+                    state=RegistrationState.PENDING.value,
                     document=document,
                     parameters=context.message.parameters,
                 ),
@@ -111,16 +111,16 @@ class EndorsementRequestHandler(BaseHandler):
             )
 
 
-class EndorsementResponseHandler(BaseHandler):
-    """Message handler class for endorsement responses."""
+class WitnessResponseHandler(BaseHandler):
+    """Message handler class for witness responses."""
 
     async def handle(self, context: RequestContext, responder: BaseResponder):
-        """Message handler logic for endorsement responses."""
+        """Message handler logic for witness responses."""
         self._logger.info(
-            "Received endorsement response: %s",
+            "Received witness response: %s",
             context.message.state,
         )
-        assert isinstance(context.message, EndorsementResponse)
+        assert isinstance(context.message, WitnessResponse)
 
         await DidWebvhOperationsManager(context.profile).finish_create(
             context.message.document,

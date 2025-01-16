@@ -24,16 +24,16 @@ from aiohttp import ClientConnectionError, ClientResponseError, ClientSession
 from did_webvh.core.state import DocumentState
 from pydid import DIDDocument
 
-from .endorsement_manager import EndorsementManager
 from .exceptions import DidCreationError
 from .registration_state import RegistrationState
-from .utils import get_server_info, use_strict_ssl
+from .utils import get_server_url, use_strict_ssl
+from .witness_manager import WitnessManager
 
 LOGGER = logging.getLogger(__name__)
 
 WEBVH_METHOD = "did:webvh:0.4"
-ENDORSEMENT_WAIT_TIMEOUT_SECONDS = 2
-ENDORSEMENT_EVENT = "endorsement_response::"
+WITNESS_WAIT_TIMEOUT_SECONDS = 2
+WITNESS_EVENT = "witness_response::"
 AUTHORIZED_KEY_ID = "authorizedKey"
 
 
@@ -145,10 +145,10 @@ class DidWebvhOperationsManager:
                 ),
             )
 
-    async def _wait_for_endorsement(self, did: str):
+    async def _wait_for_witness(self, did: str):
         event_bus = self.profile.inject(EventBus)
         with event_bus.wait_for_event(
-            self.profile, re.compile(rf"^{ENDORSEMENT_EVENT}{did}$")
+            self.profile, re.compile(rf"^{WITNESS_EVENT}{did}$")
         ) as await_event:
             event = await await_event
             return await self.finish_create(
@@ -161,7 +161,7 @@ class DidWebvhOperationsManager:
     async def create(self, options: dict):
         """Register identities."""
 
-        server_url = get_server_info(self.profile)
+        server_url = get_server_url(self.profile)
         namespace = options.get("namespace", "default")
 
         if namespace is None:
@@ -183,7 +183,7 @@ class DidWebvhOperationsManager:
         )
 
         parameters = options.get("parameters", {})
-        result = await EndorsementManager(self.profile).endorse_registration_document(
+        result = await WitnessManager(self.profile).witness_registration_document(
             controller_secured_document, expiration, domain, challenge, parameters
         )
 
@@ -197,13 +197,13 @@ class DidWebvhOperationsManager:
 
         try:
             return await asyncio.wait_for(
-                self._wait_for_endorsement(did),
-                ENDORSEMENT_WAIT_TIMEOUT_SECONDS,
+                self._wait_for_witness(did),
+                WITNESS_WAIT_TIMEOUT_SECONDS,
             )
         except asyncio.TimeoutError:
             return {
                 "status": "unknown",
-                "message": "No immediate response from endorser agent.",
+                "message": "No immediate response from witness agent.",
             }
 
     async def _create_signed_initial_log_entry(
@@ -243,7 +243,7 @@ class DidWebvhOperationsManager:
 
     async def finish_create(
         self,
-        endorsed_document: dict,
+        witnessed_document: dict,
         parameters: dict,
         state: str = RegistrationState.SUCCESS.value,
         authorized_key_info: Optional[dict] = None,
@@ -254,9 +254,9 @@ class DidWebvhOperationsManager:
             await event_bus.notify(
                 self.profile,
                 Event(
-                    f"{ENDORSEMENT_EVENT}{endorsed_document['id']}",
+                    f"{WITNESS_EVENT}{witnessed_document['id']}",
                     {
-                        "document": endorsed_document,
+                        "document": witnessed_document,
                         "metadata": {
                             "state": RegistrationState.POSTED.value,
                             "parameters": parameters,
@@ -271,9 +271,9 @@ class DidWebvhOperationsManager:
             await event_bus.notify(
                 self.profile,
                 Event(
-                    f"{ENDORSEMENT_EVENT}{endorsed_document['id']}",
+                    f"{WITNESS_EVENT}{witnessed_document['id']}",
                     {
-                        "document": endorsed_document,
+                        "document": witnessed_document,
                         "metadata": {
                             "state": RegistrationState.PENDING.value,
                             "parameters": parameters,
@@ -285,10 +285,10 @@ class DidWebvhOperationsManager:
 
         async with ClientSession() as http_session, self.profile.session() as session:
             # Register did document and did with the server
-            server_url = get_server_info(self.profile)
+            server_url = get_server_url(self.profile)
             response = await http_session.post(
                 server_url,
-                json={"didDocument": endorsed_document},
+                json={"didDocument": witnessed_document},
                 ssl=use_strict_ssl(self.profile),
             )
             response_json = await response.json()
@@ -297,17 +297,17 @@ class DidWebvhOperationsManager:
 
             if not authorized_key_info:
                 authorized_key_info = await self._get_or_create_authorized_key(
-                    endorsed_document["id"]
+                    witnessed_document["id"]
                 )
 
             # Create initial log entry
-            id_parts = endorsed_document["id"].split(":")
+            id_parts = witnessed_document["id"].split(":")
             namespace = id_parts[-2]
             identifier = id_parts[-1]
 
             signed_initial_log_entry = await self._create_signed_initial_log_entry(
                 session,
-                endorsed_document["proof"][0]["domain"],
+                witnessed_document["proof"][0]["domain"],
                 namespace,
                 identifier,
                 parameters,
@@ -359,7 +359,7 @@ class DidWebvhOperationsManager:
             await event_bus.notify(
                 self.profile,
                 Event(
-                    f"{ENDORSEMENT_EVENT}{endorsed_document['id']}",
+                    f"{WITNESS_EVENT}{witnessed_document['id']}",
                     {"document": resolved_did_doc["did_document"], "metadata": metadata},
                 ),
             )
@@ -368,7 +368,7 @@ class DidWebvhOperationsManager:
 
     async def update(self, options: dict, features: dict):
         """Update a Webvh DID."""
-        server_url = get_server_info(self.profile)
+        server_url = get_server_url(self.profile)
 
         namespace = options.get("namespace")
         identifier = options.get("identifier")
@@ -434,7 +434,7 @@ class DidWebvhOperationsManager:
 
     async def deactivate(self, options: dict):
         """Create a Webvh DID."""
-        server_url = get_server_info(self.profile)
+        server_url = get_server_url(self.profile)
 
         namespace = options.get("namespace")
         identifier = options.get("identifier")
