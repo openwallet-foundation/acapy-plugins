@@ -57,7 +57,6 @@ def mock_schema():
 @pytest.fixture
 def mock_create_and_publish_resource():
     return PublishResourceResponse(
-        job_id="MOCK_ID",
         did_url="MOCK_ISSUER_ID/resources/MOCK_RESOURCE_ID",
         content="MOCK_VALUE",
     )
@@ -66,7 +65,6 @@ def mock_create_and_publish_resource():
 @pytest.fixture
 def mock_update_and_publish_resource():
     return PublishResourceResponse(
-        job_id="MOCK_ID",
         did_url="MOCK_ISSUER_ID/resources/MOCK_RESOURCE_ID",
         content="MOCK_VALUE",
     )

@@ -11,6 +11,7 @@ from .helpers import (
     assert_wallet_dids,
     create_credential_definition,
     create_did,
+    update_did,
     create_schema,
     deactivate_did,
     issue_credential_v2,
@@ -59,13 +60,13 @@ async def test_create_and_resolve_did(shared_did):
         assert did is not None
 
 
-# @pytest.mark.asyncio
-# async def test_update_did():
-#     """Test DID update."""
-#     did = load_did()
-#     async with Controller(base_url=ISSUER) as issuer:
-#         did_doc = await resolve_did(issuer, did)
-#         await update_did(issuer, did, did_doc)
+@pytest.mark.asyncio
+async def test_update_did():
+    """Test DID update."""
+    did = load_did()
+    async with Controller(base_url=ISSUER) as issuer:
+        did_doc = await resolve_did(issuer, did)
+        await update_did(issuer, did, did_doc)
 
 
 @pytest.mark.asyncio

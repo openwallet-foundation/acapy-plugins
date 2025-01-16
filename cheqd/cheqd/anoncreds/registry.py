@@ -62,7 +62,7 @@ LOGGER = logging.getLogger(__name__)
 
 class PublishResourceResponse(BaseModel):
     """Publish Resource Response."""
-    job_id: str
+
     did_url: str
     content: Union[dict, str]
 
@@ -231,7 +231,7 @@ class DIDCheqdRegistry(BaseAnonCredsResolver, BaseAnonCredsRegistrar):
         except Exception as err:
             raise AnonCredsRegistrationError(f"{err}")
         return SchemaResult(
-            job_id=schema_id,
+            job_id=None,
             schema_state=SchemaState(
                 state=SchemaState.STATE_FINISHED,
                 schema_id=schema_id,
@@ -307,7 +307,7 @@ class DIDCheqdRegistry(BaseAnonCredsResolver, BaseAnonCredsRegistrar):
         (_, resource_id) = self.split_did_url(credential_definition_id)
 
         return CredDefResult(
-            job_id=credential_definition_id,
+            job_id=None,
             credential_definition_state=CredDefState(
                 state=CredDefState.STATE_FINISHED,
                 credential_definition_id=credential_definition_id,
@@ -389,7 +389,7 @@ class DIDCheqdRegistry(BaseAnonCredsResolver, BaseAnonCredsRegistrar):
         (_, resource_id) = self.split_did_url(revocation_registry_definition_id)
 
         return RevRegDefResult(
-            job_id=revocation_registry_definition_id,
+            job_id=None,
             revocation_registry_definition_state=RevRegDefState(
                 state=RevRegDefState.STATE_FINISHED,
                 revocation_registry_definition_id=revocation_registry_definition_id,
@@ -497,7 +497,7 @@ class DIDCheqdRegistry(BaseAnonCredsResolver, BaseAnonCredsRegistrar):
         (_, resource_id) = self.split_did_url(did_url)
 
         return RevListResult(
-            job_id=did_url,
+            job_id=None,
             revocation_list_state=RevListState(
                 state=RevListState.STATE_FINISHED,
                 revocation_list=rev_list,
@@ -552,7 +552,7 @@ class DIDCheqdRegistry(BaseAnonCredsResolver, BaseAnonCredsRegistrar):
         (_, resource_id) = self.split_did_url(did_url)
 
         return RevListResult(
-            job_id=did_url,
+            job_id=None,
             revocation_list_state=RevListState(
                 state=RevListState.STATE_FINISHED,
                 revocation_list=curr_list,
@@ -614,7 +614,6 @@ class DIDCheqdRegistry(BaseAnonCredsResolver, BaseAnonCredsRegistrar):
                             f"Error publishing Resource {resource_state.get('reason')}"
                         )
                     return PublishResourceResponse(
-                        job_id=job_id,
                         content=resource_state.get("content"),
                         did_url=resource_state.get("didUrl"),
                     )
@@ -671,7 +670,6 @@ class DIDCheqdRegistry(BaseAnonCredsResolver, BaseAnonCredsRegistrar):
                             f"Error publishing Resource {resource_state.get('reason')}"
                         )
                     return PublishResourceResponse(
-                        job_id=job_id,
                         content=resource_state.get("content"),
                         did_url=resource_state.get("didUrl"),
                     )
