@@ -151,5 +151,5 @@ def mock_resource_create_options():
 @pytest.fixture
 def mock_resource_update_options():
     return ResourceUpdateRequestOptions(
-        did="MOCK_VALUE", content="MOCK_VALUE", name="MOCK_VALUE", type="MOCK_VALUE"
+        did="MOCK_VALUE", content=["MOCK_VALUE"], name="MOCK_VALUE", type="MOCK_VALUE"
     )

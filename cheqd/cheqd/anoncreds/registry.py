@@ -505,12 +505,12 @@ class DIDCheqdRegistry(BaseAnonCredsResolver, BaseAnonCredsRegistrar):
                 state=RevListState.STATE_FINISHED,
                 revocation_list=rev_list,
             ),
-            registration_metadata={},
-            revocation_list_metadata={
+            registration_metadata={
                 "resource_id": resource_id,
                 "resource_name": resource_name,
                 "resource_type": resource_type,
             },
+            revocation_list_metadata={},
         )
 
     async def update_revocation_list(
@@ -562,12 +562,12 @@ class DIDCheqdRegistry(BaseAnonCredsResolver, BaseAnonCredsRegistrar):
                 state=RevListState.STATE_FINISHED,
                 revocation_list=curr_list,
             ),
-            registration_metadata={},
-            revocation_list_metadata={
+            registration_metadata={
                 "resource_id": resource_id,
                 "resource_name": resource_name,
                 "resource_type": resource_type,
             },
+            revocation_list_metadata={},
         )
 
     @staticmethod

@@ -1,4 +1,5 @@
 import pytest
+from aiohttp import web
 from aioresponses import aioresponses
 from yarl import URL
 
@@ -88,6 +89,25 @@ async def test_create_resource(
 
 
 @pytest.mark.asyncio
+async def test_create_resource_unhappy(
+    registrar_url, registrar, mock_resource_create_options
+):
+    # Arrange
+    did = "did:cheqd:testnet:123"
+    create_resource_url = registrar_url + "createResource"
+
+    with aioresponses() as mocked:
+        mocked.post(create_resource_url, status=404)
+
+        # Act
+        with pytest.raises(Exception) as excinfo:
+            await registrar.create_resource(mock_resource_create_options)
+
+        # Assert
+        assert isinstance(excinfo.value, web.HTTPInternalServerError)
+
+
+@pytest.mark.asyncio
 @pytest.mark.parametrize("status", [200])
 async def test_update_resource(
     registrar_url, registrar, status, mock_resource_update_options, mock_response
@@ -107,6 +127,24 @@ async def test_update_resource(
         assert request.kwargs["json"] == mock_resource_update_options.dict(
             exclude_none=True
         )
+
+
+@pytest.mark.asyncio
+async def test_update_resource_unhappy(
+    registrar_url, registrar, mock_resource_update_options
+):
+    # Arrange
+    update_resource_url = registrar_url + "updateResource"
+
+    with aioresponses() as mocked:
+        mocked.post(update_resource_url, status=404)
+
+        # Act
+        with pytest.raises(Exception) as excinfo:
+            await registrar.update_resource(mock_resource_update_options)
+
+        # Assert
+        assert isinstance(excinfo.value, web.HTTPInternalServerError)
 
 
 @pytest.mark.asyncio

@@ -13,11 +13,12 @@ from acapy_agent.anoncreds.models.revocation import (
     GetRevListResult,
     GetRevRegDefResult,
     RevRegDefResult,
+    RevListResult,
 )
 from acapy_agent.anoncreds.models.schema import GetSchemaResult, SchemaResult
 from acapy_agent.anoncreds.models.schema_info import AnoncredsSchemaInfo
 
-from ...did.base import ResourceCreateRequestOptions
+from ...did.base import ResourceCreateRequestOptions, ResourceUpdateRequestOptions
 from ...did.manager import CheqdDIDManager
 from ...did.tests.mocks import (
     registrar_responses_network_fail,
@@ -133,7 +134,7 @@ async def test_register_schema(
         patch(
             "cheqd.cheqd.anoncreds.registry.DIDCheqdRegistry._create_and_publish_resource",
             return_value=mock_create_and_publish_resource,
-        ),
+        ) as mock,
     ):
         # Act
         registry = DIDCheqdRegistry()
@@ -149,19 +150,65 @@ async def test_register_schema(
         assert result.registration_metadata["resource_name"] == "MOCK_NAME"
         assert result.registration_metadata["resource_type"] == "anonCredsSchema"
 
-        # mock.assert_called_once_with(
-        #     mock_profile,
-        #     TEST_REGISTRAR_URL,
-        #     TEST_RESOLVER_URL,
-        #     ResourceCreateRequestOptions(
-        #         name="MOCK_NAME",
-        #         type="anonCredsSchema",
-        #         version="MOCK_VERSION",
-        #         content="eyJuYW1lIjogIk1PQ0tfTkFNRSIsICJ2ZXJzaW9uIjogIk1PQ0tfVkVSU0lPTiIsICJhdHRyTmFtZXMiOiAiTU9DS19BVFRSX05BTUVTIn0",
-        #         did="MOCK_ISSUER_ID",
-        #         relativeDidUrl=None,
-        #     ),
-        # )
+        mock.assert_called_once_with(
+            mock_profile,
+            TEST_REGISTRAR_URL,
+            TEST_RESOLVER_URL,
+            ResourceCreateRequestOptions(
+                name="MOCK_NAME",
+                type="anonCredsSchema",
+                version="MOCK_VERSION",
+                content="eyJuYW1lIjogIk1PQ0tfTkFNRSIsICJ2ZXJzaW9uIjogIk1PQ0tfVkVSU0lPTiIsICJhdHRyTmFtZXMiOiAiTU9DS19BVFRSX05BTUVTIn0",
+                did="MOCK_ISSUER_ID",
+                relativeDidUrl=None,
+            ),
+        )
+
+
+async def test_register_schema_update(
+    mock_profile, mock_schema, mock_create_and_publish_resource
+):
+    # Arrange
+    with (
+        patch(
+            "cheqd.cheqd.anoncreds.registry.CheqdDIDResolver.resolve_resource",
+            return_value={},
+        ),
+        patch(
+            "cheqd.cheqd.anoncreds.registry.DIDCheqdRegistry._update_and_publish_resource",
+            return_value=mock_create_and_publish_resource,
+        ) as mock,
+    ):
+        # Act
+        registry = DIDCheqdRegistry()
+        result = await registry.register_schema(profile=mock_profile, schema=mock_schema)
+
+        assert isinstance(result, SchemaResult)
+        assert result.schema_state.state == "finished"
+        assert (
+            result.schema_state.schema_id == "MOCK_ISSUER_ID/resources/MOCK_RESOURCE_ID"
+        )
+        assert result.schema_state.schema == mock_schema
+        assert result.registration_metadata["resource_id"] == "MOCK_RESOURCE_ID"
+        assert result.registration_metadata["resource_name"] == "MOCK_NAME"
+        assert result.registration_metadata["resource_type"] == "anonCredsSchema"
+
+        mock.assert_called_once_with(
+            mock_profile,
+            TEST_REGISTRAR_URL,
+            TEST_RESOLVER_URL,
+            ResourceUpdateRequestOptions(
+                name="MOCK_NAME",
+                type="anonCredsSchema",
+                version="MOCK_VERSION",
+                content=[
+                    "eyJuYW1lIjogIk1PQ0tfTkFNRSIsICJ2ZXJzaW9uIjogIk1PQ0tfVkVSU0lPTiIsICJhdHRyTmFtZXMiOiAiTU9DS19BVFRSX05BTUVTIn0"
+                ],
+                did="MOCK_ISSUER_ID",
+                relativeDidUrl=None,
+                options=None,
+            ),
+        )
 
 
 async def test_register_schema_registration_error(mock_profile, mock_schema):
@@ -401,6 +448,74 @@ async def test_get_revocation_list(mock_profile, mock_resolver, mock_rev_reg_def
         mock_resolver.resolve_resource.assert_called_once()
 
 
+async def test_register_revocation_status_list(
+    mock_profile,
+    mock_rev_list,
+    mock_rev_reg_def,
+    mock_get_revocation_registry_definition,
+    mock_create_and_publish_resource,
+):
+    # Arrange
+    with (
+        patch(
+            "cheqd.cheqd.anoncreds.registry.DIDCheqdRegistry.get_revocation_registry_definition",
+            return_value=mock_get_revocation_registry_definition,
+        ),
+        patch(
+            "cheqd.cheqd.anoncreds.registry.DIDCheqdRegistry._create_and_publish_resource",
+            return_value=mock_create_and_publish_resource,
+        ) as mock,
+    ):
+        # Act
+        registry = DIDCheqdRegistry()
+        result = await registry.register_revocation_list(
+            mock_profile, mock_rev_reg_def, mock_rev_list
+        )
+
+        # Assert
+        assert isinstance(result, RevListResult)
+        assert result.revocation_list_state.state == "finished"
+        assert result.revocation_list_state.revocation_list == mock_rev_list
+        assert result.registration_metadata["resource_id"] == "MOCK_RESOURCE_ID"
+        assert result.registration_metadata["resource_name"] == "MOCK_RESOURCE"
+        assert result.registration_metadata["resource_type"] == "anonCredsStatusList"
+        assert result.revocation_list_metadata == {}
+
+
+async def test_update_revocation_status_list(
+    mock_profile,
+    mock_rev_list,
+    mock_rev_reg_def,
+    mock_get_revocation_registry_definition,
+    mock_create_and_publish_resource,
+):
+    # Arrange
+    with (
+        patch(
+            "cheqd.cheqd.anoncreds.registry.DIDCheqdRegistry.get_revocation_registry_definition",
+            return_value=mock_get_revocation_registry_definition,
+        ),
+        patch(
+            "cheqd.cheqd.anoncreds.registry.DIDCheqdRegistry._update_and_publish_resource",
+            return_value=mock_create_and_publish_resource,
+        ) as mock,
+    ):
+        # Act
+        registry = DIDCheqdRegistry()
+        result = await registry.update_revocation_list(
+            mock_profile, mock_rev_reg_def, mock_rev_list, mock_rev_list, []
+        )
+
+        # Assert
+        assert isinstance(result, RevListResult)
+        assert result.revocation_list_state.state == "finished"
+        assert result.revocation_list_state.revocation_list == mock_rev_list
+        assert result.registration_metadata["resource_id"] == "MOCK_RESOURCE_ID"
+        assert result.registration_metadata["resource_name"] == "MOCK_RESOURCE"
+        assert result.registration_metadata["resource_type"] == "anonCredsStatusList"
+        assert result.revocation_list_metadata == {}
+
+
 async def test_get_schema_info_by_id(mock_resolver, mock_profile):
     # Arrange
     schema_id = "PART0/PART1/PART2"
@@ -432,7 +547,6 @@ async def test_create_and_publish_resource_with_signing_failure(
         mock_registrar_instance.return_value,
         create_resource_responses=registrar_responses_no_signing_request,
     )
-    did = "did:cheqd:testnet:123"
 
     # Act
     manager = CheqdDIDManager(mock_profile_for_manager)
@@ -446,6 +560,38 @@ async def test_create_and_publish_resource_with_signing_failure(
             "MOCK_REGISTRAR_URL",
             "MOCK_RESOLVER_URL",
             mock_resource_create_options,
+        )
+
+    # Assert
+    assert isinstance(e.value, Exception)
+    assert str(e.value) == "No signing requests available for update."
+
+
+@patch("cheqd.cheqd.did.manager.CheqdDIDRegistrar")
+@pytest.mark.asyncio
+async def test_update_and_publish_resource_with_signing_failure(
+    mock_registrar_instance,
+    mock_profile_for_manager,
+    mock_resource_update_options,
+):
+    # Arrange
+    setup_mock_registrar(
+        mock_registrar_instance.return_value,
+        update_resource_responses=registrar_responses_no_signing_request,
+    )
+
+    # Act
+    manager = CheqdDIDManager(mock_profile_for_manager)
+    await manager.create()
+
+    registry = DIDCheqdRegistry()
+
+    with pytest.raises(Exception) as e:
+        await registry._update_and_publish_resource(
+            mock_profile_for_manager,
+            "MOCK_REGISTRAR_URL",
+            "MOCK_RESOLVER_URL",
+            mock_resource_update_options,
         )
 
     # Assert
