@@ -3,7 +3,7 @@
 import logging
 import time
 from datetime import datetime, timezone
-from typing import Optional, Pattern, Sequence
+from typing import Optional, Pattern, Sequence, Union
 from uuid import uuid4
 
 from acapy_agent.anoncreds.base import (
@@ -38,18 +38,17 @@ from acapy_agent.anoncreds.models.schema import (
 from acapy_agent.anoncreds.models.schema_info import AnoncredsSchemaInfo
 from acapy_agent.config.injection_context import InjectionContext
 from acapy_agent.core.profile import Profile
+from acapy_agent.resolver.base import DIDNotFound
 from acapy_agent.wallet.base import BaseWallet
 from acapy_agent.wallet.error import WalletError
 from acapy_agent.wallet.jwt import dict_to_b64
-from acapy_agent.resolver.base import DIDNotFound
 from pydantic import BaseModel
-from typing import Union
 
 from ..did.base import (
     ResourceCreateRequestOptions,
+    ResourceUpdateRequestOptions,
     Secret,
     SubmitSignatureOptions,
-    ResourceUpdateRequestOptions,
 )
 from ..did.helpers import CheqdAnoncredsResourceType
 from ..did.manager import CheqdDIDManager
@@ -183,13 +182,15 @@ class DIDCheqdRegistry(BaseAnonCredsResolver, BaseAnonCredsRegistrar):
                     name=resource_name,
                     type=resource_type,
                     version=resource_version,
-                    content=dict_to_b64(
-                        {
-                            "name": schema.name,
-                            "version": schema.version,
-                            "attrNames": schema.attr_names,
-                        }
-                    ),
+                    content=[
+                        dict_to_b64(
+                            {
+                                "name": schema.name,
+                                "version": schema.version,
+                                "attrNames": schema.attr_names,
+                            }
+                        )
+                    ],
                     did=schema.issuer_id,
                 )
 
@@ -445,7 +446,9 @@ class DIDCheqdRegistry(BaseAnonCredsResolver, BaseAnonCredsRegistrar):
             revocation_registry_metadata=metadata,
         )
 
-    async def get_schema_info_by_id(self, schema_id: str) -> AnoncredsSchemaInfo:
+    async def get_schema_info_by_id(
+        self, profile: Profile, schema_id: str
+    ) -> AnoncredsSchemaInfo:
         """Get a schema info from the registry."""
         resource_with_metadata = await self.resolver.resolve_resource(schema_id)
         schema = resource_with_metadata.resource
@@ -531,13 +534,15 @@ class DIDCheqdRegistry(BaseAnonCredsResolver, BaseAnonCredsRegistrar):
         rev_status_list = ResourceUpdateRequestOptions(
             name=resource_name,
             type=resource_type,
-            content=dict_to_b64(
-                {
-                    "revocationList": curr_list.revocation_list,
-                    "currentAccumulator": curr_list.current_accumulator,
-                    "revRegDefId": curr_list.rev_reg_def_id,
-                }
-            ),
+            content=[
+                dict_to_b64(
+                    {
+                        "revocationList": curr_list.revocation_list,
+                        "currentAccumulator": curr_list.current_accumulator,
+                        "revRegDefId": curr_list.rev_reg_def_id,
+                    }
+                )
+            ],
             version=str(uuid4()),
             did=rev_reg_def.issuer_id,
         )
@@ -583,7 +588,6 @@ class DIDCheqdRegistry(BaseAnonCredsResolver, BaseAnonCredsRegistrar):
                 create_request_res = await cheqd_manager.registrar.create_resource(
                     options
                 )
-
                 job_id: str = create_request_res.get("jobId")
                 resource_state = create_request_res.get("didUrlState")
                 if not resource_state:

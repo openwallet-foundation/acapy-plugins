@@ -7,8 +7,8 @@ from acapy_agent.utils.testing import create_test_profile
 from acapy_agent.wallet.did_method import DIDMethods
 from acapy_agent.wallet.key_type import KeyTypes
 
-from ...did_method import CHEQD
 from ...did.base import ResourceCreateRequestOptions, ResourceUpdateRequestOptions
+from ...did_method import CHEQD
 from ..registry import PublishResourceResponse
 
 

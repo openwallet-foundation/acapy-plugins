@@ -1,12 +1,12 @@
 """Helpers for did:cheqd."""
 
-from typing import List, Dict, Union
 from enum import Enum
+from hashlib import sha256
+from typing import Dict, List, Union
 from uuid import uuid4
 
-from acapy_agent.wallet.util import b64_to_bytes, bytes_to_b64, bytes_to_b58
-from hashlib import sha256
-from acapy_agent.utils.multiformats import multibase
+from acapy_agent.wallet.util import b64_to_bytes, bytes_to_b58, bytes_to_b64
+from multiformats import multibase
 
 
 class CheqdNetwork(Enum):

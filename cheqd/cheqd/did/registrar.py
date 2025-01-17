@@ -5,8 +5,8 @@ from aiohttp import ClientSession, web
 from ..did.base import (
     BaseDIDRegistrar,
     DidCreateRequestOptions,
-    DidUpdateRequestOptions,
     DidDeactivateRequestOptions,
+    DidUpdateRequestOptions,
     ResourceCreateRequestOptions,
     ResourceUpdateRequestOptions,
     SubmitSignatureOptions,
@@ -32,7 +32,7 @@ class CheqdDIDRegistrar(BaseDIDRegistrar):
             try:
                 async with session.post(
                     self.DID_REGISTRAR_BASE_URL + "create",
-                    json=options.dict(exclude_none=True),
+                    json=options.model_dump(exclude_none=True),
                 ) as response:
                     if response.status == 200 or response.status == 201:
                         return await response.json()
@@ -53,7 +53,7 @@ class CheqdDIDRegistrar(BaseDIDRegistrar):
             try:
                 async with session.post(
                     self.DID_REGISTRAR_BASE_URL + "update",
-                    json=options.dict(exclude_none=True),
+                    json=options.model_dump(exclude_none=True),
                 ) as response:
                     if response.status == 200 or response.status == 201:
                         return await response.json()
@@ -74,7 +74,7 @@ class CheqdDIDRegistrar(BaseDIDRegistrar):
             try:
                 async with session.post(
                     self.DID_REGISTRAR_BASE_URL + "deactivate",
-                    json=options.dict(exclude_none=True),
+                    json=options.model_dump(exclude_none=True),
                 ) as response:
                     if response.status == 200 or response.status == 201:
                         return await response.json()
@@ -95,7 +95,7 @@ class CheqdDIDRegistrar(BaseDIDRegistrar):
             try:
                 async with session.post(
                     self.DID_REGISTRAR_BASE_URL + "createResource",
-                    json=options.dict(exclude_none=True),
+                    json=options.model_dump(exclude_none=True),
                 ) as response:
                     if response.status == 200 or response.status == 201:
                         return await response.json()
@@ -112,7 +112,7 @@ class CheqdDIDRegistrar(BaseDIDRegistrar):
             try:
                 async with session.post(
                     self.DID_REGISTRAR_BASE_URL + "updateResource",
-                    json=options.dict(exclude_none=True),
+                    json=options.model_dump(exclude_none=True),
                 ) as response:
                     if response.status == 200 or response.status == 201:
                         return await response.json()

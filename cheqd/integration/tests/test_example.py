@@ -11,7 +11,6 @@ from .helpers import (
     assert_wallet_dids,
     create_credential_definition,
     create_did,
-    update_did,
     create_schema,
     deactivate_did,
     issue_credential_v2,
@@ -21,6 +20,7 @@ from .helpers import (
     resolve_did,
     save_did,
     save_schema,
+    update_did,
 )
 
 ISSUER = getenv("ISSUER", "http://issuer:3001")

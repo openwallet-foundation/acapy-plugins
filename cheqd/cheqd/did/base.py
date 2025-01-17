@@ -1,14 +1,14 @@
 """DID Manager Base Classes."""
 
 from abc import ABC, abstractmethod
+from typing import List, Optional, Union
 
-from acapy_agent.core.profile import Profile
 from acapy_agent.core.error import BaseError
+from acapy_agent.core.profile import Profile
 from acapy_agent.wallet.base import BaseWallet
 from acapy_agent.wallet.util import b64_to_bytes, bytes_to_b64
 from aiohttp import web
 from pydantic import BaseModel, Field
-from typing import Optional, List, Union
 
 
 class VerificationMethodSchema(BaseModel):
@@ -145,7 +145,7 @@ class ResourceUpdateRequestOptions(BaseModel):
         None,
         description="ResourceId of the DID URL create operation.",
     )
-    content: str = Field(
+    content: List[str] = Field(
         None,
         description="This input field contains Base64-encoded data.",
     )

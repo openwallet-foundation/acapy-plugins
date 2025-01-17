@@ -410,7 +410,7 @@ async def test_get_schema_info_by_id(mock_resolver, mock_profile):
         "cheqd.cheqd.anoncreds.registry.CheqdDIDResolver", return_value=mock_resolver
     ):
         registry = DIDCheqdRegistry()
-        result = await registry.get_schema_info_by_id(schema_id)
+        result = await registry.get_schema_info_by_id(mock_profile, schema_id)
 
         # Assert
         assert isinstance(result, AnoncredsSchemaInfo)
