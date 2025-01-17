@@ -57,7 +57,6 @@ async def test_create_and_resolve_did(shared_did):
     async with Controller(base_url=ISSUER) as issuer:
         assert did.startswith("did:")
         await resolve_did(issuer, did)
-        assert did is not None
 
 
 @pytest.mark.asyncio

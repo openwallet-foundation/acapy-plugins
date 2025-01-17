@@ -6,7 +6,6 @@ authors = []
 
 [tool.poetry.dependencies]
 python = "^3.12"
-multiformats = "0.3.1.post4"
 
 # Define ACA-Py as an optional/extra dependency so it can be
 # explicitly installed with the plugin if desired.

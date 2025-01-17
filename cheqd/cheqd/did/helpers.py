@@ -6,7 +6,7 @@ from typing import Dict, List, Union
 from uuid import uuid4
 
 from acapy_agent.wallet.util import b64_to_bytes, bytes_to_b58, bytes_to_b64
-from multiformats import multibase
+from acapy_agent.utils.multiformats import multibase, multicodec
 
 
 class CheqdNetwork(Enum):
@@ -91,7 +91,7 @@ def to_multibase_raw(key: bytes) -> str:
         str: Multibase-encoded key as a Base58btc string.
     """
     # Concatenate the header and the key
-    multibase_data = MULTICODEC_ED25519_HEADER + key
+    multibase_data = multicodec.wrap("ed25519-pub", key)
 
     # Encode to Base58btc multibase
     multibase_encoded = multibase.encode(multibase_data, "base58btc")
