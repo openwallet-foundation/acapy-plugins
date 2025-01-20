@@ -1,7 +1,7 @@
 """DID Manager Base Classes."""
 
 from abc import ABC, abstractmethod
-from typing import List, Optional, Union
+from typing import List, Optional, Union, Literal
 
 from acapy_agent.core.error import BaseError
 from acapy_agent.core.profile import Profile
@@ -9,6 +9,13 @@ from acapy_agent.wallet.base import BaseWallet
 from acapy_agent.wallet.util import b64_to_bytes, bytes_to_b64
 from aiohttp import web
 from pydantic import BaseModel, Field
+
+
+class DynamicSchema(BaseModel):
+    """Base Dynamic schema."""
+    class Config:
+        """Config."""
+        extra = "allow"
 
 
 class VerificationMethodSchema(BaseModel):
@@ -30,7 +37,7 @@ class ServiceSchema(BaseModel):
     serviceEndpoint: Union[str, List[str]]
 
 
-class DIDDocumentSchema(BaseModel):
+class DIDDocumentSchema(DynamicSchema):
     """DIDDocument Schema."""
 
     id: str
@@ -40,7 +47,7 @@ class DIDDocumentSchema(BaseModel):
     service: Optional[List[ServiceSchema]] = []
 
 
-class PartialDIDDocumentSchema(BaseModel):
+class PartialDIDDocumentSchema(DynamicSchema):
     """Partial DIDDocument Schema."""
 
     id: Optional[str] = None
@@ -57,13 +64,22 @@ class SigningResponse(BaseModel):
     signature: str
 
 
-class Secret(BaseModel):
+class SigningRequest(DynamicSchema):
+    """Signing Request."""
+
+    kid: str
+    type: Optional[str] = None
+    alg: Optional[str] = None
+    serializedPayload: str
+
+
+class Secret(DynamicSchema):
     """Secret."""
 
     signingResponse: List[SigningResponse]  # List of SigningResponse objects
 
 
-class Options(BaseModel):
+class Options(DynamicSchema):
     """Options."""
 
     network: str
@@ -155,45 +171,91 @@ class ResourceUpdateRequestOptions(BaseModel):
     options: Optional[Options] = None
 
 
-class DidUrlState(BaseModel):
-    """Did Url State."""
+class DidSuccessState(DynamicSchema):
+    """Did Success State."""
 
     state: str
-    didUrl: str
-    content: str
+    did: str
+    secret: Optional[Secret] = None
+    didDocument: PartialDIDDocumentSchema
 
 
-class DidState(BaseModel):
-    """Did State."""
+class DidActionState(DynamicSchema):
+    """Did Action State."""
 
+    state: Literal["action"]
+    did: str
+    action: str
+    description: Optional[str] = None
+    secret: Optional[dict] = {}
+    signingRequest: List[SigningRequest]
+
+
+class DidErrorState(DynamicSchema):
+    """Did Error State."""
+
+    did: Optional[str] = None
     state: str
-    didUrl: str
-    content: str
+    reason: str
+    secret: Optional[dict] = {}
 
 
-class DidCreateResponse(BaseModel):
+class DidResponse(DynamicSchema):
     """Did Create Response."""
 
     jobId: str
-    didState: DidState
+    didState: Union[DidSuccessState, DidActionState, DidErrorState]
+    didRegistrationMetadata: dict = {}
 
 
-class CreateResourceResponse(BaseModel):
+class DidUrlSuccessState(DynamicSchema):
+    """Did Url Success State."""
+
+    state: str
+    didUrl: str
+    content: Union[str, dict]
+    secret: Optional[dict] = {}
+    name: str
+    type: str
+    version: str
+
+
+class DidUrlActionState(DynamicSchema):
+    """Did Url Action State."""
+
+    state: Literal["action"]
+    didUrl: str
+    action: str
+    description: Optional[str] = None
+    signingRequest: List[SigningRequest]
+
+
+class DidUrlErrorState(DynamicSchema):
+    """Did Url Error State."""
+
+    state: str
+    didUrl: Optional[str] = None
+    reason: str
+    description: Optional[str] = None
+    secret: Optional[dict] = {}
+
+
+class ResourceResponse(DynamicSchema):
     """Resource Create Response."""
 
     jobId: str
-    didUrlState: DidUrlState
-    didRegistrationMetadata: dict
-    contentMetadata: dict
+    didUrlState: Union[DidUrlSuccessState, DidUrlActionState, DidUrlErrorState]
+    didRegistrationMetadata: dict = {}
+    contentMetadata: dict = {}
 
 
 class UpdateResourceResponse(BaseModel):
     """Resource Update Response."""
 
     jobId: str
-    didUrlState: DidUrlState
-    didRegistrationMetadata: dict
-    contentMetadata: dict
+    didUrlState: Union[DidUrlSuccessState, DidUrlActionState, DidUrlErrorState]
+    didRegistrationMetadata: dict = {}
+    contentMetadata: dict = {}
 
 
 class BaseDIDRegistrar(ABC):
@@ -202,21 +264,21 @@ class BaseDIDRegistrar(ABC):
     @abstractmethod
     async def create(
         self, options: DidCreateRequestOptions | SubmitSignatureOptions
-    ) -> dict:
+    ) -> DidResponse:
         """Create a new DID."""
         raise NotImplementedError("Subclasses must implement this method")
 
     @abstractmethod
     async def update(
         self, options: DidUpdateRequestOptions | SubmitSignatureOptions
-    ) -> dict:
+    ) -> DidResponse:
         """Update an existing DID."""
         raise NotImplementedError("Subclasses must implement this method")
 
     @abstractmethod
     async def deactivate(
         self, options: DidDeactivateRequestOptions | SubmitSignatureOptions
-    ) -> dict:
+    ) -> DidResponse:
         """Deactivate an existing DID."""
         raise NotImplementedError("Subclasses must implement this method")
 
@@ -264,7 +326,7 @@ class BaseDIDManager(ABC):
 
     @staticmethod
     async def sign_requests(
-        wallet: BaseWallet, signing_requests: list
+        wallet: BaseWallet, signing_requests: List[SigningRequest]
     ) -> List[SigningResponse]:
         """Sign all requests in the signing_requests list.
 
@@ -277,8 +339,8 @@ class BaseDIDManager(ABC):
         """
         signed_responses = []
         for sign_req in signing_requests:
-            kid = sign_req.get("kid")
-            payload_to_sign = sign_req.get("serializedPayload")
+            kid = sign_req.kid
+            payload_to_sign = sign_req.serializedPayload
             # Retrieve verkey from wallet
             key = await wallet.get_key_by_kid(kid)
             if not key:

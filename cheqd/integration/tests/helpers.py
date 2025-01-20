@@ -200,7 +200,7 @@ async def deactivate_did(issuer, did):
 
     assert did_deactivate_result.get("did") == did, "DID mismatch after deactivation."
     assert (
-        did_deactivate_result.get("did_document_metadata", {}).get("deactivated") is True
+        did_deactivate_result.get("didDocumentMetadata", {}).get("deactivated") is True
     ), "DID document metadata does not contain deactivated=true."
 
     print(f"Deactivated DID: {format_json(did_deactivate_result)}")

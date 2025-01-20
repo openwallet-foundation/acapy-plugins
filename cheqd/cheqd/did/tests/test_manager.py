@@ -6,13 +6,14 @@ import pytest
 from acapy_agent.resolver.base import DIDNotFound
 from acapy_agent.wallet.error import WalletError
 
+from ...did.base import CheqdDIDManagerError
 from ..base import (
     DidCreateRequestOptions,
-    SubmitSignatureOptions,
-    DidUpdateRequestOptions,
     DidDeactivateRequestOptions,
+    DidUpdateRequestOptions,
+    SubmitSignatureOptions,
+    PartialDIDDocumentSchema,
 )
-from ...did.base import CheqdDIDManagerError
 from ..manager import CheqdDIDManager
 from .mocks import (
     registrar_responses_network_fail,
@@ -36,7 +37,9 @@ async def test_create(mock_registrar_instance, profile):
     # Assert
     assert response["did"].startswith("did:cheqd:testnet")
     assert response["verkey"] is not None
-    assert response["didDocument"]["MOCK_KEY"] == "MOCK_VALUE"
+    assert isinstance(
+        PartialDIDDocumentSchema(**response["didDocument"]), PartialDIDDocumentSchema
+    )
 
     [create_request_call, submit_signature_call] = (
         mock_registrar_instance.return_value.create.call_args_list
@@ -60,7 +63,9 @@ async def test_create_with_seed(mock_registrar_instance, profile):
     # Assert
     assert response["did"].startswith("did:cheqd:testnet")
     assert response["verkey"] is not None
-    assert response["didDocument"]["MOCK_KEY"] == "MOCK_VALUE"
+    assert isinstance(
+        PartialDIDDocumentSchema(**response["didDocument"]), PartialDIDDocumentSchema
+    )
     [create_request_call, submit_signature_call] = (
         mock_registrar_instance.return_value.create.call_args_list
     )
@@ -192,7 +197,9 @@ async def test_update(
 
     # Assert
     assert response["did"].startswith("did:cheqd:testnet")
-    # assert response["didDocument"]["MOCK_KEY"] == "MOCK_VALUE_UPDATED"
+    assert isinstance(
+        PartialDIDDocumentSchema(**response["didDocument"]), PartialDIDDocumentSchema
+    )
 
     [update_request_call, submit_signature_call] = (
         mock_registrar_instance.return_value.create.call_args_list
@@ -325,8 +332,10 @@ async def test_deactivate_did(mock_registrar_instance, mock_resolver_instance, p
 
     # Assert
     assert response["did"] == create_res.get("did")
-    assert response["did_document"]["MOCK_KEY"] == "MOCK_VALUE_DEACTIVATED"
-    assert response["did_document_metadata"]["deactivated"] is True
+    assert isinstance(
+        PartialDIDDocumentSchema(**response["didDocument"]), PartialDIDDocumentSchema
+    )
+    assert response["didDocumentMetadata"]["deactivated"] is True
 
     [deactivate_request_call, submit_signature_call] = (
         mock_registrar_instance.return_value.create.call_args_list

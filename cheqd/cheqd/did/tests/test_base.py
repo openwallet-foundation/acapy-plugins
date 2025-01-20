@@ -3,7 +3,7 @@ from unittest.mock import AsyncMock
 import pytest
 from aiohttp import web
 
-from ..base import BaseDIDManager, SigningResponse
+from ..base import BaseDIDManager, SigningResponse, SigningRequest
 
 
 @pytest.mark.asyncio
@@ -82,8 +82,8 @@ async def test_sign_requests():
     ]
 
     signing_requests = [
-        {"kid": "key1", "serializedPayload": "payload1"},
-        {"kid": "key2", "serializedPayload": "payload2"},
+        SigningRequest(kid="key1", serializedPayload="payload1"),
+        SigningRequest(kid="key2", serializedPayload="payload2"),
     ]
 
     expected_responses = [
@@ -107,7 +107,7 @@ async def test_sign_requests_missing_key():
     wallet.get_key_by_kid.return_value = None
 
     signing_requests = [
-        {"kid": "MOCK_KID", "serializedPayload": "MOCK"},
+        SigningRequest(kid="MOCK_KID", serializedPayload="MOCK"),
     ]
 
     # Act

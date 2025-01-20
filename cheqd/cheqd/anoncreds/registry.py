@@ -49,6 +49,7 @@ from ..did.base import (
     ResourceUpdateRequestOptions,
     Secret,
     SubmitSignatureOptions,
+    DidUrlActionState,
 )
 from ..did.helpers import CheqdAnoncredsResourceType
 from ..did.manager import CheqdDIDManager
@@ -588,14 +589,14 @@ class DIDCheqdRegistry(BaseAnonCredsResolver, BaseAnonCredsRegistrar):
                 create_request_res = await cheqd_manager.registrar.create_resource(
                     options
                 )
-                job_id: str = create_request_res.get("jobId")
-                resource_state = create_request_res.get("didUrlState")
+                job_id = create_request_res.jobId
+                resource_state = create_request_res.didUrlState
                 if not resource_state:
                     raise Exception("No signing requests available for update.")
 
                 LOGGER.debug("JOBID %s", job_id)
-                if resource_state.get("state") == "action":
-                    signing_requests = resource_state.get("signingRequest")
+                if isinstance(resource_state, DidUrlActionState):
+                    signing_requests = resource_state.signingRequest
                     if not signing_requests:
                         raise Exception("No signing requests available for update.")
                     # sign all requests
@@ -612,18 +613,18 @@ class DIDCheqdRegistry(BaseAnonCredsResolver, BaseAnonCredsRegistrar):
                             did=options.did,
                         ),
                     )
-                    resource_state = publish_resource_res.get("didUrlState")
-                    if resource_state.get("state") != "finished":
+                    resource_state = publish_resource_res.didUrlState
+                    if resource_state.state != "finished":
                         raise AnonCredsRegistrationError(
-                            f"Error publishing Resource {resource_state.get('reason')}"
+                            f"Error publishing Resource {resource_state.reason}"
                         )
                     return PublishResourceResponse(
-                        content=resource_state.get("content"),
-                        did_url=resource_state.get("didUrl"),
+                        content=resource_state.content,
+                        did_url=resource_state.didUrl,
                     )
                 else:
                     raise AnonCredsRegistrationError(
-                        f"Error publishing Resource {resource_state.get('reason')}"
+                        f"Error publishing Resource {resource_state.reason}"
                     )
             except Exception as err:
                 raise AnonCredsRegistrationError(f"{err}")
@@ -647,12 +648,12 @@ class DIDCheqdRegistry(BaseAnonCredsResolver, BaseAnonCredsRegistrar):
                     options
                 )
 
-                job_id: str = create_request_res.get("jobId")
-                resource_state = create_request_res.get("didUrlState")
+                job_id: str = create_request_res.jobId
+                resource_state = create_request_res.didUrlState
 
                 LOGGER.debug("JOBID %s", job_id)
-                if resource_state.get("state") == "action":
-                    signing_requests = resource_state.get("signingRequest")
+                if isinstance(resource_state, DidUrlActionState):
+                    signing_requests = resource_state.signingRequest
                     if not signing_requests:
                         raise Exception("No signing requests available for update.")
                     # sign all requests
@@ -668,18 +669,18 @@ class DIDCheqdRegistry(BaseAnonCredsResolver, BaseAnonCredsRegistrar):
                             did=options.did,
                         ),
                     )
-                    resource_state = publish_resource_res.get("didUrlState")
-                    if resource_state.get("state") != "finished":
+                    resource_state = publish_resource_res.didUrlState
+                    if resource_state.state != "finished":
                         raise AnonCredsRegistrationError(
-                            f"Error publishing Resource {resource_state.get('reason')}"
+                            f"Error publishing Resource {resource_state.reason}"
                         )
                     return PublishResourceResponse(
-                        content=resource_state.get("content"),
-                        did_url=resource_state.get("didUrl"),
+                        content=resource_state.content,
+                        did_url=resource_state.didUrl,
                     )
                 else:
                     raise AnonCredsRegistrationError(
-                        f"Error publishing Resource {resource_state.get('reason')}"
+                        f"Error publishing Resource {resource_state.reason}"
                     )
             except Exception as err:
                 raise AnonCredsRegistrationError(f"{err}")

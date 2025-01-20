@@ -21,10 +21,10 @@ from acapy_agent.anoncreds.models.schema_info import AnoncredsSchemaInfo
 from ...did.base import ResourceCreateRequestOptions, ResourceUpdateRequestOptions
 from ...did.manager import CheqdDIDManager
 from ...did.tests.mocks import (
-    registrar_responses_network_fail,
-    registrar_responses_no_signing_request,
-    registrar_responses_not_finished,
+    registrar_resource_responses_no_signing_request,
     setup_mock_registrar,
+    registrar_resource_responses_network_fail,
+    registrar_resource_responses_not_finished,
 )
 from ...validation import CHEQD_DID_VALIDATE
 from ..registry import DIDCheqdRegistry
@@ -545,7 +545,7 @@ async def test_create_and_publish_resource_with_signing_failure(
     # Arrange
     setup_mock_registrar(
         mock_registrar_instance.return_value,
-        create_resource_responses=registrar_responses_no_signing_request,
+        create_resource_responses=registrar_resource_responses_no_signing_request,
     )
 
     # Act
@@ -577,7 +577,7 @@ async def test_update_and_publish_resource_with_signing_failure(
     # Arrange
     setup_mock_registrar(
         mock_registrar_instance.return_value,
-        update_resource_responses=registrar_responses_no_signing_request,
+        update_resource_responses=registrar_resource_responses_no_signing_request,
     )
 
     # Act
@@ -609,7 +609,7 @@ async def test_create_with_network_failure(
     # Arrange
     setup_mock_registrar(
         mock_registrar_instance.return_value,
-        create_resource_responses=registrar_responses_network_fail,
+        create_resource_responses=registrar_resource_responses_network_fail,
     )
 
     # Act
@@ -640,9 +640,8 @@ async def test_create_not_finished(
     # Arrange
     setup_mock_registrar(
         mock_registrar_instance.return_value,
-        create_resource_responses=registrar_responses_not_finished,
+        create_resource_responses=registrar_resource_responses_not_finished,
     )
-    did = "did:cheqd:testnet:123"
 
     # Act
     manager = CheqdDIDManager(mock_profile_for_manager)
