@@ -22,7 +22,7 @@ pydantic = "^2.10.5"
 aca-py = ["acapy-agent"]
 
 [tool.poetry.dev-dependencies]
-ruff = "^0.9.1"
+ruff = "^0.9.2"
 pytest = "^8.3.3"
 pytest-asyncio = "^0.25.2"
 pytest-cov = "^5.0.0"
