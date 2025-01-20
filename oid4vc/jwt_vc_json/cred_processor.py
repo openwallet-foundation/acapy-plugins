@@ -74,9 +74,8 @@ class JwtVcJsonCredProcessor(Issuer, CredVerifier, PresVerifier):
             "sub": subject,
         }
 
-        status_handler = StatusHandler(context)
-        if credential_status := await status_handler.assign_credential_status(
-            supported.supported_cred_id
+        if credential_status := await StatusHandler(context).assign_status_entries(
+            supported.supported_cred_id, ex_record.exchange_id, "w3c"
         ):
             payload["vc"]["credentialStatus"] = credential_status
 
@@ -123,3 +122,11 @@ class JwtVcJsonCredProcessor(Issuer, CredVerifier, PresVerifier):
     ) -> VerifyResult:
         """Verify a presentation in JWT VP format."""
         return await self.verify(profile, presentation)
+
+    async def assign_status_entries(
+        self, context: AdminRequestContext, supported_cred_id: str
+    ) -> OID4VCIExchangeRecord:
+        """Assign status entries."""
+
+        status_handler = StatusHandler(context)
+        return await status_handler.assign_status_entries(supported_cred_id, "w3c")

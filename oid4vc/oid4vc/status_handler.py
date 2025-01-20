@@ -35,16 +35,10 @@ class StatusHandler:
             for attribute in attributes:
                 self.handler = getattr(self.handler, attribute)
 
-    def assign_credential_status(self, supported_cred_id):
-        """Assign credential status in w3c format."""
+    def assign_status_entries(self, supported_cred_id, exchange_id, status_type):
+        """Assign status entries."""
 
         if self.handler:
-            return self.handler.assign_credential_status(
-                self.context, supported_cred_id
+            return self.handler.assign_status_entries(
+                self.context, supported_cred_id, exchange_id, status_type
             )
-
-    def assign_token_status(self, supported_cred_id):
-        """Assign token status in ietf format."""
-
-        if self.handler:
-            return self.handler.assign_token_status(self.context, supported_cred_id)
