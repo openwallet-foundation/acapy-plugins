@@ -34,7 +34,7 @@ from acapy_agent.core.profile import Profile
 from acapy_agent.vc.data_integrity.manager import DataIntegrityManager, DataIntegrityManagerError
 from ..resolver.resolver import DIDWebVHResolver
 from ..validation import WebVHDID
-from ..models.resources import AttestedResource
+# from ..models.resources import AttestedResource
 
 
 class DIDWebVHRegistry(BaseAnonCredsResolver, BaseAnonCredsRegistrar):
@@ -101,14 +101,24 @@ class DIDWebVHRegistry(BaseAnonCredsResolver, BaseAnonCredsRegistrar):
         ) -> AttestedResource:
         """Derive attested resource object from content."""
         content_digest = self._digest_multibase(resource_content)
-        attested_resource = AttestedResource(
-                id=f'{issuer_id}/resources/{content_digest}',
-                resourceContent=resource_content,
-                resourceMetadata={
-                    'resourceId': content_digest,
-                    'resourceType': resource_type
-                }
-            )
+        attested_resource = {
+            '@context': ['https://w3id.org/security/data-integrity/v2'],
+            'type': ['AttestedResource'],
+            'id': f'{issuer_id}/resources/{content_digest}',
+            'resourceContent': resource_content,
+            'resourceMetadata': {
+                'resourceId': content_digest,
+                'resourceType': resource_type
+            }
+        }
+        # attested_resource = AttestedResource(
+        #         id=f'{issuer_id}/resources/{content_digest}',
+        #         resourceContent=resource_content,
+        #         resourceMetadata={
+        #             'resourceId': content_digest,
+        #             'resourceType': resource_type
+        #         }
+        #     )
         secured_resource = await self.sign_attested_resource(
             attested_resource,
             self.proof_options | {'verificationMethod': options.get('verificationMethod')}
