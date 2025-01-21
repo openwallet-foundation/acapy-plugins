@@ -98,7 +98,7 @@ class DIDWebVHRegistry(BaseAnonCredsResolver, BaseAnonCredsRegistrar):
 
     async def get_schema(self, profile, schema_id: str) -> GetSchemaResult:
         """Get a schema from the registry."""
-        resource = self.resolver.resolve_resource(schema_id)
+        resource = await self.resolver.resolve_resource(schema_id)
 
         anoncreds_schema = AnonCredsSchema(
             issuer_id=resource['resourceContent']["issuerId"],
