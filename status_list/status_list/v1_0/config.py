@@ -21,6 +21,8 @@ class ConfigError(ValueError):
 class Config:
     """Configuration for Bitstring Plugin."""
 
+    list_size: int
+    shard_size: int
     base_url: str
     base_dir: str
     path_template: str
@@ -31,9 +33,9 @@ class Config:
 
         assert isinstance(settings, Settings)
         plugin_settings = settings.for_plugin("status_list")
-        list_size = plugin_settings.get("list_size") or getenv("STATUS_LIST_SIZE")
-        shard_size = plugin_settings.get("shard_size") or getenv(
-            "STATUS_LIST_SHARD_SIZE"
+        list_size = int(plugin_settings.get("list_size") or getenv("STATUS_LIST_SIZE"))
+        shard_size = int(
+            plugin_settings.get("shard_size") or getenv("STATUS_LIST_SHARD_SIZE")
         )
         base_url = plugin_settings.get("base_url") or getenv("STATUS_LIST_BASE_URL")
         base_dir = plugin_settings.get("base_dir") or getenv("STATUS_LIST_BASE_DIR")
@@ -41,9 +43,9 @@ class Config:
             "STATUS_LIST_PATH_TEMPLATE"
         )
         if not list_size:
-            raise ConfigError("base_url", "STATUS_LIST_SIZE")
+            raise ConfigError("list_size", "STATUS_LIST_SIZE")
         if not shard_size:
-            raise ConfigError("base_url", "STATUS_LIST_SHARD_SIZE")
+            raise ConfigError("shard_size", "STATUS_LIST_SHARD_SIZE")
         if not base_url:
             raise ConfigError("base_url", "STATUS_LIST_BASE_URL")
         if not base_dir:
@@ -51,4 +53,4 @@ class Config:
         if not path_template:
             raise ConfigError("path_template", "STATUS_LIST_PATH_TEMPLATE")
 
-        return cls(base_url, base_dir, path_template)
+        return cls(list_size, shard_size, base_url, base_dir, path_template)
