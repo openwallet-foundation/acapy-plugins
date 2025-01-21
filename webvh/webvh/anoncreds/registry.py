@@ -12,6 +12,7 @@ from acapy_agent.anoncreds.models.credential_definition import (
     CredDef,
     CredDefResult,
     CredDefValue,
+    CredDefState,
     GetCredDefResult,
 )
 from acapy_agent.anoncreds.models.revocation import (
@@ -21,6 +22,7 @@ from acapy_agent.anoncreds.models.revocation import (
     RevListResult,
     RevRegDef,
     RevRegDefResult,
+    RevRegDefState
 )
 from acapy_agent.anoncreds.models.schema import (
     AnonCredsSchema,
@@ -71,24 +73,25 @@ class DIDWebVHRegistry(BaseAnonCredsResolver, BaseAnonCredsRegistrar):
         digest_multibase = multibase.encode(digest_multihash, "base58btc")
         return digest_multibase
     
-    async def create_attested_resource(
+    async def _create_and_publish_resource(
         self, 
         profile,
         issuer_id,
-        resource_type,
-        resource_content
+        resource_content,
+        resource_metadata,
+        options
         ) -> dict: #AttestedResource:
         """Derive attested resource object from content."""
-        content_digest = self._digest_multibase(resource_content)
+        
+        self.service_endpoint = options.get('serviceEndpoint')
+        self.proof_options['verificationMethod'] = options.get('verificationMethod')
+        
         resource = {
             '@context': ['https://w3id.org/security/data-integrity/v2'],
             'type': ['AttestedResource'],
-            'id': f'{issuer_id}/resources/{content_digest}',
+            'id': f'{issuer_id}/resources/{resource_metadata.get("resourceId")}',
             'resourceContent': resource_content,
-            'resourceMetadata': {
-                'resourceId': content_digest,
-                'resourceType': resource_type
-            }
+            'resourceMetadata': resource_metadata
         }
         # attested_resource = AttestedResource(
         #         id=f'{issuer_id}/resources/{content_digest}',
@@ -139,33 +142,32 @@ class DIDWebVHRegistry(BaseAnonCredsResolver, BaseAnonCredsRegistrar):
         options: Optional[dict] = None,
     ) -> SchemaResult:
         """Register a schema on the registry."""
-        resource_type = "anonCredsSchema"
-        resource_name = schema.name
-        resource_version = schema.version
         
-        self.service_endpoint = options.get('serviceEndpoint')
-        self.proof_options['verificationMethod'] = options.get('verificationMethod')
-        attested_resource = await self.create_attested_resource(
+        metadata = {
+            'resourceId': self._digest_multibase(schema.serialize()),
+            'resourceType': 'anonCredsSchema',
+            'resourceName': schema.name
+        }
+        
+        resource = await self._create_and_publish_resource(
             profile=profile,
             issuer_id=schema.issuer_id,
-            resource_type=resource_type,
-            resource_content=schema.serialize()
+            resource_metadata=metadata,
+            resource_content=schema.serialize(),
+            options=options
         )
-        
-        schema_id = attested_resource.get("id")
-        resource_id = attested_resource.get("resourceMetadata").get('resourceId')
 
         return SchemaResult(
             job_id=None,
             schema_state=SchemaState(
                 state=SchemaState.STATE_FINISHED,
-                schema_id=schema_id,
+                schema_id=resource.get("id"),
                 schema=schema,
             ),
             registration_metadata={
-                "resource_id": resource_id,
-                "resource_name": resource_name,
-                "resource_type": resource_type,
+                "resource_id": metadata['resourceId'],
+                "resource_name": metadata['resourceName'],
+                "resource_type": metadata['resourceType'],
             },
         )
 
@@ -198,13 +200,56 @@ class DIDWebVHRegistry(BaseAnonCredsResolver, BaseAnonCredsRegistrar):
         options: Optional[dict] = None,
     ) -> CredDefResult:
         """Register a credential definition on the registry."""
-        raise NotImplementedError()
+        
+        metadata = {
+            'resourceId': self._digest_multibase(credential_definition.serialize()),
+            'resourceType': 'anonCredsCredDef',
+            'resourceName': credential_definition.tag
+        }
+        
+        resource = await self._create_and_publish_resource(
+            profile=profile,
+            issuer_id=schema.issuer_id,
+            resource_metadata=metadata,
+            resource_content=credential_definition.serialize(),
+            options=options
+        )
+
+        return CredDefResult(
+            job_id=None,
+            schema_state=CredDefState(
+                state=CredDefState.STATE_FINISHED,
+                credential_definition_id=resource.get("id"),
+                credential_definition=credential_definition,
+            ),
+            registration_metadata={
+                "resource_id": metadata['resourceId'],
+                "resource_name": metadata['resourceName'],
+                "resource_type": metadata['resourceType'],
+            },
+            credential_definition_metadata={},
+        )
 
     async def get_revocation_registry_definition(
         self, profile: Profile, revocation_registry_id: str
     ) -> GetRevRegDefResult:
         """Get a revocation registry definition from the registry."""
-        raise NotImplementedError()
+        resource = await self.resolver.resolve_resource(revocation_registry_id)
+
+        anoncreds_revocation_registry_definition = RevRegDef(
+            issuer_id=revocation_registry_id.split('/')[0],
+            cred_def_id=resource['resourceContent']["credDefId"],
+            type=resource['resourceContent']["revocDefType"],
+            tag=resource['resourceContent']["tag"],
+            value=resource['resourceContent']["value"],
+        )
+
+        return GetRevRegDefResult(
+            revocation_registry_id=revocation_registry_id,
+            revocation_registry=anoncreds_revocation_registry_definition,
+            revocation_registry_metadata=resource['resourceMetadata'],
+            resolution_metadata={},
+        )
 
     async def register_revocation_registry_definition(
         self,
@@ -213,7 +258,35 @@ class DIDWebVHRegistry(BaseAnonCredsResolver, BaseAnonCredsRegistrar):
         options: Optional[dict] = None,
     ) -> RevRegDefResult:
         """Register a revocation registry definition on the registry."""
-        raise NotImplementedError()
+        
+        metadata = {
+            'resourceId': self._digest_multibase(revocation_registry_definition.serialize()),
+            'resourceType': 'anonCredsRevocRegDef',
+            'resourceName': revocation_registry_definition.tag
+        }
+        
+        resource = await self._create_and_publish_resource(
+            profile=profile,
+            issuer_id=revocation_registry_definition.issuer_id,
+            resource_metadata=metadata,
+            resource_content=revocation_registry_definition.serialize(),
+            options=options
+        )
+
+        return RevRegDefResult(
+            job_id=None,
+            revocation_registry_definition_state=RevRegDefState(
+                state=RevRegDefState.STATE_FINISHED,
+                revocation_registry_definition_id=resource.get("id"),
+                revocation_registry_definition=revocation_registry_definition,
+            ),
+            registration_metadata={
+                "resource_id": metadata['resourceId'],
+                "resource_name": metadata['resourceName'],
+                "resource_type": metadata['resourceType'],
+            },
+            revocation_registry_definition_metadata={},
+        )
 
     async def get_revocation_list(
         self, profile: Profile, revocation_registry_id: str, timestamp: int
@@ -247,4 +320,11 @@ class DIDWebVHRegistry(BaseAnonCredsResolver, BaseAnonCredsRegistrar):
         self, profile: Profile, schema_id: str
     ) -> AnoncredsSchemaInfo:
         """Get a schema info from the registry."""
-        return await super().get_schema_info_by_id(schema_id)
+        resource = await self.resolver.resolve_resource(schema_id)
+        schema = resource.get('resourceContent')
+        anoncreds_schema = AnoncredsSchemaInfo(
+            issuer_id=schema["issuerId"],
+            name=schema["name"],
+            version=schema["version"],
+        )
+        return anoncreds_schema
