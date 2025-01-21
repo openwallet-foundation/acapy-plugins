@@ -115,6 +115,16 @@ def mock_did_response():
 
 
 @pytest.fixture
+def mock_did_invalid_response():
+    return {
+        # missing jobId, didDocument etc.
+        "didState": {"state": "finished", "did": "string"},
+        "didRegistrationMetadata": {},
+        "didDocumentMetadata": {},
+    }
+
+
+@pytest.fixture
 def mock_resource_response():
     return {
         "jobId": "6d85bcd0-2ea3-4288-ab00-15afadd8a156",

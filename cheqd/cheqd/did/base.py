@@ -13,8 +13,10 @@ from pydantic import BaseModel, Field
 
 class DynamicSchema(BaseModel):
     """Base Dynamic schema."""
+
     class Config:
         """Config."""
+
         extra = "allow"
 
 
@@ -174,7 +176,7 @@ class ResourceUpdateRequestOptions(BaseModel):
 class DidSuccessState(DynamicSchema):
     """Did Success State."""
 
-    state: str
+    state: Literal["finished"]
     did: str
     secret: Optional[Secret] = None
     didDocument: PartialDIDDocumentSchema
@@ -300,6 +302,10 @@ class BaseDIDRegistrar(ABC):
     async def deactivate_resource(self, options: dict) -> dict:
         """Deactivate a DID Linked Resource."""
         raise NotImplementedError("Subclasses must implement this method")
+
+
+class CheqdDIDRegistrarError(BaseError):
+    """Base class for did registrar cheqd exceptions."""
 
 
 class BaseDIDManager(ABC):

@@ -113,7 +113,7 @@ class CheqdDIDManager(BaseDIDManager):
 
                 job_id = create_request_res.jobId
                 did_state = create_request_res.didState
-                if did_state.state == "action":
+                if isinstance(did_state, DidActionState):
                     signing_requests = did_state.signingRequest
                     if not signing_requests:
                         raise CheqdDIDManagerError(

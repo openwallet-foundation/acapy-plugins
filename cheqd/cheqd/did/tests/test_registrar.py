@@ -1,9 +1,8 @@
 import pytest
-from aiohttp import web
 from aioresponses import aioresponses
 from yarl import URL
 
-from cheqd.cheqd.did.base import DidResponse, DidSuccessState
+from cheqd.cheqd.did.base import DidResponse, DidSuccessState, CheqdDIDRegistrarError
 
 
 @pytest.mark.asyncio
@@ -29,6 +28,34 @@ async def test_create(
 
 
 @pytest.mark.asyncio
+async def test_create_registration_error(
+    registrar_url,
+    registrar,
+    mock_did_create_options,
+    mock_did_response,
+    mock_did_invalid_response,
+):
+    create_url = registrar_url + "create"
+
+    with aioresponses() as mocked:
+        mocked.post(create_url, status=201, payload=mock_did_response)
+
+        # invalid type
+        with pytest.raises(Exception) as excinfo:
+            await registrar.create({})
+
+        assert isinstance(excinfo.value, CheqdDIDRegistrarError)
+
+    with aioresponses() as mocked:
+        mocked.post(create_url, status=201, payload=mock_did_invalid_response)
+
+        with pytest.raises(Exception) as excinfo:
+            await registrar.create(mock_did_create_options)
+
+        assert isinstance(excinfo.value, CheqdDIDRegistrarError)
+
+
+@pytest.mark.asyncio
 async def test_update(
     registrar_url, registrar, mock_did_update_options, mock_did_response
 ):
@@ -48,6 +75,34 @@ async def test_update(
 
         request = mocked.requests[("POST", URL(update_url))][0]
         assert request.kwargs["json"] == mock_did_update_options.dict(exclude_none=True)
+
+
+@pytest.mark.asyncio
+async def test_update_registration_error(
+    registrar_url,
+    registrar,
+    mock_did_update_options,
+    mock_did_response,
+    mock_did_invalid_response,
+):
+    update_url = registrar_url + "update"
+
+    with aioresponses() as mocked:
+        mocked.post(update_url, status=201, payload=mock_did_response)
+
+        # invalid type
+        with pytest.raises(Exception) as excinfo:
+            await registrar.update({})
+
+        assert isinstance(excinfo.value, CheqdDIDRegistrarError)
+
+    with aioresponses() as mocked:
+        mocked.post(update_url, status=201, payload=mock_did_invalid_response)
+
+        with pytest.raises(Exception) as excinfo:
+            await registrar.update(mock_did_update_options)
+
+        assert isinstance(excinfo.value, CheqdDIDRegistrarError)
 
 
 @pytest.mark.asyncio
@@ -72,6 +127,32 @@ async def test_deactivate(
         assert request.kwargs["json"] == mock_did_deactivate_options.dict(
             exclude_none=True
         )
+
+
+@pytest.mark.asyncio
+async def test_deactivate_registration_error(
+    registrar_url,
+    registrar,
+    mock_did_deactivate_options,
+    mock_did_response,
+    mock_did_invalid_response,
+):
+    # Arrange
+    deactivate_url = registrar_url + "deactivate"
+    with aioresponses() as mocked:
+        mocked.post(deactivate_url, status=201, payload=mock_did_response)
+        # invalid type
+        with pytest.raises(Exception) as excinfo:
+            await registrar.deactivate({})
+
+        assert isinstance(excinfo.value, CheqdDIDRegistrarError)
+
+    with aioresponses() as mocked:
+        mocked.post(deactivate_url, status=201, payload=mock_did_invalid_response)
+        with pytest.raises(Exception) as excinfo:
+            await registrar.deactivate(mock_did_deactivate_options)
+
+        assert isinstance(excinfo.value, CheqdDIDRegistrarError)
 
 
 @pytest.mark.asyncio
@@ -113,7 +194,7 @@ async def test_create_resource_unhappy(
             await registrar.create_resource(mock_resource_create_options)
 
         # Assert
-        assert isinstance(excinfo.value, web.HTTPInternalServerError)
+        assert isinstance(excinfo.value, CheqdDIDRegistrarError)
 
 
 @pytest.mark.asyncio
@@ -153,7 +234,7 @@ async def test_update_resource_unhappy(
             await registrar.update_resource(mock_resource_update_options)
 
         # Assert
-        assert isinstance(excinfo.value, web.HTTPInternalServerError)
+        assert isinstance(excinfo.value, CheqdDIDRegistrarError)
 
 
 @pytest.mark.asyncio
