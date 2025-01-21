@@ -132,7 +132,9 @@ class DIDWebVHRegistry(BaseAnonCredsResolver, BaseAnonCredsRegistrar):
                 self.service_endpoint, 
                 json={
                     'securedResource': secured_resource,
-                    'options': secured_resource.get('resourceMetadata')
+                    'options': {
+                        'resourceType': resource_metadata['resourceType']
+                    }
                 }
             )
             if r.status_code != 201:
