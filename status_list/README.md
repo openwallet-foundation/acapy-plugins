@@ -1,21 +1,23 @@
 # Status List Plugin for ACA-Py
 
-This plugin implements [W3C Bitstring Status List v1.0](https://www.w3.org/TR/vc-bitstring-status-list/) and [IETF Token Status List](https://datatracker.ietf.org/doc/draft-ietf-oauth-status-list/). The plugin is under active development, please consider this plugin experimental.
+This plugin implements the [W3C Bitstring Status List v1.0](https://www.w3.org/TR/vc-bitstring-status-list/), a standard for efficiently managing and verifying the status of credentials using bitstring-based lists. It also supports the [IETF Token Status List](https://datatracker.ietf.org/doc/draft-ietf-oauth-status-list/), which provides a mechanism for maintaining the status of OAuth tokens in a scalable and interoperable manner.
+
+The plugin is designed to facilitate streamlined status management for various use cases, including credential revocation, token expiration, and state tracking. However, as it is still under active development, it should be considered experimental and may undergo significant changes. Feedback and contributions are welcome to help improve its functionality and stability.
 
 ## Architecture
 
 ### Components
 ```mermaid
 architecture-beta
-    group ongov(server)[Ontario Gov]
+    group openshift(server)[OpenShift]
     group azure(cloud)[Azure Cloud]
 
     service issuer(server)[Issuer]
     service apim(cloud)[APIM] in azure
-    service acapy(server)[ACAPy with Status List Plugin] in ongov
-    service askar(database)[Askar] in ongov
-    service int_store(disk)[Internal Storage for W3C and IETF Lists] in ongov
-    service pub_store(disk)[Public Storage for W3C and IETF Lists] in ongov
+    service acapy(server)[ACAPy with Status List Plugin] in openshift
+    service askar(database)[Askar] in openshift
+    service int_store(disk)[Internal Storage for W3C and IETF Lists] in openshift
+    service pub_store(disk)[Public Storage for W3C and IETF Lists] in openshift
     service blob_store(disk)[Azure Blob Storage] in azure
     service azure_cdn(cloud)[Azure Frontdoor and CDN] in azure
     service public(internet)[Public Access]
@@ -31,20 +33,23 @@ architecture-beta
 ```
 
 ### Data Model
+
+The plugin adds three records to ACA-Py, `StatusListDef`, `StatusListShard` and `StatusListCred`.
+
 ```mermaid
 erDiagram
-    SupportedCredential ||--o{ OID4VCIExchangeRecord : has
-    SupportedCredential ||--o{ StatusListDef : has
+    SupportedCredential ||--o{ OID4VCIExchangeRecord : "1:n"
+    SupportedCredential ||--o{ StatusListDef : "1:n"
     SupportedCredential {
         string supported_cred_id PK
     }
-    OID4VCIExchangeRecord }o--o{ StatusListCred : "relates to"
+    OID4VCIExchangeRecord }o--o{ StatusListCred : "1:n"
     OID4VCIExchangeRecord {
         string exchange_id PK
         string supported_cred_id FK "SupportedCredential.PK"
     }
-    StatusListDef ||--o{ StatusListShard : has
-    StatusListDef }o--o{ StatusListCred : "relates to"
+    StatusListDef ||--o{ StatusListShard : "1:n"
+    StatusListDef ||--o{ StatusListCred : "1:n"
     StatusListDef {
         string id PK
         string supported_cred_id FK "SupportedCredential.PK"
@@ -76,8 +81,6 @@ erDiagram
         str list_index
     }
 ```
-
-The plugin adds three records to ACA-Py, `StatusListDef`, `StatusListShard` and `StatusListCred`.
 
 ### Admin Routes
 
@@ -158,6 +161,24 @@ flowchart TD
     I --> J(Return assigned entry)
     J --> END@{ shape: stadium, label: "End" }
 ```
+
+#### Performance Considerations
+
+- **Spare List**  
+    The plugin maintains a spare status list as a backup to ensure seamless transitions. When the current status list becomes full, the plugin automatically switches to the spare list. Simultaneously, it generates a new spare list in the background, ensuring there is always a backup available and minimizing downtime.
+
+- **Sharding**  
+    Sharding is used to optimize performance and manage data efficiently by dividing it into smaller segments. 
+    - **Single bit per record**: Each record uses one bit, minimizing space but limiting functionality.  
+    - **All bits per record**: All bits are allocated per record, allowing more granular tracking or states.  
+    - **Configurable number of bits per record**: The plugin allows flexibility to balance between space efficiency and the need for additional functionality.
+
+- **Deterministic Randomization**  
+    A Feistel permutation algorithm is employed with a unique seed assigned to each status list. This ensures that randomization is deterministic and reproducible, reducing collisions and maintaining consistent performance.
+
+- **Entry Lock and Release**  
+    The `list_index` serves as the single access point for assignments. Instead of locking the entire assignment process, which could lead to performance bottlenecks, the plugin implements incremental locking. This ensures that only the necessary portion of the operation is locked, improving concurrency and reducing delays.
+
 
 ## Usage
 
