@@ -107,7 +107,6 @@ class DIDWebVHRegistry(BaseAnonCredsResolver, BaseAnonCredsRegistrar):
                 resource,
                 DataIntegrityProofOptions.deserialize(self.proof_options)
             )
-        self.publish_attested_resource(secured_resource)
         requests.post(
             self.service_endpoint, 
             json={
