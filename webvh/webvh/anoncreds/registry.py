@@ -1,12 +1,17 @@
 """DID Webvh Registry."""
 
 import re
+import requests
+import jcs
+from multiformats import multibase, multihash
+
 from typing import Optional, Pattern, Sequence
 
 from acapy_agent.anoncreds.base import BaseAnonCredsRegistrar, BaseAnonCredsResolver
 from acapy_agent.anoncreds.models.credential_definition import (
     CredDef,
     CredDefResult,
+    CredDefValue,
     GetCredDefResult,
 )
 from acapy_agent.anoncreds.models.revocation import (
@@ -21,12 +26,15 @@ from acapy_agent.anoncreds.models.schema import (
     AnonCredsSchema,
     GetSchemaResult,
     SchemaResult,
+    SchemaState
 )
 from acapy_agent.anoncreds.models.schema_info import AnoncredsSchemaInfo
 from acapy_agent.config.injection_context import InjectionContext
 from acapy_agent.core.profile import Profile
+from acapy_agent.wallet.data_integrity.manager import DataIntegrityManager, DataIntegrityManagerError
 from ..resolver.resolver import DIDWebVHResolver
 from ..validation import WebVHDID
+from ..models.resources import AttestedResource
 
 
 class DIDWebVHRegistry(BaseAnonCredsResolver, BaseAnonCredsRegistrar):
@@ -44,53 +52,76 @@ class DIDWebVHRegistry(BaseAnonCredsResolver, BaseAnonCredsRegistrar):
         self._supported_identifiers_regex = WebVHDID.PATTERN
         
         self.resolver = DIDWebVHResolver()
+        self.proof_options = {
+            "type": "DataIntegrityProof",
+            "cryptosuite": "eddsa-jcs-2022",
+            "proofPurpose": "assertionMethod",
+        }
 
     @property
     def supported_identifiers_regex(self) -> Pattern:
         """Supported Identifiers Regular Expression."""
         return WebVHDID.PATTERN
 
-    # @property
-    # def _digest_multibase(self, resource_content) -> str:
-    #     """Supported Identifiers Regular Expression."""
-    #     resource_digest = ''
-    #     return resource_digest
+    @property
+    def _digest_multibase(self, resource_content) -> str:
+        """Supported Identifiers Regular Expression."""
+        digest_multihash = multihash.digest(jcs.canonicalize(resource_content), "sha2-256")
+        digest_multibase = multibase.encode(digest_multihash, "base58btc")
+        return digest_multibase
         
-    # @staticmethod
-    # def publish_attested_resource(self, secured_resource) -> AttestedResource:
-    #     """Derive attested resource object from content."""
-    #     resource_id = ''
-    #     return resource_id
+    @staticmethod
+    def publish_attested_resource(
+        self, 
+        secured_resource, 
+        service_endpoint
+        ) -> AttestedResource:
+        """Publish attested resource object to WebVH Server."""
+        service_endpoint += '/resources'
+        r = requests.post(service_endpoint, json=secured_resource)
+        resource_id = r.json()['resourceId']
+        return resource_id
     
-    # @staticmethod
-    # def sign_attested_resource(self, resource, options) -> AttestedResource:
-    #     """Derive attested resource object from content."""
-    #     secured_resource = {}
-    #     return secured_resource
+    @staticmethod
+    async def sign_attested_resource(self, profile, resource, options) -> AttestedResource:
+        """Secure resource object with Data Integrity Proof."""
+        async with profile.session() as session:
+            secured_resource = await DataIntegrityManager(session).add_proof(
+                resource, options
+            )
+        return secured_resource
     
-    # @staticmethod
-    # def create_attested_resource(self, issuer_id, resource_type, resource_content, related_resource=None, proof_options=None) -> AttestedResource:
-    #     """Derive attested resource object from content."""
-    #     content_digest = self._digest_multibase(resource_content)
-    #     attested_resource = AttestedResource(
-    #             id=f'{issuer_id}/resources/{content_digest}.json',
-    #             resourceContent=resource_content,
-    #             resourceMetadata=ResourceMetadata(
-    #                 resourceId=content_digest,
-    #                 resourceType=resource_type
-    #             ),
-    #             relatedResource=related_resource if related_resource else []
-    #         )
-    #     secured_resource = self.sign_attested_resource(
-    #         attested_resource,
-    #         proof_options
-    #     )
-    #     resource_id = self.publish_attested_resource(secured_resource)
+    @staticmethod
+    async def create_attested_resource(
+        self, 
+        issuer_id,
+        resource_type,
+        resource_content,
+        options
+        ) -> AttestedResource:
+        """Derive attested resource object from content."""
+        content_digest = self._digest_multibase(resource_content)
+        attested_resource = AttestedResource(
+                id=f'{issuer_id}/resources/{content_digest}',
+                resourceContent=resource_content,
+                resourceMetadata={
+                    'resourceId': content_digest,
+                    'resourceType': resource_type
+                }
+            )
+        secured_resource = await self.sign_attested_resource(
+            attested_resource,
+            self.proof_options | {'verificationMethod': options.get('verificationMethod')}
+        )
+        resource_id = self.publish_attested_resource(
+            secured_resource,
+            options.get('serviceEndpoint')
+        )
         
-    #     if resource_id != secured_resource.get('id'):
-    #         pass
+        if resource_id != secured_resource.get('id'):
+            pass
         
-    #     return secured_resource
+        return secured_resource
 
     async def setup(self, context: InjectionContext):
         """Setup."""
@@ -121,13 +152,47 @@ class DIDWebVHRegistry(BaseAnonCredsResolver, BaseAnonCredsRegistrar):
         options: Optional[dict] = None,
     ) -> SchemaResult:
         """Register a schema on the registry."""
-        raise NotImplementedError()
+        resource_type = "anonCredsSchema"
+        resource_name = schema.name
+        resource_version = schema.version
+        
+        attested_resource = {}
+        schema_id = attested_resource.get("id")
+        resource_id = attested_resource.get("resourceMetadata").get('resourceId')
+        return SchemaResult(
+            job_id=None,
+            schema_state=SchemaState(
+                state=SchemaState.STATE_FINISHED,
+                schema_id=schema_id,
+                schema=schema,
+            ),
+            registration_metadata={
+                "resource_id": resource_id,
+                "resource_name": resource_name,
+                "resource_type": resource_type,
+            },
+        )
 
     async def get_credential_definition(
         self, profile: Profile, credential_definition_id: str
     ) -> GetCredDefResult:
         """Get a credential definition from the registry."""
-        raise NotImplementedError()
+        resource = await self.resolver.resolve_resource(credential_definition_id)
+
+        anoncreds_credential_definition = CredDef(
+            issuer_id=credential_definition_id.split('/')[0],
+            schema_id=resource['resourceContent']["schemaId"],
+            type=resource['resourceContent']["type"],
+            tag=resource['resourceContent']["tag"],
+            value=CredDefValue.deserialize(resource['resourceContent']["value"]),
+        )
+
+        return GetCredDefResult(
+            credential_definition_id=credential_definition_id,
+            credential_definition=anoncreds_credential_definition,
+            credential_definition_metadata=resource['resourceMetadata'],
+            resolution_metadata={},
+        )
 
     async def register_credential_definition(
         self,

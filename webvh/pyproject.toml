@@ -11,6 +11,8 @@ python = "^3.12"
 # explicitly installed with the plugin if desired.
 acapy-agent = { git = "https://github.com/openwallet-foundation/acapy.git", optional = true }
 did-webvh = "~0.2.1"
+jcs = "^0.2.1"
+multiformats = "^0.3.1.post4"
 
 [tool.poetry.extras]
 aca-py = ["acapy-agent"]
