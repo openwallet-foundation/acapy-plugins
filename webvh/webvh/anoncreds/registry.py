@@ -34,6 +34,7 @@ from acapy_agent.anoncreds.models.schema_info import AnoncredsSchemaInfo
 from acapy_agent.config.injection_context import InjectionContext
 from acapy_agent.core.profile import Profile
 from acapy_agent.vc.data_integrity.manager import DataIntegrityManager, DataIntegrityManagerError
+from acapy_agent.vc.data_integrity.models.options import DataIntegrityProofOptions
 from ..resolver.resolver import DIDWebVHResolver
 from ..validation import WebVHDID
 # from ..models.resources import AttestedResource
@@ -103,7 +104,8 @@ class DIDWebVHRegistry(BaseAnonCredsResolver, BaseAnonCredsRegistrar):
         #     )
         async with profile.session() as session:
             secured_resource = await DataIntegrityManager(session).add_proof(
-                resource, self.proof_options
+                resource,
+                DataIntegrityProofOptions.deserialize(self.proof_options)
             )
         self.publish_attested_resource(secured_resource)
         requests.post(self.service_endpoint, json=secured_resource)
