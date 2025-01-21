@@ -6,7 +6,7 @@ The plugin is designed to facilitate streamlined status management for various u
 
 ## Architecture
 
-### Components
+### Example Deployment
 ```mermaid
 architecture-beta
     group openshift(server)[OpenShift]
@@ -148,18 +148,18 @@ When a new status list definition is created, two status lists are generated sim
 
 ```mermaid
 flowchart TD
-    START@{ shape: circle, label: "Start" } --> A(Assign entries for supported_cred_id)
+    START((Start)) --> A(Assign entries for supported_cred_id)
     A --> B(Search StatusListDefs)
-    B --> C{Next<br>Definition?}
-    C -- Yes --> D(Lock list_index get, increment and save)
-    D --> E{Is current<br>list full?}
-    E -- Yes --> F(Move onto the next list, create a new spare and reset list_index to 0)
-    E -- No --> G(Feistel unique random from list_index)
+    B --> C{Next Definition?}
+    C -- Yes --> D(Lock list_index, increment, and save)
+    D --> E{Is current list full?}
+    E -- Yes --> F(Move to next list<br>Generate spare list<br>Reset list_index to 0)
+    E -- No --> G(Generate unique random using Feistel permutation)
     F --> G
     G --> H(Calculate shard number and index from random number)
     H --> I(Update entry mask)
     I --> J(Return assigned entry)
-    J --> END@{ shape: stadium, label: "End" }
+    J --> END((End))
 ```
 
 #### Performance Considerations
@@ -217,20 +217,3 @@ poetry run pytest tests/
 
 ### Integration Tests
 
-This plugin includes two sets of integration tests:
-
-- Tests against a minimal OpenID4VCI Client written in Python
-- Tests against AFJ + OpenID4VCI Client Package (not complete!)
-
-AFJ has an active PR working on adding support for Draft 11 version of the OpenID4VCI specification. Until that PR is in and available in a release, these tests are incomplete and ignored.
-
-To run the integration tests:
-
-```shell
-cd status_list/integration
-docker compose build
-docker compose run tests
-docker compose down -v  # Clean up
-```
-
-For Apple Silicon, the `DOCKER_DEFAULT_PLATFORM=linux/amd64` environment variable will be required.
