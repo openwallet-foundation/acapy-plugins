@@ -124,6 +124,9 @@ class DIDWebVHRegistry(BaseAnonCredsResolver, BaseAnonCredsRegistrar):
                 )
             if not secured_resource.get('proof'):
                 raise AnonCredsRegistrationError('Unable to attach proof')
+            
+            # TODO, server currently expect a proof object, not a proof set (array)
+            secured_resource['proof'] = secured_resource['proof'][0]
         except:
             raise AnonCredsRegistrationError('Error securing resource')
         LOGGER.warning(secured_resource)
