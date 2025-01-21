@@ -34,6 +34,14 @@ class DIDWebVHResolver(BaseDIDResolver):
     def __init__(self):
         """Initialize WebVH Resolver."""
         super().__init__(ResolverType.NATIVE)
+
+    async def setup(self, context: InjectionContext):
+        """Perform required setup for WebVH DID resolution."""
+
+    @property
+    def supported_did_regex(self) -> Pattern:
+        """Return supported_did_regex of WebVH DID Resolver."""
+        return WebVHDID.PATTERN
     
     def _did_to_url(self, did: str):
         domain = did.split(':')[3]
@@ -44,14 +52,6 @@ class DIDWebVHResolver(BaseDIDResolver):
         domain = resource_id.split(':')[3]
         path = '/'.join(resource_id.split(':')[4:])
         return f'https://{domain}/{path}'
-
-    async def setup(self, context: InjectionContext):
-        """Perform required setup for WebVH DID resolution."""
-
-    @property
-    def supported_did_regex(self) -> Pattern:
-        """Return supported_did_regex of WebVH DID Resolver."""
-        return WebVHDID.PATTERN
 
     async def _resolve(
         self,

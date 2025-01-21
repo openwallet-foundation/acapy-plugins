@@ -6,13 +6,22 @@ from marshmallow.validate import Regexp
 
 
 class WebVHDID(Regexp):
-    """Validate value against cheqd DID."""
+    """Validate value against webvh DID."""
 
-    EXAMPLE = "did:cheqd:testnet:099be283-4302-40cc-9850-22016bcd1d86"
+    # EXAMPLE = "did:webvh:scid:domain.com:099be283-4302-40cc-9850-22016bcd1d86"
+    # SCID = r"([a-z,0-9,A-Z,-]{36,36})"
+    # ID_CHAR = r"(?:[a-zA-Z0-9]{21,22}|" + UUID + ")"
+    # NETWORK = r"(testnet|mainnet)"
+    # METHOD_ID = r"(?:" + ID_CHAR + r"*:)*(" + ID_CHAR + r"+)"
+    # QUERY = r"([?][^#]*)?"
+    # PARAMS = r"((;[a-zA-Z0-9_.:%-]+=[a-zA-Z0-9_.:%-]*)*)"
 
+    # PATTERN = re.compile(
+    #     rf"^(did:cheqd:{NETWORK}:{METHOD_ID}{PARAMS}{QUERY}|did:cheqd:{NETWORK}:{METHOD_ID}/resources/{UUID}{QUERY})$"
+    # )
 
     PATTERN = re.compile(
-        r"^did:webvh:[a-z0-9]+(?:\.[a-z0-9]+)*(?::\d+)?(?:\/[^#\s]*)?(?:#.*)?\s*$"
+        r"^did:webvh:[a-zA-Z0-9]+(?:\.[a-zA-Z0-9]+)*(?::\d+)?(?:\/[^#\s]*)?(?:#.*)?\s*$"
     )
 
     DIDSTATE_EXAMPLE = {
@@ -32,7 +41,7 @@ class WebVHDID(Regexp):
             "verificationMethod": [
                 {
                     "id": EXAMPLE + "#key-1",
-                    "type": "Ed25519VerificationKey2020",
+                    "type": "Multikey",
                     "controller": EXAMPLE,
                     "publicKeyMultibase": "z6Mk...",
                 }
@@ -50,7 +59,7 @@ class WebVHDID(Regexp):
 
         super().__init__(
             WebVHDID.PATTERN,
-            error="Value {input} is not an cheqd decentralized identifier (DID)",
+            error="Value {input} is not an webvh decentralized identifier (DID)",
         )
 
 
@@ -84,9 +93,9 @@ class WebVHDID(Regexp):
 #         )
 
 
-CHEQD_DID_VALIDATE = WebVHDID()
-CHEQD_DID_EXAMPLE = WebVHDID.EXAMPLE
-CHEQD_DIDSTATE_EXAMPLE = WebVHDID.DIDSTATE_EXAMPLE
+WEBVH_DID_VALIDATE = WebVHDID()
+WEBVH_DID_EXAMPLE = WebVHDID.EXAMPLE
+WEBVH_DIDSTATE_EXAMPLE = WebVHDID.DIDSTATE_EXAMPLE
 
 # CHEQD_SCHEMA_ID_VALIDATE = CheqdSchemaId()
 # CHEQD_SCHEMA_ID_EXAMPLE = CheqdSchemaId.EXAMPLE

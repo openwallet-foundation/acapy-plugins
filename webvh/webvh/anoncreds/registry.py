@@ -28,7 +28,7 @@ from acapy_agent.core.profile import Profile
 from ..resolver.resolver import DIDWebVHResolver
 
 
-class DIDWebvhRegistry(BaseAnonCredsResolver, BaseAnonCredsRegistrar):
+class DIDWebVHRegistry(BaseAnonCredsResolver, BaseAnonCredsRegistrar):
     """DIDWebvhRegistry."""
 
     def __init__(self):
@@ -97,7 +97,7 @@ class DIDWebvhRegistry(BaseAnonCredsResolver, BaseAnonCredsRegistrar):
 
     async def setup(self, context: InjectionContext):
         """Setup."""
-        print("Successfully registered DIDWebvhRegistry")
+        print("Successfully registered DIDWebVHRegistry")
 
     async def get_schema(self, profile, schema_id: str) -> GetSchemaResult:
         """Get a schema from the registry."""

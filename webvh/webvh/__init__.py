@@ -24,11 +24,11 @@ async def setup(context: InjectionContext):
         LOGGER.warning("No Anoncreds Registry instance found in context")
         return
 
-    webvh_registry = ClassProvider("webvh.anoncreds.registry.DIDWebvhRegistry").provide(
+    webvh_registry = ClassProvider("webvh.anoncreds.registry.DIDWebVHRegistry").provide(
         context.settings, context.injector
     )
     await webvh_registry.setup(context)
-    LOGGER.info("Registering DIDWebvhRegistry")
+    LOGGER.info("Registering DIDWebVHRegistry")
     anoncreds_registry.register(webvh_registry)
     
     # Register WebVH Resolver
