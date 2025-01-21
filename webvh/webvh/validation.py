@@ -9,20 +9,16 @@ class WebVHDID(Regexp):
     """Validate value against webvh DID."""
 
     EXAMPLE = "did:webvh:scid:domain.com:099be283-4302-40cc-9850-22016bcd1d86"
-    # SCID = r"([a-z,0-9,A-Z,-]{36,36})"
-    # ID_CHAR = r"(?:[a-zA-Z0-9]{21,22}|" + UUID + ")"
-    # NETWORK = r"(testnet|mainnet)"
-    # METHOD_ID = r"(?:" + ID_CHAR + r"*:)*(" + ID_CHAR + r"+)"
-    # QUERY = r"([?][^#]*)?"
-    # PARAMS = r"((;[a-zA-Z0-9_.:%-]+=[a-zA-Z0-9_.:%-]*)*)"
-
-    # PATTERN = re.compile(
-    #     rf"^(did:cheqd:{NETWORK}:{METHOD_ID}{PARAMS}{QUERY}|did:cheqd:{NETWORK}:{METHOD_ID}/resources/{UUID}{QUERY})$"
-    # )
+    
+    SCID = r"([a-z,0-9,A-Z])"#{36,36})"
+    DOMAIN = r"([a-z0-9]+(?:\.[a-z0-9]+)*(?::\d+)?(?:\/[^#\s]*)?(?:#.*)?\s*)"
 
     PATTERN = re.compile(
-        r"^did:webvh:[a-zA-Z0-9]+(?:\.[a-zA-Z0-9]+)*(?::\d+)?(?:\/[^#\s]*)?(?:#.*)?\s*$"
+        rf"^(did:webvh:{SCID}:)$"
     )
+    # PATTERN = re.compile(
+    #     r"^did:webvh:[a-z0-9]"
+    # )
 
     DIDSTATE_EXAMPLE = {
         "did": EXAMPLE,
