@@ -25,7 +25,7 @@ from acapy_agent.anoncreds.models.schema import (
 from acapy_agent.anoncreds.models.schema_info import AnoncredsSchemaInfo
 from acapy_agent.config.injection_context import InjectionContext
 from acapy_agent.core.profile import Profile
-from ..resolver.resolver import DIDWebVHResolver
+from ..resolver.resolver import WebVHDIDResolver
 
 
 class DIDWebvhRegistry(BaseAnonCredsResolver, BaseAnonCredsRegistrar):
@@ -91,7 +91,7 @@ class DIDWebvhRegistry(BaseAnonCredsResolver, BaseAnonCredsRegistrar):
 
     async def resolve_resource(self, resource_id: str):
         """Resolve Resource."""
-        resolver = DIDWebVHResolver()
+        resolver = WebVHDIDResolver()
         resource = resolver.resolve_resource(resource_id)
         return resource
 
