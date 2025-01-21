@@ -64,34 +64,13 @@ class DIDWebVHRegistry(BaseAnonCredsResolver, BaseAnonCredsRegistrar):
         """Supported Identifiers Regular Expression."""
         return WebVHDID.PATTERN
 
-    @property
-    def _digest_multibase(self, resource_content) -> str:
+    @staticmethod
+    def _digest_multibase(resource_content) -> str:
         """Supported Identifiers Regular Expression."""
         digest_multihash = multihash.digest(jcs.canonicalize(resource_content), "sha2-256")
         digest_multibase = multibase.encode(digest_multihash, "base58btc")
         return digest_multibase
-        
-    @staticmethod
-    def publish_attested_resource(
-        self, 
-        secured_resource
-        ) -> str: # AttestedResource:
-        """Publish attested resource object to WebVH Server."""
-        requests.post(f'{self.service_endpoint}/reources', json=secured_resource)
-        # r = requests.post(service_endpoint, json=secured_resource)
-        # resource_id = r.json()['resourceId']
-        # return resource_id
     
-    @staticmethod
-    async def sign_attested_resource(self, profile, resource) -> dict: #AttestedResource:
-        """Secure resource object with Data Integrity Proof."""
-        async with profile.session() as session:
-            secured_resource = await DataIntegrityManager(session).add_proof(
-                resource, self.proof_options
-            )
-        return secured_resource
-    
-    @staticmethod
     async def create_attested_resource(
         self, 
         profile,
@@ -101,7 +80,7 @@ class DIDWebVHRegistry(BaseAnonCredsResolver, BaseAnonCredsRegistrar):
         ) -> dict: #AttestedResource:
         """Derive attested resource object from content."""
         content_digest = self._digest_multibase(resource_content)
-        attested_resource = {
+        resource = {
             '@context': ['https://w3id.org/security/data-integrity/v2'],
             'type': ['AttestedResource'],
             'id': f'{issuer_id}/resources/{content_digest}',
@@ -119,11 +98,12 @@ class DIDWebVHRegistry(BaseAnonCredsResolver, BaseAnonCredsRegistrar):
         #             'resourceType': resource_type
         #         }
         #     )
-        secured_resource = await self.sign_attested_resource(
-            profile=profile,
-            resource=attested_resource
-        )
+        async with profile.session() as session:
+            secured_resource = await DataIntegrityManager(session).add_proof(
+                resource, self.proof_options
+            )
         self.publish_attested_resource(secured_resource)
+        requests.post(self.service_endpoint, json=secured_resource)
         
         # if resource_id != secured_resource.get('id'):
         #     pass
@@ -163,7 +143,7 @@ class DIDWebVHRegistry(BaseAnonCredsResolver, BaseAnonCredsRegistrar):
         resource_name = schema.name
         resource_version = schema.version
         
-        self.service_endpoint = options.get('service_endpoint')
+        self.service_endpoint = options.get('serviceEndpoint')
         self.proof_options['verificationMethod'] = options.get('verificationMethod')
         attested_resource = await self.create_attested_resource(
             profile=profile,
@@ -174,6 +154,7 @@ class DIDWebVHRegistry(BaseAnonCredsResolver, BaseAnonCredsRegistrar):
         
         schema_id = attested_resource.get("id")
         resource_id = attested_resource.get("resourceMetadata").get('resourceId')
+
         return SchemaResult(
             job_id=None,
             schema_state=SchemaState(
