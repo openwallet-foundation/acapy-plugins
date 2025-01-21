@@ -8,7 +8,7 @@ from marshmallow.validate import Regexp
 class WebVHDID(Regexp):
     """Validate value against webvh DID."""
 
-    # EXAMPLE = "did:webvh:scid:domain.com:099be283-4302-40cc-9850-22016bcd1d86"
+    EXAMPLE = "did:webvh:scid:domain.com:099be283-4302-40cc-9850-22016bcd1d86"
     # SCID = r"([a-z,0-9,A-Z,-]{36,36})"
     # ID_CHAR = r"(?:[a-zA-Z0-9]{21,22}|" + UUID + ")"
     # NETWORK = r"(testnet|mainnet)"
