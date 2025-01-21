@@ -31,7 +31,7 @@ from acapy_agent.anoncreds.models.schema import (
 from acapy_agent.anoncreds.models.schema_info import AnoncredsSchemaInfo
 from acapy_agent.config.injection_context import InjectionContext
 from acapy_agent.core.profile import Profile
-from acapy_agent.wallet.data_integrity.manager import DataIntegrityManager, DataIntegrityManagerError
+from acapy_agent.vc.data_integrity.manager import DataIntegrityManager, DataIntegrityManagerError
 from ..resolver.resolver import DIDWebVHResolver
 from ..validation import WebVHDID
 from ..models.resources import AttestedResource
