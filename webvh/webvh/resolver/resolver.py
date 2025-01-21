@@ -1,6 +1,7 @@
 """DID Resolver for Cheqd."""
 
 import json
+import logging
 from dataclasses import dataclass
 from typing import Optional, Pattern, Sequence, Text
 
@@ -17,6 +18,7 @@ from pydid import DIDDocument
 
 from ..validation import WebVHDID
 
+LOGGER = logging.getLogger(__name__)
 
 @dataclass
 class DIDLinkedResourceWithMetadata:
@@ -46,47 +48,16 @@ class WebVHDIDResolver(BaseDIDResolver):
         """Return supported_did_regex of Cheqd DID Resolver."""
         return WebVHDID.PATTERN
 
-    async def _resolve(
-        self,
-        _profile: Profile,
-        did: str,
-        service_accept: Optional[Sequence[Text]] = None,
-    ) -> dict:
-        """Resolve a WebVH DID."""
-        async with ClientSession() as session:
-            async with session.get(
-                self.DID_RESOLVER_BASE_URL + did,
-            ) as response:
-                if response.status == 200:
-                    try:
-                        # Validate DIDDoc with pyDID
-                        resolver_resp = await response.json()
-                        did_doc_resp = resolver_resp.get("didDocument")
-                        did_doc_metadata = resolver_resp.get("didDocumentMetadata")
-
-                        did_doc = DIDDocument.from_json(json.dumps(did_doc_resp))
-                        result = did_doc.serialize()
-                        # Check if 'deactivated' field is present in didDocumentMetadata
-                        if (
-                            did_doc_metadata
-                            and did_doc_metadata.get("deactivated") is True
-                        ):
-                            result["deactivated"] = True
-                        return result
-                    except Exception as err:
-                        raise ResolverError("Response was incorrectly formatted") from err
-                if response.status == 404:
-                    raise DIDNotFound(f"No document found for {did}")
-            raise ResolverError(
-                "Could not find doc for {}: {}".format(did, await response.text())
-            )
-
     async def resolve_resource(self, resource_id: str) -> dict:
         """Resolve a WebVH DID Linked Resource and its Metadata."""
+        LOGGER.warning("Resolving Resource")
+        LOGGER.warning(resource_id)
         resource_url = self._id_to_url(resource_id)
+        LOGGER.warning(resource_url)
         async with ClientSession() as session:
             # Fetch the main resource
             async with session.get(resource_url) as response:
+                LOGGER.warning(response.status)
                 if response.status == 200:
                     try:
                         resource = await response.json()
