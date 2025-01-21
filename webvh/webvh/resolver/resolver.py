@@ -26,7 +26,7 @@ class DIDLinkedResourceWithMetadata:
     metadata: dict
 
 
-class DIDWebVHResolver(BaseDIDResolver):
+class WebVHDIDResolver(BaseDIDResolver):
     """DID Resolver implementation for did:webvh."""
 
     def __init__(self):
