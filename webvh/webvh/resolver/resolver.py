@@ -35,6 +35,11 @@ class WebVHDIDResolver(BaseDIDResolver):
         """Initialize WebVH Resolver."""
         super().__init__(ResolverType.NATIVE)
     
+    def _did_to_url(self, did: str):
+        domain = did.split(':')[3]
+        path = '/'.join(did.split(':')[4:])
+        return f'https://{domain}/{path}/did.json'
+    
     def _id_to_url(self, resource_id: str):
         domain = resource_id.split(':')[3]
         path = '/'.join(resource_id.split(':')[4:])
@@ -45,8 +50,42 @@ class WebVHDIDResolver(BaseDIDResolver):
 
     @property
     def supported_did_regex(self) -> Pattern:
-        """Return supported_did_regex of Cheqd DID Resolver."""
+        """Return supported_did_regex of WebVH DID Resolver."""
         return WebVHDID.PATTERN
+
+    async def _resolve(
+        self,
+        _profile: Profile,
+        did: str,
+        service_accept: Optional[Sequence[Text]] = None,
+    ) -> dict:
+        """Resolve a WebVH DID."""
+        did_url = self._did_to_url(did)
+        async with ClientSession() as session:
+            async with session.get(did_url) as response:
+                if response.status == 200:
+                    try:
+                        # Validate DIDDoc with pyDID
+                        resolver_resp = await response.json()
+                        did_doc_resp = resolver_resp.get("didDocument")
+                        did_doc_metadata = resolver_resp.get("didDocumentMetadata")
+
+                        did_doc = DIDDocument.from_json(json.dumps(did_doc_resp))
+                        result = did_doc.serialize()
+                        # Check if 'deactivated' field is present in didDocumentMetadata
+                        if (
+                            did_doc_metadata
+                            and did_doc_metadata.get("deactivated") is True
+                        ):
+                            result["deactivated"] = True
+                        return result
+                    except Exception as err:
+                        raise ResolverError("Response was incorrectly formatted") from err
+                if response.status == 404:
+                    raise DIDNotFound(f"No document found for {did}")
+            raise ResolverError(
+                "Could not find doc for {}: {}".format(did, await response.text())
+            )
 
     async def resolve_resource(self, resource_id: str) -> dict:
         """Resolve a WebVH DID Linked Resource and its Metadata."""
