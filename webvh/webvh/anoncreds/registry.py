@@ -25,7 +25,7 @@ from acapy_agent.anoncreds.models.schema import (
 from acapy_agent.anoncreds.models.schema_info import AnoncredsSchemaInfo
 from acapy_agent.config.injection_context import InjectionContext
 from acapy_agent.core.profile import Profile
-from .resolver import DIDWebVHResolver
+from ..resolver.resolver import DIDWebVHResolver
 
 
 class DIDWebvhRegistry(BaseAnonCredsResolver, BaseAnonCredsRegistrar):

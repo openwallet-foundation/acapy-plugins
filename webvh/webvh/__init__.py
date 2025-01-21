@@ -4,7 +4,11 @@ from acapy_agent.anoncreds.registry import AnonCredsRegistry
 from acapy_agent.config.injection_context import InjectionContext
 from acapy_agent.config.provider import ClassProvider
 from acapy_agent.core.protocol_registry import ProtocolRegistry
+from acapy_agent.resolver.did_resolver import DIDResolver
+from acapy_agent.wallet.did_method import DIDMethods
 
+from .did_method import WEBVH
+from .resolver.resolver import WebVHDIDResolver
 from .did.message_types import MESSAGE_TYPES
 
 LOGGER = logging.getLogger(__name__)
@@ -26,6 +30,17 @@ async def setup(context: InjectionContext):
     await webvh_registry.setup(context)
     LOGGER.info("Registering DIDWebvhRegistry")
     anoncreds_registry.register(webvh_registry)
+    
+    # Register WebVH Resolver
+    resolver_registry = context.inject_or(DIDResolver)
+    if not resolver_registry:
+        LOGGER.warning("No DID Resolver instance found in context")
+        return
+    # resolver_registry.register_resolver(CheqdDIDResolver(resolver_url))
+
+    # Register WebVH DID Method
+    did_methods = context.inject_or(DIDMethods)
+    did_methods.register(WEBVH)
 
     # Did-comm message types
     protocol_registry = context.inject(ProtocolRegistry)
