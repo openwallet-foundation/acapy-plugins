@@ -43,7 +43,7 @@ class DIDWebVHRegistry(BaseAnonCredsResolver, BaseAnonCredsRegistrar):
         """
         self._supported_identifiers_regex = WebVHDID.PATTERN
         
-        self.resolver = DIDWebVHRegistry()
+        self.resolver = DIDWebVHResolver()
 
     @property
     def supported_identifiers_regex(self) -> Pattern:
