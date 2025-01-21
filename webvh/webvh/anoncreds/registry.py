@@ -75,15 +75,16 @@ class DIDWebVHRegistry(BaseAnonCredsResolver, BaseAnonCredsRegistrar):
         self, 
         secured_resource, 
         service_endpoint
-        ) -> AttestedResource:
+        ) -> str: # AttestedResource:
         """Publish attested resource object to WebVH Server."""
         service_endpoint += '/resources'
-        r = requests.post(service_endpoint, json=secured_resource)
-        resource_id = r.json()['resourceId']
-        return resource_id
+        requests.post(service_endpoint, json=secured_resource)
+        # r = requests.post(service_endpoint, json=secured_resource)
+        # resource_id = r.json()['resourceId']
+        # return resource_id
     
     @staticmethod
-    async def sign_attested_resource(self, profile, resource, options) -> AttestedResource:
+    async def sign_attested_resource(self, profile, resource, options) -> dict: #AttestedResource:
         """Secure resource object with Data Integrity Proof."""
         async with profile.session() as session:
             secured_resource = await DataIntegrityManager(session).add_proof(
@@ -98,7 +99,7 @@ class DIDWebVHRegistry(BaseAnonCredsResolver, BaseAnonCredsRegistrar):
         resource_type,
         resource_content,
         options
-        ) -> AttestedResource:
+        ) -> dict: #AttestedResource:
         """Derive attested resource object from content."""
         content_digest = self._digest_multibase(resource_content)
         attested_resource = {
@@ -123,13 +124,13 @@ class DIDWebVHRegistry(BaseAnonCredsResolver, BaseAnonCredsRegistrar):
             attested_resource,
             self.proof_options | {'verificationMethod': options.get('verificationMethod')}
         )
-        resource_id = self.publish_attested_resource(
+        self.publish_attested_resource(
             secured_resource,
             options.get('serviceEndpoint')
         )
         
-        if resource_id != secured_resource.get('id'):
-            pass
+        # if resource_id != secured_resource.get('id'):
+        #     pass
         
         return secured_resource
 
