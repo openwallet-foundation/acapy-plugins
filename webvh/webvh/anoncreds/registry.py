@@ -108,7 +108,13 @@ class DIDWebVHRegistry(BaseAnonCredsResolver, BaseAnonCredsRegistrar):
                 DataIntegrityProofOptions.deserialize(self.proof_options)
             )
         self.publish_attested_resource(secured_resource)
-        requests.post(self.service_endpoint, json=secured_resource)
+        requests.post(
+            self.service_endpoint, 
+            json={
+                'securedResource': secured_resource,
+                'options': secured_resource.get('resourceMetadata')
+            }
+        )
         
         # if resource_id != secured_resource.get('id'):
         #     pass
