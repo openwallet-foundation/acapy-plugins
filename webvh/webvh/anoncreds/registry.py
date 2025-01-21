@@ -1,13 +1,19 @@
 """DID Webvh Registry."""
 
 import re
+import logging
 import requests
 import jcs
 from multiformats import multibase, multihash
 
 from typing import Optional, Pattern, Sequence
 
-from acapy_agent.anoncreds.base import BaseAnonCredsRegistrar, BaseAnonCredsResolver
+from acapy_agent.anoncreds.base import (
+    AnonCredsResolutionError, 
+    AnonCredsRegistrationError, 
+    BaseAnonCredsRegistrar, 
+    BaseAnonCredsResolver
+)
 from acapy_agent.anoncreds.models.credential_definition import (
     CredDef,
     CredDefResult,
@@ -38,6 +44,8 @@ from acapy_agent.vc.data_integrity.models.options import DataIntegrityProofOptio
 from ..resolver.resolver import DIDWebVHResolver
 from ..validation import WebVHDID
 # from ..models.resources import AttestedResource
+
+LOGGER = logging.getLogger(__name__)
 
 
 class DIDWebVHRegistry(BaseAnonCredsResolver, BaseAnonCredsRegistrar):
@@ -84,6 +92,12 @@ class DIDWebVHRegistry(BaseAnonCredsResolver, BaseAnonCredsRegistrar):
         ) -> dict: #AttestedResource:
         """Derive attested resource object from content."""
         
+        if not options.get('serviceEndpoint'):
+            raise AnonCredsRegistrationError('Missing verification method')
+        
+        if not options.get('verificationMethod'):
+            raise AnonCredsRegistrationError('Missing service endpoint')
+        
         self.service_endpoint = options.get('serviceEndpoint')
         self.proof_options['verificationMethod'] = options.get('verificationMethod')
         
@@ -102,21 +116,33 @@ class DIDWebVHRegistry(BaseAnonCredsResolver, BaseAnonCredsRegistrar):
         #             'resourceType': resource_type
         #         }
         #     )
-        async with profile.session() as session:
-            secured_resource = await DataIntegrityManager(session).add_proof(
-                resource,
-                DataIntegrityProofOptions.deserialize(self.proof_options)
+        try:
+            async with profile.session() as session:
+                secured_resource = await DataIntegrityManager(session).add_proof(
+                    resource,
+                    DataIntegrityProofOptions.deserialize(self.proof_options)
+                )
+            if not secured_resource.get('proof'):
+                raise AnonCredsRegistrationError('Unable to attach proof')
+        except:
+            raise AnonCredsRegistrationError('Error securing resource')
+        LOGGER.warning(secured_resource)
+        try:
+            r = requests.post(
+                self.service_endpoint, 
+                json={
+                    'securedResource': secured_resource,
+                    'options': secured_resource.get('resourceMetadata')
+                }
             )
-        requests.post(
-            self.service_endpoint, 
-            json={
-                'securedResource': secured_resource,
-                'options': secured_resource.get('resourceMetadata')
-            }
-        )
-        
-        # if resource_id != secured_resource.get('id'):
-        #     pass
+            if r.status_code != 201:
+                raise AnonCredsRegistrationError(
+                    'Invalid status code returned by service endpoint'
+                )
+                
+        except:
+            raise AnonCredsRegistrationError('Error uploading resource')
+        LOGGER.warning(r.text)
         
         return secured_resource
 
@@ -126,14 +152,20 @@ class DIDWebVHRegistry(BaseAnonCredsResolver, BaseAnonCredsRegistrar):
 
     async def get_schema(self, profile, schema_id: str) -> GetSchemaResult:
         """Get a schema from the registry."""
-        resource = await self.resolver.resolve_resource(schema_id)
+        try:
+            resource = await self.resolver.resolve_resource(schema_id)
+        except:
+            raise AnonCredsResolutionError('Error resolving resource')
 
-        anoncreds_schema = AnonCredsSchema(
-            issuer_id=resource['resourceContent']["issuerId"],
-            attr_names=resource['resourceContent']["attrNames"],
-            name=resource['resourceContent']["name"],
-            version=resource['resourceContent']["version"],
-        )
+        try:
+            anoncreds_schema = AnonCredsSchema(
+                issuer_id=resource['resourceContent']["issuerId"],
+                attr_names=resource['resourceContent']["attrNames"],
+                name=resource['resourceContent']["name"],
+                version=resource['resourceContent']["version"],
+            )
+        except:
+            raise AnonCredsResolutionError('Resource returned not an anoncreds schema')
 
         return GetSchemaResult(
             schema_id=schema_id,
