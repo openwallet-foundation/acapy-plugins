@@ -15,7 +15,7 @@ from acapy_agent.resolver.base import (
 from aiohttp import ClientSession
 from pydid import DIDDocument
 
-# from ..validation import CheqdDID
+from ..validation import WebVHDID
 
 
 @dataclass
@@ -41,10 +41,10 @@ class WebVHDIDResolver(BaseDIDResolver):
     async def setup(self, context: InjectionContext):
         """Perform required setup for WebVH DID resolution."""
 
-    # @property
-    # def supported_did_regex(self) -> Pattern:
-    #     """Return supported_did_regex of Cheqd DID Resolver."""
-    #     return CheqdDID.PATTERN
+    @property
+    def supported_did_regex(self) -> Pattern:
+        """Return supported_did_regex of Cheqd DID Resolver."""
+        return WebVHDID.PATTERN
 
     async def _resolve(
         self,
