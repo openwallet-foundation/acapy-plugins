@@ -143,8 +143,9 @@ class DIDWebVHRegistry(BaseAnonCredsResolver, BaseAnonCredsRegistrar):
                 )
                 
         except:
-            raise AnonCredsRegistrationError('Error uploading resource')
-        LOGGER.warning(r.text)
+            # raise AnonCredsRegistrationError('Error uploading resource')
+            raise AnonCredsRegistrationError(r.text)
+        # LOGGER.warning(r.text)
         
         return secured_resource
 
