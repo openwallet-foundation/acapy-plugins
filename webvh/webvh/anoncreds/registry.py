@@ -168,7 +168,7 @@ class DIDWebVHRegistry(BaseAnonCredsResolver, BaseAnonCredsRegistrar):
         resource_version = schema.version
         
         attested_resource = await self.create_attested_resource(
-            schema.issuerId,
+            schema.issuer_id,
             resource_type,
             schema.serialize(),
             options
