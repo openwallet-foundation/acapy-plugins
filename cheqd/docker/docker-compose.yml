@@ -15,7 +15,7 @@ services:
     volumes:
       - postgres_data:/var/lib/postgresql/data
   did_registrar:
-    image: ghcr.io/cheqd/did-registrar:staging-latest
+    image: ghcr.io/cheqd/did-registrar:production-latest
     ports:
       - target: 3000
         published: 3000
