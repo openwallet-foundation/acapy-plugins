@@ -94,7 +94,6 @@ class DIDWebVHRegistry(BaseAnonCredsResolver, BaseAnonCredsRegistrar):
 
     async def setup(self, context: InjectionContext):
         """Setup."""
-        self.resolver = DIDWebVHResolver()
         print("Successfully registered DIDWebVHRegistry")
 
     async def get_schema(self, profile, schema_id: str) -> GetSchemaResult:
