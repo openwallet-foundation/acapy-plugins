@@ -87,66 +87,6 @@ updates:
 
   # Maintain dependencies for Python Packages
   - package-ecosystem: "pip"
-    directory: "/kafka_events/demo/setup"
-    schedule:
-      interval: "weekly"
-      day: "monday"
-      time: "04:00"
-      timezone: "Canada/Pacific"
-    ignore:
-      - dependency-name: "*"
-        update-types: ["version-update:semver-major"]
-
-  # Maintain dependencies for Python Packages
-  - package-ecosystem: "pip"
-    directory: "/kafka_events/integration"
-    schedule:
-      interval: "weekly"
-      day: "monday"
-      time: "04:00"
-      timezone: "Canada/Pacific"
-    ignore:
-      - dependency-name: "*"
-        update-types: ["version-update:semver-major"]
-
-  # Maintain dependencies for Python Packages
-  - package-ecosystem: "pip"
-    directory: "/kafka_events/kafka_events/v1_0/deliverer"
-    schedule:
-      interval: "weekly"
-      day: "monday"
-      time: "04:00"
-      timezone: "Canada/Pacific"
-    ignore:
-      - dependency-name: "*"
-        update-types: ["version-update:semver-major"]
-
-  # Maintain dependencies for Python Packages
-  - package-ecosystem: "pip"
-    directory: "/kafka_events/kafka_events/v1_0/http_kafka_relay"
-    schedule:
-      interval: "weekly"
-      day: "monday"
-      time: "04:00"
-      timezone: "Canada/Pacific"
-    ignore:
-      - dependency-name: "*"
-        update-types: ["version-update:semver-major"]
-
-  # Maintain dependencies for Python Packages
-  - package-ecosystem: "pip"
-    directory: "/kafka_events"
-    schedule:
-      interval: "weekly"
-      day: "monday"
-      time: "04:00"
-      timezone: "Canada/Pacific"
-    ignore:
-      - dependency-name: "*"
-        update-types: ["version-update:semver-major"]
-
-  # Maintain dependencies for Python Packages
-  - package-ecosystem: "pip"
     directory: "/multitenant_provider/integration"
     schedule:
       interval: "weekly"
@@ -289,6 +229,30 @@ updates:
       - dependency-name: "*"
         update-types: ["version-update:semver-major"]
 
+  # Maintain dependencies for Python Packages
+  - package-ecosystem: "pip"
+    directory: "/cheqd"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "04:00"
+      timezone: "Canada/Pacific"
+    ignore:
+      - dependency-name: "*"
+        update-types: ["version-update:semver-major"]
+
+  # Maintain dependencies for Python Packages
+  - package-ecosystem: "pip"
+    directory: "/cheqd/integration"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "04:00"
+      timezone: "Canada/Pacific"
+    ignore:
+      - dependency-name: "*"
+        update-types: ["version-update:semver-major"]
+
   # Maintain dependencies for TypeScript and JavaScript
   - package-ecosystem: "npm"
     directory: "/oid4vci/demo/frontend"
@@ -346,15 +310,6 @@ updates:
   # Maintain dependencies for dev Container
   - package-ecosystem: "devcontainers"
     directory: "/firebase_push_notifications/.devcontainer"
-    schedule:
-      interval: "weekly"
-      day: "monday"
-      time: "04:00"
-      timezone: "Canada/Pacific"
-
-  # Maintain dependencies for dev Container
-  - package-ecosystem: "devcontainers"
-    directory: "/kafka_events/.devcontainer"
     schedule:
       interval: "weekly"
       day: "monday"
@@ -481,60 +436,6 @@ updates:
   # Maintain dependencies for docker
   - package-ecosystem: "docker"
     directory: "/firebase_push_notifications/integration"
-    schedule:
-      interval: "weekly"
-      day: "monday"
-      time: "04:00"
-      timezone: "Canada/Pacific"
-
-  # Maintain dependencies for docker
-  - package-ecosystem: "docker"
-    directory: "/kafka_events/.devcontainer"
-    schedule:
-      interval: "weekly"
-      day: "monday"
-      time: "04:00"
-      timezone: "Canada/Pacific"
-
-  # Maintain dependencies for docker
-  - package-ecosystem: "docker"
-    directory: "/kafka_events/demo/setup"
-    schedule:
-      interval: "weekly"
-      day: "monday"
-      time: "04:00"
-      timezone: "Canada/Pacific"
-
-  # Maintain dependencies for docker
-  - package-ecosystem: "docker"
-    directory: "/kafka_events/docker"
-    schedule:
-      interval: "weekly"
-      day: "monday"
-      time: "04:00"
-      timezone: "Canada/Pacific"
-
-  # Maintain dependencies for docker
-  - package-ecosystem: "docker"
-    directory: "/kafka_events/integration"
-    schedule:
-      interval: "weekly"
-      day: "monday"
-      time: "04:00"
-      timezone: "Canada/Pacific"
-
-  # Maintain dependencies for docker
-  - package-ecosystem: "docker"
-    directory: "/kafka_events/kafka_events/v1_0/deliverer"
-    schedule:
-      interval: "weekly"
-      day: "monday"
-      time: "04:00"
-      timezone: "Canada/Pacific"
-
-  # Maintain dependencies for docker
-  - package-ecosystem: "docker"
-    directory: "/kafka_events/kafka_events/v1_0/http_kafka_relay"
     schedule:
       interval: "weekly"
       day: "monday"
@@ -706,6 +607,33 @@ updates:
   # Maintain dependencies for docker
   - package-ecosystem: "docker"
     directory: "/rpc/integration"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "04:00"
+      timezone: "Canada/Pacific"
+
+  # Maintain dependencies for docker
+  - package-ecosystem: "docker"
+    directory: "/cheqd/.devcontainer"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "04:00"
+      timezone: "Canada/Pacific"
+
+  # Maintain dependencies for docker
+  - package-ecosystem: "docker"
+    directory: "/cheqd/docker"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "04:00"
+      timezone: "Canada/Pacific"
+
+  # Maintain dependencies for docker
+  - package-ecosystem: "docker"
+    directory: "/cheqd/integration"
     schedule:
       interval: "weekly"
       day: "monday"

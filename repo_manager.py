@@ -374,11 +374,11 @@ def main(arg_1=None, arg_2=None):
             if is_plugin_directory(plugin_name):
                 print(f"Updating common poetry sections in {plugin_name}\n")
                 replace_global_sections(plugin_name)
-                os.system(f"cd {plugin_name} && rm poetry.lock && poetry lock")
+                os.system(f"cd {plugin_name} && poetry lock --no-update")
                 # Don't update lite plugin integration files (They don't have any)
                 if is_plugin_directory(plugin_name, True):
                     os.system(
-                        f"cd {plugin_name}/integration && rm poetry.lock && poetry lock"
+                        f"cd {plugin_name}/integration && poetry lock --no-update"
                     )
 
     elif selection == "3":

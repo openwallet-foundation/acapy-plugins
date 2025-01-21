@@ -3,7 +3,7 @@ from typing import Any
 import pytest
 from acapy_agent.admin.request_context import AdminRequestContext
 
-from jwt_vc_json.cred_processor import CredProcessor
+from jwt_vc_json.cred_processor import JwtVcJsonCredProcessor
 from oid4vc.models.exchange import OID4VCIExchangeRecord
 from oid4vc.models.supported_cred import SupportedCredential
 from oid4vc.public_routes import PopResult
@@ -23,8 +23,8 @@ class TestCredentialProcessor:
     ):
         """Test issue_credential method."""
 
-        cred_processor = CredProcessor()
+        cred_processor = JwtVcJsonCredProcessor()
 
-        jws = cred_processor.issue_cred(body, supported, ex_record, pop, context)
+        jws = cred_processor.issue(body, supported, ex_record, pop, context)
 
         assert jws
