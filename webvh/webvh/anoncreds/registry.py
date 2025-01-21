@@ -26,10 +26,13 @@ from acapy_agent.anoncreds.models.schema_info import AnoncredsSchemaInfo
 from acapy_agent.config.injection_context import InjectionContext
 from acapy_agent.core.profile import Profile
 from ..resolver.resolver import DIDWebVHResolver
+from ..validation import WebVHDID
 
 
 class DIDWebVHRegistry(BaseAnonCredsResolver, BaseAnonCredsRegistrar):
     """DIDWebvhRegistry."""
+    
+    resolver: DIDWebVHResolver
 
     def __init__(self):
         """Initialize an instance.
@@ -38,14 +41,14 @@ class DIDWebVHRegistry(BaseAnonCredsResolver, BaseAnonCredsRegistrar):
             None
 
         """
-        self._supported_identifiers_regex = re.compile(
-            r"^did:webvh:[a-z0-9]+(?:\.[a-z0-9]+)*(?::\d+)?(?:\/[^#\s]*)?(?:#.*)?\s*$"
-        )
+        self._supported_identifiers_regex = WebVHDID.PATTERN
+        
+        self.resolver = DIDWebVHRegistry()
 
     @property
     def supported_identifiers_regex(self) -> Pattern:
         """Supported Identifiers Regular Expression."""
-        return self._supported_identifiers_regex
+        return WebVHDID.PATTERN
 
     # @property
     # def _digest_multibase(self, resource_content) -> str:
@@ -89,33 +92,26 @@ class DIDWebVHRegistry(BaseAnonCredsResolver, BaseAnonCredsRegistrar):
         
     #     return secured_resource
 
-    async def resolve_resource(self, resource_id: str):
-        """Resolve Resource."""
-        resolver = DIDWebVHResolver()
-        resource = resolver.resolve_resource(resource_id)
-        return resource
-
     async def setup(self, context: InjectionContext):
         """Setup."""
+        self.resolver = DIDWebVHResolver()
         print("Successfully registered DIDWebVHRegistry")
 
     async def get_schema(self, profile, schema_id: str) -> GetSchemaResult:
         """Get a schema from the registry."""
-        resource = await self.resolve_resource(schema_id)
-        schema = resource['resourceContent']
-        metadata = resource['resourceMetadata']
+        resource = self.resolver.resolve_resource(schema_id)
 
         anoncreds_schema = AnonCredsSchema(
-            issuer_id=schema["issuerId"],
-            attr_names=schema["attrNames"],
-            name=schema["name"],
-            version=schema["version"],
+            issuer_id=resource['resourceContent']["issuerId"],
+            attr_names=resource['resourceContent']["attrNames"],
+            name=resource['resourceContent']["name"],
+            version=resource['resourceContent']["version"],
         )
 
         return GetSchemaResult(
             schema_id=schema_id,
             schema=anoncreds_schema,
-            schema_metadata=metadata,
+            schema_metadata=resource['resourceMetadata'],
             resolution_metadata={},
         )
 
