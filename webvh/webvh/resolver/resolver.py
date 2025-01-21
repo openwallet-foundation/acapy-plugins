@@ -29,13 +29,9 @@ class DIDLinkedResourceWithMetadata:
 class DIDWebVHResolver(BaseDIDResolver):
     """DID Resolver implementation for did:webvh."""
 
-    DID_RESOLVER_BASE_URL = "http://localhost:8080/1.0/identifiers/"
-
-    def __init__(self, resolver_url: str = None):
+    def __init__(self):
         """Initialize WebVH Resolver."""
         super().__init__(ResolverType.NATIVE)
-        if resolver_url:
-            self.DID_RESOLVER_BASE_URL = resolver_url
     
     def _id_to_url(self, resource_id: str):
         domain = resource_id.split(':')[3]

@@ -36,7 +36,7 @@ async def setup(context: InjectionContext):
     if not resolver_registry:
         LOGGER.warning("No DID Resolver instance found in context")
         return
-    # resolver_registry.register_resolver(CheqdDIDResolver(resolver_url))
+    resolver_registry.register_resolver(WebVHDIDResolver())
 
     # Register WebVH DID Method
     did_methods = context.inject_or(DIDMethods)
