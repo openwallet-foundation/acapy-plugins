@@ -8,7 +8,7 @@ from acapy_agent.resolver.did_resolver import DIDResolver
 from acapy_agent.wallet.did_method import DIDMethods
 
 from .did_method import WEBVH
-from .resolver.resolver import WebVHDIDResolver
+from .resolver.resolver import DIDWebVHResolver
 from .did.message_types import MESSAGE_TYPES
 
 LOGGER = logging.getLogger(__name__)
@@ -36,7 +36,7 @@ async def setup(context: InjectionContext):
     if not resolver_registry:
         LOGGER.warning("No DID Resolver instance found in context")
         return
-    resolver_registry.register_resolver(WebVHDIDResolver())
+    resolver_registry.register_resolver(DIDWebVHResolver())
 
     # Register WebVH DID Method
     did_methods = context.inject_or(DIDMethods)
