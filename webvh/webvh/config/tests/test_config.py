@@ -2,12 +2,7 @@ from unittest import IsolatedAsyncioTestCase
 
 from acapy_agent.utils.testing import create_test_profile
 
-from webvh.config.config import (
-    get_plugin_config,
-    get_server_url,
-    is_controller,
-    set_config,
-)
+from ..config import get_plugin_config, get_server_url, is_controller, set_config
 
 
 class TestConfig(IsolatedAsyncioTestCase):
