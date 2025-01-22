@@ -13,6 +13,7 @@ acapy-agent = { git = "https://github.com/openwallet-foundation/acapy.git", opti
 did-webvh = "~0.2.1"
 jcs = "^0.2.1"
 multiformats = "^0.3.1.post4"
+bitstring = "^4.3.0"
 
 [tool.poetry.extras]
 aca-py = ["acapy-agent"]
