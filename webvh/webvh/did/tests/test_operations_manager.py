@@ -131,6 +131,7 @@ class TestOperationsManager(IsolatedAsyncioTestCase):
         self.profile.context.injector.bind_instance(
             EventBus, mock.MagicMock(EventBus, autospec=True)
         )
+        self.profile.context.injector.bind_instance(KeyTypes, KeyTypes())
 
         await DidWebvhOperationsManager(self.profile).create(
             options={"namespace": "test"}

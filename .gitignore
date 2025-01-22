@@ -111,12 +111,6 @@ Pipfile.lock
 .mypy_cache/
 
 ###
-### Visual Studio Code
-###
-
-.vscode/
-
-###
 ### MacOS
 ###
 
