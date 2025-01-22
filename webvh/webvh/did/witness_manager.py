@@ -69,17 +69,10 @@ class WitnessManager:
         async with self.profile.session() as session:
             # Self witness
             if not role or role == "witness":
-                try:
-                    url_decoded_domain = get_url_decoded_domain(domain)
-
-                    witness_key_info = await MultikeyManager(session).create(
-                        kid=url_decoded_domain,
-                        alg="ed25519",
-                    )
-                except (MultikeyManagerError, WalletDuplicateError):
-                    witness_key_info = await MultikeyManager(session).from_kid(
-                        url_decoded_domain
-                    )
+                witness_alias = f'{domain}@witness'
+                witness_key_info = await MultikeyManager(session).from_kid(
+                    witness_alias
+                )
                 return await DataIntegrityManager(session).add_proof(
                     controller_secured_document,
                     DataIntegrityProofOptions(
@@ -105,8 +98,35 @@ class WitnessManager:
                     connection_id=witness_connection.connection_id,
                 )
 
+    async def setup_witness_key(self) -> None:
+        """Ensure witness key is setup."""
+        
+        server_url = await get_server_url(self.profile)
+        server_domain = server_url.split('://')[-1]
+        witness_alias = f'{server_domain}@witness'
+        async with self.profile.session() as session:
+            try:
+                witness_key_info = await MultikeyManager(session).create(
+                    kid=witness_alias,
+                    alg="ed25519",
+                )
+            except (MultikeyManagerError, WalletDuplicateError):
+                witness_key_info = await MultikeyManager(session).from_kid(
+                    witness_alias
+                )
+                
+        if not witness_key_info.get('multikey'):
+            raise WitnessError("Witness key creation error.")
+        
+        return witness_key_info.get('multikey')
+
     async def auto_witness_setup(self) -> None:
         """Automatically set up the witness the connection."""
+        
+        server_url = await get_server_url(self.profile)
+        server_domain = server_url.split('://')[-1]
+        witness_alias = f'{server_domain}@witness'
+        
         if not await is_controller(self.profile):
             return
 
@@ -121,8 +141,7 @@ class WitnessManager:
         if not witness_invitation:
             LOGGER.info("No witness invitation, can't create connection automatically.")
             return
-
-        witness_alias = await get_server_url(self.profile) + "@Witness"
+        
         oob_mgr = OutOfBandManager(self.profile)
         try:
             await oob_mgr.receive_invitation(

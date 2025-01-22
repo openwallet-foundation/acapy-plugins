@@ -214,16 +214,28 @@ async def configure(request: web.BaseRequest):
     profile = request["context"].profile
 
     # Build the config object
+    config = {}
+    
     request_json = await request.json()
-    config = {
-        "server_url": request_json["server_url"],
-    }
-    config["role"] = "controller" if request_json["controller"] else "witness"
-    if request_json.get("witness_invitation"):
+    
+    if not request_json.get('server_url'):
+        raise ConfigurationError('No server set.')
+    
+    config["server_url"] = request_json.get('server_url')
+    
+    config["role"] = "witness" if request_json.get('witness') else "controller"
+    
+    if config["role"] == "controller":
+        if not request_json.get("witness_invitation"):
+            raise ConfigurationError('No witness set.')
+    
         config["witness_invitation"] = request_json["witness_invitation"]
 
     try:
         await set_config(profile, config)
+        if config["role"] == 'witness':
+            witness_key = await WitnessManager(profile).setup_witness_key()
+            return web.json_response({"witness_key": witness_key})
         await WitnessManager(profile).auto_witness_setup()
         return web.json_response({"status": "success"})
     except ConfigurationError as err:
