@@ -24,9 +24,9 @@ from aiohttp import ClientConnectionError, ClientResponseError, ClientSession
 from did_webvh.core.state import DocumentState
 from pydid import DIDDocument
 
+from ..config.config import get_server_url, use_strict_ssl
 from .exceptions import DidCreationError
 from .registration_state import RegistrationState
-from .utils import get_server_url, use_strict_ssl
 from .witness_manager import WitnessManager
 
 LOGGER = logging.getLogger(__name__)
@@ -50,7 +50,9 @@ class DidWebvhOperationsManager:
     async def fetch_jsonl(self, url):
         """Fetch a JSONL file from the given URL."""
         async with ClientSession() as session:
-            async with session.get(url, ssl=use_strict_ssl(self.profile)) as response:
+            async with session.get(
+                url, ssl=(await use_strict_ssl(self.profile))
+            ) as response:
                 # Check if the response is OK
                 response.raise_for_status()
 
@@ -71,7 +73,7 @@ class DidWebvhOperationsManager:
                         "namespace": namespace,
                         "identifier": identifier,
                     },
-                    ssl=use_strict_ssl(self.profile),
+                    ssl=(await use_strict_ssl(self.profile)),
                 )
             except ClientConnectionError as err:
                 raise DidCreationError(f"Failed to connect to Webvh server: {err}")
@@ -161,7 +163,7 @@ class DidWebvhOperationsManager:
     async def create(self, options: dict):
         """Register identities."""
 
-        server_url = get_server_url(self.profile)
+        server_url = await get_server_url(self.profile)
         namespace = options.get("namespace", "default")
 
         if namespace is None:
@@ -285,11 +287,11 @@ class DidWebvhOperationsManager:
 
         async with ClientSession() as http_session, self.profile.session() as session:
             # Register did document and did with the server
-            server_url = get_server_url(self.profile)
+            server_url = await get_server_url(self.profile)
             response = await http_session.post(
                 server_url,
                 json={"didDocument": witnessed_document},
-                ssl=use_strict_ssl(self.profile),
+                ssl=(await use_strict_ssl(self.profile)),
             )
             response_json = await response.json()
             if response.status == http.HTTPStatus.BAD_REQUEST:
@@ -318,7 +320,7 @@ class DidWebvhOperationsManager:
             response = await http_session.post(
                 f"{server_url}/{namespace}/{identifier}",
                 json={"logEntry": signed_initial_log_entry},
-                ssl=use_strict_ssl(self.profile),
+                ssl=(await use_strict_ssl(self.profile)),
             )
 
             if response.status == http.HTTPStatus.INTERNAL_SERVER_ERROR:
@@ -368,7 +370,7 @@ class DidWebvhOperationsManager:
 
     async def update(self, options: dict, features: dict):
         """Update a Webvh DID."""
-        server_url = get_server_url(self.profile)
+        server_url = await get_server_url(self.profile)
 
         namespace = options.get("namespace")
         identifier = options.get("identifier")
@@ -416,7 +418,7 @@ class DidWebvhOperationsManager:
             response = await http_session.put(
                 f"{server_url}/{namespace}/{identifier}",
                 json={"logEntry": signed_log_entry},
-                ssl=use_strict_ssl(self.profile),
+                ssl=(await use_strict_ssl(self.profile)),
             )
 
             response_json = await response.json()
@@ -434,7 +436,7 @@ class DidWebvhOperationsManager:
 
     async def deactivate(self, options: dict):
         """Create a Webvh DID."""
-        server_url = get_server_url(self.profile)
+        server_url = await get_server_url(self.profile)
 
         namespace = options.get("namespace")
         identifier = options.get("identifier")
@@ -488,7 +490,7 @@ class DidWebvhOperationsManager:
             response = await http_session.delete(
                 f"{server_url}/{namespace}/{identifier}",
                 json={"logEntry": signed_log_entry},
-                ssl=use_strict_ssl(self.profile),
+                ssl=(await use_strict_ssl(self.profile)),
             )
 
             response_json = await response.json()

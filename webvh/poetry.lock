@@ -2,7 +2,7 @@
 
 [[package]]
 name = "acapy-agent"
-version = "1.2.0"
+version = "1.2.1rc0"
 description = "(ACA-Py) A Cloud Agent Python is a foundation for building decentralized identity applications and services running in non-mobile environments. "
 optional = true
 python-versions = "^3.12"
@@ -58,8 +58,13 @@ didcommv2 = ["didcomm-messaging (>=0.1.1a0,<0.2.0)"]
 [package.source]
 type = "git"
 url = "https://github.com/openwallet-foundation/acapy.git"
+<<<<<<< HEAD
 reference = "HEAD"
 resolved_reference = "537f8d3f5f8f0ebf12b248b53c793a58f1075282"
+=======
+reference = "main"
+resolved_reference = "aa3a3439c11cb3a50b419c5a40de63fc5ee1ec7c"
+>>>>>>> 95a2af2d08ed19c3287c875973404b8cfd335cfb
 
 [[package]]
 name = "aiofiles"
