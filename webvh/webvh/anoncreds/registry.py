@@ -303,20 +303,24 @@ class DIDWebVHRegistry(BaseAnonCredsResolver, BaseAnonCredsRegistrar):
     ) -> dict:  # AttestedResource:
         """Derive attested resource object from content and publish."""
 
+        # Ensure a service endpoint is set
         if not options.get("serviceEndpoint"):
             raise AnonCredsRegistrationError("Missing service endpoint")
         self.service_endpoint = options.get("serviceEndpoint")
 
+        # Ensure a verification method is set
         if not options.get("verificationMethod"):
             raise AnonCredsRegistrationError("Missing verification method")
         self.proof_options["verificationMethod"] = options.get("verificationMethod")
 
+        # Ensure content digest is accurate
         if resource_metadata.get("resource_id") != self._digest_multibase(
             resource_content
         ):
             raise AnonCredsRegistrationError("Digest mismatch")
         content_digest = resource_metadata.get("resource_id")
 
+        # Create resource object
         resource = {
             "@context": ["https://w3id.org/security/data-integrity/v2"],
             "type": ["AttestedResource"],
@@ -336,6 +340,8 @@ class DIDWebVHRegistry(BaseAnonCredsResolver, BaseAnonCredsRegistrar):
         #             'resourceType': resource_type
         #         }
         #     )
+        
+        # Secure resource with a Data Integrity proof
         try:
             async with profile.session() as session:
                 secured_resource = await DataIntegrityManager(session).add_proof(
@@ -349,6 +355,7 @@ class DIDWebVHRegistry(BaseAnonCredsResolver, BaseAnonCredsRegistrar):
         except:
             raise AnonCredsRegistrationError("Error securing resource")
 
+        # Upload secured resource to server with metadata
         try:
             r = requests.post(
                 self.service_endpoint,
@@ -366,7 +373,7 @@ class DIDWebVHRegistry(BaseAnonCredsResolver, BaseAnonCredsRegistrar):
                 )
 
         except:
-            raise AnonCredsRegistrationError("Error uploading resource")
-            # raise AnonCredsRegistrationError(r.text)
+            # raise AnonCredsRegistrationError("Error uploading resource")
+            raise AnonCredsRegistrationError(r.text)
 
         return secured_resource

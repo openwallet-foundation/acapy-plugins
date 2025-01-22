@@ -10,11 +10,10 @@ class WebVHDID(Regexp):
 
     EXAMPLE = "did:webvh:scid:domain.com:099be283-4302-40cc-9850-22016bcd1d86"
 
-    # SCID = r"([a-z,0-9,A-Z])"#{36,36})"
-    # DOMAIN = r"([a-z0-9]+(?:\.[a-z0-9]+)*(?::\d+)?(?:\/[^#\s]*)?(?:#.*)?\s*)"
+    SCID = r"([a-z,0-9,A-Z]{46,46})"
 
     # PATTERN = re.compile(
-    #     rf"^(did:webvh:{SCID}:)$"
+    #     rf"^did:webvh:{SCID}:"
     # )
     PATTERN = re.compile(r"^did:webvh:")
 
