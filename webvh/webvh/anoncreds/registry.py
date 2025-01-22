@@ -1,7 +1,11 @@
 """DID Webvh Registry."""
 
-import re
 import logging
+import re
+import time
+from datetime import datetime, timezone
+from bitstring import BitArray
+import gzip
 import requests
 import jcs
 from multiformats import multibase, multihash
@@ -26,6 +30,7 @@ from acapy_agent.anoncreds.models.revocation import (
     GetRevRegDefResult,
     RevList,
     RevListResult,
+    RevListState,
     RevRegDef,
     RevRegDefResult,
     RevRegDefState,
@@ -79,6 +84,25 @@ class DIDWebVHRegistry(BaseAnonCredsResolver, BaseAnonCredsRegistrar):
         return WebVHDID.PATTERN
 
     @staticmethod
+    def _encode_revocation_list(decoded_list) -> str:
+        """Encode revocation list."""
+        bit_string = ''.join(decoded_list)
+        bit_array = BitArray(bin=bit_string)
+        compressed_list = gzip.compress(bit_array.bytes)
+        encoded_list = multibase.encode(compressed_list, "base64url")
+        return encoded_list
+
+    @staticmethod
+    def _decode_revocation_list(encoded_list) -> str:
+        """Decode revocation list."""
+        compressed_list = multibase.decode(encoded_list)
+        bytes_list = gzip.decompress(compressed_list)
+        bit_array = BitArray(bytes=bytes_list)
+        # decoded_list = bit_array.bin
+        decoded_list = bit_array
+        return decoded_list
+
+    @staticmethod
     def _digest_multibase(resource_content) -> str:
         """Supported Identifiers Regular Expression."""
         digest_multihash = multihash.digest(
@@ -123,8 +147,9 @@ class DIDWebVHRegistry(BaseAnonCredsResolver, BaseAnonCredsRegistrar):
     ) -> SchemaResult:
         """Register a schema on the registry."""
 
+        content = schema.serialize()
         metadata = {
-            "resource_id": self._digest_multibase(schema.serialize()),
+            "resource_id": self._digest_multibase(content),
             "resource_type": "anonCredsSchema",
             "resource_name": schema.name,
         }
@@ -133,7 +158,7 @@ class DIDWebVHRegistry(BaseAnonCredsResolver, BaseAnonCredsRegistrar):
             profile=profile,
             issuer_id=schema.issuer_id,
             resource_metadata=metadata,
-            resource_content=schema.serialize(),
+            resource_content=content,
             options=options,
         )
 
@@ -177,8 +202,9 @@ class DIDWebVHRegistry(BaseAnonCredsResolver, BaseAnonCredsRegistrar):
     ) -> CredDefResult:
         """Register a credential definition on the registry."""
 
+        content = credential_definition.serialize()
         metadata = {
-            "resource_id": self._digest_multibase(credential_definition.serialize()),
+            "resource_id": self._digest_multibase(content),
             "resource_type": "anonCredsCredDef",
             "resource_name": credential_definition.tag,
         }
@@ -187,7 +213,7 @@ class DIDWebVHRegistry(BaseAnonCredsResolver, BaseAnonCredsRegistrar):
             profile=profile,
             issuer_id=schema.schema.issuer_id,
             resource_metadata=metadata,
-            resource_content=credential_definition.serialize(),
+            resource_content=content,
             options=options,
         )
 
@@ -206,6 +232,7 @@ class DIDWebVHRegistry(BaseAnonCredsResolver, BaseAnonCredsRegistrar):
         self, profile: Profile, revocation_registry_id: str
     ) -> GetRevRegDefResult:
         """Get a revocation registry definition from the registry."""
+        
         resource = await self.resolver.resolve_resource(revocation_registry_id)
 
         anoncreds_revocation_registry_definition = RevRegDef(
@@ -231,10 +258,9 @@ class DIDWebVHRegistry(BaseAnonCredsResolver, BaseAnonCredsRegistrar):
     ) -> RevRegDefResult:
         """Register a revocation registry definition on the registry."""
 
+        content = revocation_registry_definition.serialize()
         metadata = {
-            "resource_id": self._digest_multibase(
-                revocation_registry_definition.serialize()
-            ),
+            "resource_id": self._digest_multibase(content),
             "resource_type": "anonCredsRevocRegDef",
             "resource_name": revocation_registry_definition.tag,
         }
@@ -243,7 +269,7 @@ class DIDWebVHRegistry(BaseAnonCredsResolver, BaseAnonCredsRegistrar):
             profile=profile,
             issuer_id=revocation_registry_definition.issuer_id,
             resource_metadata=metadata,
-            resource_content=revocation_registry_definition.serialize(),
+            resource_content=content,
             options=options,
         )
 
@@ -262,7 +288,37 @@ class DIDWebVHRegistry(BaseAnonCredsResolver, BaseAnonCredsRegistrar):
         self, profile: Profile, revocation_registry_id: str, timestamp: int
     ) -> GetRevListResult:
         """Get a revocation list from the registry."""
-        raise NotImplementedError()
+        
+        resource_type = "anonCredsStatusList"
+        
+        revocation_registry_resource = await self.resolver.resolve_resource(revocation_registry_id)
+        did = revocation_registry_id.split('/')[0]
+        resource_name = revocation_registry_resource.get('resourceMetadata').get('resourceName')
+        
+        epoch_time = timestamp or int(time.time())
+        dt_object = datetime.fromtimestamp(epoch_time, tz=timezone.utc)
+        resource_time = dt_object.strftime("%Y-%m-%dT%H:%M:%SZ")
+        
+        status_list_uri = f'{did}?resourceType={resource_type}&resourceName={resource_name}&resourceVersionTime={resource_time}'
+        resource = await self.resolver.resolve_resource(status_list_uri)
+        revocation_list = ''
+        
+        # encoded_list = resource.get('resourceContent').get("revocationList")
+        # revocation_list = self._decode_revocation_list(encoded_list)
+
+        revocation_list = RevList(
+            issuer_id=did,
+            rev_reg_def_id=revocation_registry_id,
+            revocation_list=resource.get('resourceContent').get("revocationList"),
+            current_accumulator=resource.get('resourceContent').get("currentAccumulator"),
+            timestamp=epoch_time,  # fix: return timestamp from resolution metadata
+        )
+
+        return GetRevListResult(
+            revocation_list=revocation_list,
+            resolution_metadata={},
+            revocation_registry_metadata=revocation_registry_resource.get('resourceMetadata'),
+        )
 
     async def register_revocation_list(
         self,
@@ -272,7 +328,34 @@ class DIDWebVHRegistry(BaseAnonCredsResolver, BaseAnonCredsRegistrar):
         options: Optional[dict] = None,
     ) -> RevListResult:
         """Register a revocation list on the registry."""
-        raise NotImplementedError()
+
+        content = rev_list.serialize()
+        metadata = {
+            "resource_id": self._digest_multibase(content),
+            "resource_type": "anonCredsStatusList",
+            "resource_name": rev_reg_def.tag,
+        }
+        
+        # list_content = rev_list.serialize()
+        # list_content['revocationList'] = self._encode_revocation_list(list_content['revocationList'])
+
+        resource = await self._create_and_publish_resource(
+            profile=profile,
+            issuer_id=rev_reg_def.issuer_id,
+            resource_metadata=metadata,
+            resource_content=content,
+            options=options,
+        )
+
+        return RevListResult(
+            job_id=None,
+            revocation_list_state=RevListState(
+                state=RevListState.STATE_FINISHED,
+                revocation_list=rev_list,
+            ),
+            registration_metadata=metadata,
+            revocation_list_metadata=metadata,
+        )
 
     async def update_revocation_list(
         self,
@@ -284,7 +367,34 @@ class DIDWebVHRegistry(BaseAnonCredsResolver, BaseAnonCredsRegistrar):
         options: Optional[dict] = None,
     ) -> RevListResult:
         """Update a revocation list on the registry."""
-        raise NotImplementedError()
+
+        content = curr_list.serialize()
+        metadata = {
+            "resource_id": self._digest_multibase(content),
+            "resource_type": "anonCredsStatusList",
+            "resource_name": rev_reg_def.tag,
+        }
+        
+        # list_content = curr_list.serialize()
+        # list_content['revocationList'] = self._encode_revocation_list(list_content['revocationList'])
+        
+        resource = await self._create_and_publish_resource(
+            profile=profile,
+            issuer_id=rev_reg_def.issuer_id,
+            resource_metadata=metadata,
+            resource_content=content,
+            options=options,
+        )
+
+        return RevListResult(
+            job_id=None,
+            revocation_list_state=RevListState(
+                state=RevListState.STATE_FINISHED,
+                revocation_list=curr_list,
+            ),
+            registration_metadata=metadata,
+            revocation_list_metadata=metadata,
+        )
 
     async def get_schema_info_by_id(
         self, profile: Profile, schema_id: str
