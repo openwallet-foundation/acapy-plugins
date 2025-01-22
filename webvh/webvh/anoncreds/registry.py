@@ -362,8 +362,8 @@ class DIDWebVHRegistry(BaseAnonCredsResolver, BaseAnonCredsRegistrar):
                 json={
                     "securedResource": secured_resource,
                     "options": {
-                        "resourceId": resource_metadata["resourceId"],
-                        "resourceType": resource_metadata["resourceType"],
+                        "resourceId": resource_metadata["resource_id"],
+                        "resourceType": resource_metadata["resource_type"],
                     },
                 },
             )
