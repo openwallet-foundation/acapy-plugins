@@ -11,6 +11,7 @@ from aiohttp import web
 from aiohttp_apispec import docs, querystring_schema, request_schema, response_schema
 from marshmallow import fields
 
+from .config.config import set_config
 from .did.exceptions import (
     ConfigurationError,
     DidCreationError,
@@ -87,6 +88,41 @@ class IdRequestParamSchema(OpenAPISchema):
         metadata={
             "description": "ID of the DID to attest",
             "example": "did:web:server.localhost%3A8000:prod:1",
+        },
+    )
+
+
+class ConfigureWebvhSchema(OpenAPISchema):
+    """Request model for creating a Webvh DID."""
+
+    server_url = fields.Str(
+        required=True,
+        metadata={
+            "description": "URL of the webvh server",
+            "example": "http://localhost:8000",
+        },
+    )
+    controller = fields.Boolean(
+        required=False,
+        metadata={
+            "description": "Agent is a webvh controller",
+            "example": "true",
+        },
+        default=True,
+    )
+    witness = fields.Boolean(
+        required=False,
+        metadata={
+            "description": "Agent is a webvh witness",
+            "example": "false",
+        },
+        default=False,
+    )
+    witness_invitation = fields.Str(
+        required=False,
+        metadata={
+            "description": "Invitation for the witness",
+            "example": "http://localhost:3000?oob=eyJAdHlwZSI6ICJodHRwczovL2RpZGNvbW0ub3JnL291dC1vZi1iYW5kLzEuMS9pbnZpdGF0aW9uIiwgIkBpZCI6ICJlMzI5OGIyNS1mZjRlLTRhZmItOTI2Yi03ZDcyZmVlMjQ1ODgiLCAibGFiZWwiOiAid2VidmgtZW5kb3JzZXIiLCAiaGFuZHNoYWtlX3Byb3RvY29scyI6IFsiaHR0cHM6Ly9kaWRjb21tLm9yZy9kaWRleGNoYW5nZS8xLjAiXSwgInNlcnZpY2VzIjogW3siaWQiOiAiI2lubGluZSIsICJ0eXBlIjogImRpZC1jb21tdW5pY2F0aW9uIiwgInJlY2lwaWVudEtleXMiOiBbImRpZDprZXk6ejZNa3FDQ1pxNURSdkdMcDV5akhlZlZTa2JhN0tYWlQ1Nld2SlJacEQ2Z3RvRzU0I3o2TWtxQ0NacTVEUnZHTHA1eWpIZWZWU2tiYTdLWFpUNTZXdkpSWnBENmd0b0c1NCJdLCAic2VydmljZUVuZHBvaW50IjogImh0dHA6Ly9sb2NhbGhvc3Q6MzAwMCJ9XX0",
         },
     )
 
@@ -170,6 +206,30 @@ async def attest_log_entry(request: web.BaseRequest):
         return web.json_response({"status": "error", "message": str(err)})
 
 
+@docs(tags=["did"], summary="Configure a webvh agent")
+@request_schema(ConfigureWebvhSchema)
+@tenant_authentication
+async def configure(request: web.BaseRequest):
+    """Configure a webvh agent."""
+    profile = request["context"].profile
+
+    # Build the config object
+    request_json = await request.json()
+    config = {
+        "server_url": request_json["server_url"],
+    }
+    config["role"] = "controller" if request_json["controller"] else "witness"
+    if request_json.get("witness_invitation"):
+        config["witness_invitation"] = request_json["witness_invitation"]
+
+    try:
+        await set_config(profile, config)
+        await WitnessManager(profile).auto_witness_setup()
+        return web.json_response({"status": "success"})
+    except ConfigurationError as err:
+        return web.json_response({"status": "error", "message": str(err)})
+
+
 def register_events(event_bus: EventBus):
     """Register to the acapy startup event."""
     event_bus.subscribe(STARTUP_EVENT_PATTERN, on_startup_event)
@@ -177,8 +237,8 @@ def register_events(event_bus: EventBus):
 
 async def on_startup_event(profile: Profile, event: Event):
     """Handle the witness setup."""
-
-    await WitnessManager(profile).auto_witness_setup()
+    if not profile.settings.get("multitenant.enabled"):
+        await WitnessManager(profile).auto_witness_setup()
 
 
 async def register(app: web.Application):
@@ -188,6 +248,7 @@ async def register(app: web.Application):
     app.add_routes([web.post("/did/webvh/deactivate", deactivate)])
     app.add_routes([web.post("/did/webvh/witness/attest", witness_get_pending)])
     app.add_routes([web.post("/did/webvh/witness/pending", attest_log_entry)])
+    app.add_routes([web.post("/did/webvh/configuration", configure)])
 
 
 def post_process_routes(app: web.Application):

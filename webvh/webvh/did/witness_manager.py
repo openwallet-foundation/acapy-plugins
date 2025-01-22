@@ -19,14 +19,12 @@ from acapy_agent.wallet.keys.manager import (
 )
 from aries_askar import AskarError
 
+from ..config.config import get_plugin_config, get_server_url, is_controller
 from .exceptions import WitnessError
 from .messages.witness import WitnessRequest, WitnessResponse
 from .registration_state import RegistrationState
 from .utils import (
-    get_plugin_settings,
-    get_server_url,
     get_url_decoded_domain,
-    is_controller,
 )
 
 LOGGER = logging.getLogger(__name__)
@@ -43,7 +41,7 @@ class WitnessManager:
         self.profile = profile
 
     async def _get_active_witness_connection(self) -> Optional[ConnRecord]:
-        witness_alias = get_server_url(self.profile) + "@Witness"
+        witness_alias = await get_server_url(self.profile) + "@Witness"
         async with self.profile.session() as session:
             connection_records = await ConnRecord.retrieve_by_alias(
                 session, witness_alias
@@ -67,7 +65,7 @@ class WitnessManager:
         parameters: dict,
     ) -> Optional[dict]:
         """Witness the document with the given parameters."""
-        role = get_plugin_settings(self.profile).get("role")
+        role = (await get_plugin_config(self.profile)).get("role")
         async with self.profile.session() as session:
             # Self witness
             if not role or role == "witness":
@@ -109,7 +107,7 @@ class WitnessManager:
 
     async def auto_witness_setup(self) -> None:
         """Automatically set up the witness the connection."""
-        if not is_controller(self.profile):
+        if not await is_controller(self.profile):
             return
 
         # Get the witness connection is already set up
@@ -117,12 +115,14 @@ class WitnessManager:
             LOGGER.info("Connected to witness from previous connection.")
             return
 
-        witness_invitation = get_plugin_settings(self.profile).get("witness_invitation")
+        witness_invitation = (await get_plugin_config(self.profile)).get(
+            "witness_invitation"
+        )
         if not witness_invitation:
             LOGGER.info("No witness invitation, can't create connection automatically.")
             return
 
-        witness_alias = get_server_url(self.profile) + "@Witness"
+        witness_alias = await get_server_url(self.profile) + "@Witness"
         oob_mgr = OutOfBandManager(self.profile)
         try:
             await oob_mgr.receive_invitation(

@@ -2,8 +2,10 @@
 
 ## Description
 
-< Replace with information about the reason this plugin was produced and a brief overview of the features >
+This plugin provides support for the webvh did method. It provides a controller role that interacts with a did webvh server to resolve and create dids, and a witness role that interacts with the did controller to sign did requests.
 
 ## Configuration
 
-< Replace this section with an outline of configuration options and basic defaults for deploying the plugin >
+The plugin can be configured with a plugin configuration file. This file will be loaded at startup. It can also be overridden or setup at runtime with the configuration API.
+
+
