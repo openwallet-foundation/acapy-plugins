@@ -112,8 +112,23 @@ class DidWebvhOperationsManager:
 
         return authorized_key_info
 
+    async def _get_or_create_first_verification_key(self, did):
+        async with self.profile.session() as session:
+            try:
+                # NOTE: kid management needs to be addressed with key rotation
+                authorized_key_info = await MultikeyManager(session).create(
+                    alg="ed25519",
+                    kid=f"{did}#key-01",
+                )
+            except MultikeyManagerError:
+                authorized_key_info = await MultikeyManager(session).from_kid(
+                    f"{did}#key-01"
+                )
+
+        return authorized_key_info
+
     async def _create_controller_signed_registration_document(
-        self, did, authorized_key_info, expiration, domain, challenge
+        self, did, first_ver_key_info, authorized_key_info, expiration, domain, challenge
     ):
         async with self.profile.session() as session:
             # NOTE: The authorized key is used as the verification method. This needs to
@@ -125,14 +140,14 @@ class DidWebvhOperationsManager:
                         "https://w3id.org/security/multikey/v1",
                     ],
                     id=did,
-                    authentication=[authorized_key_info.get("kid")],
-                    assertion_method=[authorized_key_info.get("kid")],
+                    authentication=[first_ver_key_info.get("kid")],
+                    assertion_method=[first_ver_key_info.get("kid")],
                     verification_method=[
                         {
-                            "id": authorized_key_info.get("kid"),
+                            "id": first_ver_key_info.get("kid"),
                             "type": "Multikey",
                             "controller": did,
-                            "publicKeyMultibase": authorized_key_info.get("multikey"),
+                            "publicKeyMultibase": first_ver_key_info.get("multikey"),
                         }
                     ],
                 ).serialize(),
@@ -178,9 +193,10 @@ class DidWebvhOperationsManager:
         )
 
         authorized_key_info = await self._get_or_create_authorized_key(did)
+        first_ver_key_info = await self._get_or_create_first_verification_key(did)
         controller_secured_document = (
             await self._create_controller_signed_registration_document(
-                did, authorized_key_info, expiration, domain, challenge
+                did, first_ver_key_info, authorized_key_info, expiration, domain, challenge
             )
         )
 
@@ -221,6 +237,18 @@ class DidWebvhOperationsManager:
             "@context": "https://www.w3.org/ns/did/v1",
             "id": r"did:webvh:{SCID}:" + f"{domain}:{namespace}:{identifier}",
         }
+        first_ver_key_info = await self._get_or_create_first_verification_key(
+            initial_doc['id'])
+        initial_doc['authentication'] = [first_ver_key_info.get("kid")]
+        initial_doc['assertionMethod'] = [first_ver_key_info.get("kid")]
+        initial_doc['verificationMethod'] = [
+            {
+                "id": first_ver_key_info.get("kid"),
+                "type": "Multikey",
+                "controller": initial_doc['id'],
+                "publicKeyMultibase": first_ver_key_info.get("multikey"),
+            }
+        ]
         doc_state = DocumentState.initial(
             {
                 "updateKeys": [authorized_key_info.get("multikey")],
