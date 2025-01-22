@@ -261,7 +261,7 @@ class DidWebvhOperationsManager:
 
         # Add controller authorized proof to the log entry
         # NOTE: The authorized key is used as the verification method.
-        return await DataIntegrityManager(session).add_proof(
+        signed_entry = await DataIntegrityManager(session).add_proof(
             doc_state.history_line(),
             DataIntegrityProofOptions(
                 type="DataIntegrityProof",
@@ -270,6 +270,13 @@ class DidWebvhOperationsManager:
                 verification_method=f"did:key:{authorized_key_info.get('multikey')}#{authorized_key_info.get('multikey')}",
             ),
         )
+        async with self.profile.session() as session:
+            await MultikeyManager(session).update(
+                multikey=first_ver_key_info.get("multikey"),
+                kid=signed_entry.get('state').get('verificationMethod')[0],
+            )
+        
+        return signed_entry
 
     async def finish_create(
         self,
