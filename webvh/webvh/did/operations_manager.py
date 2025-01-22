@@ -273,7 +273,7 @@ class DidWebvhOperationsManager:
         async with self.profile.session() as session:
             await MultikeyManager(session).update(
                 multikey=first_ver_key_info.get("multikey"),
-                kid=signed_entry.get('state').get('verificationMethod')[0],
+                kid=signed_entry.get('state').get('verificationMethod')[0].get('id'),
             )
         
         return signed_entry
