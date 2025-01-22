@@ -138,7 +138,7 @@ class DIDWebVHRegistry(BaseAnonCredsResolver, BaseAnonCredsRegistrar):
         )
 
         return SchemaResult(
-            # job_id=None,
+            job_id=None,
             schema_state=SchemaState(
                 state=SchemaState.STATE_FINISHED,
                 schema_id=resource.get("id"),
@@ -192,7 +192,7 @@ class DIDWebVHRegistry(BaseAnonCredsResolver, BaseAnonCredsRegistrar):
         )
 
         return CredDefResult(
-            # job_id=None,
+            job_id=None,
             credential_definition_state=CredDefState(
                 state=CredDefState.STATE_FINISHED,
                 credential_definition_id=resource.get("id"),
@@ -248,7 +248,7 @@ class DIDWebVHRegistry(BaseAnonCredsResolver, BaseAnonCredsRegistrar):
         )
 
         return RevRegDefResult(
-            # job_id=None,
+            job_id=None,
             revocation_registry_definition_state=RevRegDefState(
                 state=RevRegDefState.STATE_FINISHED,
                 revocation_registry_definition_id=resource.get("id"),
@@ -373,7 +373,7 @@ class DIDWebVHRegistry(BaseAnonCredsResolver, BaseAnonCredsRegistrar):
                 )
 
         except:
-            # raise AnonCredsRegistrationError("Error uploading resource")
-            raise AnonCredsRegistrationError(r.text)
+            raise AnonCredsRegistrationError("Error uploading resource")
+            # raise AnonCredsRegistrationError(r.text)
 
         return secured_resource
