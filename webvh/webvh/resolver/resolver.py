@@ -20,6 +20,7 @@ from ..validation import WebVHDID
 
 LOGGER = logging.getLogger(__name__)
 
+
 @dataclass
 class DIDLinkedResourceWithMetadata:
     """Schema for DID Linked Resource with metadata."""
@@ -42,16 +43,16 @@ class DIDWebVHResolver(BaseDIDResolver):
     def supported_did_regex(self) -> Pattern:
         """Return supported_did_regex of WebVH DID Resolver."""
         return WebVHDID.PATTERN
-    
+
     def _did_to_url(self, did: str):
-        domain = did.split(':')[3]
-        path = '/'.join(did.split(':')[4:])
-        return f'https://{domain}/{path}/did.json'
-    
+        domain = did.split(":")[3]
+        path = "/".join(did.split(":")[4:])
+        return f"https://{domain}/{path}/did.json"
+
     def _id_to_url(self, resource_id: str):
-        domain = resource_id.split(':')[3]
-        path = '/'.join(resource_id.split(':')[4:])
-        return f'https://{domain}/{path}'
+        domain = resource_id.split(":")[3]
+        path = "/".join(resource_id.split(":")[4:])
+        return f"https://{domain}/{path}"
 
     async def _resolve(
         self,
@@ -113,20 +114,19 @@ class DIDWebVHResolver(BaseDIDResolver):
         metadata = {}
 
         # Validate
-        assert resource.get('@context')
-        assert resource.get('type')
-        assert resource.get('id')
-        assert resource.get('resourceContent')
-        assert resource.get('resourceMetadata')
-        assert resource.get('proof')
-    
+        assert resource.get("@context")
+        assert resource.get("type")
+        assert resource.get("id")
+        assert resource.get("resourceContent")
+        assert resource.get("resourceMetadata")
+        assert resource.get("proof")
+
         attested_resource = resource
-        
-        proof = resource.pop('proof')
+
+        proof = resource.pop("proof")
         proof = proof if isinstance(proof, dict) else proof[0]
-        
-        resource_digest = attested_resource.get('resourceMetadata').get('resourceId')
-        assert resource_digest == resource_url.split('/')[-1].split('.')[0]
-        
+
+        resource_digest = attested_resource.get("resourceMetadata").get("resourceId")
+        assert resource_digest == resource_url.split("/")[-1].split(".")[0]
+
         return attested_resource
-    

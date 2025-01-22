@@ -30,7 +30,7 @@ async def setup(context: InjectionContext):
     await webvh_registry.setup(context)
     LOGGER.info("Registering DIDWebVHRegistry")
     anoncreds_registry.register(webvh_registry)
-    
+
     # Register WebVH Resolver
     resolver_registry = context.inject_or(DIDResolver)
     if not resolver_registry:
