@@ -73,7 +73,7 @@ class DidWebvhOperationsManager:
                         "namespace": namespace,
                         "identifier": identifier,
                     },
-                    ssl=(await use_strict_ssl(self.profile)),
+                    # ssl=(await use_strict_ssl(self.profile)),
                 )
             except ClientConnectionError as err:
                 raise DidCreationError(f"Failed to connect to Webvh server: {err}")
