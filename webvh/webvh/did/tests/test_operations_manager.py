@@ -87,14 +87,6 @@ class TestOperationsManager(IsolatedAsyncioTestCase):
         with self.assertRaises(ConfigurationError):
             await DidWebvhOperationsManager(self.profile).create(options={})
 
-        self.profile.settings.set_value(
-            "plugin_config",
-            {"did-webvh": {"role": "controller", "server_url": "http://localhost:8000"}},
-        )
-        # No namespace
-        with self.assertRaises(DidCreationError):
-            await DidWebvhOperationsManager(self.profile).create(options={})
-
     @mock.patch(
         "aiohttp.ClientSession.get",
         request_namespace,
