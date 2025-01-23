@@ -12,7 +12,8 @@ from acapy_agent.wallet.keys.manager import MultikeyManager
 from ..messages.witness import WitnessRequest, WitnessResponse
 from ..operations_manager import DidWebvhOperationsManager
 from ..registration_state import RegistrationState
-from ..utils import get_url_decoded_domain
+from ..utils import get_url_decoded_domain, key_to_did_key_vm
+from ..constants import ALIASES
 from ..witness_manager import WitnessManager
 
 LOGGER = logging.getLogger(__name__)
@@ -32,7 +33,7 @@ class WitnessRequestHandler(BaseHandler):
         """Handle automatic witness."""
         domain = proof.get("domain")
         url_decoded_domain = get_url_decoded_domain(domain)
-        witness_kid = f'{url_decoded_domain}@witness'
+        witness_kid = f'{url_decoded_domain}{ALIASES["witnessKey"]}'
 
         async with context.profile.session() as session:
             # Attempt to get the witness key for the domain
@@ -54,7 +55,7 @@ class WitnessRequestHandler(BaseHandler):
                     type="DataIntegrityProof",
                     cryptosuite="eddsa-jcs-2022",
                     proof_purpose="assertionMethod",
-                    verification_method=f"did:key:{witness_key_info.get('multikey')}#{witness_key_info.get('multikey')}",
+                    verification_method=key_to_did_key_vm(witness_key_info.get('multikey')),
                     expires=proof.get("expires"),
                     domain=domain,
                     challenge=proof.get("challenge"),

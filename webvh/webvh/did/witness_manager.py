@@ -10,12 +10,8 @@ from acapy_agent.messaging.models.base import BaseModelError
 from acapy_agent.messaging.responder import BaseResponder
 from acapy_agent.protocols.out_of_band.v1_0.manager import OutOfBandManager
 from acapy_agent.protocols.out_of_band.v1_0.messages.invitation import InvitationMessage
-from acapy_agent.vc.data_integrity.manager import DataIntegrityManager
-from acapy_agent.vc.data_integrity.models.options import DataIntegrityProofOptions
-from acapy_agent.wallet.error import WalletDuplicateError
 from acapy_agent.wallet.keys.manager import (
-    MultikeyManager,
-    MultikeyManagerError,
+    MultikeyManager
 )
 from aries_askar import AskarError
 
@@ -25,7 +21,11 @@ from .messages.witness import WitnessRequest, WitnessResponse
 from .registration_state import RegistrationState
 from .utils import (
     get_url_decoded_domain,
+    key_to_did_key_vm,
+    create_or_get_key,
+    sign_document
 )
+from .constants import ALIASES
 
 LOGGER = logging.getLogger(__name__)
 
@@ -39,11 +39,10 @@ class WitnessManager:
     def __init__(self, profile: Profile):
         """Initialize the witness manager."""
         self.profile = profile
-        self.witness_alias_suffix = '@witness'
 
     async def _get_active_witness_connection(self) -> Optional[ConnRecord]:
         witness_alias = await get_server_url(self.profile)
-        witness_alias = witness_alias.split('://')[-1] + self.witness_alias_suffix
+        witness_alias = witness_alias.split('://')[-1] + ALIASES['witnessConnection']
         async with self.profile.session() as session:
             connection_records = await ConnRecord.retrieve_by_alias(
                 session, witness_alias
@@ -71,21 +70,17 @@ class WitnessManager:
         async with self.profile.session() as session:
             # Self witness
             if not role or role == "witness":
-                witness_alias = f'{domain}@witness'
+                witness_alias = f'{domain}{ALIASES["witnessKey"]}'
                 witness_key_info = await MultikeyManager(session).from_kid(
                     witness_alias
                 )
-                return await DataIntegrityManager(session).add_proof(
-                    controller_secured_document,
-                    DataIntegrityProofOptions(
-                        type="DataIntegrityProof",
-                        cryptosuite="eddsa-jcs-2022",
-                        proof_purpose="assertionMethod",
-                        verification_method=f"did:key:{witness_key_info.get('multikey')}#{witness_key_info.get('multikey')}",
-                        expires=expiration,
-                        domain=domain,
-                        challenge=challenge,
-                    ),
+                return await sign_document(
+                    session, 
+                    controller_secured_document, 
+                    witness_key_info.get('multikey'),
+                    expiration,
+                    domain,
+                    challenge
                 )
             # Need proof from witness agent
             else:
@@ -105,17 +100,8 @@ class WitnessManager:
         
         server_url = await get_server_url(self.profile)
         server_domain = server_url.split('://')[-1]
-        witness_alias = f'{server_domain}@witness'
-        async with self.profile.session() as session:
-            try:
-                witness_key_info = await MultikeyManager(session).create(
-                    kid=witness_alias,
-                    alg="ed25519",
-                )
-            except (MultikeyManagerError, WalletDuplicateError):
-                witness_key_info = await MultikeyManager(session).from_kid(
-                    witness_alias
-                )
+        witness_alias = f'{server_domain}{ALIASES["witnessKey"]}'
+        witness_key_info = await create_or_get_key(self.profile, witness_alias)
                 
         if not witness_key_info.get('multikey'):
             raise WitnessError("Witness key creation error.")
@@ -127,7 +113,7 @@ class WitnessManager:
         
         server_url = await get_server_url(self.profile)
         server_domain = server_url.split('://')[-1]
-        witness_alias = f'{server_domain}@witness'
+        witness_alias = f'{server_domain}{ALIASES["witnessConnection"]}'
         
         if not await is_controller(self.profile):
             return
@@ -215,17 +201,13 @@ class WitnessManager:
 
             # If the key is found, perform witness attestation
             witness_key_info = await MultikeyManager(session).from_kid(url_decoded_domain)
-            witnessed_document = await DataIntegrityManager(session).add_proof(
-                document_json,
-                DataIntegrityProofOptions(
-                    type="DataIntegrityProof",
-                    cryptosuite="eddsa-jcs-2022",
-                    proof_purpose="assertionMethod",
-                    verification_method=f"did:key:{witness_key_info.get('multikey')}#{witness_key_info.get('multikey')}",
-                    expires=proof.get("expires"),
-                    domain=domain,
-                    challenge=proof.get("challenge"),
-                ),
+            witnessed_document = await sign_document(
+                session, 
+                document_json, 
+                witness_key_info.get('multikey'),
+                proof.get("expires"),
+                domain,
+                proof.get("challenge")
             )
             responder = self.profile.inject(BaseResponder)
             await responder.send(
