@@ -291,7 +291,13 @@ class DIDWebVHRegistry(BaseAnonCredsResolver, BaseAnonCredsRegistrar):
         
         resource_type = "anonCredsStatusList"
         
-        revocation_registry_resource = await self.resolver.resolve_resource(revocation_registry_id)
+        revocation_registry_resource = await self.resolver.resolve_resource(
+            revocation_registry_id
+        )
+        
+        # TODO get index url from relatedResources
+        index = {}
+        
         did = revocation_registry_id.split('/')[0]
         resource_name = revocation_registry_resource.get('resourceMetadata').get('resourceName')
         
@@ -330,6 +336,7 @@ class DIDWebVHRegistry(BaseAnonCredsResolver, BaseAnonCredsRegistrar):
         """Register a revocation list on the registry."""
 
         content = rev_list.serialize()
+        content['timestamp'] = time.time()
         metadata = {
             "resource_id": self._digest_multibase(content),
             "resource_type": "anonCredsStatusList",
@@ -346,6 +353,13 @@ class DIDWebVHRegistry(BaseAnonCredsResolver, BaseAnonCredsRegistrar):
             resource_content=content,
             options=options,
         )
+        
+        index = {
+            'indexes': {
+                str(content['timestamp']): resource.get('id')
+            }
+        }
+        secured_index = await self._sign(profile, index)
 
         return RevListResult(
             job_id=None,
@@ -369,6 +383,7 @@ class DIDWebVHRegistry(BaseAnonCredsResolver, BaseAnonCredsRegistrar):
         """Update a revocation list on the registry."""
 
         content = curr_list.serialize()
+        content['timestamp'] = time.time()
         metadata = {
             "resource_id": self._digest_multibase(content),
             "resource_type": "anonCredsStatusList",
@@ -385,6 +400,11 @@ class DIDWebVHRegistry(BaseAnonCredsResolver, BaseAnonCredsRegistrar):
             resource_content=content,
             options=options,
         )
+        
+        index = {}
+        index.pop('proof')
+        index['indexes'][str(content['timestamp'])] = resource.get('id')
+        secured_index = await self._sign(profile, index)
 
         return RevListResult(
             job_id=None,
@@ -407,6 +427,23 @@ class DIDWebVHRegistry(BaseAnonCredsResolver, BaseAnonCredsRegistrar):
             name=schema["name"],
             version=schema["version"],
         )
+
+    async def _sign(
+        self, profile, document
+    ) -> dict:  # AttestedResource:
+        try:
+            async with profile.session() as session:
+                secured_document = await DataIntegrityManager(session).add_proof(
+                    document, DataIntegrityProofOptions.deserialize(self.proof_options)
+                )
+            if not secured_document.get("proof"):
+                raise AnonCredsRegistrationError("Unable to attach proof")
+
+            # TODO, server currently expect a proof object, not a proof set (array)
+            secured_document["proof"] = secured_document["proof"][0]
+            return secured_document
+        except:
+            raise AnonCredsRegistrationError("Error securing resource")
 
     async def _create_and_publish_resource(
         self, profile, issuer_id, resource_content, resource_metadata, options
@@ -452,18 +489,7 @@ class DIDWebVHRegistry(BaseAnonCredsResolver, BaseAnonCredsRegistrar):
         #     )
         
         # Secure resource with a Data Integrity proof
-        try:
-            async with profile.session() as session:
-                secured_resource = await DataIntegrityManager(session).add_proof(
-                    resource, DataIntegrityProofOptions.deserialize(self.proof_options)
-                )
-            if not secured_resource.get("proof"):
-                raise AnonCredsRegistrationError("Unable to attach proof")
-
-            # TODO, server currently expect a proof object, not a proof set (array)
-            secured_resource["proof"] = secured_resource["proof"][0]
-        except:
-            raise AnonCredsRegistrationError("Error securing resource")
+        secured_resource = await self._sign(profile, resource)
 
         # Upload secured resource to server with metadata
         try:

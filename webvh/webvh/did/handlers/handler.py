@@ -32,20 +32,21 @@ class WitnessRequestHandler(BaseHandler):
         """Handle automatic witness."""
         domain = proof.get("domain")
         url_decoded_domain = get_url_decoded_domain(domain)
+        witness_kid = f'{url_decoded_domain}@witness'
 
         async with context.profile.session() as session:
             # Attempt to get the witness key for the domain
-            if not await MultikeyManager(session).kid_exists(url_decoded_domain):
+            if not await MultikeyManager(session).kid_exists(witness_kid):
                 # If the key is not found, return an error
                 LOGGER.error(
-                    f"Witness key not found for domain: {url_decoded_domain}. The "
+                    f"Witness key not found for domain: {witness_kid}. The "
                     "administrator must add the key to the wallet that matches the key on"
                     " the server."
                 )
                 return
 
             # If the key is found, perform witness
-            witness_key_info = await MultikeyManager(session).from_kid(url_decoded_domain)
+            witness_key_info = await MultikeyManager(session).from_kid(witness_kid)
             # Note: The witness key is used as the verification method
             witnessed_document = await DataIntegrityManager(session).add_proof(
                 document,
