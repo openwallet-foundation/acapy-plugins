@@ -1,1 +1,3 @@
-__package__ = ''
+"""Status List Plugin."""
+
+__package__ = ""

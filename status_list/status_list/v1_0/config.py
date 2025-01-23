@@ -13,7 +13,11 @@ class ConfigError(ValueError):
     def __init__(self, var: str, env: str):
         """Initialize a ConfigError."""
         super().__init__(
-            f"Invalid {var} specified for Status List plugin; use either status_list.{var} plugin config value or environment variable {env}"
+            (
+                f"Invalid {var} specified for Status List plugin; "
+                f"use either status_list.{var} plugin config value "
+                f"or environment variable {env}"
+            )
         )
 
 

@@ -15,7 +15,7 @@ from acapy_agent.messaging.models.base import BaseModelError
 from acapy_agent.storage.error import StorageError, StorageNotFoundError
 from acapy_agent.wallet.util import bytes_to_b64
 
-from .models import StatusListDef, StatusListShard, StatusListCred
+from .models import StatusListDef, StatusListShard, StatusListCred, StatusListReg
 from .config import Config
 
 LOGGER = logging.getLogger(__name__)
@@ -28,7 +28,10 @@ class StatusListError(BaseError):
 def get_wallet_id(context: AdminRequestContext):
     """Get wallet id."""
 
-    return context.metadata.get("wallet_id") if context.metadata else "base"
+    if hasattr(context, "metadata") and context.metadata:
+        return context.metadata.get("wallet_id")
+    else:
+        return "base"
 
 
 def get_status_list_path(
@@ -75,13 +78,31 @@ def get_status_list_file_path(
     )
 
 
+async def get_status_list_number(context: AdminRequestContext):
+    """Get status list number."""
+
+    wallet_id = get_wallet_id(context)
+    async with context.profile.session() as session:
+        registry = await StatusListReg.retrieve_by_id(
+            session, wallet_id, for_update=True
+        )
+        if registry.list_count < 0:
+            raise StatusListError("Status list registry has negative list count.")
+
+        list_number = registry.list_count
+        registry.list_count += 1
+        await registry.save(session)
+
+    return str(list_number)
+
+
 async def create_next_status_list(txn: ProfileSession, definition: StatusListDef):
     """Create status list shards."""
 
     for i in range(math.ceil(definition.list_size / definition.shard_size)):
         shard = StatusListShard(
             definition_id=definition.id,
-            list_number=str(definition.next_list_number),
+            list_number=definition.next_list_number,
             shard_number=str(i),
             shard_size=definition.shard_size,
             status_size=definition.status_size,
@@ -102,13 +123,13 @@ async def generate_random_index(context: AdminRequestContext, definition_id: str
         # increment list index
         definition.list_index += 1
         if definition.list_index >= definition.list_size:
-            definition.list_number += 1
+            definition.list_number = definition.next_list_number
             definition.list_index = 0
             definition.seed_list()
 
         # create a spare list
-        if definition.list_number >= definition.next_list_number:
-            definition.next_list_number += 1
+        if definition.list_number == definition.next_list_number:
+            definition.next_list_number = await get_status_list_number(context)
             await create_next_status_list(txn, definition)
 
         # save and commit
@@ -131,7 +152,7 @@ async def assign_random_entry(context: AdminRequestContext, definition_id: str):
 
             tag_filter = {
                 "definition_id": definition.id,
-                "list_number": str(definition.list_number),
+                "list_number": definition.list_number,
                 "shard_number": str(shard_number),
             }
             # lock shard and assign an entry
@@ -142,7 +163,13 @@ async def assign_random_entry(context: AdminRequestContext, definition_id: str):
             # retun None if entry is assigned
             if not shard.mask_bits[shard_index]:
                 LOGGER.error(
-                    f"Entry is already assigned at list={definition.list_number}, entry={definition.list_index}, shard={shard_number}, index={shard_index}"
+                    (
+                        f"Entry is already assigned at "
+                        f"list={definition.list_number}, "
+                        f"entry={definition.list_index}, "
+                        f"shard={shard_number}, "
+                        f"index={shard_index}"
+                    )
                 )
                 return None
 

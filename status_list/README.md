@@ -187,9 +187,9 @@ flowchart TD
 The Plugin expects the following configuration options. These options can either be set by environment variable (`STATUS_LIST_*`) or by plugin config value (`-o status_list.*`).
 
 - `STATUS_LIST_SIZE` or `status_list.list_size`
-    - Number of status entries of the status list
+    - Default number of status entries of the status list
 - `STATUS_LIST_SHARD_SIZE` or `status_list.shard_size`
-    - Number of status entries of each shard
+    - Default number of status entries of each shard
 - `STATUS_LIST_BASE_URL` or `status_list.base_url`
     - Base URL of published status lists
 - `STATUS_LIST_BASE_DIR` or `status_list.base_dir`

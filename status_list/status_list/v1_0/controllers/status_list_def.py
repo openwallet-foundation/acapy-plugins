@@ -19,7 +19,7 @@ from aiohttp_apispec import (
 from marshmallow import fields
 from marshmallow.validate import OneOf
 
-from ..models import StatusListDef, StatusListDefSchema, StatusListShard
+from ..models import StatusListDef, StatusListDefSchema, StatusListShard, StatusListCred
 from .. import status_handler
 
 LOGGER = logging.getLogger(__name__)
@@ -118,31 +118,32 @@ async def create_status_list_def(request: web.BaseRequest):
         raise ValueError("status_message is required.")
 
     shard_size = body.get("shard_size", None)
-
     list_size = body.get("list_size", None)
-
-    definition = StatusListDef(
-        supported_cred_id=supported_cred_id,
-        status_purpose=status_purpose,
-        status_message=status_message,
-        status_size=status_size,
-        shard_size=shard_size,
-        list_size=list_size,
-    )
 
     try:
         context: AdminRequestContext = request["context"]
         async with context.profile.transaction() as txn:
             # Create status list definition
+            list_number = await status_handler.get_status_list_number(context)
+            definition = StatusListDef(
+                supported_cred_id=supported_cred_id,
+                status_purpose=status_purpose,
+                status_message=status_message,
+                status_size=status_size,
+                shard_size=shard_size,
+                list_size=list_size,
+                list_number=list_number,
+                next_list_number=list_number,
+            )
             await definition.save(txn, reason="Save status list definition.")
 
             # Create current status list
-            definition.list_number = definition.next_list_number = 0
-            definition.list_index = 0
             await status_handler.create_next_status_list(txn, definition)
 
             # Create next status list
-            definition.next_list_number = 1
+            definition.next_list_number = await status_handler.get_status_list_number(
+                context
+            )
             await status_handler.create_next_status_list(txn, definition)
 
             # Update status list definition list numbers
@@ -284,6 +285,13 @@ async def delete_status_list_def(request: web.Request):
         try:
             context: AdminRequestContext = request["context"]
             async with context.profile.transaction() as txn:
+                # detete status list creds
+                creds = await StatusListCred.query(
+                    txn, {"definition_id": definition_id}
+                )
+                for cred in creds:
+                    await cred.delete_record(txn)
+
                 # delete status list shards
                 shards = await StatusListShard.query(
                     txn, {"definition_id": definition_id}
@@ -306,7 +314,10 @@ async def delete_status_list_def(request: web.Request):
     else:
         result = {
             "deleted": False,
-            "error": "Please set recursive_delete to true to delete the status definition and all underlying status lists.",
+            "error": (
+                "Please set recursive_delete to true to delete the status definition "
+                "and all underlying status lists, entries and credentials."
+            ),
         }
 
     return web.json_response(result)

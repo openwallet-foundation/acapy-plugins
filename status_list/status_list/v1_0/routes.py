@@ -7,22 +7,17 @@ from acapy_agent.messaging.models.openapi import OpenAPISchema
 from aiohttp import web
 from aiohttp_apispec import docs, request_schema, response_schema
 
-from .controllers import (
-    # status list credentials
-    get_status_list_cred,
-    update_status_list_cred,
-    # status list definitions
+from .controllers.status_list_cred import get_status_list_cred, update_status_list_cred
+from .controllers.status_list_def import (
     create_status_list_def,
     get_status_list_defs,
     get_status_list_def,
     delete_status_list_def,
-    # status list shards
-    get_status_list,
-    # status list entries
-    assign_status_list_entry,
-    # status list publisher
-    publish_status_list,
-    # development
+)
+from .controllers.status_list_shard import get_status_list
+from .controllers.status_list_entry import assign_status_list_entry
+from .controllers.status_list_pub import publish_status_list
+from .controllers.status_list_dev import (
     get_status_lists,
     get_status_list_entry,
     update_status_list_entry,

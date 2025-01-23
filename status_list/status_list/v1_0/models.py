@@ -36,8 +36,8 @@ class StatusListDef(BaseRecord):
         shard_size: Optional[int] = -1,
         list_size: Optional[int] = -1,
         list_seed: Optional[str] = None,
-        list_number: Optional[int] = -1,
         list_index: Optional[int] = -1,
+        list_number: Optional[int] = -1,
         next_list_number: Optional[int] = -1,
         **kwargs,
     ) -> None:
@@ -52,8 +52,8 @@ class StatusListDef(BaseRecord):
         self.shard_size = shard_size
         self.list_size = list_size
         self.list_seed = list_seed
-        self.list_number = list_number
         self.list_index = list_index
+        self.list_number = list_number
         self.next_list_number = next_list_number
 
         if self.list_seed is None:
@@ -62,6 +62,8 @@ class StatusListDef(BaseRecord):
             self.shard_size = int(Config.shard_size)
         if self.list_size == -1:
             self.list_size = int(Config.list_size)
+        if self.list_index < 0:
+            self.list_index = 0
 
     @property
     def id(self) -> str:
@@ -80,8 +82,8 @@ class StatusListDef(BaseRecord):
                 "list_size",
                 "shard_size",
                 "list_seed",
-                "list_number",
                 "list_index",
+                "list_number",
                 "next_list_number",
             )
         }
@@ -172,7 +174,11 @@ class StatusListDefSchema(BaseRecordSchema):
         required=False,
         metadata={"description": "Current status list index", "example": 10240},
     )
-    next_list_number = fields.Int(
+    list_number = fields.Str(
+        required=False,
+        metadata={"description": "Next status list number", "example": 11},
+    )
+    next_list_number = fields.Str(
         required=False,
         metadata={"description": "Next status list number", "example": 11},
     )
@@ -428,5 +434,64 @@ class StatusListCredSchema(BaseRecordSchema):
         metadata={
             "description": "Status list index",
             "example": "512",
+        },
+    )
+
+
+class StatusListReg(BaseRecord):
+    """Status List Registry."""
+
+    RECORD_TOPIC = "status-list"
+    RECORD_TYPE = "status-list-reg"
+    RECORD_ID_NAME = "id"
+
+    class Meta:
+        """Status List Registry Metadata."""
+
+        schema_class = "StatusListRegSchema"
+
+    def __init__(
+        self,
+        *,
+        id: Optional[str] = None,
+        list_count: Optional[int] = -1,
+        **kwargs,
+    ) -> None:
+        """Initialize a new status list registry instance."""
+
+        super().__init__(id, **kwargs)
+
+        self.list_count = list_count
+
+    @property
+    def id(self) -> str:
+        """Accessor for the ID associated with this record."""
+        return self._id
+
+    @property
+    def record_value(self) -> dict:
+        """Return dict representation of the record for storage."""
+        return {prop: getattr(self, prop) for prop in ("list_count",)}
+
+
+class StatusListRegSchema(BaseRecordSchema):
+    """Status List Registry Schema."""
+
+    class Meta:
+        """Status List Registry Schema Metadata."""
+
+        model_class = "StatusListReg"
+
+    id = fields.Str(
+        required=False,
+        metadata={
+            "description": "Status list registry identifier, same as the wallet id",
+        },
+    )
+
+    list_count = fields.Int(
+        required=True,
+        metadata={
+            "description": "Number of status lists created in the wallet",
         },
     )

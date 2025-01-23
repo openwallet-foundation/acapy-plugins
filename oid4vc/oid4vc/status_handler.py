@@ -30,15 +30,17 @@ class StatusHandler:
         plugin_name = f"{plugin_name}." if plugin_name else ""
         if plugin_index != -1:
             self.handler = plugin_registry.plugins[plugin_index]
-            attributes = status_handler_path.lstrip(plugin_name).split(".")
+            attributes = status_handler_path.removeprefix(plugin_name).split(".")
             # Get handler object
             for attribute in attributes:
                 self.handler = getattr(self.handler, attribute)
 
-    def assign_status_entries(self, supported_cred_id, exchange_id, status_type):
+    def assign_status_entries(
+        self, context: AdminRequestContext, supported_cred_id, exchange_id, status_type
+    ):
         """Assign status entries."""
 
         if self.handler:
             return self.handler.assign_status_entries(
-                self.context, supported_cred_id, exchange_id, status_type
+                context, supported_cred_id, exchange_id, status_type
             )
