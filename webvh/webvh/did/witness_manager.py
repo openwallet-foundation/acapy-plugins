@@ -42,7 +42,8 @@ class WitnessManager:
         self.witness_alias_suffix = '@witness'
 
     async def _get_active_witness_connection(self) -> Optional[ConnRecord]:
-        witness_alias = await get_server_url(self.profile).split('://')[-1] + self.witness_alias_suffix
+        witness_alias = await get_server_url(self.profile)
+        witness_alias = witness_alias.split('://')[-1] + self.witness_alias_suffix
         async with self.profile.session() as session:
             connection_records = await ConnRecord.retrieve_by_alias(
                 session, witness_alias
