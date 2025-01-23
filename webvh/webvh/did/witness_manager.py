@@ -39,9 +39,10 @@ class WitnessManager:
     def __init__(self, profile: Profile):
         """Initialize the witness manager."""
         self.profile = profile
+        self.witness_alias_suffix = '@witness'
 
     async def _get_active_witness_connection(self) -> Optional[ConnRecord]:
-        witness_alias = await get_server_url(self.profile) + "@Witness"
+        witness_alias = await get_server_url(self.profile).split('://')[-1] + self.witness_alias_suffix
         async with self.profile.session() as session:
             connection_records = await ConnRecord.retrieve_by_alias(
                 session, witness_alias
