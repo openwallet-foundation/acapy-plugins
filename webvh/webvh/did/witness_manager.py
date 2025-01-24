@@ -189,12 +189,13 @@ class WitnessManager:
 
             domain = proof.get("domain")
             url_decoded_domain = get_url_decoded_domain(domain)
+            key_alias = f'{url_decoded_domain}{ALIASES["witnessKey"]}'
 
             # Attempt to get the witness key for the domain
-            if not await MultikeyManager(session).kid_exists(url_decoded_domain):
+            if not await MultikeyManager(session).kid_exists(key_alias):
                 # If the key is not found, return an error
                 raise WitnessError(
-                    f"Witness key not found for domain: {url_decoded_domain}. The "
+                    f"Witness key not found for alias: {key_alias}. The "
                     "administrator must add the key to the wallet that matches the key on"
                     " the server."
                 )
