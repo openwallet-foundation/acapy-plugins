@@ -64,7 +64,7 @@ class WitnessManager:
     async def witness_registration_document(
         self,
         controller_secured_document: dict,
-        proof_options: str,
+        proof_options: dict,
         parameters: dict,
     ) -> Optional[dict]:
         """Witness the document with the given parameters."""
