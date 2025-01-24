@@ -11,28 +11,28 @@ from aiohttp_apispec import (
     request_schema,
     response_schema,
 )
-from aries_cloudagent.admin.decorators.auth import tenant_authentication
-from aries_cloudagent.admin.request_context import AdminRequestContext
-from aries_cloudagent.cache.base import BaseCache
-from aries_cloudagent.messaging.models.base import BaseModelError
-from aries_cloudagent.messaging.models.openapi import OpenAPISchema
-from aries_cloudagent.messaging.models.paginated_query import (
+from acapy_agent.admin.decorators.auth import tenant_authentication
+from acapy_agent.admin.request_context import AdminRequestContext
+from acapy_agent.cache.base import BaseCache
+from acapy_agent.messaging.models.base import BaseModelError
+from acapy_agent.messaging.models.openapi import OpenAPISchema
+from acapy_agent.messaging.models.paginated_query import (
     PaginatedQuerySchema,
     get_limit_offset,
 )
-from aries_cloudagent.messaging.valid import (
+from acapy_agent.messaging.valid import (
     ENDPOINT_EXAMPLE,
     ENDPOINT_VALIDATE,
     GENERIC_DID_VALIDATE,
     INDY_DID_EXAMPLE,
     INDY_DID_VALIDATE,
-    INDY_RAW_PUBLIC_KEY_EXAMPLE,
-    INDY_RAW_PUBLIC_KEY_VALIDATE,
+    RAW_ED25519_2018_PUBLIC_KEY_EXAMPLE,
+    RAW_ED25519_2018_PUBLIC_KEY_VALIDATE,
     UUID4_EXAMPLE,
     UUID4_VALIDATE,
 )
-from aries_cloudagent.storage.error import StorageError, StorageNotFoundError
-from aries_cloudagent.wallet.error import WalletError
+from acapy_agent.storage.error import StorageError, StorageNotFoundError
+from acapy_agent.wallet.error import WalletError
 from marshmallow import fields, validate, validates_schema
 
 from .models.conn_record import (
@@ -47,11 +47,11 @@ from .messages.connection_invitation import (
 )
 
 
-class ConnectionModuleResponseSchema(OpenAPISchema):
+class ConnectionModuleResponseV1Schema(OpenAPISchema):
     """Response schema for connection module."""
 
 
-class ConnectionListSchema(OpenAPISchema):
+class ConnectionListV1Schema(OpenAPISchema):
     """Result schema for connection list."""
 
     results = fields.List(
@@ -61,7 +61,7 @@ class ConnectionListSchema(OpenAPISchema):
     )
 
 
-class ConnectionMetadataSchema(OpenAPISchema):
+class ConnectionMetadataV1Schema(OpenAPISchema):
     """Result schema for connection metadata."""
 
     results = fields.Dict(
@@ -69,7 +69,7 @@ class ConnectionMetadataSchema(OpenAPISchema):
     )
 
 
-class ConnectionMetadataSetRequestSchema(OpenAPISchema):
+class ConnectionMetadataSetRequestV1Schema(OpenAPISchema):
     """Request Schema for set metadata."""
 
     metadata = fields.Dict(
@@ -97,10 +97,10 @@ class CreateInvitationRequestSchema(OpenAPISchema):
 
     recipient_keys = fields.List(
         fields.Str(
-            validate=INDY_RAW_PUBLIC_KEY_VALIDATE,
+            validate=RAW_ED25519_2018_PUBLIC_KEY_VALIDATE,
             metadata={
                 "description": "Recipient public key",
-                "example": INDY_RAW_PUBLIC_KEY_EXAMPLE,
+                "example": RAW_ED25519_2018_PUBLIC_KEY_EXAMPLE,
             },
         ),
         required=False,
@@ -115,10 +115,10 @@ class CreateInvitationRequestSchema(OpenAPISchema):
     )
     routing_keys = fields.List(
         fields.Str(
-            validate=INDY_RAW_PUBLIC_KEY_VALIDATE,
+            validate=RAW_ED25519_2018_PUBLIC_KEY_VALIDATE,
             metadata={
                 "description": "Routing key",
-                "example": INDY_RAW_PUBLIC_KEY_EXAMPLE,
+                "example": RAW_ED25519_2018_PUBLIC_KEY_EXAMPLE,
             },
         ),
         required=False,
@@ -167,7 +167,7 @@ class InvitationResultSchema(OpenAPISchema):
     )
 
 
-class ConnectionStaticRequestSchema(OpenAPISchema):
+class ConnectionStaticRequestV1Schema(OpenAPISchema):
     """Request schema for a new static connection."""
 
     my_seed = fields.Str(
@@ -206,7 +206,7 @@ class ConnectionStaticRequestSchema(OpenAPISchema):
     )
 
 
-class ConnectionStaticResultSchema(OpenAPISchema):
+class ConnectionStaticResultV1Schema(OpenAPISchema):
     """Result schema for new static connection."""
 
     my_did = fields.Str(
@@ -216,10 +216,10 @@ class ConnectionStaticResultSchema(OpenAPISchema):
     )
     my_verkey = fields.Str(
         required=True,
-        validate=INDY_RAW_PUBLIC_KEY_VALIDATE,
+        validate=RAW_ED25519_2018_PUBLIC_KEY_VALIDATE,
         metadata={
             "description": "My verification key",
-            "example": INDY_RAW_PUBLIC_KEY_EXAMPLE,
+            "example": RAW_ED25519_2018_PUBLIC_KEY_EXAMPLE,
         },
     )
     my_endpoint = fields.Str(
@@ -234,10 +234,10 @@ class ConnectionStaticResultSchema(OpenAPISchema):
     )
     their_verkey = fields.Str(
         required=True,
-        validate=INDY_RAW_PUBLIC_KEY_VALIDATE,
+        validate=RAW_ED25519_2018_PUBLIC_KEY_VALIDATE,
         metadata={
             "description": "Remote verification key",
-            "example": INDY_RAW_PUBLIC_KEY_EXAMPLE,
+            "example": RAW_ED25519_2018_PUBLIC_KEY_EXAMPLE,
         },
     )
     record = fields.Nested(ConnRecordSchema(), required=True)
@@ -251,10 +251,10 @@ class ConnectionsListQueryStringSchema(PaginatedQuerySchema):
     )
     invitation_key = fields.Str(
         required=False,
-        validate=INDY_RAW_PUBLIC_KEY_VALIDATE,
+        validate=RAW_ED25519_2018_PUBLIC_KEY_VALIDATE,
         metadata={
             "description": "invitation key",
-            "example": INDY_RAW_PUBLIC_KEY_EXAMPLE,
+            "example": RAW_ED25519_2018_PUBLIC_KEY_EXAMPLE,
         },
     )
     my_did = fields.Str(
@@ -404,7 +404,7 @@ class ConnIdRefIdMatchInfoSchema(OpenAPISchema):
     )
 
 
-class EndpointsResultSchema(OpenAPISchema):
+class EndpointsResultV1Schema(OpenAPISchema):
     """Result schema for connection endpoints."""
 
     my_endpoint = fields.Str(
@@ -436,7 +436,7 @@ def connection_sort_key(conn):
     summary="Query agent-to-agent connections",
 )
 @querystring_schema(ConnectionsListQueryStringSchema())
-@response_schema(ConnectionListSchema(), 200, description="")
+@response_schema(ConnectionListV1Schema(), 200, description="")
 @tenant_authentication
 async def connections_list(request: web.BaseRequest):
     """Request handler for searching connection records.
@@ -528,7 +528,7 @@ async def connections_retrieve(request: web.BaseRequest):
 
 @docs(tags=["connection"], summary="Fetch connection remote endpoint")
 @match_info_schema(ConnectionsConnIdMatchInfoSchema())
-@response_schema(EndpointsResultSchema(), 200, description="")
+@response_schema(EndpointsResultV1Schema(), 200, description="")
 @tenant_authentication
 async def connections_endpoints(request: web.BaseRequest):
     """Request handler for fetching connection endpoints.
@@ -558,7 +558,7 @@ async def connections_endpoints(request: web.BaseRequest):
 @docs(tags=["connection"], summary="Fetch connection metadata")
 @match_info_schema(ConnectionsConnIdMatchInfoSchema())
 @querystring_schema(ConnectionMetadataQuerySchema())
-@response_schema(ConnectionMetadataSchema(), 200, description="")
+@response_schema(ConnectionMetadataV1Schema(), 200, description="")
 @tenant_authentication
 async def connections_metadata(request: web.BaseRequest):
     """Handle fetching metadata associated with a single connection record."""
@@ -584,8 +584,8 @@ async def connections_metadata(request: web.BaseRequest):
 
 @docs(tags=["connection"], summary="Set connection metadata")
 @match_info_schema(ConnectionsConnIdMatchInfoSchema())
-@request_schema(ConnectionMetadataSetRequestSchema())
-@response_schema(ConnectionMetadataSchema(), 200, description="")
+@request_schema(ConnectionMetadataSetRequestV1Schema())
+@response_schema(ConnectionMetadataV1Schema(), 200, description="")
 @tenant_authentication
 async def connections_metadata_set(request: web.BaseRequest):
     """Handle fetching metadata associated with a single connection record."""
@@ -816,7 +816,7 @@ async def connections_accept_request(request: web.BaseRequest):
 
 @docs(tags=["connection"], summary="Remove an existing connection record")
 @match_info_schema(ConnectionsConnIdMatchInfoSchema())
-@response_schema(ConnectionModuleResponseSchema, 200, description="")
+@response_schema(ConnectionModuleResponseV1Schema, 200, description="")
 @tenant_authentication
 async def connections_remove(request: web.BaseRequest):
     """Request handler for removing a connection record.
@@ -844,8 +844,8 @@ async def connections_remove(request: web.BaseRequest):
 
 
 @docs(tags=["connection"], summary="Create a new static connection")
-@request_schema(ConnectionStaticRequestSchema())
-@response_schema(ConnectionStaticResultSchema(), 200, description="")
+@request_schema(ConnectionStaticRequestV1Schema())
+@response_schema(ConnectionStaticResultV1Schema(), 200, description="")
 @tenant_authentication
 async def connections_create_static(request: web.BaseRequest):
     """Request handler for creating a new static connection.

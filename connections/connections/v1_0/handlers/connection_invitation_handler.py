@@ -1,6 +1,6 @@
 """Connect invitation handler."""
 
-from aries_cloudagent.messaging.base_handler import (
+from acapy_agent.messaging.base_handler import (
     BaseHandler,
     BaseResponder,
     RequestContext,

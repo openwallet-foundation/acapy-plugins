@@ -1,10 +1,10 @@
 """Integrate Connections Protocol Plugin."""
 
 import logging
-from aries_cloudagent.config.injection_context import InjectionContext
-from aries_cloudagent.config.provider import ClassProvider
-from aries_cloudagent.connections.base_manager import BaseConnectionManager
-from aries_cloudagent.core.profile import Profile
+from acapy_agent.config.injection_context import InjectionContext
+from acapy_agent.config.provider import ClassProvider
+from acapy_agent.connections.base_manager import BaseConnectionManager
+from acapy_agent.core.profile import Profile
 
 from connections.v1_0.manager import ConnectionManager
 

@@ -5,15 +5,15 @@ from urllib.parse import parse_qs, urljoin, urlparse
 
 from marshmallow import EXCLUDE, ValidationError, fields, pre_load, validates_schema
 
-from aries_cloudagent.did.did_key import DIDKey
-from aries_cloudagent.messaging.agent_message import AgentMessage, AgentMessageSchema
-from aries_cloudagent.messaging.valid import (
+from acapy_agent.did.did_key import DIDKey
+from acapy_agent.messaging.agent_message import AgentMessage, AgentMessageSchema
+from acapy_agent.messaging.valid import (
     GENERIC_DID_EXAMPLE,
     GENERIC_DID_VALIDATE,
-    INDY_RAW_PUBLIC_KEY_EXAMPLE,
-    INDY_RAW_PUBLIC_KEY_VALIDATE,
+    RAW_ED25519_2018_PUBLIC_KEY_EXAMPLE,
+    RAW_ED25519_2018_PUBLIC_KEY_VALIDATE,
 )
-from aries_cloudagent.wallet.util import b64_to_bytes, bytes_to_b64
+from acapy_agent.wallet.util import b64_to_bytes, bytes_to_b64
 from ..message_types import CONNECTION_INVITATION, PROTOCOL_PACKAGE
 
 HANDLER_CLASS = (
@@ -131,10 +131,10 @@ class ConnectionInvitationSchema(AgentMessageSchema):
     )
     recipient_keys = fields.List(
         fields.Str(
-            validate=INDY_RAW_PUBLIC_KEY_VALIDATE,
+            validate=RAW_ED25519_2018_PUBLIC_KEY_VALIDATE,
             metadata={
                 "description": "Recipient public key",
-                "example": INDY_RAW_PUBLIC_KEY_EXAMPLE,
+                "example": RAW_ED25519_2018_PUBLIC_KEY_EXAMPLE,
             },
         ),
         data_key="recipientKeys",
@@ -151,10 +151,10 @@ class ConnectionInvitationSchema(AgentMessageSchema):
     )
     routing_keys = fields.List(
         fields.Str(
-            validate=INDY_RAW_PUBLIC_KEY_VALIDATE,
+            validate=RAW_ED25519_2018_PUBLIC_KEY_VALIDATE,
             metadata={
                 "description": "Routing key",
-                "example": INDY_RAW_PUBLIC_KEY_EXAMPLE,
+                "example": RAW_ED25519_2018_PUBLIC_KEY_EXAMPLE,
             },
         ),
         data_key="routingKeys",

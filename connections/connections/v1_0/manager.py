@@ -4,25 +4,25 @@ import logging
 from typing import Optional, Sequence, Tuple, Union, cast
 import warnings
 
-from aries_cloudagent.cache.base import BaseCache
-from aries_cloudagent.connections.base_manager import BaseConnectionManager
-from aries_cloudagent.connections.models.connection_target import ConnectionTarget
-from aries_cloudagent.core.error import BaseError
-from aries_cloudagent.core.oob_processor import OobMessageProcessor
-from aries_cloudagent.core.profile import Profile
-from aries_cloudagent.messaging.responder import BaseResponder
-from aries_cloudagent.messaging.valid import IndyDID
-from aries_cloudagent.protocols.coordinate_mediation.v1_0.manager import (
+from acapy_agent.cache.base import BaseCache
+from acapy_agent.connections.base_manager import BaseConnectionManager
+from acapy_agent.connections.models.connection_target import ConnectionTarget
+from acapy_agent.core.error import BaseError
+from acapy_agent.core.oob_processor import OobMessageProcessor
+from acapy_agent.core.profile import Profile
+from acapy_agent.messaging.responder import BaseResponder
+from acapy_agent.messaging.valid import IndyDID
+from acapy_agent.protocols.coordinate_mediation.v1_0.manager import (
     MediationManager,
 )
-from aries_cloudagent.protocols.out_of_band.v1_0.messages.invitation import (
+from acapy_agent.protocols.out_of_band.v1_0.messages.invitation import (
     InvitationMessage,
 )
-from aries_cloudagent.storage.error import StorageNotFoundError
-from aries_cloudagent.transport.inbound.receipt import MessageReceipt
-from aries_cloudagent.wallet.base import BaseWallet
-from aries_cloudagent.wallet.did_method import SOV
-from aries_cloudagent.wallet.key_type import ED25519
+from acapy_agent.storage.error import StorageNotFoundError
+from acapy_agent.transport.inbound.receipt import MessageReceipt
+from acapy_agent.wallet.base import BaseWallet
+from acapy_agent.wallet.did_method import SOV
+from acapy_agent.wallet.key_type import ED25519
 
 from .message_types import ARIES_PROTOCOL as CONN_PROTO
 from .messages.connection_invitation import ConnectionInvitation

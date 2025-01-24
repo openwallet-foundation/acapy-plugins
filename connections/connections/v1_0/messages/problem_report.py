@@ -3,7 +3,7 @@
 from enum import Enum
 import logging
 
-from aries_cloudagent.protocols.problem_report.v1_0.message import (
+from acapy_agent.protocols.problem_report.v1_0.message import (
     ProblemReport,
     ProblemReportSchema,
 )
@@ -12,7 +12,7 @@ from marshmallow import EXCLUDE, ValidationError, validates_schema
 from ..message_types import PROBLEM_REPORT
 
 HANDLER_CLASS = (
-    "aries_cloudagent.protocols.connections.v1_0.handlers."
+    "connections.v1_0.handlers."
     "problem_report_handler.ConnectionProblemReportHandler"
 )
 

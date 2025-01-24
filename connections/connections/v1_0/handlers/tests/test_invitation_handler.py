@@ -1,16 +1,17 @@
 import pytest
 
-from aries_cloudagent.messaging.request_context import RequestContext
-from aries_cloudagent.messaging.responder import MockResponder
-from aries_cloudagent.transport.inbound.receipt import MessageReceipt
+from acapy_agent.messaging.request_context import RequestContext
+from acapy_agent.messaging.responder import MockResponder
+from acapy_agent.transport.inbound.receipt import MessageReceipt
+from acapy_agent.utils.testing import create_test_profile
 from ...handlers.connection_invitation_handler import ConnectionInvitationHandler
 from ...messages.connection_invitation import ConnectionInvitation
 from ...messages.problem_report import ConnectionProblemReport, ProblemReportReason
 
 
 @pytest.fixture()
-def request_context() -> RequestContext:
-    ctx = RequestContext.test_context()
+async def request_context():
+    ctx = RequestContext.test_context(await create_test_profile())
     ctx.message_receipt = MessageReceipt()
     yield ctx
 

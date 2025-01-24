@@ -1,14 +1,10 @@
-from unittest import IsolatedAsyncioTestCase, TestCase
+from unittest import IsolatedAsyncioTestCase, TestCase, mock
 
-from aries_cloudagent.connections.models.diddoc import (
-    DIDDoc,
-    PublicKey,
-    PublicKeyType,
-    Service,
-)
-from aries_cloudagent.core.in_memory import InMemoryProfile
-from aries_cloudagent.wallet.key_type import ED25519
-from aries_cloudagent.protocols.didcomm_prefix import DIDCommPrefix
+from acapy_agent.connections.models.diddoc import DIDDoc, PublicKey, PublicKeyType, Service
+from acapy_agent.utils.testing import create_test_profile
+from acapy_agent.wallet.base import BaseWallet
+from acapy_agent.wallet.key_type import ED25519
+from acapy_agent.protocols.didcomm_prefix import DIDCommPrefix
 from ...message_types import CONNECTION_RESPONSE
 from ...models.connection_detail import ConnectionDetail
 from ..connection_response import ConnectionResponse
@@ -62,16 +58,49 @@ class TestConnectionResponse(TestCase, TestConfig):
             CONNECTION_RESPONSE
         )
 
+    @mock.patch(
+        "connections.v1_0.messages."
+        "connection_response.ConnectionResponseSchema.load"
+    )
+    def test_deserialize(self, mock_connection_response_schema_load):
+        """
+        Test deserialization.
+        """
+        obj = {"obj": "obj"}
+
+        connection_response = ConnectionResponse.deserialize(obj)
+        mock_connection_response_schema_load.assert_called_once_with(obj)
+
+        assert connection_response is mock_connection_response_schema_load.return_value
+
+    @mock.patch(
+        "connections.v1_0.messages."
+        "connection_response.ConnectionResponseSchema.dump"
+    )
+    def test_serialize(self, mock_connection_response_schema_dump):
+        """
+        Test serialization.
+        """
+        connection_response_dict = self.connection_response.serialize()
+        mock_connection_response_schema_dump.assert_called_once_with(
+            self.connection_response
+        )
+
+        assert (
+            connection_response_dict is mock_connection_response_schema_dump.return_value
+        )
+
 
 class TestConnectionResponseSchema(IsolatedAsyncioTestCase, TestConfig):
     async def test_make_model(self):
         connection_response = ConnectionResponse(
             connection=ConnectionDetail(did=self.test_did, did_doc=self.make_did_doc())
         )
-        session = InMemoryProfile.test_session()
-        wallet = session.wallet
-        key_info = await wallet.create_signing_key(ED25519)
-        await connection_response.sign_field("connection", key_info.verkey, wallet)
-        data = connection_response.serialize()
-        model_instance = ConnectionResponse.deserialize(data)
-        assert type(model_instance) is type(connection_response)
+        self.profile = await create_test_profile()
+        async with self.profile.session() as session:
+            wallet = session.inject(BaseWallet)
+            key_info = await wallet.create_signing_key(ED25519)
+            await connection_response.sign_field("connection", key_info.verkey, wallet)
+            data = connection_response.serialize()
+            model_instance = ConnectionResponse.deserialize(data)
+            assert type(model_instance) is type(connection_response)

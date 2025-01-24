@@ -1,6 +1,6 @@
 """Message type identifiers for Connections."""
 
-from aries_cloudagent.protocols.didcomm_prefix import DIDCommPrefix
+from acapy_agent.protocols.didcomm_prefix import DIDCommPrefix
 
 SPEC_URI = (
     "https://github.com/hyperledger/aries-rfcs/tree/"
@@ -14,7 +14,7 @@ CONNECTION_REQUEST = f"{ARIES_PROTOCOL}/request"
 CONNECTION_RESPONSE = f"{ARIES_PROTOCOL}/response"
 PROBLEM_REPORT = f"{ARIES_PROTOCOL}/problem_report"
 
-PROTOCOL_PACKAGE = "aries_cloudagent.protocols.connections.v1_0"
+PROTOCOL_PACKAGE = "connections.v1_0"
 
 MESSAGE_TYPES = DIDCommPrefix.qualify_all(
     {

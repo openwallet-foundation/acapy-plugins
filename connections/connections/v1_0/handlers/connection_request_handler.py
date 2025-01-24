@@ -1,11 +1,11 @@
 """Connection request handler."""
 
-from aries_cloudagent.messaging.base_handler import (
+from acapy_agent.messaging.base_handler import (
     BaseHandler,
     BaseResponder,
     RequestContext,
 )
-from aries_cloudagent.protocols.coordinate_mediation.v1_0.manager import (
+from acapy_agent.protocols.coordinate_mediation.v1_0.manager import (
     MediationManager,
 )
 

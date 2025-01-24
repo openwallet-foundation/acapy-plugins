@@ -1,46 +1,37 @@
 from unittest import IsolatedAsyncioTestCase
 
-from aries_cloudagent.tests import mock
+import pytest
 
-from aries_cloudagent.cache.base import BaseCache
-from aries_cloudagent.cache.in_memory import InMemoryCache
-from aries_cloudagent.connections.models.diddoc import (
-    DIDDoc,
-    PublicKey,
-    PublicKeyType,
-    Service,
-)
-from aries_cloudagent.core.in_memory import InMemoryProfile
-from aries_cloudagent.core.oob_processor import OobMessageProcessor
-from aries_cloudagent.messaging.responder import BaseResponder, MockResponder
-from aries_cloudagent.multitenant.base import BaseMultitenantManager
-from aries_cloudagent.multitenant.manager import MultitenantManager
-from aries_cloudagent.resolver.default.legacy_peer import LegacyPeerDIDResolver
-from aries_cloudagent.resolver.did_resolver import DIDResolver
-from aries_cloudagent.storage.error import StorageNotFoundError
-from aries_cloudagent.transport.inbound.receipt import MessageReceipt
-from aries_cloudagent.wallet.base import DIDInfo
-from aries_cloudagent.wallet.did_method import SOV, DIDMethods
-from aries_cloudagent.wallet.in_memory import InMemoryWallet
-from aries_cloudagent.wallet.key_type import ED25519
-from aries_cloudagent.protocols.coordinate_mediation.v1_0.manager import MediationManager
-from aries_cloudagent.protocols.coordinate_mediation.v1_0.messages.mediate_request import (
-    MediationRequest,
-)
-from aries_cloudagent.protocols.coordinate_mediation.v1_0.models.mediation_record import (
-    MediationRecord,
-)
-from aries_cloudagent.protocols.coordinate_mediation.v1_0.route_manager import (
-    RouteManager,
-)
+from acapy_agent.cache.base import BaseCache
+from acapy_agent.cache.in_memory import InMemoryCache
+from acapy_agent.connections.models.conn_record import ConnRecord
+from acapy_agent.connections.models.diddoc import DIDDoc, PublicKey, PublicKeyType, Service
+from acapy_agent.core.oob_processor import OobMessageProcessor
+from acapy_agent.messaging.responder import BaseResponder, MockResponder
+from acapy_agent.multitenant.base import BaseMultitenantManager
+from acapy_agent.multitenant.manager import MultitenantManager
+from acapy_agent.resolver.default.legacy_peer import LegacyPeerDIDResolver
+from acapy_agent.resolver.did_resolver import DIDResolver
+from acapy_agent.storage.error import StorageNotFoundError
+from acapy_agent.tests import mock
+from acapy_agent.transport.inbound.receipt import MessageReceipt
+from acapy_agent.utils.testing import create_test_profile
+from acapy_agent.wallet.askar import AskarWallet
+from acapy_agent.wallet.base import BaseWallet, DIDInfo
+from acapy_agent.wallet.did_method import SOV, DIDMethods
+from acapy_agent.wallet.key_type import ED25519, KeyTypes
+from acapy_agent.protocols.coordinate_mediation.v1_0.manager import MediationManager
+from acapy_agent.protocols.coordinate_mediation.v1_0.messages.mediate_request import MediationRequest
+from acapy_agent.protocols.coordinate_mediation.v1_0.models.mediation_record import MediationRecord
+from acapy_agent.protocols.coordinate_mediation.v1_0.route_manager import RouteManager
 from ..manager import ConnectionManager, ConnectionManagerError
 from ..messages.connection_invitation import ConnectionInvitation
 from ..messages.connection_request import ConnectionRequest
 from ..messages.connection_response import ConnectionResponse
 from ..models.connection_detail import ConnectionDetail
-from ..models.conn_record import ConnectionsRecord as ConnRecord
 
 
+@pytest.mark.filterwarnings("ignore:Aries RFC 0160.*:DeprecationWarning")
 class TestConnectionManager(IsolatedAsyncioTestCase):
     def make_did_doc(self, did, verkey):
         doc = DIDDoc(did=did)
@@ -70,9 +61,8 @@ class TestConnectionManager(IsolatedAsyncioTestCase):
 
         self.responder = MockResponder()
 
-        self.oob_mock = mock.MagicMock(
-            clean_finished_oob_record=mock.CoroutineMock(return_value=None)
-        )
+        self.oob_mock = mock.MagicMock(OobMessageProcessor, autospec=True)
+        self.oob_mock.clean_finished_oob_record = mock.CoroutineMock(return_value=None)
         self.route_manager = mock.MagicMock(RouteManager)
         self.route_manager.routing_info = mock.CoroutineMock(
             return_value=([], self.test_endpoint)
@@ -81,7 +71,7 @@ class TestConnectionManager(IsolatedAsyncioTestCase):
         self.resolver = DIDResolver()
         self.resolver.register_resolver(LegacyPeerDIDResolver())
 
-        self.profile = InMemoryProfile.test_profile(
+        self.profile = await create_test_profile(
             {
                 "default_endpoint": "http://aries.ca/endpoint",
                 "default_label": "This guy",
@@ -89,15 +79,15 @@ class TestConnectionManager(IsolatedAsyncioTestCase):
                 "debug.auto_accept_invites": True,
                 "debug.auto_accept_requests": True,
             },
-            bind={
-                BaseResponder: self.responder,
-                BaseCache: InMemoryCache(),
-                OobMessageProcessor: self.oob_mock,
-                RouteManager: self.route_manager,
-                DIDMethods: DIDMethods(),
-                DIDResolver: self.resolver,
-            },
         )
+
+        self.profile.context.injector.bind_instance(BaseResponder, self.responder)
+        self.profile.context.injector.bind_instance(BaseCache, InMemoryCache())
+        self.profile.context.injector.bind_instance(OobMessageProcessor, self.oob_mock)
+        self.profile.context.injector.bind_instance(RouteManager, self.route_manager)
+        self.profile.context.injector.bind_instance(DIDMethods, DIDMethods())
+        self.profile.context.injector.bind_instance(DIDResolver, self.resolver)
+        self.profile.context.injector.bind_instance(KeyTypes, KeyTypes())
         self.context = self.profile.context
 
         self.multitenant_mgr = mock.MagicMock(MultitenantManager, autospec=True)
@@ -111,11 +101,11 @@ class TestConnectionManager(IsolatedAsyncioTestCase):
         assert self.manager.profile
 
     async def test_create_invitation_non_multi_use_invitation_fails_on_reuse(self):
-        connect_record, connect_invite = await self.manager.create_invitation()
+        connect_record, _ = await self.manager.create_invitation()
 
         receipt = MessageReceipt(recipient_verkey=connect_record.invitation_key)
 
-        requestA = ConnectionRequest(
+        request_a = ConnectionRequest(
             connection=ConnectionDetail(
                 did=self.test_target_did,
                 did_doc=self.make_did_doc(self.test_target_did, self.test_target_verkey),
@@ -123,9 +113,9 @@ class TestConnectionManager(IsolatedAsyncioTestCase):
             label="SameInviteRequestA",
         )
 
-        await self.manager.receive_request(requestA, receipt)
+        await self.manager.receive_request(request_a, receipt)
 
-        requestB = ConnectionRequest(
+        request_b = ConnectionRequest(
             connection=ConnectionDetail(
                 did=self.test_did,
                 did_doc=self.make_did_doc(self.test_did, self.test_verkey),
@@ -135,14 +125,14 @@ class TestConnectionManager(IsolatedAsyncioTestCase):
 
         # requestB fails because the invitation was not set to multi-use
         with self.assertRaises(ConnectionManagerError):
-            await self.manager.receive_request(requestB, receipt)
+            await self.manager.receive_request(request_b, receipt)
 
     async def test_create_invitation_public(self):
         self.context.update_settings({"public_invites": True})
 
         self.route_manager.route_verkey = mock.CoroutineMock()
         with mock.patch.object(
-            InMemoryWallet, "get_public_did", autospec=True
+            AskarWallet, "get_public_did", autospec=True
         ) as mock_wallet_get_public_did:
             mock_wallet_get_public_did.return_value = DIDInfo(
                 self.test_did,
@@ -171,7 +161,7 @@ class TestConnectionManager(IsolatedAsyncioTestCase):
         self.context.update_settings({"public_invites": True})
 
         with mock.patch.object(
-            InMemoryWallet, "get_public_did", autospec=True
+            AskarWallet, "get_public_did", autospec=True
         ) as mock_wallet_get_public_did:
             mock_wallet_get_public_did.return_value = None
             with self.assertRaises(ConnectionManagerError):
@@ -180,13 +170,13 @@ class TestConnectionManager(IsolatedAsyncioTestCase):
                 )
 
     async def test_create_invitation_multi_use(self):
-        connect_record, connect_invite = await self.manager.create_invitation(
+        connect_record, _ = await self.manager.create_invitation(
             my_endpoint="testendpoint", multi_use=True
         )
 
         receipt = MessageReceipt(recipient_verkey=connect_record.invitation_key)
 
-        requestA = ConnectionRequest(
+        request_a = ConnectionRequest(
             connection=ConnectionDetail(
                 did=self.test_target_did,
                 did_doc=self.make_did_doc(self.test_target_did, self.test_target_verkey),
@@ -194,9 +184,9 @@ class TestConnectionManager(IsolatedAsyncioTestCase):
             label="SameInviteRequestA",
         )
 
-        await self.manager.receive_request(requestA, receipt)
+        await self.manager.receive_request(request_a, receipt)
 
-        requestB = ConnectionRequest(
+        request_b = ConnectionRequest(
             connection=ConnectionDetail(
                 did=self.test_did,
                 did_doc=self.make_did_doc(self.test_did, self.test_verkey),
@@ -204,18 +194,19 @@ class TestConnectionManager(IsolatedAsyncioTestCase):
             label="SameInviteRequestB",
         )
 
-        await self.manager.receive_request(requestB, receipt)
+        await self.manager.receive_request(request_b, receipt)
 
     async def test_create_invitation_recipient_routing_endpoint(self):
         async with self.profile.session() as session:
-            await session.wallet.create_local_did(
+            wallet = session.inject(BaseWallet)
+            await wallet.create_local_did(
                 method=SOV,
                 key_type=ED25519,
                 seed=self.test_seed,
                 did=self.test_did,
                 metadata=None,
             )
-            connect_record, connect_invite = await self.manager.create_invitation(
+            connect_record, _ = await self.manager.create_invitation(
                 my_endpoint=self.test_endpoint,
                 recipient_keys=[self.test_verkey],
                 routing_keys=[self.test_verkey],
@@ -223,7 +214,7 @@ class TestConnectionManager(IsolatedAsyncioTestCase):
 
             receipt = MessageReceipt(recipient_verkey=connect_record.invitation_key)
 
-            requestA = ConnectionRequest(
+            request_a = ConnectionRequest(
                 connection=ConnectionDetail(
                     did=self.test_target_did,
                     did_doc=self.make_did_doc(
@@ -233,13 +224,11 @@ class TestConnectionManager(IsolatedAsyncioTestCase):
                 label="InviteRequestA",
             )
 
-            await self.manager.receive_request(requestA, receipt)
+            await self.manager.receive_request(request_a, receipt)
 
     async def test_create_invitation_metadata_assigned(self):
         async with self.profile.session() as session:
-            record, invite = await self.manager.create_invitation(
-                metadata={"hello": "world"}
-            )
+            record, _ = await self.manager.create_invitation(metadata={"hello": "world"})
 
             assert await record.metadata_get_all(session) == {"hello": "world"}
 
@@ -357,7 +346,7 @@ class TestConnectionManager(IsolatedAsyncioTestCase):
 
     async def test_receive_invitation_mediation_passes_id_when_auto_accept(self):
         with mock.patch.object(ConnectionManager, "create_request") as create_request:
-            record, connect_invite = await self.manager.create_invitation(
+            _, connect_invite = await self.manager.create_invitation(
                 my_endpoint="testendpoint"
             )
 
@@ -393,7 +382,8 @@ class TestConnectionManager(IsolatedAsyncioTestCase):
 
     async def test_create_request_my_did(self):
         async with self.profile.session() as session:
-            await session.wallet.create_local_did(
+            wallet = session.inject(BaseWallet)
+            await wallet.create_local_did(
                 method=SOV,
                 key_type=ED25519,
                 seed=None,
@@ -422,14 +412,18 @@ class TestConnectionManager(IsolatedAsyncioTestCase):
             endpoint=self.test_mediator_endpoint,
         )
 
-        with mock.patch.object(
-            InMemoryWallet, "create_local_did", autospec=True
-        ) as mock_wallet_create_local_did, mock.patch.object(
-            ConnectionManager, "create_did_document", autospec=True
-        ) as create_did_document, mock.patch.object(
-            self.route_manager,
-            "mediation_records_for_connection",
-            mock.CoroutineMock(return_value=[mediation_record]),
+        with (
+            mock.patch.object(
+                AskarWallet, "create_local_did", autospec=True
+            ) as mock_wallet_create_local_did,
+            mock.patch.object(
+                ConnectionManager, "create_did_document", autospec=True
+            ) as create_did_document,
+            mock.patch.object(
+                self.route_manager,
+                "mediation_records_for_connection",
+                mock.CoroutineMock(return_value=[mediation_record]),
+            ),
         ):
             mock_wallet_create_local_did.return_value = DIDInfo(
                 self.test_did,
@@ -457,7 +451,7 @@ class TestConnectionManager(IsolatedAsyncioTestCase):
 
     async def test_create_request_mediation_id(self):
         mediation_record = MediationRecord(
-            mediation_id="test_medation_id",
+            mediation_id="test_mediation_id",
             role=MediationRecord.ROLE_CLIENT,
             state=MediationRecord.STATE_GRANTED,
             connection_id=self.test_mediator_conn_id,
@@ -475,14 +469,16 @@ class TestConnectionManager(IsolatedAsyncioTestCase):
         # Ensure the path with new did creation is hit
         record.my_did = None
 
-        with mock.patch.object(
-            ConnectionManager, "create_did_document", autospec=True
-        ) as create_did_document, mock.patch.object(
-            InMemoryWallet, "create_local_did"
-        ) as create_local_did, mock.patch.object(
-            self.route_manager,
-            "mediation_records_for_connection",
-            mock.CoroutineMock(return_value=[mediation_record]),
+        with (
+            mock.patch.object(
+                ConnectionManager, "create_did_document", autospec=True
+            ) as create_did_document,
+            mock.patch.object(AskarWallet, "create_local_did") as create_local_did,
+            mock.patch.object(
+                self.route_manager,
+                "mediation_records_for_connection",
+                mock.CoroutineMock(return_value=[mediation_record]),
+            ),
         ):
             did_info = DIDInfo(
                 did=self.test_did,
@@ -526,14 +522,16 @@ class TestConnectionManager(IsolatedAsyncioTestCase):
             # Ensure the path with new did creation is hit
             record.my_did = None
 
-            with mock.patch.object(
-                ConnectionManager, "create_did_document", autospec=True
-            ) as create_did_document, mock.patch.object(
-                InMemoryWallet, "create_local_did"
-            ) as create_local_did, mock.patch.object(
-                self.route_manager,
-                "mediation_records_for_connection",
-                mock.CoroutineMock(return_value=[mediation_record]),
+            with (
+                mock.patch.object(
+                    ConnectionManager, "create_did_document", autospec=True
+                ) as create_did_document,
+                mock.patch.object(AskarWallet, "create_local_did") as create_local_did,
+                mock.patch.object(
+                    self.route_manager,
+                    "mediation_records_for_connection",
+                    mock.CoroutineMock(return_value=[mediation_record]),
+                ),
             ):
                 did_info = DIDInfo(
                     did=self.test_did,
@@ -566,7 +564,8 @@ class TestConnectionManager(IsolatedAsyncioTestCase):
             receipt = MessageReceipt(
                 recipient_did=self.test_did, recipient_did_public=True
             )
-            await session.wallet.create_local_did(
+            wallet = session.inject(BaseWallet)
+            await wallet.create_local_did(
                 method=SOV,
                 key_type=ED25519,
                 seed=None,
@@ -574,20 +573,18 @@ class TestConnectionManager(IsolatedAsyncioTestCase):
             )
 
             self.context.update_settings({"public_invites": True})
-            with mock.patch.object(
-                ConnRecord, "connection_id", autospec=True
-            ), mock.patch.object(
-                ConnRecord, "save", autospec=True
-            ) as mock_conn_rec_save, mock.patch.object(
-                ConnRecord, "attach_request", autospec=True
-            ) as mock_conn_attach_request, mock.patch.object(
-                ConnRecord, "retrieve_by_id", autospec=True
-            ) as mock_conn_retrieve_by_id, mock.patch.object(
-                ConnRecord, "retrieve_request", autospec=True
-            ), mock.patch.object(
-                ConnRecord, "retrieve_by_invitation_msg_id", mock.CoroutineMock()
-            ) as mock_conn_retrieve_by_invitation_msg_id, mock.patch.object(
-                self.manager, "store_did_document", mock.CoroutineMock()
+            with (
+                mock.patch.object(ConnRecord, "connection_id", autospec=True),
+                mock.patch.object(ConnRecord, "save", autospec=True),
+                mock.patch.object(ConnRecord, "attach_request", autospec=True),
+                mock.patch.object(ConnRecord, "retrieve_by_id", autospec=True),
+                mock.patch.object(ConnRecord, "retrieve_request", autospec=True),
+                mock.patch.object(
+                    ConnRecord, "retrieve_by_invitation_msg_id", mock.CoroutineMock()
+                ) as mock_conn_retrieve_by_invitation_msg_id,
+                mock.patch.object(
+                    self.manager, "store_did_document", mock.CoroutineMock()
+                ),
             ):
                 mock_conn_retrieve_by_invitation_msg_id.return_value = ConnRecord()
                 conn_rec = await self.manager.receive_request(mock_request, receipt)
@@ -608,7 +605,8 @@ class TestConnectionManager(IsolatedAsyncioTestCase):
             receipt = MessageReceipt(
                 recipient_did=self.test_did, recipient_did_public=True
             )
-            await session.wallet.create_local_did(
+            wallet = session.inject(BaseWallet)
+            await wallet.create_local_did(
                 method=SOV,
                 key_type=ED25519,
                 seed=None,
@@ -616,23 +614,22 @@ class TestConnectionManager(IsolatedAsyncioTestCase):
             )
 
             self.context.update_settings({"public_invites": True})
-            with self.assertRaises(ConnectionManagerError), mock.patch.object(
-                ConnRecord, "connection_id", autospec=True
-            ), mock.patch.object(
-                ConnRecord, "save", autospec=True
-            ) as mock_conn_rec_save, mock.patch.object(
-                ConnRecord, "attach_request", autospec=True
-            ) as mock_conn_attach_request, mock.patch.object(
-                ConnRecord, "retrieve_by_id", autospec=True
-            ) as mock_conn_retrieve_by_id, mock.patch.object(
-                ConnRecord, "retrieve_request", autospec=True
-            ), mock.patch.object(
-                ConnRecord, "retrieve_by_invitation_msg_id", mock.CoroutineMock()
-            ) as mock_conn_retrieve_by_invitation_msg_id, mock.patch.object(
-                self.manager, "store_did_document", mock.CoroutineMock()
+            with (
+                self.assertRaises(ConnectionManagerError),
+                mock.patch.object(ConnRecord, "connection_id", autospec=True),
+                mock.patch.object(ConnRecord, "save", autospec=True),
+                mock.patch.object(ConnRecord, "attach_request", autospec=True),
+                mock.patch.object(ConnRecord, "retrieve_by_id", autospec=True),
+                mock.patch.object(ConnRecord, "retrieve_request", autospec=True),
+                mock.patch.object(
+                    ConnRecord, "retrieve_by_invitation_msg_id", mock.CoroutineMock()
+                ) as mock_conn_retrieve_by_invitation_msg_id,
+                mock.patch.object(
+                    self.manager, "store_did_document", mock.CoroutineMock()
+                ),
             ):
                 mock_conn_retrieve_by_invitation_msg_id.return_value = None
-                conn_rec = await self.manager.receive_request(mock_request, receipt)
+                await self.manager.receive_request(mock_request, receipt)
 
     async def test_receive_request_public_did_conn_invite(self):
         async with self.profile.session() as session:
@@ -645,7 +642,8 @@ class TestConnectionManager(IsolatedAsyncioTestCase):
             receipt = MessageReceipt(
                 recipient_did=self.test_did, recipient_did_public=True
             )
-            await session.wallet.create_local_did(
+            wallet = session.inject(BaseWallet)
+            await wallet.create_local_did(
                 method=SOV,
                 key_type=ED25519,
                 seed=None,
@@ -657,22 +655,20 @@ class TestConnectionManager(IsolatedAsyncioTestCase):
             mock_connection_record.attach_request = mock.CoroutineMock()
 
             self.context.update_settings({"public_invites": True})
-            with mock.patch.object(
-                ConnRecord, "connection_id", autospec=True
-            ), mock.patch.object(
-                ConnRecord, "save", autospec=True
-            ) as mock_conn_rec_save, mock.patch.object(
-                ConnRecord, "attach_request", autospec=True
-            ) as mock_conn_attach_request, mock.patch.object(
-                ConnRecord, "retrieve_by_id", autospec=True
-            ) as mock_conn_retrieve_by_id, mock.patch.object(
-                ConnRecord, "retrieve_request", autospec=True
-            ), mock.patch.object(
-                ConnRecord,
-                "retrieve_by_invitation_msg_id",
-                mock.CoroutineMock(return_value=mock_connection_record),
-            ) as mock_conn_retrieve_by_invitation_msg_id, mock.patch.object(
-                self.manager, "store_did_document", mock.CoroutineMock()
+            with (
+                mock.patch.object(ConnRecord, "connection_id", autospec=True),
+                mock.patch.object(ConnRecord, "save", autospec=True),
+                mock.patch.object(ConnRecord, "attach_request", autospec=True),
+                mock.patch.object(ConnRecord, "retrieve_by_id", autospec=True),
+                mock.patch.object(ConnRecord, "retrieve_request", autospec=True),
+                mock.patch.object(
+                    ConnRecord,
+                    "retrieve_by_invitation_msg_id",
+                    mock.CoroutineMock(return_value=mock_connection_record),
+                ),
+                mock.patch.object(
+                    self.manager, "store_did_document", mock.CoroutineMock()
+                ),
             ):
                 conn_rec = await self.manager.receive_request(mock_request, receipt)
                 assert conn_rec
@@ -688,7 +684,8 @@ class TestConnectionManager(IsolatedAsyncioTestCase):
             receipt = MessageReceipt(
                 recipient_did=self.test_did, recipient_did_public=True
             )
-            await session.wallet.create_local_did(
+            wallet = session.inject(BaseWallet)
+            await wallet.create_local_did(
                 method=SOV,
                 key_type=ED25519,
                 seed=None,
@@ -697,20 +694,18 @@ class TestConnectionManager(IsolatedAsyncioTestCase):
 
             self.context.update_settings({"public_invites": True})
             self.context.update_settings({"requests_through_public_did": True})
-            with mock.patch.object(
-                ConnRecord, "connection_id", autospec=True
-            ), mock.patch.object(
-                ConnRecord, "save", autospec=True
-            ) as mock_conn_rec_save, mock.patch.object(
-                ConnRecord, "attach_request", autospec=True
-            ) as mock_conn_attach_request, mock.patch.object(
-                ConnRecord, "retrieve_by_id", autospec=True
-            ) as mock_conn_retrieve_by_id, mock.patch.object(
-                ConnRecord, "retrieve_request", autospec=True
-            ), mock.patch.object(
-                ConnRecord, "retrieve_by_invitation_msg_id", mock.CoroutineMock()
-            ) as mock_conn_retrieve_by_invitation_msg_id, mock.patch.object(
-                self.manager, "store_did_document", mock.CoroutineMock()
+            with (
+                mock.patch.object(ConnRecord, "connection_id", autospec=True),
+                mock.patch.object(ConnRecord, "save", autospec=True),
+                mock.patch.object(ConnRecord, "attach_request", autospec=True),
+                mock.patch.object(ConnRecord, "retrieve_by_id", autospec=True),
+                mock.patch.object(ConnRecord, "retrieve_request", autospec=True),
+                mock.patch.object(
+                    ConnRecord, "retrieve_by_invitation_msg_id", mock.CoroutineMock()
+                ) as mock_conn_retrieve_by_invitation_msg_id,
+                mock.patch.object(
+                    self.manager, "store_did_document", mock.CoroutineMock()
+                ),
             ):
                 mock_conn_retrieve_by_invitation_msg_id.return_value = None
                 conn_rec = await self.manager.receive_request(mock_request, receipt)
@@ -726,7 +721,8 @@ class TestConnectionManager(IsolatedAsyncioTestCase):
             receipt = MessageReceipt(
                 recipient_did=self.test_did, recipient_did_public=True
             )
-            await session.wallet.create_local_did(
+            wallet = session.inject(BaseWallet)
+            await wallet.create_local_did(
                 method=SOV,
                 key_type=ED25519,
                 seed=None,
@@ -734,14 +730,11 @@ class TestConnectionManager(IsolatedAsyncioTestCase):
             )
 
             self.context.update_settings({"public_invites": True})
-            with mock.patch.object(
-                ConnRecord, "save", autospec=True
-            ) as mock_conn_rec_save, mock.patch.object(
-                ConnRecord, "attach_request", autospec=True
-            ) as mock_conn_attach_request, mock.patch.object(
-                ConnRecord, "retrieve_by_id", autospec=True
-            ) as mock_conn_retrieve_by_id, mock.patch.object(
-                ConnRecord, "retrieve_request", autospec=True
+            with (
+                mock.patch.object(ConnRecord, "save", autospec=True),
+                mock.patch.object(ConnRecord, "attach_request", autospec=True),
+                mock.patch.object(ConnRecord, "retrieve_by_id", autospec=True),
+                mock.patch.object(ConnRecord, "retrieve_request", autospec=True),
             ):
                 with self.assertRaises(ConnectionManagerError):
                     await self.manager.receive_request(mock_request, receipt)
@@ -757,7 +750,8 @@ class TestConnectionManager(IsolatedAsyncioTestCase):
             receipt = MessageReceipt(
                 recipient_did=self.test_did, recipient_did_public=True
             )
-            await session.wallet.create_local_did(
+            wallet = session.inject(BaseWallet)
+            await wallet.create_local_did(
                 method=SOV,
                 key_type=ED25519,
                 seed=None,
@@ -765,14 +759,11 @@ class TestConnectionManager(IsolatedAsyncioTestCase):
             )
 
             self.context.update_settings({"public_invites": True})
-            with mock.patch.object(
-                ConnRecord, "save", autospec=True
-            ) as mock_conn_rec_save, mock.patch.object(
-                ConnRecord, "attach_request", autospec=True
-            ) as mock_conn_attach_request, mock.patch.object(
-                ConnRecord, "retrieve_by_id", autospec=True
-            ) as mock_conn_retrieve_by_id, mock.patch.object(
-                ConnRecord, "retrieve_request", autospec=True
+            with (
+                mock.patch.object(ConnRecord, "save", autospec=True),
+                mock.patch.object(ConnRecord, "attach_request", autospec=True),
+                mock.patch.object(ConnRecord, "retrieve_by_id", autospec=True),
+                mock.patch.object(ConnRecord, "retrieve_request", autospec=True),
             ):
                 with self.assertRaises(ConnectionManagerError):
                     await self.manager.receive_request(mock_request, receipt)
@@ -786,7 +777,8 @@ class TestConnectionManager(IsolatedAsyncioTestCase):
 
         receipt = MessageReceipt(recipient_did=self.test_did, recipient_did_public=True)
         async with self.profile.session() as session:
-            await session.wallet.create_local_did(
+            wallet = session.inject(BaseWallet)
+            await wallet.create_local_did(
                 method=SOV,
                 key_type=ED25519,
                 seed=None,
@@ -794,15 +786,13 @@ class TestConnectionManager(IsolatedAsyncioTestCase):
             )
 
         self.context.update_settings({"public_invites": False})
-        with mock.patch.object(
-            ConnRecord, "save", autospec=True
-        ) as mock_conn_rec_save, mock.patch.object(
-            ConnRecord, "attach_request", autospec=True
-        ) as mock_conn_attach_request, mock.patch.object(
-            ConnRecord, "retrieve_by_id", autospec=True
-        ) as mock_conn_retrieve_by_id, mock.patch.object(
-            ConnRecord, "retrieve_request", autospec=True
-        ), mock.patch.object(self.manager, "store_did_document", mock.CoroutineMock()):
+        with (
+            mock.patch.object(ConnRecord, "save", autospec=True),
+            mock.patch.object(ConnRecord, "attach_request", autospec=True),
+            mock.patch.object(ConnRecord, "retrieve_by_id", autospec=True),
+            mock.patch.object(ConnRecord, "retrieve_request", autospec=True),
+            mock.patch.object(self.manager, "store_did_document", mock.CoroutineMock()),
+        ):
             with self.assertRaises(ConnectionManagerError):
                 await self.manager.receive_request(mock_request, receipt)
 
@@ -817,7 +807,8 @@ class TestConnectionManager(IsolatedAsyncioTestCase):
             receipt = MessageReceipt(
                 recipient_did=self.test_did, recipient_did_public=True
             )
-            await session.wallet.create_local_did(
+            wallet = session.inject(BaseWallet)
+            await wallet.create_local_did(
                 method=SOV,
                 key_type=ED25519,
                 seed=None,
@@ -827,18 +818,17 @@ class TestConnectionManager(IsolatedAsyncioTestCase):
             self.context.update_settings(
                 {"public_invites": True, "debug.auto_accept_requests": False}
             )
-            with mock.patch.object(
-                ConnRecord, "save", autospec=True
-            ) as mock_conn_rec_save, mock.patch.object(
-                ConnRecord, "attach_request", autospec=True
-            ) as mock_conn_attach_request, mock.patch.object(
-                ConnRecord, "retrieve_by_id", autospec=True
-            ) as mock_conn_retrieve_by_id, mock.patch.object(
-                ConnRecord, "retrieve_request", autospec=True
-            ), mock.patch.object(
-                ConnRecord, "retrieve_by_invitation_msg_id", mock.CoroutineMock()
-            ) as mock_conn_retrieve_by_invitation_msg_id, mock.patch.object(
-                self.manager, "store_did_document", mock.CoroutineMock()
+            with (
+                mock.patch.object(ConnRecord, "save", autospec=True),
+                mock.patch.object(ConnRecord, "attach_request", autospec=True),
+                mock.patch.object(ConnRecord, "retrieve_by_id", autospec=True),
+                mock.patch.object(ConnRecord, "retrieve_request", autospec=True),
+                mock.patch.object(
+                    ConnRecord, "retrieve_by_invitation_msg_id", mock.CoroutineMock()
+                ) as mock_conn_retrieve_by_invitation_msg_id,
+                mock.patch.object(
+                    self.manager, "store_did_document", mock.CoroutineMock()
+                ),
             ):
                 mock_conn_retrieve_by_invitation_msg_id.return_value = ConnRecord()
                 conn_rec = await self.manager.receive_request(mock_request, receipt)
@@ -850,15 +840,13 @@ class TestConnectionManager(IsolatedAsyncioTestCase):
     async def test_create_response(self):
         conn_rec = ConnRecord(state=ConnRecord.State.REQUEST.rfc160)
 
-        with mock.patch.object(
-            ConnRecord, "log_state", autospec=True
-        ) as mock_conn_log_state, mock.patch.object(
-            ConnRecord, "retrieve_request", autospec=True
-        ) as mock_conn_retrieve_request, mock.patch.object(
-            ConnRecord, "save", autospec=True
-        ) as mock_conn_save, mock.patch.object(
-            ConnectionResponse, "sign_field", autospec=True
-        ) as mock_sign, mock.patch.object(conn_rec, "metadata_get", mock.CoroutineMock()):
+        with (
+            mock.patch.object(ConnRecord, "log_state", autospec=True),
+            mock.patch.object(ConnRecord, "retrieve_request", autospec=True),
+            mock.patch.object(ConnRecord, "save", autospec=True),
+            mock.patch.object(ConnectionResponse, "sign_field", autospec=True),
+            mock.patch.object(conn_rec, "metadata_get", mock.CoroutineMock()),
+        ):
             await self.manager.create_response(conn_rec, "http://10.20.30.40:5060/")
 
     async def test_create_response_multitenant(self):
@@ -867,7 +855,7 @@ class TestConnectionManager(IsolatedAsyncioTestCase):
         )
 
         mediation_record = MediationRecord(
-            mediation_id="test_medation_id",
+            mediation_id="test_mediation_id",
             role=MediationRecord.ROLE_CLIENT,
             state=MediationRecord.STATE_GRANTED,
             connection_id=self.test_mediator_conn_id,
@@ -875,22 +863,25 @@ class TestConnectionManager(IsolatedAsyncioTestCase):
             endpoint=self.test_mediator_endpoint,
         )
 
-        with mock.patch.object(ConnRecord, "log_state", autospec=True), mock.patch.object(
-            ConnRecord, "save", autospec=True
-        ), mock.patch.object(
-            ConnRecord, "metadata_get", mock.CoroutineMock(return_value=False)
-        ), mock.patch.object(
-            ConnRecord, "retrieve_request", autospec=True
-        ), mock.patch.object(
-            ConnectionResponse, "sign_field", autospec=True
-        ), mock.patch.object(
-            InMemoryWallet, "create_local_did", autospec=True
-        ) as mock_wallet_create_local_did, mock.patch.object(
-            ConnectionManager, "create_did_document", autospec=True
-        ) as create_did_document, mock.patch.object(
-            self.route_manager,
-            "mediation_records_for_connection",
-            mock.CoroutineMock(return_value=[mediation_record]),
+        with (
+            mock.patch.object(ConnRecord, "log_state", autospec=True),
+            mock.patch.object(ConnRecord, "save", autospec=True),
+            mock.patch.object(
+                ConnRecord, "metadata_get", mock.CoroutineMock(return_value=False)
+            ),
+            mock.patch.object(ConnRecord, "retrieve_request", autospec=True),
+            mock.patch.object(ConnectionResponse, "sign_field", autospec=True),
+            mock.patch.object(
+                AskarWallet, "create_local_did", autospec=True
+            ) as mock_wallet_create_local_did,
+            mock.patch.object(
+                ConnectionManager, "create_did_document", autospec=True
+            ) as create_did_document,
+            mock.patch.object(
+                self.route_manager,
+                "mediation_records_for_connection",
+                mock.CoroutineMock(return_value=[mediation_record]),
+            ),
         ):
             mock_wallet_create_local_did.return_value = DIDInfo(
                 self.test_did,
@@ -927,7 +918,7 @@ class TestConnectionManager(IsolatedAsyncioTestCase):
 
     async def test_create_response_mediation(self):
         mediation_record = MediationRecord(
-            mediation_id="test_medation_id",
+            mediation_id="test_mediation_id",
             role=MediationRecord.ROLE_CLIENT,
             state=MediationRecord.STATE_GRANTED,
             connection_id=self.test_mediator_conn_id,
@@ -947,21 +938,24 @@ class TestConnectionManager(IsolatedAsyncioTestCase):
         # Ensure the path with new did creation is hit
         record.my_did = None
 
-        with mock.patch.object(ConnRecord, "log_state", autospec=True), mock.patch.object(
-            ConnRecord, "save", autospec=True
-        ), mock.patch.object(
-            record, "metadata_get", mock.CoroutineMock(return_value=False)
-        ), mock.patch.object(
-            ConnectionManager, "create_did_document", autospec=True
-        ) as create_did_document, mock.patch.object(
-            InMemoryWallet, "create_local_did"
-        ) as create_local_did, mock.patch.object(
-            self.route_manager,
-            "mediation_records_for_connection",
-            mock.CoroutineMock(return_value=[mediation_record]),
-        ), mock.patch.object(
-            record, "retrieve_request", autospec=True
-        ), mock.patch.object(ConnectionResponse, "sign_field", autospec=True):
+        with (
+            mock.patch.object(ConnRecord, "log_state", autospec=True),
+            mock.patch.object(ConnRecord, "save", autospec=True),
+            mock.patch.object(
+                record, "metadata_get", mock.CoroutineMock(return_value=False)
+            ),
+            mock.patch.object(
+                ConnectionManager, "create_did_document", autospec=True
+            ) as create_did_document,
+            mock.patch.object(AskarWallet, "create_local_did") as create_local_did,
+            mock.patch.object(
+                self.route_manager,
+                "mediation_records_for_connection",
+                mock.CoroutineMock(return_value=[mediation_record]),
+            ),
+            mock.patch.object(record, "retrieve_request", autospec=True),
+            mock.patch.object(ConnectionResponse, "sign_field", autospec=True),
+        ):
             did_info = DIDInfo(
                 did=self.test_did,
                 verkey=self.test_verkey,
@@ -990,16 +984,14 @@ class TestConnectionManager(IsolatedAsyncioTestCase):
         )
         conn_rec.my_did = None
 
-        with mock.patch.object(
-            ConnRecord, "log_state", autospec=True
-        ) as mock_conn_log_state, mock.patch.object(
-            ConnRecord, "retrieve_request", autospec=True
-        ) as mock_conn_retrieve_request, mock.patch.object(
-            ConnRecord, "save", autospec=True
-        ) as mock_conn_save, mock.patch.object(
-            ConnectionResponse, "sign_field", autospec=True
-        ) as mock_sign, mock.patch.object(
-            conn_rec, "metadata_get", mock.CoroutineMock(return_value=True)
+        with (
+            mock.patch.object(ConnRecord, "log_state", autospec=True),
+            mock.patch.object(ConnRecord, "retrieve_request", autospec=True),
+            mock.patch.object(ConnRecord, "save", autospec=True),
+            mock.patch.object(ConnectionResponse, "sign_field", autospec=True),
+            mock.patch.object(
+                conn_rec, "metadata_get", mock.CoroutineMock(return_value=True)
+            ),
         ):
             await self.manager.create_response(conn_rec)
 
@@ -1018,13 +1010,16 @@ class TestConnectionManager(IsolatedAsyncioTestCase):
         mock_response.verify_signed_field = mock.CoroutineMock(return_value="sig_verkey")
         receipt = MessageReceipt(recipient_did=self.test_did, recipient_did_public=True)
 
-        with mock.patch.object(
-            ConnRecord, "save", autospec=True
-        ) as mock_conn_rec_save, mock.patch.object(
-            ConnRecord, "retrieve_by_request_id", mock.CoroutineMock()
-        ) as mock_conn_retrieve_by_req_id, mock.patch.object(
-            MediationManager, "get_default_mediator", mock.CoroutineMock()
-        ), mock.patch.object(self.manager, "store_did_document", mock.CoroutineMock()):
+        with (
+            mock.patch.object(ConnRecord, "save", autospec=True),
+            mock.patch.object(
+                ConnRecord, "retrieve_by_request_id", mock.CoroutineMock()
+            ) as mock_conn_retrieve_by_req_id,
+            mock.patch.object(
+                MediationManager, "get_default_mediator", mock.CoroutineMock()
+            ),
+            mock.patch.object(self.manager, "store_did_document", mock.CoroutineMock()),
+        ):
             mock_conn_retrieve_by_req_id.return_value = mock.MagicMock(
                 did=self.test_target_did,
                 did_doc=mock.MagicMock(did=self.test_target_did),
@@ -1049,15 +1044,19 @@ class TestConnectionManager(IsolatedAsyncioTestCase):
 
         receipt = MessageReceipt(sender_did=self.test_target_did)
 
-        with mock.patch.object(
-            ConnRecord, "save", autospec=True
-        ) as mock_conn_rec_save, mock.patch.object(
-            ConnRecord, "retrieve_by_request_id", mock.CoroutineMock()
-        ) as mock_conn_retrieve_by_req_id, mock.patch.object(
-            ConnRecord, "retrieve_by_did", mock.CoroutineMock()
-        ) as mock_conn_retrieve_by_did, mock.patch.object(
-            MediationManager, "get_default_mediator", mock.CoroutineMock()
-        ), mock.patch.object(self.manager, "store_did_document", mock.CoroutineMock()):
+        with (
+            mock.patch.object(ConnRecord, "save", autospec=True),
+            mock.patch.object(
+                ConnRecord, "retrieve_by_request_id", mock.CoroutineMock()
+            ) as mock_conn_retrieve_by_req_id,
+            mock.patch.object(
+                ConnRecord, "retrieve_by_did", mock.CoroutineMock()
+            ) as mock_conn_retrieve_by_did,
+            mock.patch.object(
+                MediationManager, "get_default_mediator", mock.CoroutineMock()
+            ),
+            mock.patch.object(self.manager, "store_did_document", mock.CoroutineMock()),
+        ):
             mock_conn_retrieve_by_req_id.side_effect = StorageNotFoundError()
             mock_conn_retrieve_by_did.return_value = mock.MagicMock(
                 did=self.test_target_did,
@@ -1085,13 +1084,15 @@ class TestConnectionManager(IsolatedAsyncioTestCase):
 
         receipt = MessageReceipt(sender_did=self.test_target_did)
 
-        with mock.patch.object(
-            ConnRecord, "save", autospec=True
-        ) as mock_conn_rec_save, mock.patch.object(
-            ConnRecord, "retrieve_by_request_id", mock.CoroutineMock()
-        ) as mock_conn_retrieve_by_req_id, mock.patch.object(
-            ConnRecord, "retrieve_by_did", mock.CoroutineMock()
-        ) as mock_conn_retrieve_by_did:
+        with (
+            mock.patch.object(ConnRecord, "save", autospec=True),
+            mock.patch.object(
+                ConnRecord, "retrieve_by_request_id", mock.CoroutineMock()
+            ) as mock_conn_retrieve_by_req_id,
+            mock.patch.object(
+                ConnRecord, "retrieve_by_did", mock.CoroutineMock()
+            ) as mock_conn_retrieve_by_did,
+        ):
             mock_conn_retrieve_by_req_id.side_effect = StorageNotFoundError()
             mock_conn_retrieve_by_did.side_effect = StorageNotFoundError()
 
@@ -1108,11 +1109,12 @@ class TestConnectionManager(IsolatedAsyncioTestCase):
 
         receipt = MessageReceipt(sender_did=self.test_target_did)
 
-        with mock.patch.object(
-            ConnRecord, "save", autospec=True
-        ) as mock_conn_rec_save, mock.patch.object(
-            ConnRecord, "retrieve_by_request_id", mock.CoroutineMock()
-        ) as mock_conn_retrieve_by_req_id:
+        with (
+            mock.patch.object(ConnRecord, "save", autospec=True),
+            mock.patch.object(
+                ConnRecord, "retrieve_by_request_id", mock.CoroutineMock()
+            ) as mock_conn_retrieve_by_req_id,
+        ):
             mock_conn_retrieve_by_req_id.return_value = mock.MagicMock(
                 state=ConnRecord.State.ABANDONED.rfc23
             )
@@ -1129,11 +1131,12 @@ class TestConnectionManager(IsolatedAsyncioTestCase):
 
         receipt = MessageReceipt(sender_did=self.test_target_did)
 
-        with mock.patch.object(
-            ConnRecord, "save", autospec=True
-        ) as mock_conn_rec_save, mock.patch.object(
-            ConnRecord, "retrieve_by_request_id", mock.CoroutineMock()
-        ) as mock_conn_retrieve_by_req_id:
+        with (
+            mock.patch.object(ConnRecord, "save", autospec=True),
+            mock.patch.object(
+                ConnRecord, "retrieve_by_request_id", mock.CoroutineMock()
+            ) as mock_conn_retrieve_by_req_id,
+        ):
             mock_conn_retrieve_by_req_id.return_value = mock.MagicMock(
                 did=self.test_target_did,
                 did_doc=mock.MagicMock(did=self.test_target_did),
@@ -1153,11 +1156,12 @@ class TestConnectionManager(IsolatedAsyncioTestCase):
 
         receipt = MessageReceipt(sender_did=self.test_target_did)
 
-        with mock.patch.object(
-            ConnRecord, "save", autospec=True
-        ) as mock_conn_rec_save, mock.patch.object(
-            ConnRecord, "retrieve_by_request_id", mock.CoroutineMock()
-        ) as mock_conn_retrieve_by_req_id:
+        with (
+            mock.patch.object(ConnRecord, "save", autospec=True),
+            mock.patch.object(
+                ConnRecord, "retrieve_by_request_id", mock.CoroutineMock()
+            ) as mock_conn_retrieve_by_req_id,
+        ):
             mock_conn_retrieve_by_req_id.return_value = mock.MagicMock(
                 did=self.test_target_did,
                 did_doc=mock.MagicMock(did=self.test_target_did),
@@ -1177,12 +1181,14 @@ class TestConnectionManager(IsolatedAsyncioTestCase):
         mock_response.verify_signed_field = mock.CoroutineMock(side_effect=ValueError)
         receipt = MessageReceipt(recipient_did=self.test_did, recipient_did_public=True)
 
-        with mock.patch.object(
-            ConnRecord, "save", autospec=True
-        ) as mock_conn_rec_save, mock.patch.object(
-            ConnRecord, "retrieve_by_request_id", mock.CoroutineMock()
-        ) as mock_conn_retrieve_by_req_id, mock.patch.object(
-            MediationManager, "get_default_mediator", mock.CoroutineMock()
+        with (
+            mock.patch.object(ConnRecord, "save", autospec=True),
+            mock.patch.object(
+                ConnRecord, "retrieve_by_request_id", mock.CoroutineMock()
+            ) as mock_conn_retrieve_by_req_id,
+            mock.patch.object(
+                MediationManager, "get_default_mediator", mock.CoroutineMock()
+            ),
         ):
             mock_conn_retrieve_by_req_id.return_value = mock.MagicMock(
                 did=self.test_target_did,
@@ -1206,13 +1212,16 @@ class TestConnectionManager(IsolatedAsyncioTestCase):
         mock_response.verify_signed_field = mock.CoroutineMock(return_value="sig_verkey")
         receipt = MessageReceipt(recipient_did=self.test_did, recipient_did_public=True)
 
-        with mock.patch.object(
-            ConnRecord, "save", autospec=True
-        ) as mock_conn_rec_save, mock.patch.object(
-            ConnRecord, "retrieve_by_request_id", mock.CoroutineMock()
-        ) as mock_conn_retrieve_by_req_id, mock.patch.object(
-            MediationManager, "get_default_mediator", mock.CoroutineMock()
-        ), mock.patch.object(self.manager, "store_did_document", mock.CoroutineMock()):
+        with (
+            mock.patch.object(ConnRecord, "save", autospec=True),
+            mock.patch.object(
+                ConnRecord, "retrieve_by_request_id", mock.CoroutineMock()
+            ) as mock_conn_retrieve_by_req_id,
+            mock.patch.object(
+                MediationManager, "get_default_mediator", mock.CoroutineMock()
+            ),
+            mock.patch.object(self.manager, "store_did_document", mock.CoroutineMock()),
+        ):
             mock_conn_retrieve_by_req_id.return_value = mock.MagicMock(
                 did=self.test_target_did,
                 did_doc=mock.MagicMock(did=self.test_target_did),

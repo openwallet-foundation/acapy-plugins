@@ -1,43 +1,37 @@
 import pytest
 
-from aries_cloudagent.tests import mock
+from acapy_agent.tests import mock
 
-from aries_cloudagent.connections.models import connection_target
-from aries_cloudagent.connections.models.diddoc import (
-    DIDDoc,
-    PublicKey,
-    PublicKeyType,
-    Service,
-)
-from aries_cloudagent.core.profile import ProfileSession
-from aries_cloudagent.messaging.request_context import RequestContext
-from aries_cloudagent.messaging.responder import MockResponder
-from aries_cloudagent.storage.base import BaseStorage
-from aries_cloudagent.storage.error import StorageNotFoundError
-from aries_cloudagent.transport.inbound.receipt import MessageReceipt
-
+from acapy_agent.connections.models import connection_target
+from acapy_agent.connections.models.conn_record import ConnRecord
+from acapy_agent.connections.models.diddoc import DIDDoc, PublicKey, PublicKeyType, Service
+from acapy_agent.messaging.request_context import RequestContext
+from acapy_agent.messaging.responder import MockResponder
+from acapy_agent.storage.base import BaseStorage
+from acapy_agent.storage.error import StorageNotFoundError
+from acapy_agent.transport.inbound.receipt import MessageReceipt
+from acapy_agent.utils.testing import create_test_profile
 from ...handlers import connection_request_handler as handler
 from ...manager import ConnectionManagerError
 from ...messages.connection_request import ConnectionRequest
 from ...messages.problem_report import ConnectionProblemReport, ProblemReportReason
 from ...models.connection_detail import ConnectionDetail
-from ...models.conn_record import ConnectionsRecord as ConnRecord
 
 
 @pytest.fixture()
-async def request_context() -> RequestContext:
-    ctx = RequestContext.test_context()
+async def request_context():
+    ctx = RequestContext.test_context(await create_test_profile())
     ctx.message_receipt = MessageReceipt()
     yield ctx
 
 
 @pytest.fixture()
-async def session(request_context) -> ProfileSession:
+async def session(request_context):
     yield await request_context.session()
 
 
 @pytest.fixture()
-async def connection_record(request_context, session) -> ConnRecord:
+async def connection_record(request_context, session):
     record = ConnRecord()
     request_context.connection_record = record
     await record.save(session)
@@ -153,7 +147,7 @@ class TestRequestHandler:
             storage,
             "find_record",
             mock.CoroutineMock(side_effect=StorageNotFoundError),
-        ) as mock_storage_find_record:
+        ):
             handler_inst = handler.ConnectionRequestHandler()
             responder = MockResponder()
             await handler_inst.handle(request_context, responder)

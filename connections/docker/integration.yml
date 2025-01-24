@@ -7,14 +7,20 @@ inbound-transport:
   - [http, 0.0.0.0, 3000]
 outbound-transport: http
 endpoint:
-  - http://host.docker.internal:3000
+  - http://localhost:3000
 
 plugin:
   - connections
 
-genesis-url: http://test.bcovrin.vonx.io/genesis
+no-ledger: true
 
 log-level: info
 
 auto-accept-invites: true
 auto-respond-messages: true
+
+# Wallet
+auto-provision: true
+wallet-type: askar
+wallet-name: connections-wallet
+wallet-key: insecure

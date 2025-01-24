@@ -3,13 +3,13 @@
 import json
 from typing import Union
 
-from aries_cloudagent.connections.models.conn_record import (
+from acapy_agent.connections.models.conn_record import (
     ConnRecord,
     MaybeStoredConnRecordSchema,
     OOBInvitation,
 )
-from aries_cloudagent.core.profile import ProfileSession
-from aries_cloudagent.storage.base import BaseStorage
+from acapy_agent.core.profile import ProfileSession
+from acapy_agent.storage.base import BaseStorage
 from marshmallow import fields, validate
 
 from connections.v1_0.messages.connection_invitation import ConnectionInvitation

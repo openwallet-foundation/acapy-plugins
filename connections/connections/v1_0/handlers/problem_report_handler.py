@@ -1,12 +1,12 @@
 """Problem report handler for Connection Protocol."""
 
-from aries_cloudagent.messaging.base_handler import (
+from acapy_agent.messaging.base_handler import (
     BaseHandler,
     BaseResponder,
     HandlerException,
     RequestContext,
 )
-from aries_cloudagent.storage.error import StorageNotFoundError
+from acapy_agent.storage.error import StorageNotFoundError
 from ..manager import ConnectionManager, ConnectionManagerError
 from ..messages.problem_report import ConnectionProblemReport
 from ..models.conn_record import ConnectionsRecord as ConnRecord

@@ -2,9 +2,9 @@
 
 from marshmallow import EXCLUDE, fields
 
-from aries_cloudagent.connections.models.diddoc import DIDDoc
-from aries_cloudagent.messaging.models.base import BaseModel, BaseModelSchema
-from aries_cloudagent.messaging.valid import INDY_DID_EXAMPLE, INDY_DID_VALIDATE
+from acapy_agent.connections.models.diddoc import DIDDoc
+from acapy_agent.messaging.models.base import BaseModel, BaseModelSchema
+from acapy_agent.messaging.valid import INDY_DID_EXAMPLE, INDY_DID_VALIDATE
 
 
 class DIDDocWrapper(fields.Field):

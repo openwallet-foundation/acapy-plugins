@@ -1,0 +1,39 @@
+{
+    // Use IntelliSense to learn about possible attributes.
+    // Hover to view descriptions of existing attributes.
+    // For more information, visit: https://go.microsoft.com/fwlink/?linkid=830387
+    "version": "0.2.0",
+    "configurations": [
+      {
+        "name": "Run/Debug Inviter",
+        "type": "debugpy",
+        "request": "launch",
+        "module": "acapy_agent",
+        "justMyCode": false,
+        "args": ["start", "--arg-file=${workspaceRoot}/docker/default.yml"]
+      },
+      {
+        "name": "ruff - connections",
+        "type": "debugpy",
+        "request": "launch",
+        "module": "ruff",
+        "console": "integratedTerminal",
+        "sudo": true,
+        "justMyCode": true,
+        "cwd": "${workspaceFolder}/connections",
+        "args": ["check", "."]
+      },
+      {
+        "name": "ruff fix - connections",
+        "type": "debugpy",
+        "request": "launch",
+        "module": "ruff",
+        "console": "integratedTerminal",
+        "sudo": true,
+        "justMyCode": true,
+        "cwd": "${workspaceFolder}/connections",
+        "args": ["check", ".", "--fix"]
+      }
+    ]
+  }
+  

@@ -1,12 +1,7 @@
-from unittest import IsolatedAsyncioTestCase, TestCase
+from unittest import IsolatedAsyncioTestCase, TestCase, mock
 
-from aries_cloudagent.connections.models.diddoc import (
-    DIDDoc,
-    PublicKey,
-    PublicKeyType,
-    Service,
-)
-from aries_cloudagent.protocols.didcomm_prefix import DIDCommPrefix
+from acapy_agent.connections.models.diddoc import DIDDoc, PublicKey, PublicKeyType, Service
+from acapy_agent.protocols.didcomm_prefix import DIDCommPrefix
 from ...message_types import CONNECTION_REQUEST
 from ...models.connection_detail import ConnectionDetail
 from ..connection_request import ConnectionRequest
@@ -65,6 +60,36 @@ class TestConnectionRequest(TestCase, TestConfig):
         assert self.connection_request._type == DIDCommPrefix.qualify_current(
             CONNECTION_REQUEST
         )
+
+    @mock.patch(
+        "connections.v1_0.messages."
+        "connection_request.ConnectionRequestSchema.load"
+    )
+    def test_deserialize(self, mock_connection_request_schema_load):
+        """
+        Test deserialization.
+        """
+        obj = {"obj": "obj"}
+
+        connection_request = ConnectionRequest.deserialize(obj)
+        mock_connection_request_schema_load.assert_called_once_with(obj)
+
+        assert connection_request is mock_connection_request_schema_load.return_value
+
+    @mock.patch(
+        "connections.v1_0.messages."
+        "connection_request.ConnectionRequestSchema.dump"
+    )
+    def test_serialize(self, mock_connection_request_schema_dump):
+        """
+        Test serialization.
+        """
+        connection_request_dict = self.connection_request.serialize()
+        mock_connection_request_schema_dump.assert_called_once_with(
+            self.connection_request
+        )
+
+        assert connection_request_dict is mock_connection_request_schema_dump.return_value
 
 
 class TestConnectionRequestSchema(IsolatedAsyncioTestCase, TestConfig):

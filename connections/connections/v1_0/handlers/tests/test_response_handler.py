@@ -1,18 +1,14 @@
 import pytest
 
-from aries_cloudagent.tests import mock
+from acapy_agent.tests import mock
 
-from aries_cloudagent.connections.models import connection_target
-from aries_cloudagent.connections.models.diddoc import (
-    DIDDoc,
-    PublicKey,
-    PublicKeyType,
-    Service,
-)
-from aries_cloudagent.messaging.request_context import RequestContext
-from aries_cloudagent.messaging.responder import MockResponder
-from aries_cloudagent.protocols.trustping.v1_0.messages.ping import Ping
-from aries_cloudagent.transport.inbound.receipt import MessageReceipt
+from acapy_agent.connections.models import connection_target
+from acapy_agent.connections.models.diddoc import DIDDoc, PublicKey, PublicKeyType, Service
+from acapy_agent.messaging.request_context import RequestContext
+from acapy_agent.messaging.responder import MockResponder
+from acapy_agent.protocols.trustping.v1_0.messages.ping import Ping
+from acapy_agent.transport.inbound.receipt import MessageReceipt
+from acapy_agent.utils.testing import create_test_profile
 from ...handlers import connection_response_handler as handler
 from ...manager import ConnectionManagerError
 from ...messages.connection_response import ConnectionResponse
@@ -21,8 +17,8 @@ from ...models.connection_detail import ConnectionDetail
 
 
 @pytest.fixture()
-def request_context() -> RequestContext:
-    ctx = RequestContext.test_context()
+async def request_context():
+    ctx = RequestContext.test_context(await create_test_profile())
     ctx.message_receipt = MessageReceipt()
     yield ctx
 
@@ -91,7 +87,7 @@ class TestResponseHandler:
         )
         messages = responder.messages
         assert len(messages) == 1
-        result, target = messages[0]
+        result, _ = messages[0]
         assert isinstance(result, Ping)
 
     @pytest.mark.asyncio

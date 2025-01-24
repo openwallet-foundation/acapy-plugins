@@ -2,7 +2,7 @@
 
 from marshmallow import EXCLUDE, fields
 
-from aries_cloudagent.messaging.agent_message import AgentMessage, AgentMessageSchema
+from acapy_agent.messaging.agent_message import AgentMessage, AgentMessageSchema
 from ..message_types import CONNECTION_REQUEST, PROTOCOL_PACKAGE
 from ..models.connection_detail import ConnectionDetail, ConnectionDetailSchema
 
