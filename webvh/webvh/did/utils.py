@@ -7,12 +7,17 @@ from acapy_agent.wallet.keys.manager import (
 )
 from acapy_agent.vc.data_integrity.manager import DataIntegrityManager
 from acapy_agent.vc.data_integrity.models.options import DataIntegrityProofOptions
-from .constants import ALIASES
 
+ALIAS_PURPOSES = {
+        'witnessConnection': '@witness',
+        'nextKey': '@nextKey',
+        'updateKey': '@updateKey',
+        'witnessKey': '@witnessKey',
+    }
 
 def create_alias(identifier: str, purpose: str):
     """Get static alias."""
-    return f'webvh:{identifier}@{ALIASES[purpose]}'
+    return f'webvh:{identifier}{ALIAS_PURPOSES[purpose]}'
 
 
 def key_to_did_key_vm(multikey: str):
