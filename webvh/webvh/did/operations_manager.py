@@ -226,7 +226,10 @@ class DidWebvhOperationsManager:
         authorized_key_info: dict,
     ):
         initial_doc = {
-            "@context": "https://www.w3.org/ns/did/v1",
+            "@context": [
+                "https://www.w3.org/ns/did/v1",
+                "https://w3id.org/security/multikey/v1"
+            ],
             "id": r"did:webvh:{SCID}:" + f"{domain}:{namespace}:{identifier}",
         }
         
