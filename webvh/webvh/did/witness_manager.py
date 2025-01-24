@@ -1,6 +1,7 @@
 """Module to manage witnesses for a DID."""
 
 import asyncio
+import copy
 import logging
 from typing import Optional
 
@@ -13,6 +14,8 @@ from acapy_agent.protocols.out_of_band.v1_0.messages.invitation import Invitatio
 from acapy_agent.wallet.keys.manager import (
     MultikeyManager
 )
+from acapy_agent.vc.data_integrity.manager import DataIntegrityManager
+from acapy_agent.vc.data_integrity.models.options import DataIntegrityProofOptions
 from aries_askar import AskarError
 
 from ..config.config import get_plugin_config, get_server_url, is_controller
@@ -23,7 +26,8 @@ from .utils import (
     get_url_decoded_domain,
     key_to_did_key_vm,
     create_or_get_key,
-    sign_document
+    sign_document,
+    create_alias
 )
 from .constants import ALIASES
 
@@ -41,8 +45,8 @@ class WitnessManager:
         self.profile = profile
 
     async def _get_active_witness_connection(self) -> Optional[ConnRecord]:
-        witness_alias = await get_server_url(self.profile)
-        witness_alias = witness_alias.split('://')[-1] + ALIASES['witnessConnection']
+        server_url = await get_server_url(self.profile)
+        witness_alias = create_alias(server_url.split('://')[-1], 'witnessConnection')
         async with self.profile.session() as session:
             connection_records = await ConnRecord.retrieve_by_alias(
                 session, witness_alias
@@ -60,9 +64,7 @@ class WitnessManager:
     async def witness_registration_document(
         self,
         controller_secured_document: dict,
-        expiration: str,
-        domain: str,
-        challenge: str,
+        proof_options: str,
         parameters: dict,
     ) -> Optional[dict]:
         """Witness the document with the given parameters."""
@@ -70,17 +72,17 @@ class WitnessManager:
         async with self.profile.session() as session:
             # Self witness
             if not role or role == "witness":
-                witness_alias = f'{domain}{ALIASES["witnessKey"]}'
+                witness_alias = create_alias(proof_options.get('domain'), 'witnessKey')
                 witness_key_info = await MultikeyManager(session).from_kid(
                     witness_alias
+                )
+                proof_options['verificationMethod'] = key_to_did_key_vm(
+                    witness_key_info.get('multikey')
                 )
                 return await sign_document(
                     session, 
                     controller_secured_document, 
-                    witness_key_info.get('multikey'),
-                    expiration,
-                    domain,
-                    challenge
+                    proof_options
                 )
             # Need proof from witness agent
             else:
@@ -95,13 +97,14 @@ class WitnessManager:
                     connection_id=witness_connection.connection_id,
                 )
 
-    async def setup_witness_key(self) -> None:
+    async def setup_witness_key(self, key=None) -> None:
         """Ensure witness key is setup."""
         
         server_url = await get_server_url(self.profile)
         server_domain = server_url.split('://')[-1]
         witness_alias = f'{server_domain}{ALIASES["witnessKey"]}'
-        witness_key_info = await create_or_get_key(self.profile, witness_alias)
+        
+        witness_key_info = await create_or_get_key(self.profile, witness_alias, key)
                 
         if not witness_key_info.get('multikey'):
             raise WitnessError("Witness key creation error.")
@@ -110,10 +113,8 @@ class WitnessManager:
 
     async def auto_witness_setup(self) -> None:
         """Automatically set up the witness the connection."""
-        
         server_url = await get_server_url(self.profile)
-        server_domain = server_url.split('://')[-1]
-        witness_alias = f'{server_domain}{ALIASES["witnessConnection"]}'
+        witness_alias = create_alias(server_url.split('://')[-1], 'witnessConnection')
         
         if not await is_controller(self.profile):
             return
@@ -185,11 +186,9 @@ class WitnessManager:
 
             document_json = entry.value_json
 
-            proof = document_json.get("proof")[0]
+            proof_options = copy.deepcopy(document_json.get("proof")[0])
 
-            domain = proof.get("domain")
-            url_decoded_domain = get_url_decoded_domain(domain)
-            key_alias = f'{url_decoded_domain}{ALIASES["witnessKey"]}'
+            key_alias = create_alias(proof_options.get("domain"), 'witnessKey')
 
             # Attempt to get the witness key for the domain
             if not await MultikeyManager(session).kid_exists(key_alias):
@@ -201,16 +200,18 @@ class WitnessManager:
                 )
 
             # If the key is found, perform witness attestation
-            witness_key_info = await MultikeyManager(session).from_kid(url_decoded_domain)
-            witnessed_document = await sign_document(
-                session, 
-                document_json, 
-                witness_key_info.get('multikey'),
-                proof.get("expires"),
-                domain,
-                proof.get("challenge")
+            witness_key_info = await MultikeyManager(session).from_kid(key_alias)
+            
+            proof_options['verificationMethod'] = key_to_did_key_vm(
+                witness_key_info.get('multikey')
+            )
+            
+            witnessed_document = await DataIntegrityManager(session).add_proof(
+                document_json,
+                DataIntegrityProofOptions.deserialize(proof_options)
             )
             responder = self.profile.inject(BaseResponder)
+            
             await responder.send(
                 message=WitnessResponse(
                     document=witnessed_document, state=RegistrationState.POSTED.value

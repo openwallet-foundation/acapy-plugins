@@ -2,6 +2,7 @@
 
 import asyncio
 import http
+import copy
 import json
 import logging
 import re
@@ -26,6 +27,7 @@ from pydid import DIDDocument
 
 from ..config.config import get_server_url, use_strict_ssl
 from .exceptions import DidCreationError
+from .utils import key_to_did_key_vm, create_alias
 from .registration_state import RegistrationState
 from .witness_manager import WitnessManager
 
@@ -34,8 +36,6 @@ LOGGER = logging.getLogger(__name__)
 WEBVH_METHOD = "did:webvh:0.4"
 WITNESS_WAIT_TIMEOUT_SECONDS = 2
 WITNESS_EVENT = "witness_response::"
-AUTHORIZED_KEY_ID = "authorizedKey"
-
 
 class DidWebvhOperationsManager:
     """DID Webvh Manager class."""
@@ -82,8 +82,8 @@ class DidWebvhOperationsManager:
             if response.status == http.HTTPStatus.BAD_REQUEST:
                 raise DidCreationError(response_json.get("detail"))
 
-            document = response_json.get("didDocument", {})
-            did = document.get("id")
+            did_document = response_json.get("didDocument", {})
+            did = did_document.get("id")
 
             proof_options = response_json.get("proofOptions", {})
             challenge = proof_options.get("challenge")
@@ -91,48 +91,39 @@ class DidWebvhOperationsManager:
             expiration = proof_options.get("expires")
 
             if self._all_are_not_none(did, challenge, domain, expiration):
-                return did, challenge, domain, expiration
+                return did_document, proof_options
             else:
                 raise DidCreationError(
                     "Invalid response from Webvh server requesting identifier"
                 )
 
-    async def _get_or_create_authorized_key(self, did):
+    async def _get_key(self, key_alias):
+        async with self.profile.session() as session:
+            key_info = await MultikeyManager(session).from_kid(
+                key_alias
+            )
+
+        return key_info
+
+    async def _get_or_create_key(self, key_alias):
         async with self.profile.session() as session:
             try:
                 # NOTE: kid management needs to be addressed with key rotation
-                authorized_key_info = await MultikeyManager(session).create(
+                key_info = await MultikeyManager(session).create(
                     alg="ed25519",
-                    kid=f"{did}#{AUTHORIZED_KEY_ID}",
+                    kid=key_alias,
                 )
             except MultikeyManagerError:
-                authorized_key_info = await MultikeyManager(session).from_kid(
-                    f"{did}#{AUTHORIZED_KEY_ID}"
+                key_info = await MultikeyManager(session).from_kid(
+                    key_alias
                 )
 
-        return authorized_key_info
-
-    async def _get_or_create_first_verification_key(self, did):
-        async with self.profile.session() as session:
-            try:
-                # NOTE: kid management needs to be addressed with key rotation
-                authorized_key_info = await MultikeyManager(session).create(
-                    alg="ed25519",
-                    kid=f"{did}#key-01",
-                )
-            except MultikeyManagerError:
-                authorized_key_info = await MultikeyManager(session).from_kid(
-                    f"{did}#key-01"
-                )
-
-        return authorized_key_info
+        return key_info
 
     async def _create_controller_signed_registration_document(
-        self, did, first_ver_key_info, authorized_key_info, expiration, domain, challenge
+        self, did, ver_key_info, proof_options
     ):
         async with self.profile.session() as session:
-            # NOTE: The authorized key is used as the verification method. This needs to
-            # be discussed and potentially changed to a different key.
             return await DataIntegrityManager(session).add_proof(
                 DIDDocument(
                     context=[
@@ -140,26 +131,18 @@ class DidWebvhOperationsManager:
                         "https://w3id.org/security/multikey/v1",
                     ],
                     id=did,
-                    authentication=[first_ver_key_info.get("kid")],
-                    assertion_method=[first_ver_key_info.get("kid")],
+                    authentication=[ver_key_info.get("kid")],
+                    assertion_method=[ver_key_info.get("kid")],
                     verification_method=[
                         {
-                            "id": first_ver_key_info.get("kid"),
+                            "id": ver_key_info.get("kid"),
                             "type": "Multikey",
                             "controller": did,
-                            "publicKeyMultibase": first_ver_key_info.get("multikey"),
+                            "publicKeyMultibase": ver_key_info.get("multikey"),
                         }
                     ],
                 ).serialize(),
-                DataIntegrityProofOptions(
-                    type="DataIntegrityProof",
-                    cryptosuite="eddsa-jcs-2022",
-                    proof_purpose="assertionMethod",
-                    verification_method=f"did:key:{authorized_key_info.get('multikey')}#{authorized_key_info.get('multikey')}",
-                    expires=expiration,
-                    domain=domain,
-                    challenge=challenge,
-                ),
+                DataIntegrityProofOptions.deserialize(proof_options),
             )
 
     async def _wait_for_witness(self, did: str):
@@ -179,30 +162,39 @@ class DidWebvhOperationsManager:
         """Register identities."""
 
         server_url = await get_server_url(self.profile)
+        
+        # Set default namespace if none provided
         namespace = options.get("namespace", "default")
-
-        if namespace is None:
-            raise DidCreationError("Namespace is required.")
 
         # Generate a random identifier if not provided
         identifier = options.get("identifier", str(uuid4()))
 
         # Contact the server to request an identifier
-        did, challenge, domain, expiration = await self._request_identifier(
+        did_doc, proof_options = await self._request_identifier(
             server_url, namespace, identifier
         )
+        did = did_doc.get('id')
 
-        authorized_key_info = await self._get_or_create_authorized_key(did)
-        first_ver_key_info = await self._get_or_create_first_verification_key(did)
+        update_key_alias = create_alias(did.replace('did:web:', 'webvh'), 'updateKey')
+        authorized_key_info = await self._get_or_create_key(update_key_alias)
+        
+        first_key_alias = f'{did}#key-01'
+        first_key_info = await self._get_or_create_key(first_key_alias)
+        
+        controller_proof_options = copy.deepcopy(proof_options)
+        controller_proof_options['verificationMethod'] = key_to_did_key_vm(
+            authorized_key_info.get('multikey')
+        )
         controller_secured_document = (
             await self._create_controller_signed_registration_document(
-                did, first_ver_key_info, authorized_key_info, expiration, domain, challenge
+                did, first_key_info, controller_proof_options
             )
         )
 
         parameters = options.get("parameters", {})
+        witness_proof_options = copy.deepcopy(proof_options)
         result = await WitnessManager(self.profile).witness_registration_document(
-            controller_secured_document, expiration, domain, challenge, parameters
+            controller_secured_document, witness_proof_options, parameters
         )
 
         if isinstance(result, dict):
@@ -237,16 +229,18 @@ class DidWebvhOperationsManager:
             "@context": "https://www.w3.org/ns/did/v1",
             "id": r"did:webvh:{SCID}:" + f"{domain}:{namespace}:{identifier}",
         }
-        first_ver_key_info = await self._get_or_create_first_verification_key(
-            initial_doc['id'])
-        initial_doc['authentication'] = [first_ver_key_info.get("kid")]
-        initial_doc['assertionMethod'] = [first_ver_key_info.get("kid")]
+        
+        first_webvh_key_id = initial_doc['id'] + '#key-01'
+        first_webvh_key_info = await self._get_or_create_key(first_webvh_key_id)
+        
+        initial_doc['authentication'] = [first_webvh_key_info.get("kid")]
+        initial_doc['assertionMethod'] = [first_webvh_key_info.get("kid")]
         initial_doc['verificationMethod'] = [
             {
-                "id": first_ver_key_info.get("kid"),
+                "id": first_webvh_key_info.get("kid"),
                 "type": "Multikey",
                 "controller": initial_doc['id'],
-                "publicKeyMultibase": first_ver_key_info.get("multikey"),
+                "publicKeyMultibase": first_webvh_key_info.get("multikey"),
             }
         ]
         doc_state = DocumentState.initial(
@@ -260,19 +254,18 @@ class DidWebvhOperationsManager:
         )
 
         # Add controller authorized proof to the log entry
-        # NOTE: The authorized key is used as the verification method.
         signed_entry = await DataIntegrityManager(session).add_proof(
             doc_state.history_line(),
             DataIntegrityProofOptions(
                 type="DataIntegrityProof",
                 cryptosuite="eddsa-jcs-2022",
                 proof_purpose="assertionMethod",
-                verification_method=f"did:key:{authorized_key_info.get('multikey')}#{authorized_key_info.get('multikey')}",
+                verification_method=key_to_did_key_vm(authorized_key_info.get('multikey')),
             ),
         )
         async with self.profile.session() as session:
             await MultikeyManager(session).update(
-                multikey=first_ver_key_info.get("multikey"),
+                multikey=first_webvh_key_info.get("multikey"),
                 kid=signed_entry.get('state').get('verificationMethod')[0].get('id'),
             )
         
@@ -333,14 +326,14 @@ class DidWebvhOperationsManager:
                 raise DidCreationError(response_json.get("detail"))
 
             if not authorized_key_info:
-                authorized_key_info = await self._get_or_create_authorized_key(
-                    witnessed_document["id"]
+                key_alias = create_alias(
+                    witnessed_document["id"].replace('did:web:', 'webvh'), 'updateKey'
                 )
+                authorized_key_info = await self._get_key(key_alias)
 
             # Create initial log entry
-            id_parts = witnessed_document["id"].split(":")
-            namespace = id_parts[-2]
-            identifier = id_parts[-1]
+            namespace = witnessed_document["id"].split(":")[-2]
+            identifier = witnessed_document["id"].split(":")[-1]
 
             signed_initial_log_entry = await self._create_signed_initial_log_entry(
                 session,
@@ -428,7 +421,7 @@ class DidWebvhOperationsManager:
         for feature, values in features.items():
             document[feature].extend([values])
 
-        authorized_key_info = await self._get_or_create_authorized_key(
+        authorized_key_info = await self._get_key(
             document_state.document["id"]
         )
 
@@ -495,7 +488,7 @@ class DidWebvhOperationsManager:
         document["authentication"] = []
         document["assertionMethod"] = []
 
-        authorized_key_info = await self._get_or_create_authorized_key(
+        authorized_key_info = await self._get_key(
             document_state.document["id"]
         )
 

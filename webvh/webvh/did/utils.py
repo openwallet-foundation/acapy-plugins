@@ -7,6 +7,12 @@ from acapy_agent.wallet.keys.manager import (
 )
 from acapy_agent.vc.data_integrity.manager import DataIntegrityManager
 from acapy_agent.vc.data_integrity.models.options import DataIntegrityProofOptions
+from .constants import ALIASES
+
+
+def create_alias(identifier: str, purpose: str):
+    """Get static alias."""
+    return f'webvh:{identifier}@{ALIASES[purpose]}'
 
 
 def key_to_did_key_vm(multikey: str):
@@ -28,35 +34,30 @@ def get_url_decoded_domain(domain: str):
         return domain.replace("%3A", ":")
     return domain
 
-async def create_or_get_key(profile, key_alias):
+async def create_or_get_key(profile, key_alias, key=None):
     """Create new multikey with alias or return existing one."""
     async with profile.session() as session:
         try:
-            key_info = await MultikeyManager(session).create(
-                kid=key_alias,
-                alg="ed25519",
-            )
+            if key:
+                key_info = await MultikeyManager(session).update(
+                    kid=key_alias,
+                    multikey=key,
+                )
+                
+            else:
+                key_info = await MultikeyManager(session).create(
+                    kid=key_alias,
+                    alg="ed25519",
+                )
         except (MultikeyManagerError, WalletDuplicateError):
             key_info = await MultikeyManager(session).from_kid(
                 key_alias
             )
     return key_info
 
-async def sign_document(session, document, key, expires=None, domain=None, challenge=None):
+async def sign_document(session, document, proof_options):
     """Sign document with data integrity proof."""
-    proof_options = DataIntegrityProofOptions(
-        type="DataIntegrityProof",
-        cryptosuite="eddsa-jcs-2022",
-        proof_purpose="assertionMethod",
-        verification_method=key_to_did_key_vm(key.get('multikey')),
-    )
-    if expires:
-        proof_options.expires = expires
-    if domain:
-        proof_options.domain = domain
-    if challenge:
-        proof_options.challenge = challenge
     return await DataIntegrityManager(session).add_proof(
         document,
-        proof_options
+        DataIntegrityProofOptions.deserialize(proof_options)
     )

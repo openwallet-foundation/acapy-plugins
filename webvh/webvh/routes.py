@@ -102,18 +102,25 @@ class ConfigureWebvhSchema(OpenAPISchema):
             "example": "http://localhost:8000",
         },
     )
-    controller = fields.Boolean(
-        required=False,
-        metadata={
-            "description": "Agent is a webvh controller",
-            "example": "true",
-        },
-        default=True,
-    )
     witness = fields.Boolean(
         required=False,
         metadata={
-            "description": "Agent is a webvh witness",
+            "description": "Enable the witness role",
+            "example": "false",
+        },
+        default=False,
+    )
+    witness_key = fields.Str(
+        required=False,
+        metadata={
+            "description": "Existing key to use as witness key",
+            "example": "z6MkwHAfotoRgkYeS4xDMSMQdQfiTHsmKq82qudwcD5YdCo9",
+        }
+    )
+    witness_auto = fields.Bool(
+        required=False,
+        metadata={
+            "description": "Auto sign witness requests",
             "example": "false",
         },
         default=False,
@@ -121,7 +128,7 @@ class ConfigureWebvhSchema(OpenAPISchema):
     witness_invitation = fields.Str(
         required=False,
         metadata={
-            "description": "Invitation for the witness",
+            "description": "An invitation from a witness",
             "example": "http://localhost:3000?oob=eyJAdHlwZSI6ICJodHRwczovL2RpZGNvbW0ub3JnL291dC1vZi1iYW5kLzEuMS9pbnZpdGF0aW9uIiwgIkBpZCI6ICJlMzI5OGIyNS1mZjRlLTRhZmItOTI2Yi03ZDcyZmVlMjQ1ODgiLCAibGFiZWwiOiAid2VidmgtZW5kb3JzZXIiLCAiaGFuZHNoYWtlX3Byb3RvY29scyI6IFsiaHR0cHM6Ly9kaWRjb21tLm9yZy9kaWRleGNoYW5nZS8xLjAiXSwgInNlcnZpY2VzIjogW3siaWQiOiAiI2lubGluZSIsICJ0eXBlIjogImRpZC1jb21tdW5pY2F0aW9uIiwgInJlY2lwaWVudEtleXMiOiBbImRpZDprZXk6ejZNa3FDQ1pxNURSdkdMcDV5akhlZlZTa2JhN0tYWlQ1Nld2SlJacEQ2Z3RvRzU0I3o2TWtxQ0NacTVEUnZHTHA1eWpIZWZWU2tiYTdLWFpUNTZXdkpSWnBENmd0b0c1NCJdLCAic2VydmljZUVuZHBvaW50IjogImh0dHA6Ly9sb2NhbGhvc3Q6MzAwMCJ9XX0",
         },
     )
@@ -218,26 +225,36 @@ async def configure(request: web.BaseRequest):
     
     request_json = await request.json()
     
-    if not request_json.get('server_url'):
-        raise ConfigurationError('No server set.')
-    
     config["server_url"] = request_json.get('server_url')
     
+    if not config.get('server_url'):
+        raise ConfigurationError('No server url provided.')
+
     config["role"] = "witness" if request_json.get('witness') else "controller"
+        
+    if config["role"] == 'witness':
+        witness_key = await WitnessManager(profile).setup_witness_key(
+            request_json.get('witness_key')
+        )
+        if not witness_key:
+            raise ConfigurationError('No witness key set.')
     
     if config["role"] == "controller":
-        if not request_json.get("witness_invitation"):
-            raise ConfigurationError('No witness set.')
+        config["witness_invitation"] = request_json.get('witness_invitation')
+        if not config.get("witness_invitation"):
+            raise ConfigurationError('No witness invitation set.')
     
-        config["witness_invitation"] = request_json["witness_invitation"]
 
     try:
         await set_config(profile, config)
+        
         if config["role"] == 'witness':
-            witness_key = await WitnessManager(profile).setup_witness_key()
             return web.json_response({"witness_key": witness_key})
+        
         await WitnessManager(profile).auto_witness_setup()
+        
         return web.json_response({"status": "success"})
+    
     except ConfigurationError as err:
         return web.json_response({"status": "error", "message": str(err)})
 
