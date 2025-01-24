@@ -23,13 +23,11 @@ from .exceptions import WitnessError
 from .messages.witness import WitnessRequest, WitnessResponse
 from .registration_state import RegistrationState
 from .utils import (
-    get_url_decoded_domain,
     key_to_did_key_vm,
     create_or_get_key,
     sign_document,
     create_alias
 )
-from .constants import ALIASES
 
 LOGGER = logging.getLogger(__name__)
 
@@ -101,8 +99,7 @@ class WitnessManager:
         """Ensure witness key is setup."""
         
         server_url = await get_server_url(self.profile)
-        server_domain = server_url.split('://')[-1]
-        witness_alias = f'{server_domain}{ALIASES["witnessKey"]}'
+        witness_alias = create_alias(server_url.split('://')[-1], 'witnessKey')
         
         witness_key_info = await create_or_get_key(self.profile, witness_alias, key)
                 
