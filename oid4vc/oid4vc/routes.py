@@ -39,7 +39,12 @@ from marshmallow.validate import OneOf
 
 from oid4vc.cred_processor import CredProcessors
 from oid4vc.jwk import DID_JWK, P256
-from oid4vc.models.dcql_query import CredentialQuery, CredentialSetQuery, DCQLQuery
+from oid4vc.models.dcql_query import (
+    CredentialQuery,
+    CredentialQuerySchema,
+    CredentialSetQuery,
+    DCQLQuery,
+)
 from oid4vc.models.presentation import OID4VPPresentation, OID4VPPresentationSchema
 from oid4vc.models.presentation_definition import OID4VPPresDef, OID4VPPresDefSchema
 from oid4vc.models.request import OID4VPRequest, OID4VPRequestSchema
@@ -830,9 +835,7 @@ class CreateDCQLQueryRequestSchema(OpenAPISchema):
     """Request schema for creating a DCQL Query."""
 
     credentials = fields.List(
-        # TODO Does this work? The API data will just be raw json, so the schema
-        # validation might not work the way I want it to ~ mepeltier
-        CredentialQuery,
+        CredentialQuerySchema,
         required=True,
         metadata={"description": "A list of Credential Queries."},
     )
@@ -872,7 +875,13 @@ async def create_dcql_query(request: web.Request):
 
     async with context.session() as session:
 
-        dcql_query = DCQLQuery(credentials=credentials, credential_sets=credential_sets)
+        cred_queries = []
+        for cred in credentials:
+            cred_queries.append(CredentialQuery(**cred))
+
+        dcql_query = DCQLQuery(
+            credentials=cred_queries, credential_sets=credential_sets
+        )
         await dcql_query.save(session=session)
 
     return web.json_response(

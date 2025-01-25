@@ -35,12 +35,18 @@ from aries_askar import Key, KeyAlg
 from base58 import b58decode
 from marshmallow import fields
 
+from oid4vc.dcql import DCQLQueryEvaluator
 from oid4vc.jwk import DID_JWK
 from oid4vc.jwt import jwt_sign, jwt_verify, key_material_for_kid
+from oid4vc.models.dcql_query import DCQLQuery
 from oid4vc.models.presentation import OID4VPPresentation
 from oid4vc.models.presentation_definition import OID4VPPresDef
 from oid4vc.models.request import OID4VPRequest
-from oid4vc.pex import PresentationExchangeEvaluator, PresentationSubmission
+from oid4vc.pex import (
+    PexVerifyResult,
+    PresentationExchangeEvaluator,
+    PresentationSubmission,
+)
 
 from .config import Config
 from .cred_processor import CredProcessorError, CredProcessors
@@ -518,7 +524,7 @@ class OID4VPPresentationIDMatchSchema(OpenAPISchema):
 class PostOID4VPResponseSchema(OpenAPISchema):
     """Schema for ..."""
 
-    presentation_submission = fields.Str(required=True, metadata={"description": ""})
+    presentation_submission = fields.Str(required=False, metadata={"description": ""})
 
     vp_token = fields.Str(
         required=True,
@@ -532,7 +538,30 @@ class PostOID4VPResponseSchema(OpenAPISchema):
     )
 
 
-async def verify_presentation(
+async def verify_dcql_presentation(
+    profile: Profile,
+    vp_token: Dict[str, Any],
+    dcql_query_id: str,
+    presentation: OID4VPPresentation,
+):
+    """Verify a received presentation."""
+
+    LOGGER.debug("Got: %s", vp_token)
+
+    async with profile.session() as session:
+        pres_def_entry = await DCQLQuery.retrieve_by_id(
+            session,
+            dcql_query_id,
+        )
+
+        dcql_query = DCQLQuery.deserialize(pres_def_entry)
+
+    evaluator = DCQLQueryEvaluator.compile(dcql_query)
+    result = await evaluator.verify(profile, vp_token, presentation)
+    return result
+
+
+async def verify_pres_def_presentation(
     profile: Profile,
     submission: PresentationSubmission,
     vp_token: str,
@@ -603,13 +632,24 @@ async def post_response(request: web.Request):
     try:
         assert isinstance(vp_token, str)
 
-        verify_result = await verify_presentation(
-            profile=context.profile,
-            submission=presentation_submission,
-            vp_token=vp_token,
-            pres_def_id=record.pres_def_id,
-            presentation=record,
-        )
+        if record.pres_def_id:
+            verify_result = await verify_pres_def_presentation(
+                profile=context.profile,
+                submission=presentation_submission,
+                vp_token=vp_token,
+                pres_def_id=record.pres_def_id,
+                presentation=record,
+            )
+        elif record.dcql_query_id:
+            verify_result = await verify_dcql_presentation(
+                profile=context.profile,
+                vp_token=json.loads(vp_token),
+                dcql_query_id=record.dcql_query_id,
+                presentation=record,
+            )
+        else:
+            LOGGER.error("Record %s has neither pres_def_id or dcql_query_id", record)
+            raise web.HTTPInternalServerError(reason="Something went wrong")
 
     except StorageNotFoundError as err:
         raise web.HTTPNotFound(reason=err.roll_up) from err
@@ -624,7 +664,11 @@ async def post_response(request: web.Request):
         record.errors = [verify_result.details]
 
     record.verified = verify_result.verified
-    record.matched_credentials = verify_result.descriptor_id_to_claims
+    record.matched_credentials = (
+        verify_result.descriptor_id_to_claims
+        if isinstance(verify_result, PexVerifyResult)
+        else verify_result.cred_query_id_to_claims
+    )
 
     async with context.session() as session:
         await record.save(
