@@ -17,7 +17,7 @@ class OID4VPRequest(BaseRecord):
     RECORD_ID_NAME = "request_id"
     RECORD_TYPE = "oid4vp"
     RECORD_TOPIC = "oid4vp"
-    TAG_NAMES = {"pres_def_id"}
+    TAG_NAMES = {"pres_def_id", "dcql_query_id"}
 
     def __init__(
         self,
