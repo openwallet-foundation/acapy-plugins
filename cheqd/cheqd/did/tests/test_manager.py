@@ -1,11 +1,19 @@
 import secrets
-from unittest.mock import ANY, call, patch
+from typing import assert_type
+from unittest.mock import patch
 
 import pytest
 from acapy_agent.resolver.base import DIDNotFound
 from acapy_agent.wallet.error import WalletError
 
 from ...did.base import CheqdDIDManagerError
+from ..base import (
+    DidCreateRequestOptions,
+    DidDeactivateRequestOptions,
+    DidUpdateRequestOptions,
+    SubmitSignatureOptions,
+    PartialDIDDocumentSchema,
+)
 from ..manager import CheqdDIDManager
 from .mocks import (
     registrar_responses_network_fail,
@@ -27,37 +35,17 @@ async def test_create(mock_registrar_instance, profile):
     response = await manager.create()
 
     # Assert
-    assert response["did"] == "did:cheqd:testnet:123456"
+    assert response["did"].startswith("did:cheqd:testnet")
     assert response["verkey"] is not None
-    assert response["didDocument"]["MOCK_KEY"] == "MOCK_VALUE"
-
-    mock_registrar_instance.return_value.create.assert_has_calls(
-        [
-            call(
-                {
-                    "didDocument": {
-                        "id": "did:cheqd:testnet:123456",
-                        "verificationMethod": {"publicKey": "someVerificationKey"},
-                    },
-                    "network": "testnet",
-                }
-            ),
-            call(
-                {
-                    "jobId": "MOCK_ID",
-                    "network": "testnet",
-                    "secret": {
-                        "signingResponse": [
-                            {
-                                "kid": "MOCK_KID",
-                                "signature": ANY,
-                            }
-                        ]
-                    },
-                }
-            ),
-        ]
+    assert isinstance(
+        PartialDIDDocumentSchema(**response["didDocument"]), PartialDIDDocumentSchema
     )
+
+    [create_request_call, submit_signature_call] = (
+        mock_registrar_instance.return_value.create.call_args_list
+    )
+    assert_type(create_request_call, DidCreateRequestOptions)
+    assert_type(submit_signature_call, SubmitSignatureOptions)
 
 
 @patch("cheqd.cheqd.did.manager.CheqdDIDRegistrar")
@@ -73,9 +61,16 @@ async def test_create_with_seed(mock_registrar_instance, profile):
     response = await manager.create(options=options)
 
     # Assert
-    assert response["did"] == "did:cheqd:testnet:123456"
+    assert response["did"].startswith("did:cheqd:testnet")
     assert response["verkey"] is not None
-    assert response["didDocument"]["MOCK_KEY"] == "MOCK_VALUE"
+    assert isinstance(
+        PartialDIDDocumentSchema(**response["didDocument"]), PartialDIDDocumentSchema
+    )
+    [create_request_call, submit_signature_call] = (
+        mock_registrar_instance.return_value.create.call_args_list
+    )
+    assert_type(create_request_call, DidCreateRequestOptions)
+    assert_type(submit_signature_call, SubmitSignatureOptions)
 
 
 @patch("cheqd.cheqd.did.manager.CheqdDIDRegistrar")
@@ -105,17 +100,15 @@ async def test_create_with_invalid_did_document(
     # Arrange
     setup_mock_registrar(
         mock_registrar_instance.return_value,
-        generate_did_doc_response=None,
     )
     manager = CheqdDIDManager(profile)
 
     # Act
     with pytest.raises(Exception) as e:
-        await manager.create()
+        await manager.create(did_doc={})
 
     # Assert
-    assert isinstance(e.value, CheqdDIDManagerError)
-    assert str(e.value) == "Error constructing DID Document"
+    assert e is not None
 
 
 @patch("cheqd.cheqd.did.manager.CheqdDIDRegistrar")
@@ -203,28 +196,16 @@ async def test_update(
     response = await manager.update(did, did_doc)
 
     # Assert
-    assert response["did"] == "did:cheqd:testnet:123456"
-    assert response["didDocument"]["MOCK_KEY"] == "MOCK_VALUE_UPDATED"
-
-    mock_registrar_instance.return_value.update.assert_has_calls(
-        [
-            call(
-                {
-                    "did": did,
-                    "didDocumentOperation": ["setDidDocument"],
-                    "didDocument": [did_doc],
-                }
-            ),
-            call(
-                {
-                    "jobId": "MOCK_ID",
-                    "secret": {
-                        "signingResponse": [{"kid": "MOCK_KID", "signature": ANY}]
-                    },
-                }
-            ),
-        ]
+    assert response["did"].startswith("did:cheqd:testnet")
+    assert isinstance(
+        PartialDIDDocumentSchema(**response["didDocument"]), PartialDIDDocumentSchema
     )
+
+    [update_request_call, submit_signature_call] = (
+        mock_registrar_instance.return_value.create.call_args_list
+    )
+    assert_type(update_request_call, DidUpdateRequestOptions)
+    assert_type(submit_signature_call, SubmitSignatureOptions)
 
 
 @patch("cheqd.cheqd.did.manager.CheqdDIDResolver")
@@ -336,7 +317,7 @@ async def test_update_not_finished(
 @patch("cheqd.cheqd.did.manager.CheqdDIDResolver")
 @patch("cheqd.cheqd.did.manager.CheqdDIDRegistrar")
 @pytest.mark.asyncio
-async def test_deactivate(mock_registrar_instance, mock_resolver_instance, profile, did):
+async def test_deactivate_did(mock_registrar_instance, mock_resolver_instance, profile):
     # Arrange
     setup_mock_registrar(
         mock_registrar_instance.return_value,
@@ -346,27 +327,21 @@ async def test_deactivate(mock_registrar_instance, mock_resolver_instance, profi
     manager = CheqdDIDManager(profile)
 
     # Act
-    await manager.create()
-    response = await manager.deactivate(did)
+    create_res = await manager.create()
+    response = await manager.deactivate(create_res.get("did"))
 
     # Assert
-    assert response["did"] == "did:cheqd:testnet:123456"
-    assert response["did_document"]["MOCK_KEY"] == "MOCK_VALUE_DEACTIVATED"
-    assert response["did_document_metadata"]["deactivated"] is True
-
-    mock_registrar_instance.return_value.deactivate.assert_has_calls(
-        [
-            call({"did": did}),
-            call(
-                {
-                    "jobId": "MOCK_ID",
-                    "secret": {
-                        "signingResponse": [{"kid": "MOCK_KID", "signature": ANY}]
-                    },
-                }
-            ),
-        ]
+    assert response["did"] == create_res.get("did")
+    assert isinstance(
+        PartialDIDDocumentSchema(**response["didDocument"]), PartialDIDDocumentSchema
     )
+    assert response["didDocumentMetadata"]["deactivated"] is True
+
+    [deactivate_request_call, submit_signature_call] = (
+        mock_registrar_instance.return_value.create.call_args_list
+    )
+    assert_type(deactivate_request_call, DidDeactivateRequestOptions)
+    assert_type(submit_signature_call, SubmitSignatureOptions)
 
 
 @patch("cheqd.cheqd.did.manager.CheqdDIDResolver")

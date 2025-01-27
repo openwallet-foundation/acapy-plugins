@@ -92,7 +92,7 @@ services:
     restart: on-failure
     environment:
       - FEE_PAYER_TESTNET_MNEMONIC=${FEE_PAYER_TESTNET_MNEMONIC}
-      - ENV FEE_PAYER_MAINNET_MNEMONIC=${FEE_PAYER_MAINNET_MNEMONIC}
+      - FEE_PAYER_MAINNET_MNEMONIC=${FEE_PAYER_MAINNET_MNEMONIC}
 
   did_resolver:
     image: ghcr.io/cheqd/did-resolver:latest

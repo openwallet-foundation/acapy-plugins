@@ -7,7 +7,9 @@ from acapy_agent.utils.testing import create_test_profile
 from acapy_agent.wallet.did_method import DIDMethods
 from acapy_agent.wallet.key_type import KeyTypes
 
+from ...did.base import ResourceCreateRequestOptions, ResourceUpdateRequestOptions
 from ...did_method import CHEQD
+from ..registry import PublishResourceResponse
 
 
 @pytest.fixture
@@ -54,11 +56,18 @@ def mock_schema():
 
 @pytest.fixture
 def mock_create_and_publish_resource():
-    return {
-        "jobId": "MOCK_JOB_ID",
-        "resource": {"id": "MOCK_RESOURCE_ID"},
-        "id": "MOCK_ID",
-    }
+    return PublishResourceResponse(
+        did_url="MOCK_ISSUER_ID/resources/MOCK_RESOURCE_ID",
+        content="MOCK_VALUE",
+    )
+
+
+@pytest.fixture
+def mock_update_and_publish_resource():
+    return PublishResourceResponse(
+        did_url="MOCK_ISSUER_ID/resources/MOCK_RESOURCE_ID",
+        content="MOCK_VALUE",
+    )
 
 
 @pytest.fixture
@@ -130,3 +139,17 @@ async def mock_profile_for_manager():
     profile.context.injector.bind_instance(BaseCache, InMemoryCache())
 
     return profile
+
+
+@pytest.fixture
+def mock_resource_create_options():
+    return ResourceCreateRequestOptions(
+        did="MOCK_VALUE", content="MOCK_VALUE", name="MOCK_VALUE", type="MOCK_VALUE"
+    )
+
+
+@pytest.fixture
+def mock_resource_update_options():
+    return ResourceUpdateRequestOptions(
+        did="MOCK_VALUE", content=["MOCK_VALUE"], name="MOCK_VALUE", type="MOCK_VALUE"
+    )
