@@ -253,6 +253,30 @@ updates:
       - dependency-name: "*"
         update-types: ["version-update:semver-major"]
 
+  # Maintain dependencies for Python Packages
+  - package-ecosystem: "pip"
+    directory: "/connections"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "04:00"
+      timezone: "Canada/Pacific"
+    ignore:
+      - dependency-name: "*"
+        update-types: ["version-update:semver-major"]
+
+  # Maintain dependencies for Python Packages
+  - package-ecosystem: "pip"
+    directory: "/connections/integration"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "04:00"
+      timezone: "Canada/Pacific"
+    ignore:
+      - dependency-name: "*"
+        update-types: ["version-update:semver-major"]
+
   # Maintain dependencies for TypeScript and JavaScript
   - package-ecosystem: "npm"
     directory: "/oid4vci/demo/frontend"
@@ -634,6 +658,15 @@ updates:
   # Maintain dependencies for docker
   - package-ecosystem: "docker"
     directory: "/cheqd/integration"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "04:00"
+      timezone: "Canada/Pacific"
+
+  # Maintain dependencies for docker
+  - package-ecosystem: "docker"
+    directory: "/connections/integration"
     schedule:
       interval: "weekly"
       day: "monday"
