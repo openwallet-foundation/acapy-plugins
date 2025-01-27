@@ -1,0 +1,26 @@
+label: connections
+
+admin: [0.0.0.0, 3001]
+admin-insecure-mode: true
+
+inbound-transport:
+  - [http, 0.0.0.0, 3000]
+outbound-transport: http
+endpoint:
+  - http://localhost:3000
+
+plugin:
+  - connections
+
+no-ledger: true
+
+log-level: info
+
+auto-accept-invites: true
+auto-respond-messages: true
+
+# Wallet
+auto-provision: true
+wallet-type: askar
+wallet-name: connections-wallet
+wallet-key: insecure
