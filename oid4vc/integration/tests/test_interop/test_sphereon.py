@@ -1,3 +1,4 @@
+from typing import Any, Dict
 import pytest
 
 from sphereon_wrapper import SphereaonWrapper
@@ -16,6 +17,6 @@ async def test_api(sphereon: SphereaonWrapper):
 
 @pytest.mark.interop
 @pytest.mark.asyncio
-async def test_sphereon_pre_auth(sphereon: SphereaonWrapper, offer: str):
+async def test_sphereon_pre_auth(sphereon: SphereaonWrapper, offer: Dict[str, Any]):
     """Test receive offer for pre auth code flow."""
-    await sphereon.accept_credential_offer(offer)
+    await sphereon.accept_credential_offer(offer["offer_uri"])
