@@ -43,7 +43,7 @@ class ConnectionsRecord(ConnRecord):
             {"connection_id": self.connection_id},
         )
         ser = json.loads(result.value)
-        if ser["@type"] == "https://didcomm.org/out-of-band/1.1/invitation":
+        if ser.get("@type") == "https://didcomm.org/out-of-band/1.1/invitation":
             return OOBInvitation.deserialize(ser)
         return ConnectionInvitation.deserialize(ser)
 
