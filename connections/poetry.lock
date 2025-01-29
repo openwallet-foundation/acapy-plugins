@@ -12,19 +12,18 @@ files = [
 ]
 
 [package.dependencies]
-aiohttp = ">=3.11.11,<3.12.0"
-aiohttp-apispec-acapy = ">=3.0.2,<3.1.0"
-aiohttp-cors = ">=0.7.0,<0.8.0"
-anoncreds = "0.2.0"
-apispec = ">=6.6.0,<7.0.0"
-aries-askar = ">=0.4.3"
-async-timeout = ">=4.0.2,<4.1.0"
-base58 = ">=2.1.0,<2.2.0"
-canonicaljson = ">=2.0.0,<3.0.0"
-ConfigArgParse = ">=1.7,<1.8"
-deepmerge = ">=0.3.0,<0.4.0"
-did-peer-2 = ">=0.1.2,<0.2.0"
-did-peer-4 = ">=0.1.4,<0.2.0"
+aiohttp = "~3.11.11"
+aiohttp-apispec-acapy = "~3.0.3"
+aiohttp-cors = "~0.7.0"
+anoncreds = "~0.2.0"
+apispec = "^6.6.0"
+aries-askar = ">=0.4.2"
+base58 = "~2.1.0"
+canonicaljson = "^2.0.0"
+ConfigArgParse = "~1.7"
+deepmerge = "^2.0"
+did-peer-2 = "^0.1.2"
+did-peer-4 = "^0.1.4"
 did-webvh = ">=0.3.0"
 ecdsa = ">=0.19.0,<0.20.0"
 indy-credx = ">=1.1.1,<1.2.0"
@@ -54,6 +53,12 @@ uuid_utils = ">=0.10.0,<0.11.0"
 [package.extras]
 bbs = ["ursa-bbs-signatures (>=1.0.1,<1.1.0)"]
 didcommv2 = ["didcomm-messaging (>=0.1.1a0,<0.2.0)"]
+
+[package.source]
+type = "git"
+url = "https://github.com/openwallet-foundation/acapy.git"
+reference = "main"
+resolved_reference = "481d3c2fda98b0a7b7e3914e18b6f9603ac5c479"
 
 [[package]]
 name = "aiohappyeyeballs"
@@ -255,15 +260,15 @@ yaml = ["PyYAML (>=3.10)"]
 
 [[package]]
 name = "aries-askar"
-version = "0.4.3"
+version = "0.4.2"
 description = ""
 optional = false
 python-versions = ">=3.6.3"
 files = [
-    {file = "aries_askar-0.4.3-py3-none-macosx_10_9_universal2.whl", hash = "sha256:fd4073f4abc7bfe423f3a637cb0d2e5fb1b96cfd0e798ee69e26eb5b9528c3e4"},
-    {file = "aries_askar-0.4.3-py3-none-manylinux2014_aarch64.whl", hash = "sha256:a787fdbf343efcdb9f26ce75ed934c2d48378cef08ae5ce69e997cba7c3f1992"},
-    {file = "aries_askar-0.4.3-py3-none-manylinux2014_x86_64.whl", hash = "sha256:e21025d841c861c20dbae6201863cb1fe76b395c2eec231835bf8703356bb157"},
-    {file = "aries_askar-0.4.3-py3-none-win_amd64.whl", hash = "sha256:ea25cc6bed206a8df9c55b09ebead18edcb669740d1868d884ba88699dc95f67"},
+    {file = "aries_askar-0.4.2-py3-none-macosx_10_9_universal2.whl", hash = "sha256:bd2dd4a3f9c25724de5685fc06e72d246acedb0e611201d1a21739ff83c0a5fa"},
+    {file = "aries_askar-0.4.2-py3-none-manylinux2014_aarch64.whl", hash = "sha256:38df09770913ba21a23f6dc5848529cb3ccdf21a4ad2602f1d028f29ffe3e83a"},
+    {file = "aries_askar-0.4.2-py3-none-manylinux2014_x86_64.whl", hash = "sha256:1ef586e6c68d54e983b0adc17c3e6c686494583984cb84b211e328bd934c0ed7"},
+    {file = "aries_askar-0.4.2-py3-none-win_amd64.whl", hash = "sha256:f9f86568c107e5c37719ffd7f698c8a0c1bee0c937e9d053f1edd02a6e3f8590"},
 ]
 
 [[package]]
@@ -327,6 +332,50 @@ typing-validation = ">=1.1.0"
 
 [package.extras]
 dev = ["base58", "mypy", "pylint", "pytest", "pytest-cov"]
+
+[[package]]
+name = "black"
+version = "24.4.2"
+description = "The uncompromising code formatter."
+optional = false
+python-versions = ">=3.8"
+files = [
+    {file = "black-24.4.2-cp310-cp310-macosx_10_9_x86_64.whl", hash = "sha256:dd1b5a14e417189db4c7b64a6540f31730713d173f0b63e55fabd52d61d8fdce"},
+    {file = "black-24.4.2-cp310-cp310-macosx_11_0_arm64.whl", hash = "sha256:8e537d281831ad0e71007dcdcbe50a71470b978c453fa41ce77186bbe0ed6021"},
+    {file = "black-24.4.2-cp310-cp310-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:eaea3008c281f1038edb473c1aa8ed8143a5535ff18f978a318f10302b254063"},
+    {file = "black-24.4.2-cp310-cp310-win_amd64.whl", hash = "sha256:7768a0dbf16a39aa5e9a3ded568bb545c8c2727396d063bbaf847df05b08cd96"},
+    {file = "black-24.4.2-cp311-cp311-macosx_10_9_x86_64.whl", hash = "sha256:257d724c2c9b1660f353b36c802ccece186a30accc7742c176d29c146df6e474"},
+    {file = "black-24.4.2-cp311-cp311-macosx_11_0_arm64.whl", hash = "sha256:bdde6f877a18f24844e381d45e9947a49e97933573ac9d4345399be37621e26c"},
+    {file = "black-24.4.2-cp311-cp311-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:e151054aa00bad1f4e1f04919542885f89f5f7d086b8a59e5000e6c616896ffb"},
+    {file = "black-24.4.2-cp311-cp311-win_amd64.whl", hash = "sha256:7e122b1c4fb252fd85df3ca93578732b4749d9be076593076ef4d07a0233c3e1"},
+    {file = "black-24.4.2-cp312-cp312-macosx_10_9_x86_64.whl", hash = "sha256:accf49e151c8ed2c0cdc528691838afd217c50412534e876a19270fea1e28e2d"},
+    {file = "black-24.4.2-cp312-cp312-macosx_11_0_arm64.whl", hash = "sha256:88c57dc656038f1ab9f92b3eb5335ee9b021412feaa46330d5eba4e51fe49b04"},
+    {file = "black-24.4.2-cp312-cp312-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:be8bef99eb46d5021bf053114442914baeb3649a89dc5f3a555c88737e5e98fc"},
+    {file = "black-24.4.2-cp312-cp312-win_amd64.whl", hash = "sha256:415e686e87dbbe6f4cd5ef0fbf764af7b89f9057b97c908742b6008cc554b9c0"},
+    {file = "black-24.4.2-cp38-cp38-macosx_10_9_x86_64.whl", hash = "sha256:bf10f7310db693bb62692609b397e8d67257c55f949abde4c67f9cc574492cc7"},
+    {file = "black-24.4.2-cp38-cp38-macosx_11_0_arm64.whl", hash = "sha256:98e123f1d5cfd42f886624d84464f7756f60ff6eab89ae845210631714f6db94"},
+    {file = "black-24.4.2-cp38-cp38-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:48a85f2cb5e6799a9ef05347b476cce6c182d6c71ee36925a6c194d074336ef8"},
+    {file = "black-24.4.2-cp38-cp38-win_amd64.whl", hash = "sha256:b1530ae42e9d6d5b670a34db49a94115a64596bc77710b1d05e9801e62ca0a7c"},
+    {file = "black-24.4.2-cp39-cp39-macosx_10_9_x86_64.whl", hash = "sha256:37aae07b029fa0174d39daf02748b379399b909652a806e5708199bd93899da1"},
+    {file = "black-24.4.2-cp39-cp39-macosx_11_0_arm64.whl", hash = "sha256:da33a1a5e49c4122ccdfd56cd021ff1ebc4a1ec4e2d01594fef9b6f267a9e741"},
+    {file = "black-24.4.2-cp39-cp39-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:ef703f83fc32e131e9bcc0a5094cfe85599e7109f896fe8bc96cc402f3eb4b6e"},
+    {file = "black-24.4.2-cp39-cp39-win_amd64.whl", hash = "sha256:b9176b9832e84308818a99a561e90aa479e73c523b3f77afd07913380ae2eab7"},
+    {file = "black-24.4.2-py3-none-any.whl", hash = "sha256:d36ed1124bb81b32f8614555b34cc4259c3fbc7eec17870e8ff8ded335b58d8c"},
+    {file = "black-24.4.2.tar.gz", hash = "sha256:c872b53057f000085da66a19c55d68f6f8ddcac2642392ad3a355878406fbd4d"},
+]
+
+[package.dependencies]
+click = ">=8.0.0"
+mypy-extensions = ">=0.4.3"
+packaging = ">=22.0"
+pathspec = ">=0.9.0"
+platformdirs = ">=2"
+
+[package.extras]
+colorama = ["colorama (>=0.4.3)"]
+d = ["aiohttp (>=3.7.4)", "aiohttp (>=3.7.4,!=3.9.0)"]
+jupyter = ["ipython (>=7.8.0)", "tokenize-rt (>=3.2.0)"]
+uvloop = ["uvloop (>=0.15.2)"]
 
 [[package]]
 name = "cachetools"
@@ -654,7 +703,6 @@ files = [
     {file = "cryptography-44.0.0-cp37-abi3-manylinux_2_28_aarch64.whl", hash = "sha256:761817a3377ef15ac23cd7834715081791d4ec77f9297ee694ca1ee9c2c7e5eb"},
     {file = "cryptography-44.0.0-cp37-abi3-manylinux_2_28_x86_64.whl", hash = "sha256:3c672a53c0fb4725a29c303be906d3c1fa99c32f58abe008a82705f9ee96f40b"},
     {file = "cryptography-44.0.0-cp37-abi3-manylinux_2_34_aarch64.whl", hash = "sha256:4ac4c9f37eba52cb6fbeaf5b59c152ea976726b865bd4cf87883a7e7006cc543"},
-    {file = "cryptography-44.0.0-cp37-abi3-manylinux_2_34_x86_64.whl", hash = "sha256:60eb32934076fa07e4316b7b2742fa52cbb190b42c2df2863dbc4230a0a9b385"},
     {file = "cryptography-44.0.0-cp37-abi3-musllinux_1_2_aarch64.whl", hash = "sha256:ed3534eb1090483c96178fcb0f8893719d96d5274dfde98aa6add34614e97c8e"},
     {file = "cryptography-44.0.0-cp37-abi3-musllinux_1_2_x86_64.whl", hash = "sha256:f3f6fdfa89ee2d9d496e2c087cebef9d4fcbb0ad63c40e821b39f74bf48d9c5e"},
     {file = "cryptography-44.0.0-cp37-abi3-win32.whl", hash = "sha256:eb33480f1bad5b78233b0ad3e1b0be21e8ef1da745d8d2aecbb20671658b9053"},
@@ -665,7 +713,6 @@ files = [
     {file = "cryptography-44.0.0-cp39-abi3-manylinux_2_28_aarch64.whl", hash = "sha256:c5eb858beed7835e5ad1faba59e865109f3e52b3783b9ac21e7e47dc5554e289"},
     {file = "cryptography-44.0.0-cp39-abi3-manylinux_2_28_x86_64.whl", hash = "sha256:f53c2c87e0fb4b0c00fa9571082a057e37690a8f12233306161c8f4b819960b7"},
     {file = "cryptography-44.0.0-cp39-abi3-manylinux_2_34_aarch64.whl", hash = "sha256:9e6fc8a08e116fb7c7dd1f040074c9d7b51d74a8ea40d4df2fc7aa08b76b9e6c"},
-    {file = "cryptography-44.0.0-cp39-abi3-manylinux_2_34_x86_64.whl", hash = "sha256:9abcc2e083cbe8dde89124a47e5e53ec38751f0d7dfd36801008f316a127d7ba"},
     {file = "cryptography-44.0.0-cp39-abi3-musllinux_1_2_aarch64.whl", hash = "sha256:d2436114e46b36d00f8b72ff57e598978b37399d2786fd39793c36c6d5cb1c64"},
     {file = "cryptography-44.0.0-cp39-abi3-musllinux_1_2_x86_64.whl", hash = "sha256:a01956ddfa0a6790d594f5b34fc1bfa6098aca434696a03cfdbe469b8ed79285"},
     {file = "cryptography-44.0.0-cp39-abi3-win32.whl", hash = "sha256:eca27345e1214d1b9f9490d200f9db5a874479be914199194e746c893788d417"},
@@ -2643,4 +2690,4 @@ aca-py = ["acapy-agent"]
 [metadata]
 lock-version = "2.0"
 python-versions = "^3.12"
-content-hash = "38190d1dd12282c2a341563573b056ffddf57a38ab68b3a4f024c89e1100f460"
+content-hash = "57461c2d8bf82b1952227d6a594fa83e6e2002be67b4c39fcce96d8e01f37d66"
