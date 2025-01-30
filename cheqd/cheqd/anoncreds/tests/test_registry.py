@@ -18,7 +18,11 @@ from acapy_agent.anoncreds.models.revocation import (
 from acapy_agent.anoncreds.models.schema import GetSchemaResult, SchemaResult
 from acapy_agent.anoncreds.models.schema_info import AnoncredsSchemaInfo
 
-from ...did.base import ResourceCreateRequestOptions, ResourceUpdateRequestOptions
+from ...did.base import (
+    ResourceCreateRequestOptions,
+    ResourceUpdateRequestOptions,
+    Options,
+)
 from ...did.manager import CheqdDIDManager
 from ...did.tests.mocks import (
     registrar_resource_responses_no_signing_request,
@@ -33,7 +37,7 @@ TEST_CHEQD_DID = "did:cheqd:testnet:1686a962-6e82-46f3-bde7-e6711d63958c"
 TEST_CHEQD_SCHEMA_ID = "did:cheqd:testnet:1686a962-6e82-46f3-bde7-e6711d63958c/resources/e788d345-dd0c-427a-a74b-27faf1e608cd"
 TEST_CHEQD_CRED_DEF_ID = "did:cheqd:testnet:1686a962-6e82-46f3-bde7-e6711d63958c/resources/02229804-b46a-4be9-a6f1-13869109c7ea"
 TEST_CHEQD_REV_REG_ENTRY = "did:cheqd:testnet:1686a962-6e82-46f3-bde7-e6711d63958c?resourceName=test&resourceType=anoncredsRevRegEntry"
-TEST_REGISTRAR_URL = "http://localhost:3000/1.0/"
+TEST_REGISTRAR_URL = "http://localhost:9080/1.0/"
 TEST_RESOLVER_URL = "http://localhost:8080/1.0/identifiers/"
 
 
@@ -155,9 +159,11 @@ async def test_register_schema(
             TEST_REGISTRAR_URL,
             TEST_RESOLVER_URL,
             ResourceCreateRequestOptions(
-                name="MOCK_NAME",
-                type="anonCredsSchema",
-                version="MOCK_VERSION",
+                options=Options(
+                    name="MOCK_NAME",
+                    type="anonCredsSchema",
+                    versionId="MOCK_VERSION",
+                ),
                 content="eyJuYW1lIjogIk1PQ0tfTkFNRSIsICJ2ZXJzaW9uIjogIk1PQ0tfVkVSU0lPTiIsICJhdHRyTmFtZXMiOiAiTU9DS19BVFRSX05BTUVTIn0",
                 did="MOCK_ISSUER_ID",
                 relativeDidUrl=None,
@@ -198,15 +204,16 @@ async def test_register_schema_update(
             TEST_REGISTRAR_URL,
             TEST_RESOLVER_URL,
             ResourceUpdateRequestOptions(
-                name="MOCK_NAME",
-                type="anonCredsSchema",
-                version="MOCK_VERSION",
+                options=Options(
+                    name="MOCK_NAME",
+                    type="anonCredsSchema",
+                    versionId="MOCK_VERSION",
+                ),
                 content=[
                     "eyJuYW1lIjogIk1PQ0tfTkFNRSIsICJ2ZXJzaW9uIjogIk1PQ0tfVkVSU0lPTiIsICJhdHRyTmFtZXMiOiAiTU9DS19BVFRSX05BTUVTIn0"
                 ],
                 did="MOCK_ISSUER_ID",
                 relativeDidUrl=None,
-                options=None,
             ),
         )
 
@@ -312,9 +319,11 @@ async def test_register_credential_definition(
             TEST_REGISTRAR_URL,
             TEST_RESOLVER_URL,
             ResourceCreateRequestOptions(
-                name="MOCK_NAME-MOCK_TAG",
-                type="anonCredsCredDef",
-                version="MOCK_TAG",
+                options=Options(
+                    name="MOCK_NAME-MOCK_TAG",
+                    type="anonCredsCredDef",
+                    versionId="MOCK_TAG",
+                ),
                 content="eyJ0eXBlIjogIk1PQ0tfVFlQRSIsICJ0YWciOiAiTU9DS19UQUciLCAidmFsdWUiOiB7Ik1PQ0tfS0VZIjogIk1PQ0tfVkFMVUVfU0VSSUFMSVpFRCJ9LCAic2NoZW1hSWQiOiAiTU9DS19JRCJ9",
                 did="MOCK_ISSUER_ID",
                 relativeDidUrl=None,
@@ -405,9 +414,11 @@ async def test_register_revocation_registry_definition(
             TEST_REGISTRAR_URL,
             TEST_RESOLVER_URL,
             ResourceCreateRequestOptions(
-                name="MOCK_RESOURCE_NAME-MOCK_TAG",
-                type="anonCredsRevocRegDef",
-                version="MOCK_TAG",
+                options=Options(
+                    name="MOCK_RESOURCE_NAME-MOCK_TAG",
+                    type="anonCredsRevocRegDef",
+                    versionId="MOCK_TAG",
+                ),
                 content="eyJyZXZvY0RlZlR5cGUiOiAiTU9DS19UWVBFIiwgInRhZyI6ICJNT0NLX1RBRyIsICJ2YWx1ZSI6IHsiTU9DS19LRVkiOiAiTU9DS19WQUxVRSJ9LCAiY3JlZERlZklkIjogIk1PQ0tfQ1JFRF9ERUZfSUQifQ",
                 did="MOCK_ISSUER_ID",
                 relativeDidUrl=None,
@@ -535,7 +546,7 @@ async def test_get_schema_info_by_id(mock_resolver, mock_profile):
         mock_resolver.resolve_resource.assert_called_once_with(schema_id)
 
 
-@patch("cheqd.cheqd.did.manager.CheqdDIDRegistrar")
+@patch("cheqd.cheqd.did.manager.DIDRegistrar")
 @pytest.mark.asyncio
 async def test_create_and_publish_resource_with_signing_failure(
     mock_registrar_instance,
@@ -567,7 +578,7 @@ async def test_create_and_publish_resource_with_signing_failure(
     assert str(e.value) == "No signing requests available for update."
 
 
-@patch("cheqd.cheqd.did.manager.CheqdDIDRegistrar")
+@patch("cheqd.cheqd.did.manager.DIDRegistrar")
 @pytest.mark.asyncio
 async def test_update_and_publish_resource_with_signing_failure(
     mock_registrar_instance,
@@ -599,7 +610,7 @@ async def test_update_and_publish_resource_with_signing_failure(
     assert str(e.value) == "No signing requests available for update."
 
 
-@patch("cheqd.cheqd.did.manager.CheqdDIDRegistrar")
+@patch("cheqd.cheqd.did.manager.DIDRegistrar")
 @pytest.mark.asyncio
 async def test_create_with_network_failure(
     mock_registrar_instance,
@@ -630,7 +641,7 @@ async def test_create_with_network_failure(
     assert str(e.value) == "Error publishing Resource Network failure"
 
 
-@patch("cheqd.cheqd.did.manager.CheqdDIDRegistrar")
+@patch("cheqd.cheqd.did.manager.DIDRegistrar")
 @pytest.mark.asyncio
 async def test_create_not_finished(
     mock_registrar_instance,

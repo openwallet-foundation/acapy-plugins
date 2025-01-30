@@ -14,22 +14,23 @@ from ..did.base import (
     ResourceUpdateRequestOptions,
     SubmitSignatureOptions,
     ResourceResponse,
-    CheqdDIDRegistrarError,
+    DIDRegistrarError,
 )
 
 LOGGER = logging.getLogger(__name__)
 
 
-class CheqdDIDRegistrar(BaseDIDRegistrar):
-    """DID Registrar implementation for did:cheqd."""
+class DIDRegistrar(BaseDIDRegistrar):
+    """Universal DID Registrar implementation."""
 
-    DID_REGISTRAR_BASE_URL = "http://localhost:3000/1.0/"
+    DID_REGISTRAR_BASE_URL = "http://localhost:9080/1.0/"
 
-    def __init__(self, registrar_url: str = None) -> None:
+    def __init__(self, method: str, registrar_url: str = None) -> None:
         """Initialize the Cheqd Registrar."""
         super().__init__()
         if registrar_url:
             self.DID_REGISTRAR_BASE_URL = registrar_url
+        self.method = method
 
     async def create(
         self, options: DidCreateRequestOptions | SubmitSignatureOptions
@@ -38,23 +39,23 @@ class CheqdDIDRegistrar(BaseDIDRegistrar):
         async with ClientSession() as session:
             try:
                 async with session.post(
-                    self.DID_REGISTRAR_BASE_URL + "create",
+                    self.DID_REGISTRAR_BASE_URL + "create" + f"?method={self.method}",
                     json=options.model_dump(exclude_none=True),
                 ) as response:
                     try:
                         res = await response.json()
                     except Exception:
-                        raise CheqdDIDRegistrarError(
+                        raise DIDRegistrarError(
                             "cheqd: did-registrar: create: Unable to parse JSON"
                         )
                     if not res:
-                        raise CheqdDIDRegistrarError(
+                        raise DIDRegistrarError(
                             "cheqd: did-registrar: create: Response is None."
                         )
 
                     return DidResponse(**res)
             except (ValidationError, AttributeError):
-                raise CheqdDIDRegistrarError(
+                raise DIDRegistrarError(
                     "cheqd: did-registrar: create: Response Format is invalid"
                 )
             except Exception:
@@ -67,23 +68,23 @@ class CheqdDIDRegistrar(BaseDIDRegistrar):
         async with ClientSession() as session:
             try:
                 async with session.post(
-                    self.DID_REGISTRAR_BASE_URL + "update",
+                    self.DID_REGISTRAR_BASE_URL + "update" + f"?method={self.method}",
                     json=options.model_dump(exclude_none=True),
                 ) as response:
                     try:
                         res = await response.json()
                     except Exception:
-                        raise CheqdDIDRegistrarError(
+                        raise DIDRegistrarError(
                             "cheqd: did-registrar: update: Unable to parse JSON"
                         )
                     if not res:
-                        raise CheqdDIDRegistrarError(
+                        raise DIDRegistrarError(
                             "cheqd: did-registrar: update: Response is None."
                         )
 
                     return DidResponse(**res)
             except (ValidationError, AttributeError):
-                raise CheqdDIDRegistrarError(
+                raise DIDRegistrarError(
                     "cheqd: did-registrar: update: Response Format is invalid"
                 )
             except Exception:
@@ -96,23 +97,23 @@ class CheqdDIDRegistrar(BaseDIDRegistrar):
         async with ClientSession() as session:
             try:
                 async with session.post(
-                    self.DID_REGISTRAR_BASE_URL + "deactivate",
+                    self.DID_REGISTRAR_BASE_URL + "deactivate" + f"?method={self.method}",
                     json=options.model_dump(exclude_none=True),
                 ) as response:
                     try:
                         res = await response.json()
                     except Exception:
-                        raise CheqdDIDRegistrarError(
+                        raise DIDRegistrarError(
                             "cheqd: did-registrar: deactivate: Unable to parse JSON"
                         )
                     if not res:
-                        raise CheqdDIDRegistrarError(
+                        raise DIDRegistrarError(
                             "cheqd: did-registrar: create_resource: Response is None."
                         )
 
                     return DidResponse(**res)
             except (ValidationError, AttributeError):
-                raise CheqdDIDRegistrarError(
+                raise DIDRegistrarError(
                     "cheqd: did-registrar: deactivate: Response Format is invalid"
                 )
             except Exception:
@@ -125,23 +126,25 @@ class CheqdDIDRegistrar(BaseDIDRegistrar):
         async with ClientSession() as session:
             try:
                 async with session.post(
-                    self.DID_REGISTRAR_BASE_URL + "createResource",
+                    self.DID_REGISTRAR_BASE_URL
+                    + "createResource"
+                    + f"?method={self.method}",
                     json=options.model_dump(exclude_none=True),
                 ) as response:
                     try:
                         res = await response.json()
                     except Exception:
-                        raise CheqdDIDRegistrarError(
+                        raise DIDRegistrarError(
                             "cheqd: did-registrar: create_resource: Unable to parse JSON"
                         )
                     if not res:
-                        raise CheqdDIDRegistrarError(
+                        raise DIDRegistrarError(
                             "cheqd: did-registrar: create_resource: Response is None."
                         )
 
                     return ResourceResponse(**res)
             except (ValidationError, AttributeError):
-                raise CheqdDIDRegistrarError(
+                raise DIDRegistrarError(
                     "cheqd: did-registrar: create_resource: Response Format is invalid"
                 )
             except Exception:
@@ -154,23 +157,25 @@ class CheqdDIDRegistrar(BaseDIDRegistrar):
         async with ClientSession() as session:
             try:
                 async with session.post(
-                    self.DID_REGISTRAR_BASE_URL + "updateResource",
+                    self.DID_REGISTRAR_BASE_URL
+                    + "updateResource"
+                    + f"?method={self.method}",
                     json=options.model_dump(exclude_none=True),
                 ) as response:
                     try:
                         res = await response.json()
                     except Exception:
-                        raise CheqdDIDRegistrarError(
+                        raise DIDRegistrarError(
                             "cheqd: did-registrar: update_resource: Unable to parse JSON"
                         )
                     if not res:
-                        raise CheqdDIDRegistrarError(
+                        raise DIDRegistrarError(
                             "cheqd: did-registrar: update_resource: Response is None."
                         )
 
                     return ResourceResponse(**res)
             except (ValidationError, AttributeError):
-                raise CheqdDIDRegistrarError(
+                raise DIDRegistrarError(
                     "cheqd: did-registrar: update_resource: Response Format is invalid"
                 )
             except Exception:

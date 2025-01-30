@@ -53,6 +53,6 @@
   },
   "mounts": [],
   // Use 'forwardPorts' to make a list of ports inside the container available locally.
-  "forwardPorts": [8020, 8021, 5432, 8080, 3000],
+  "forwardPorts": [8020, 8021, 5432, 8080, 9080],
   "postCreateCommand": "bash ./.devcontainer/post-install.sh"
 }
