@@ -14,16 +14,23 @@ services:
       - "5432:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
+
   did_registrar:
-    image: ghcr.io/cheqd/did-registrar:production-latest
+    image: universalregistrar/uni-registrar-web:latest
     ports:
-      - target: 3000
-        published: 3000
-        mode: host
+      - "9080:9080"
+    depends_on:
+      - driver-did-cheqd
+
+  driver-did-cheqd:
+    image: ghcr.io/cheqd/did-registrar:staging-latest
+    ports:
+      - "9089:3000"
     restart: on-failure
     environment:
       - FEE_PAYER_TESTNET_MNEMONIC=${FEE_PAYER_TESTNET_MNEMONIC}
       - FEE_PAYER_MAINNET_MNEMONIC=${FEE_PAYER_MAINNET_MNEMONIC}
+
   did_resolver:
     image: ghcr.io/cheqd/did-resolver:latest
     ports:
