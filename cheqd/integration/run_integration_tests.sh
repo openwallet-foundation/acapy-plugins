@@ -2,4 +2,4 @@
 
 docker compose build
 docker compose run tests
-docker compose down --remove-orphans -v  # Clean up
+#docker compose down --remove-orphans -v  # Clean up

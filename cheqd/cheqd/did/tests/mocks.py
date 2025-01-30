@@ -28,12 +28,12 @@ registrar_create_responses = [
             did="MOCK_ISSUER_ID",
             state="action",
             action="signPayload",
-            signingRequest=[
-                SigningRequest(
+            signingRequest={
+                "signingRequest0": SigningRequest(
                     kid="MOCK_KID",
                     serializedPayload="TW9jaw==",
                 )
-            ],
+            },
         ),
     ),
     DidResponse(
@@ -67,7 +67,7 @@ registrar_responses_no_signing_request = [
             did="MOCK_ISSUER_ID",
             action="signPayload",
             state="action",
-            signingRequest=[],
+            signingRequest={},
         ),
     )
 ]
@@ -79,7 +79,7 @@ registrar_resource_responses_no_signing_request = [
             didUrl="MOCK_ISSUER_ID",
             action="signPayload",
             state="action",
-            signingRequest=[],
+            signingRequest={},
         ),
     )
 ]
@@ -112,12 +112,12 @@ registrar_responses_not_finished = [
             did="MOCK_ISSUER_ID",
             action="signPayload",
             state="action",
-            signingRequest=[
-                SigningRequest(
+            signingRequest={
+                "signingRequest0": SigningRequest(
                     kid="MOCK_KID",
                     serializedPayload="TW9jaw==",
                 )
-            ],
+            },
         ),
     ),
     DidResponse(
@@ -137,12 +137,12 @@ registrar_resource_responses_not_finished = [
             didUrl="MOCK_ISSUER_ID",
             action="signPayload",
             state="action",
-            signingRequest=[
-                SigningRequest(
+            signingRequest={
+                "signingRequest0": SigningRequest(
                     kid="MOCK_KID",
                     serializedPayload="TW9jaw==",
                 )
-            ],
+            },
         ),
     ),
     ResourceResponse(
@@ -162,12 +162,12 @@ registrar_update_responses = [
             action="signPayload",
             state="action",
             did="MOCK_ID",
-            signingRequest=[
-                SigningRequest(
+            signingRequest={
+                "signingRequest0": SigningRequest(
                     kid="MOCK_KID",
                     serializedPayload="TW9jaw==",
                 )
-            ],
+            },
         ),
     ),
     DidResponse(
@@ -201,12 +201,12 @@ registrar_deactivate_responses = [
             action="signPayload",
             state="action",
             did="MOCK_ID",
-            signingRequest=[
-                SigningRequest(
+            signingRequest={
+                "signingRequest0": SigningRequest(
                     kid="MOCK_KID",
                     serializedPayload="TW9jaw==",
                 )
-            ],
+            },
         ),
     ),
     DidResponse(
@@ -241,12 +241,12 @@ registrar_create_resource_responses = [
             didUrl="MOCK_ISSUER_ID",
             action="signPayload",
             state="action",
-            signingRequest=[
-                SigningRequest(
+            signingRequest={
+                "signingRequest0": SigningRequest(
                     kid="MOCK_KID",
                     serializedPayload="TW9jaw==",
                 )
-            ],
+            },
         ),
     ),
     ResourceResponse(
@@ -269,12 +269,12 @@ registrar_update_resource_responses = [
             didUrl="MOCK_ISSUER_ID",
             state="action",
             action="signPayload",
-            signingRequest=[
-                SigningRequest(
+            signingRequest={
+                "signingRequest0": SigningRequest(
                     kid="MOCK_KID",
                     serializedPayload="TW9jaw==",
                 )
-            ],
+            },
         ),
     ),
     ResourceResponse(

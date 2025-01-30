@@ -24,7 +24,7 @@ from .mocks import (
 )
 
 
-@patch("cheqd.cheqd.did.manager.CheqdDIDRegistrar")
+@patch("cheqd.cheqd.did.manager.DIDRegistrar")
 @pytest.mark.asyncio
 async def test_create(mock_registrar_instance, profile):
     # Arrange
@@ -48,7 +48,7 @@ async def test_create(mock_registrar_instance, profile):
     assert_type(submit_signature_call, SubmitSignatureOptions)
 
 
-@patch("cheqd.cheqd.did.manager.CheqdDIDRegistrar")
+@patch("cheqd.cheqd.did.manager.DIDRegistrar")
 @pytest.mark.asyncio
 async def test_create_with_seed(mock_registrar_instance, profile):
     # Arrange
@@ -73,7 +73,7 @@ async def test_create_with_seed(mock_registrar_instance, profile):
     assert_type(submit_signature_call, SubmitSignatureOptions)
 
 
-@patch("cheqd.cheqd.did.manager.CheqdDIDRegistrar")
+@patch("cheqd.cheqd.did.manager.DIDRegistrar")
 @pytest.mark.asyncio
 async def test_create_with_insecure_seed(mock_registrar_instance, profile):
     # Arrange
@@ -91,7 +91,7 @@ async def test_create_with_insecure_seed(mock_registrar_instance, profile):
     assert str(e.value) == "Insecure seed is not allowed"
 
 
-@patch("cheqd.cheqd.did.manager.CheqdDIDRegistrar")
+@patch("cheqd.cheqd.did.manager.DIDRegistrar")
 @pytest.mark.asyncio
 async def test_create_with_invalid_did_document(
     mock_registrar_instance,
@@ -111,7 +111,7 @@ async def test_create_with_invalid_did_document(
     assert e is not None
 
 
-@patch("cheqd.cheqd.did.manager.CheqdDIDRegistrar")
+@patch("cheqd.cheqd.did.manager.DIDRegistrar")
 @pytest.mark.asyncio
 async def test_create_with_signing_failure(
     mock_registrar_instance,
@@ -133,7 +133,7 @@ async def test_create_with_signing_failure(
     assert str(e.value) == "No signing requests available for create."
 
 
-@patch("cheqd.cheqd.did.manager.CheqdDIDRegistrar")
+@patch("cheqd.cheqd.did.manager.DIDRegistrar")
 @pytest.mark.asyncio
 async def test_create_with_network_failure(
     mock_registrar_instance,
@@ -155,7 +155,7 @@ async def test_create_with_network_failure(
     assert str(e.value) == "Error registering DID Network failure"
 
 
-@patch("cheqd.cheqd.did.manager.CheqdDIDRegistrar")
+@patch("cheqd.cheqd.did.manager.DIDRegistrar")
 @pytest.mark.asyncio
 async def test_create_not_finished(
     mock_registrar_instance,
@@ -178,7 +178,7 @@ async def test_create_not_finished(
 
 
 @patch("cheqd.cheqd.did.manager.CheqdDIDResolver")
-@patch("cheqd.cheqd.did.manager.CheqdDIDRegistrar")
+@patch("cheqd.cheqd.did.manager.DIDRegistrar")
 @pytest.mark.asyncio
 async def test_update(
     mock_registrar_instance, mock_resolver_instance, profile, did, did_doc
@@ -209,7 +209,7 @@ async def test_update(
 
 
 @patch("cheqd.cheqd.did.manager.CheqdDIDResolver")
-@patch("cheqd.cheqd.did.manager.CheqdDIDRegistrar")
+@patch("cheqd.cheqd.did.manager.DIDRegistrar")
 @pytest.mark.asyncio
 async def test_update_with_did_deactivated(
     mock_registrar_instance, mock_resolver_instance, profile, did, did_doc
@@ -234,7 +234,7 @@ async def test_update_with_did_deactivated(
 
 
 @patch("cheqd.cheqd.did.manager.CheqdDIDResolver")
-@patch("cheqd.cheqd.did.manager.CheqdDIDRegistrar")
+@patch("cheqd.cheqd.did.manager.DIDRegistrar")
 @pytest.mark.asyncio
 async def test_update_with_signing_failure(
     mock_registrar_instance, mock_resolver_instance, profile, did, did_doc
@@ -260,7 +260,7 @@ async def test_update_with_signing_failure(
 
 
 @patch("cheqd.cheqd.did.manager.CheqdDIDResolver")
-@patch("cheqd.cheqd.did.manager.CheqdDIDRegistrar")
+@patch("cheqd.cheqd.did.manager.DIDRegistrar")
 @pytest.mark.asyncio
 async def test_update_with_network_failure(
     mock_registrar_instance, mock_resolver_instance, profile, did, did_doc
@@ -286,7 +286,7 @@ async def test_update_with_network_failure(
 
 
 @patch("cheqd.cheqd.did.manager.CheqdDIDResolver")
-@patch("cheqd.cheqd.did.manager.CheqdDIDRegistrar")
+@patch("cheqd.cheqd.did.manager.DIDRegistrar")
 @pytest.mark.asyncio
 async def test_update_not_finished(
     mock_registrar_instance, mock_resolver_instance, profile, did, did_doc
@@ -315,7 +315,7 @@ async def test_update_not_finished(
 
 
 @patch("cheqd.cheqd.did.manager.CheqdDIDResolver")
-@patch("cheqd.cheqd.did.manager.CheqdDIDRegistrar")
+@patch("cheqd.cheqd.did.manager.DIDRegistrar")
 @pytest.mark.asyncio
 async def test_deactivate_did(mock_registrar_instance, mock_resolver_instance, profile):
     # Arrange
@@ -345,7 +345,7 @@ async def test_deactivate_did(mock_registrar_instance, mock_resolver_instance, p
 
 
 @patch("cheqd.cheqd.did.manager.CheqdDIDResolver")
-@patch("cheqd.cheqd.did.manager.CheqdDIDRegistrar")
+@patch("cheqd.cheqd.did.manager.DIDRegistrar")
 @pytest.mark.asyncio
 async def test_deactivate_with_did_deactivated(
     mock_registrar_instance, mock_resolver_instance, profile, did
@@ -370,7 +370,7 @@ async def test_deactivate_with_did_deactivated(
 
 
 @patch("cheqd.cheqd.did.manager.CheqdDIDResolver")
-@patch("cheqd.cheqd.did.manager.CheqdDIDRegistrar")
+@patch("cheqd.cheqd.did.manager.DIDRegistrar")
 @pytest.mark.asyncio
 async def test_deactivate_with_signing_failure(
     mock_registrar_instance, mock_resolver_instance, profile, did
@@ -396,7 +396,7 @@ async def test_deactivate_with_signing_failure(
 
 
 @patch("cheqd.cheqd.did.manager.CheqdDIDResolver")
-@patch("cheqd.cheqd.did.manager.CheqdDIDRegistrar")
+@patch("cheqd.cheqd.did.manager.DIDRegistrar")
 @pytest.mark.asyncio
 async def test_deactivate_with_network_failure(
     mock_registrar_instance, mock_resolver_instance, profile, did
@@ -422,7 +422,7 @@ async def test_deactivate_with_network_failure(
 
 
 @patch("cheqd.cheqd.did.manager.CheqdDIDResolver")
-@patch("cheqd.cheqd.did.manager.CheqdDIDRegistrar")
+@patch("cheqd.cheqd.did.manager.DIDRegistrar")
 @pytest.mark.asyncio
 async def test_deactivate_not_finished(
     mock_registrar_instance, mock_resolver_instance, profile, did

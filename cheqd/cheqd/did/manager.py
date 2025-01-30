@@ -36,7 +36,7 @@ from ..did.base import (
 )
 from ..did_method import CHEQD
 from ..resolver.resolver import CheqdDIDResolver
-from .registrar import CheqdDIDRegistrar
+from .registrar import DIDRegistrar
 
 LOGGER = logging.getLogger(__name__)
 
@@ -44,7 +44,7 @@ LOGGER = logging.getLogger(__name__)
 class CheqdDIDManager(BaseDIDManager):
     """DID manager implementation for did:cheqd."""
 
-    registrar: CheqdDIDRegistrar
+    registrar: DIDRegistrar
     resolver: CheqdDIDResolver
 
     def __init__(
@@ -55,7 +55,7 @@ class CheqdDIDManager(BaseDIDManager):
     ) -> None:
         """Initialize the Cheqd DID manager."""
         super().__init__(profile)
-        self.registrar = CheqdDIDRegistrar(registrar_url)
+        self.registrar = DIDRegistrar("cheqd", registrar_url)
         self.resolver = CheqdDIDResolver(resolver_url)
 
     async def create(
@@ -114,19 +114,20 @@ class CheqdDIDManager(BaseDIDManager):
                 job_id = create_request_res.jobId
                 did_state = create_request_res.didState
                 if isinstance(did_state, DidActionState):
-                    signing_requests = did_state.signingRequest
-                    if not signing_requests:
+                    if not did_state.signingRequest:
                         raise CheqdDIDManagerError(
                             "No signing requests available for create."
                         )
 
-                    # Note: This assumes did create operation supports only one key
-                    kid = signing_requests[0].kid
+                    signing_request = next(iter(did_state.signingRequest.values()), None)
+
+                    # Note: This assumes the DID create operation supports only one key
+                    kid = signing_request.kid
                     await wallet.assign_kid_to_key(verkey, kid)
 
                     # sign all requests
                     signed_responses = await CheqdDIDManager.sign_requests(
-                        wallet, signing_requests
+                        wallet, did_state.signingRequest
                     )
                     # publish did
                     publish_did_res = await self.registrar.create(

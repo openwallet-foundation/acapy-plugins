@@ -1,7 +1,7 @@
 """DID Manager Base Classes."""
 
 from abc import ABC, abstractmethod
-from typing import List, Optional, Union, Literal
+from typing import List, Optional, Union, Literal, Dict
 
 from acapy_agent.core.error import BaseError
 from acapy_agent.core.profile import Profile
@@ -78,13 +78,13 @@ class SigningRequest(DynamicSchema):
 class Secret(DynamicSchema):
     """Secret."""
 
-    signingResponse: List[SigningResponse]  # List of SigningResponse objects
+    signingResponse: Dict[str, SigningResponse]  # List of SigningResponse objects
 
 
 class Options(DynamicSchema):
     """Options."""
 
-    network: str
+    network: Optional[str] = None
 
 
 class SubmitSignatureOptions(BaseModel):
@@ -145,9 +145,6 @@ class ResourceCreateRequestOptions(BaseModel):
         None,
         description="This input field contains Base64-encoded data.",
     )
-    name: str
-    type: str
-    version: Optional[str] = None
     options: Optional[Options] = None
 
 
@@ -167,9 +164,6 @@ class ResourceUpdateRequestOptions(BaseModel):
         None,
         description="This input field contains Base64-encoded data.",
     )
-    name: Optional[str] = None
-    type: Optional[str] = None
-    version: Optional[str] = None
     options: Optional[Options] = None
 
 
@@ -190,7 +184,7 @@ class DidActionState(DynamicSchema):
     action: str
     description: Optional[str] = None
     secret: Optional[dict] = {}
-    signingRequest: List[SigningRequest]
+    signingRequest: Dict[str, SigningRequest]
 
 
 class DidErrorState(DynamicSchema):
@@ -205,7 +199,7 @@ class DidErrorState(DynamicSchema):
 class DidResponse(DynamicSchema):
     """Did Create Response."""
 
-    jobId: str
+    jobId: Optional[str] = None
     didState: Union[DidSuccessState, DidActionState, DidErrorState]
     didRegistrationMetadata: dict = {}
 
@@ -229,7 +223,7 @@ class DidUrlActionState(DynamicSchema):
     didUrl: str
     action: str
     description: Optional[str] = None
-    signingRequest: List[SigningRequest]
+    signingRequest: Dict[str, SigningRequest]
 
 
 class DidUrlErrorState(DynamicSchema):
@@ -304,8 +298,8 @@ class BaseDIDRegistrar(ABC):
         raise NotImplementedError("Subclasses must implement this method")
 
 
-class CheqdDIDRegistrarError(BaseError):
-    """Base class for did registrar cheqd exceptions."""
+class DIDRegistrarError(BaseError):
+    """Base class for did registrar exceptions."""
 
 
 class BaseDIDManager(ABC):
@@ -332,8 +326,8 @@ class BaseDIDManager(ABC):
 
     @staticmethod
     async def sign_requests(
-        wallet: BaseWallet, signing_requests: List[SigningRequest]
-    ) -> List[SigningResponse]:
+        wallet: BaseWallet, signing_requests: Dict[str, SigningRequest]
+    ) -> Dict[str, SigningResponse]:
         """Sign all requests in the signing_requests list.
 
         Args:
@@ -343,8 +337,8 @@ class BaseDIDManager(ABC):
         Returns:
             List of signed responses, each containing 'kid' and 'signature'.
         """
-        signed_responses = []
-        for sign_req in signing_requests:
+        signed_responses = {}
+        for sign_req_id, sign_req in signing_requests.items():
             kid = sign_req.kid
             payload_to_sign = sign_req.serializedPayload
             # Retrieve verkey from wallet
@@ -357,11 +351,9 @@ class BaseDIDManager(ABC):
                 b64_to_bytes(payload_to_sign), verkey
             )
 
-            signed_responses.append(
-                SigningResponse(
-                    kid=kid,
-                    signature=bytes_to_b64(signature_bytes),
-                )
+            signed_responses[sign_req_id] = SigningResponse(
+                kid=kid,
+                signature=bytes_to_b64(signature_bytes),
             )
 
         return signed_responses

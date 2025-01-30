@@ -50,10 +50,11 @@ from ..did.base import (
     Secret,
     SubmitSignatureOptions,
     DidUrlActionState,
+    Options,
 )
 from ..did.helpers import CheqdAnoncredsResourceType
 from ..did.manager import CheqdDIDManager
-from ..did.registrar import CheqdDIDRegistrar
+from ..did.registrar import DIDRegistrar
 from ..resolver.resolver import CheqdDIDResolver
 from ..validation import CheqdDID
 
@@ -70,7 +71,7 @@ class PublishResourceResponse(BaseModel):
 class DIDCheqdRegistry(BaseAnonCredsResolver, BaseAnonCredsRegistrar):
     """DIDCheqdRegistry."""
 
-    registrar: CheqdDIDRegistrar
+    registrar: DIDRegistrar
     resolver: CheqdDIDResolver
 
     def __init__(self):
@@ -80,7 +81,7 @@ class DIDCheqdRegistry(BaseAnonCredsResolver, BaseAnonCredsRegistrar):
             None
 
         """
-        self.registrar = CheqdDIDRegistrar()
+        self.registrar = DIDRegistrar(method="cheqd")
         self.resolver = CheqdDIDResolver()
 
     @property
@@ -115,7 +116,7 @@ class DIDCheqdRegistry(BaseAnonCredsResolver, BaseAnonCredsRegistrar):
 
     async def setup(self, _context: InjectionContext, registrar_url, resolver_url):
         """Setup."""
-        self.registrar = CheqdDIDRegistrar(registrar_url)
+        self.registrar = DIDRegistrar("cheqd", registrar_url)
         self.resolver = CheqdDIDResolver(resolver_url)
         print("Successfully registered DIDCheqdRegistry")
 
@@ -180,9 +181,11 @@ class DIDCheqdRegistry(BaseAnonCredsResolver, BaseAnonCredsRegistrar):
             if existing_schema is not None:
                 LOGGER.debug("UPDATING SCHEMA")
                 cheqd_schema = ResourceUpdateRequestOptions(
-                    name=resource_name,
-                    type=resource_type,
-                    version=resource_version,
+                    options=Options(
+                        name=resource_name,
+                        type=resource_type,
+                        versionId=resource_version,
+                    ),
                     content=[
                         dict_to_b64(
                             {
@@ -205,9 +208,11 @@ class DIDCheqdRegistry(BaseAnonCredsResolver, BaseAnonCredsRegistrar):
             else:
                 LOGGER.debug("CREATING SCHEMA")
                 cheqd_schema = ResourceCreateRequestOptions(
-                    name=resource_name,
-                    type=resource_type,
-                    version=resource_version,
+                    options=Options(
+                        name=resource_name,
+                        type=resource_type,
+                        versionId=resource_version,
+                    ),
                     content=dict_to_b64(
                         {
                             "name": schema.name,
@@ -285,8 +290,11 @@ class DIDCheqdRegistry(BaseAnonCredsResolver, BaseAnonCredsRegistrar):
         resource_name = f"{schema.schema_value.name}-{credential_definition.tag}"
 
         cred_def = ResourceCreateRequestOptions(
-            name=resource_name,
-            type=resource_type,
+            options=Options(
+                name=resource_name,
+                type=resource_type,
+                versionId=credential_definition.tag,
+            ),
             content=dict_to_b64(
                 {
                     "type": credential_definition.type,
@@ -295,7 +303,6 @@ class DIDCheqdRegistry(BaseAnonCredsResolver, BaseAnonCredsRegistrar):
                     "schemaId": schema.schema_id,
                 }
             ),
-            version=credential_definition.tag,
             did=credential_definition.issuer_id,
         )
 
@@ -367,8 +374,11 @@ class DIDCheqdRegistry(BaseAnonCredsResolver, BaseAnonCredsRegistrar):
         resource_type = CheqdAnoncredsResourceType.revocationRegistryDefinition.value
 
         rev_reg_def = ResourceCreateRequestOptions(
-            name=resource_name,
-            type=resource_type,
+            options=Options(
+                name=resource_name,
+                type=resource_type,
+                versionId=revocation_registry_definition.tag,
+            ),
             content=dict_to_b64(
                 {
                     "revocDefType": revocation_registry_definition.type,
@@ -377,7 +387,6 @@ class DIDCheqdRegistry(BaseAnonCredsResolver, BaseAnonCredsRegistrar):
                     "credDefId": revocation_registry_definition.cred_def_id,
                 }
             ),
-            version=revocation_registry_definition.tag,
             did=revocation_registry_definition.issuer_id,
         )
 
@@ -478,8 +487,11 @@ class DIDCheqdRegistry(BaseAnonCredsResolver, BaseAnonCredsRegistrar):
         )
         resource_type = CheqdAnoncredsResourceType.revocationStatusList.value
         rev_status_list = ResourceCreateRequestOptions(
-            name=resource_name,
-            type=resource_type,
+            options=Options(
+                name=resource_name,
+                type=resource_type,
+                versionId=str(uuid4()),
+            ),
             content=dict_to_b64(
                 {
                     "revocationList": rev_list.revocation_list,
@@ -487,7 +499,6 @@ class DIDCheqdRegistry(BaseAnonCredsResolver, BaseAnonCredsRegistrar):
                     "revRegDefId": rev_list.rev_reg_def_id,
                 }
             ),
-            version=str(uuid4()),
             did=rev_reg_def.issuer_id,
         )
 
@@ -533,8 +544,11 @@ class DIDCheqdRegistry(BaseAnonCredsResolver, BaseAnonCredsRegistrar):
         )
         resource_type = CheqdAnoncredsResourceType.revocationStatusList.value
         rev_status_list = ResourceUpdateRequestOptions(
-            name=resource_name,
-            type=resource_type,
+            options=Options(
+                name=resource_name,
+                type=resource_type,
+                versionId=str(uuid4()),
+            ),
             content=[
                 dict_to_b64(
                     {
@@ -544,7 +558,6 @@ class DIDCheqdRegistry(BaseAnonCredsResolver, BaseAnonCredsRegistrar):
                     }
                 )
             ],
-            version=str(uuid4()),
             did=rev_reg_def.issuer_id,
         )
 
