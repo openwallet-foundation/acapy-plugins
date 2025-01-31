@@ -87,7 +87,7 @@ async def test_assign_status_entries(context: AdminRequestContext, seed_db):
         context, "supported_cred_id", "credential_id", "ietf"
     )
     status_list = SimpleNamespace(**status_list)
-    assert status_list.idx
+    assert status_list.idx >= 0
 
     status_list = await status_handler.assign_status_entries(
         context, "supported_cred_id1", "credential_id", "w3c"
