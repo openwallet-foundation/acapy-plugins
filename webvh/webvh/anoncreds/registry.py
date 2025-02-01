@@ -477,8 +477,8 @@ class DIDWebVHRegistry(BaseAnonCredsResolver, BaseAnonCredsRegistrar):
                 )
 
         except:
-            raise AnonCredsRegistrationError("Error uploading resource")
-            # raise AnonCredsRegistrationError(r.text)
+            # raise AnonCredsRegistrationError("Error uploading resource")
+            raise AnonCredsRegistrationError(r.text)
 
     async def _sign(
         self, profile, document
@@ -512,7 +512,7 @@ class DIDWebVHRegistry(BaseAnonCredsResolver, BaseAnonCredsRegistrar):
         await self._upload(secured_resource)
 
     async def _create_and_publish_resource(
-        self, profile, issuer, content, metadata, options, links=[]
+        self, profile, issuer, content, metadata, options, links=None
     ) -> dict:  # AttestedResource:
         """Derive attested resource object from content and publish."""
 
@@ -537,8 +537,10 @@ class DIDWebVHRegistry(BaseAnonCredsResolver, BaseAnonCredsRegistrar):
                 "resourceType": metadata.get("resource_type"),
                 "resourceName": metadata.get("resource_name"),
             },
-            "links": links
+            # "links": links
         }
+        if links:
+            resource['links'] = links
         # attested_resource = AttestedResource(
         #         id=f'{issuer_id}/resources/{content_digest}',
         #         content=resource_content,
