@@ -444,6 +444,16 @@ class DIDWebVHRegistry(BaseAnonCredsResolver, BaseAnonCredsRegistrar):
             version=schema["version"],
         )
 
+    def _ensure_options(self, options):
+        # Ensure a service endpoint is set
+        if not options.get("serviceEndpoint"):
+            raise AnonCredsRegistrationError("Missing service endpoint")
+        self.service_endpoint = options.get("serviceEndpoint")
+        # Ensure a verification method is set
+        if not options.get("verificationMethod"):
+            raise AnonCredsRegistrationError("Missing verification method")
+        self.proof_options["verificationMethod"] = options.get("verificationMethod")
+
     async def _upload(
         self, secured_resource
     ) -> dict:  # AttestedResource:
@@ -486,16 +496,6 @@ class DIDWebVHRegistry(BaseAnonCredsResolver, BaseAnonCredsRegistrar):
             return secured_document
         except:
             raise AnonCredsRegistrationError("Error securing resource")
-
-    async def _ensure_options(self, options):
-        # Ensure a service endpoint is set
-        if not options.get("serviceEndpoint"):
-            raise AnonCredsRegistrationError("Missing service endpoint")
-        self.service_endpoint = options.get("serviceEndpoint")
-        # Ensure a verification method is set
-        if not options.get("verificationMethod"):
-            raise AnonCredsRegistrationError("Missing verification method")
-        self.proof_options["verificationMethod"] = options.get("verificationMethod")
 
     async def _update_and_upload_resource(
         self, profile, resource, options
