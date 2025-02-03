@@ -378,6 +378,7 @@ async def get_cred_offer(request: web.BaseRequest):
             }
         },
     }
+
     offer_uri = quote(json.dumps(offer))
     full_uri = f"openid-credential-offer://?credential_offer={offer_uri}"
     offer_response = {
