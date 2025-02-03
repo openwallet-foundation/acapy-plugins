@@ -22,10 +22,12 @@ services:
         --log-level info
         --notify-revocation
         --plugin webvh
-        --plugin-config-value did-webvh.server_url=http://server:8000
         --plugin-config-value did-webvh.role=witness
         --plugin-config-value did-webvh.auto_attest=true
+        --plugin-config-value did-webvh.server_url=https://id.test-suite.app
         --wallet-allow-insecure-seed
+        --tails-server-base-url https://tails.anoncreds.vc
+        --seed 00000000000000000000000000000000
 
   controller:
     image: plugin-image
@@ -50,25 +52,8 @@ services:
         --log-level info
         --monitor-revocation-notification
         --plugin webvh
-        --plugin-config-value did-webvh.server_url=http://server:8000
         --plugin-config-value did-webvh.role=controller
-
-  server:
-    build:
-      context: .
-      dockerfile: Dockerfile.server
-    environment:
-      DOMAIN: server.server%3A8000
-      SECRET_KEY: insecure
-      ENDORSER_MULTIKEY: z6MkgKA7yrw5kYSiDuQFcye4bMaJpcfHFry3Bx45pdWh3s8i
-    ports:
-      - 8000:8000
-    labels:
-      - traefik.enable=true
-      - traefik.http.routers.server.rule=Host(`server.server%3A8000`)
-      - traefik.http.routers.server.entrypoints=web
-      - traefik.http.services.server.loadbalancer.server.port=8000
-
+        --plugin-config-value did-webvh.server_url=https://id.test-suite.app
   tests:
       container_name: juggernaut
       build:
@@ -83,4 +68,3 @@ services:
       depends_on:
         - witness
         - controller
-        - server

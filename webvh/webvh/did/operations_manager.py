@@ -397,7 +397,8 @@ class DidWebvhOperationsManager:
                 ),
             )
 
-        return resolved_did_doc
+        return response_json.get("state", {})
+        # return resolved_did_doc
 
     async def update(self, options: dict, features: dict):
         """Update a Webvh DID."""

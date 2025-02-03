@@ -477,8 +477,7 @@ class DIDWebVHRegistry(BaseAnonCredsResolver, BaseAnonCredsRegistrar):
                 )
 
         except:
-            # raise AnonCredsRegistrationError("Error uploading resource")
-            raise AnonCredsRegistrationError(r.text)
+            raise AnonCredsRegistrationError("Error uploading resource")
 
     async def _sign(
         self, profile, document

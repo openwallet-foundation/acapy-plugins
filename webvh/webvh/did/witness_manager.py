@@ -26,7 +26,8 @@ from .utils import (
     key_to_did_key_vm,
     create_or_get_key,
     sign_document,
-    create_alias
+    create_alias,
+    server_url_to_domain
 )
 
 LOGGER = logging.getLogger(__name__)
@@ -44,7 +45,9 @@ class WitnessManager:
 
     async def _get_active_witness_connection(self) -> Optional[ConnRecord]:
         server_url = await get_server_url(self.profile)
-        witness_alias = create_alias(server_url.split('://')[-1], 'witnessConnection')
+        witness_alias = create_alias(
+            server_url_to_domain(server_url), 'witnessConnection'
+        )
         async with self.profile.session() as session:
             connection_records = await ConnRecord.retrieve_by_alias(
                 session, witness_alias
@@ -70,7 +73,11 @@ class WitnessManager:
         async with self.profile.session() as session:
             # Self witness
             if not role or role == "witness":
-                witness_alias = create_alias(proof_options.get('domain'), 'witnessKey')
+                server_url = await get_server_url(self.profile)
+                witness_alias = create_alias(
+                    server_url_to_domain(server_url), 'witnessKey'
+                )
+                # witness_alias = create_alias(proof_options.get('domain'), 'witnessKey')
                 witness_key_info = await MultikeyManager(session).from_kid(
                     witness_alias
                 )
@@ -99,7 +106,9 @@ class WitnessManager:
         """Ensure witness key is setup."""
         
         server_url = await get_server_url(self.profile)
-        witness_alias = create_alias(server_url.split('://')[-1], 'witnessKey')
+        witness_alias = create_alias(
+            server_url_to_domain(server_url), 'witnessKey'
+        )
         
         witness_key_info = await create_or_get_key(self.profile, witness_alias, key)
                 
@@ -111,7 +120,10 @@ class WitnessManager:
     async def auto_witness_setup(self) -> None:
         """Automatically set up the witness the connection."""
         server_url = await get_server_url(self.profile)
-        witness_alias = create_alias(server_url.split('://')[-1], 'witnessConnection')
+        witness_alias = create_alias(
+            server_url_to_domain(server_url), 
+            'witnessConnection'
+        )
         
         if not await is_controller(self.profile):
             return

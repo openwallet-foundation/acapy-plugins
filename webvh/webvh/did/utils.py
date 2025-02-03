@@ -8,6 +8,13 @@ from acapy_agent.wallet.keys.manager import (
 from acapy_agent.vc.data_integrity.manager import DataIntegrityManager
 from acapy_agent.vc.data_integrity.models.options import DataIntegrityProofOptions
 
+WITNESS_CONNECTION_ALIAS_SUFFIX = '@witness'
+
+KEY_ID_SUFFIXES = {
+    'next': '#next',
+    'update': '#update',
+    'witness': '#witness'
+}
 ALIAS_PURPOSES = {
         'witnessConnection': '@witness',
         'nextKey': '@nextKey',
@@ -28,8 +35,8 @@ def key_to_did_key_vm(multikey: str):
 def server_url_to_domain(server_url: str):
     """Replace %3A with : if domain is URL encoded."""
     domain = server_url.split('://')[-1]
-    if "%3A" in domain:
-        domain = domain.replace("%3A", ":")
+    # if "%3A" in domain:
+    #     domain = domain.replace("%3A", ":")
     return domain
 
 

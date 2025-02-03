@@ -117,8 +117,8 @@ class DIDWebVHResolver(BaseDIDResolver):
         assert resource.get("@context")
         assert resource.get("type")
         assert resource.get("id")
-        assert resource.get("resourceContent")
-        assert resource.get("resourceMetadata")
+        assert resource.get("content")
+        assert resource.get("metadata")
         assert resource.get("proof")
 
         attested_resource = resource
@@ -126,7 +126,7 @@ class DIDWebVHResolver(BaseDIDResolver):
         proof = resource.pop("proof")
         proof = proof if isinstance(proof, dict) else proof[0]
 
-        resource_digest = attested_resource.get("resourceMetadata").get("resourceId")
+        resource_digest = attested_resource.get("metadata").get("resourceId")
         assert resource_digest == resource_url.split("/")[-1].split(".")[0]
 
         return attested_resource
