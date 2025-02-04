@@ -18,7 +18,7 @@ from acapy_agent.messaging.models.base import BaseModelError
 from acapy_agent.messaging.models.openapi import OpenAPISchema
 from acapy_agent.messaging.models.paginated_query import (
     PaginatedQuerySchema,
-    get_limit_offset,
+    get_paginated_query_params,
 )
 from acapy_agent.messaging.valid import (
     ENDPOINT_EXAMPLE,
@@ -475,7 +475,7 @@ async def connections_list(request: web.BaseRequest):
     if request.query.get("connection_protocol"):
         post_filter["connection_protocol"] = request.query["connection_protocol"]
 
-    limit, offset = get_limit_offset(request)
+    limit, offset, *_ = get_paginated_query_params(request)
 
     profile = context.profile
     try:
