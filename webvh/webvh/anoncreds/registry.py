@@ -338,15 +338,15 @@ class DIDWebVHRegistry(BaseAnonCredsResolver, BaseAnonCredsRegistrar):
             'timestamp': resource.get('content').get('timestamp')
         }
 
-        rev_reg_def_content = rev_reg_def.serialize()
-        LOGGER.warning(rev_reg_def_content)
-        rev_reg_def_id = self._create_resource_uri(
-            rev_reg_def.issuer_id,
-            self._digest_multibase(rev_reg_def_content)
-        )
+        # rev_reg_def_content = rev_reg_def.serialize()
+        # LOGGER.warning(rev_reg_def_content)
+        # rev_reg_def_id = self._create_resource_uri(
+        #     rev_reg_def.issuer_id,
+        #     self._digest_multibase(rev_reg_def_content)
+        # )
         
         rev_reg_def_resource = await self.resolver.resolve_resource(
-            rev_reg_def_id
+            rev_list.rev_reg_def_id
         )
         rev_reg_def_resource['links'] = [
             status_list_entry
