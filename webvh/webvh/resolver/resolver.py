@@ -123,8 +123,8 @@ class DIDWebVHResolver(BaseDIDResolver):
 
         attested_resource = resource
 
-        proof = resource.pop("proof")
-        proof = proof if isinstance(proof, dict) else proof[0]
+        # proof = resource.pop("proof")
+        # proof = proof if isinstance(proof, dict) else proof[0]
 
         resource_digest = attested_resource.get("metadata").get("resourceId")
         assert resource_digest == resource_url.split("/")[-1].split(".")[0]
