@@ -93,6 +93,18 @@ class DIDWebVHRegistry(BaseAnonCredsResolver, BaseAnonCredsRegistrar):
         return digest_multibase
 
     @staticmethod
+    def _derive_upload_endpoint(verification_method) -> str:
+        """Derive service upload endpoint."""
+        domain = verification_method.split(':')[3]
+        return f'https://{domain}/resources'
+
+    @staticmethod
+    def _derive_update_endpoint(resource_id) -> str:
+        """Derive service update endpoint."""
+        url = '/'.join(resource_id.split(':')[3:])
+        return f'https://{url}'
+
+    @staticmethod
     def _create_resource_uri(issuer, content_digest) -> str:
         """Create a resource uri."""
         return f"{issuer}/resources/{content_digest}"
@@ -337,13 +349,6 @@ class DIDWebVHRegistry(BaseAnonCredsResolver, BaseAnonCredsRegistrar):
             'id': resource.get('id'),
             'timestamp': resource.get('content').get('timestamp')
         }
-
-        # rev_reg_def_content = rev_reg_def.serialize()
-        # LOGGER.warning(rev_reg_def_content)
-        # rev_reg_def_id = self._create_resource_uri(
-        #     rev_reg_def.issuer_id,
-        #     self._digest_multibase(rev_reg_def_content)
-        # )
         
         rev_reg_def_resource = await self.resolver.resolve_resource(
             rev_list.rev_reg_def_id
@@ -404,14 +409,9 @@ class DIDWebVHRegistry(BaseAnonCredsResolver, BaseAnonCredsRegistrar):
             'id': resource.get('id'),
             'timestamp': resource.get('content').get('timestamp')
         }
-        rev_reg_def_content = rev_reg_def.serialize()
-        rev_reg_def_id = self._create_resource_uri(
-            rev_reg_def.issuer_id,
-            self._digest_multibase(rev_reg_def_content)
-        )
         
         rev_reg_def_resource = await self.resolver.resolve_resource(
-            rev_reg_def_id
+            prev_list.rev_reg_def_id
         )
         rev_reg_def_resource['links'] = [
             status_list_entry
@@ -501,7 +501,9 @@ class DIDWebVHRegistry(BaseAnonCredsResolver, BaseAnonCredsRegistrar):
         self, profile, resource, options
     ) -> dict:  # AttestedResource:
         """Update an existing resource safely."""
-        
+        options['serviceEndpoint'] = self._derive_update_endpoint(
+            resource.get("id")
+        )
         self._ensure_options(options)
         if (
             resource.get("id").split('/')[-1] 
@@ -516,6 +518,9 @@ class DIDWebVHRegistry(BaseAnonCredsResolver, BaseAnonCredsRegistrar):
     ) -> dict:  # AttestedResource:
         """Derive attested resource object from content and publish."""
 
+        options['serviceEndpoint'] = self._derive_upload_endpoint(
+            options.get("verificationMethod")
+        )
         self._ensure_options(options)
 
         # Ensure content digest is accurate
