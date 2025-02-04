@@ -339,6 +339,7 @@ class DIDWebVHRegistry(BaseAnonCredsResolver, BaseAnonCredsRegistrar):
         }
 
         rev_reg_def_content = rev_reg_def.serialize()
+        LOGGER.warning(rev_reg_def_content)
         rev_reg_def_id = self._create_resource_uri(
             rev_reg_def.issuer_id,
             self._digest_multibase(rev_reg_def_content)
