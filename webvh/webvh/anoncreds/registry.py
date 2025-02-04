@@ -480,6 +480,31 @@ class DIDWebVHRegistry(BaseAnonCredsResolver, BaseAnonCredsRegistrar):
         except:
             raise AnonCredsRegistrationError("Error uploading resource")
 
+    async def _update(
+        self, secured_resource
+    ) -> dict:  # AttestedResource:
+
+        # Upload secured resource to server with metadata
+        metadata = secured_resource.get('metadata')
+        try:
+            r = requests.put(
+                self.service_endpoint,
+                json={
+                    "attestedResource": secured_resource,
+                    "options": {
+                        "resourceId": metadata.get('resourceId'),
+                        "resourceType": metadata.get('resourceType'),
+                    },
+                },
+            )
+            if r.status_code != 201:
+                raise AnonCredsRegistrationError(
+                    "Invalid status code returned by service endpoint"
+                )
+
+        except:
+            raise AnonCredsRegistrationError("Error uploading resource")
+
     async def _sign(
         self, profile, document
     ) -> dict:  # AttestedResource:
@@ -511,7 +536,7 @@ class DIDWebVHRegistry(BaseAnonCredsResolver, BaseAnonCredsRegistrar):
             ):
             raise AnonCredsRegistrationError("Digest mismatch")
         secured_resource = await self._sign(profile, resource)
-        await self._upload(secured_resource)
+        await self._update(secured_resource)
 
     async def _create_and_publish_resource(
         self, profile, issuer, content, metadata, options, links=None
