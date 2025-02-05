@@ -15,7 +15,7 @@ from acapy_agent.wallet.default_verification_key_strategy import (
 
 from ..models import StatusListDef, StatusListCred
 from ..config import Config
-from .. import on_startup, status_handler
+from .. import status_handler
 
 
 def pytest_collection_modifyitems(items):
@@ -95,7 +95,6 @@ async def init(context: AdminRequestContext):
             seed="testseed000000000000000000000001",
             did="did:web:dev.lab.di.gov.on.ca",
         )
-    await on_startup(context.profile, None)
     yield
 
 

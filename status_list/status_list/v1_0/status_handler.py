@@ -10,6 +10,7 @@ from bitarray import bitarray
 
 from acapy_agent.admin.request_context import AdminRequestContext
 from acapy_agent.core.profile import ProfileSession
+from acapy_agent.storage.error import StorageNotFoundError
 from acapy_agent.wallet.util import bytes_to_b64
 
 from .config import Config
@@ -75,9 +76,14 @@ def get_status_list_file_path(
 async def assign_status_list_number(session: ProfileSession, wallet_id: str):
     """Get status list number."""
 
-    registry = await StatusListReg.retrieve_by_id(session, wallet_id, for_update=True)
-    if registry.list_count < 0:
-        raise StatusListError("Status list registry has negative list count.")
+    try:
+        registry = await StatusListReg.retrieve_by_id(
+            session, wallet_id, for_update=True
+        )
+        if registry.list_count < 0:
+            raise StatusListError("Status list registry has negative list count.")
+    except StorageNotFoundError:
+        registry = StatusListReg(id=wallet_id, list_count=0, new_with_id=True)
 
     list_number = registry.list_count
     registry.list_count += 1
