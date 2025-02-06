@@ -451,7 +451,14 @@ async def get_request(request: web.Request):
             pres.nonce = token_urlsafe(NONCE_BYTES)
             await pres.save(session=session, reason="Retrieved presentation request")
 
-            pres_def = await OID4VPPresDef.retrieve_by_id(session, record.pres_def_id)
+            if record.pres_def_id:
+                pres_def = await OID4VPPresDef.retrieve_by_id(
+                    session, record.pres_def_id
+                )
+            elif record.dcql_query_id:
+                dcql_query = await DCQLQuery.retrieve_by_id(
+                    session, record.dcql_query_id
+                )
             jwk = await retrieve_or_create_did_jwk(session)
 
     except StorageNotFoundError as err:
@@ -490,8 +497,11 @@ async def get_request(request: web.Request):
         "response_type": "vp_token",
         "response_mode": "direct_post",
         "scope": "vp_token",
-        "presentation_definition": pres_def.pres_def,
     }
+    if pres_def:
+        payload["presentation_definition"] = pres_def.pres_def
+    if dcql_query:
+        payload["dcql_query"] = dcql_query.record_value
 
     headers = {
         "kid": f"{jwk.did}#0",
