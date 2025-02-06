@@ -143,9 +143,11 @@ class DCQLQueryEvaluator:
         id_to_claim = {}
 
         for cred in self.query.credentials:
-            pres = vp_token.get(cred.id)
+            pres = vp_token.get(cred.credential_query_id)
             if not pres:
-                return DCQLVerifyResult(details=f"Missing presentation for {cred.id}")
+                return DCQLVerifyResult(
+                    details=f"Missing presentation for {cred.credential_query_id}"
+                )
 
             pres_verifier = processors.pres_verifier_for_format(cred.format)
 
@@ -156,7 +158,8 @@ class DCQLQueryEvaluator:
             )
             if not vp_result.verified:
                 return DCQLVerifyResult(
-                    details=f"Presentation for {cred.id} failed verification"
+                    details=f"Presentation for {cred.credential_query_id} "
+                    "failed verification"
                 )
 
             cred_verifier = processors.cred_verifier_for_format(cred.format)
@@ -167,8 +170,20 @@ class DCQLQueryEvaluator:
             )
             if not vc_result.verified:
                 return DCQLVerifyResult(
-                    details=f"Credential for {cred.id} failed verification"
+                    details=f"Credential for {cred.credential_query_id} "
+                    "failed verification"
                 )
+
+            # TODO: Add doctype checks
+
+            if cred.meta and cred.meta.vct_values:
+                presented_vct = vc_result.payload.get("vct")
+                vct = cred.meta.vct_values
+
+                if presented_vct not in vct:
+                    return DCQLVerifyResult(
+                        details="Presented vct does not match requested vct(s)."
+                    )
 
             # TODO: we're assuming that the credential format type is JSON
             for claim in cred.claims or []:
@@ -187,6 +202,6 @@ class DCQLQueryEvaluator:
                 except ValueError:
                     return DCQLVerifyResult(details=f"Path {path} does not exist")
 
-            id_to_claim[cred.id] = vc_result.payload
+            id_to_claim[cred.credential_query_id] = vc_result.payload
 
         return DCQLVerifyResult(verified=True, cred_query_id_to_claims=id_to_claim)
