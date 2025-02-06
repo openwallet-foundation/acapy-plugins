@@ -2,7 +2,7 @@
 
 from marshmallow import ValidationError, fields, validates_schema
 from marshmallow.validate import OneOf
-from typing import Any, List, Mapping, Optional
+from typing import Any, List, Mapping, Optional, Union
 from acapy_agent.messaging.models.base_record import BaseRecord, BaseRecordSchema
 from acapy_agent.messaging.models.base import BaseModel, BaseModelSchema
 
@@ -21,18 +21,38 @@ ClaimsPath = List[str | int | None]
 #     """A DCQL claims query for mdoc based structures."""
 
 
-class ClaimsQuery:
+class ClaimsQuery(BaseModel):
     """A DCQL claims query."""
 
-    id: Optional[str] = None
-    namespace: Optional[str] = None
-    claim_name: Optional[str] = None
-    path: Optional[ClaimsPath] = None
-    values: Optional[List[str | int | bool]] = None
+    class Meta:
+        """Metadata for Claims Query Model."""
+
+        schema_class = "ClaimsQuerySchema"
+
+    def __init__(
+        self,
+        id: Optional[str] = None,
+        namespace: Optional[str] = None,
+        claim_name: Optional[str] = None,
+        path: Optional[ClaimsPath] = None,
+        values: Optional[List[str | int | bool]] = None,
+    ):
+        """Initialize a ClaimsQuery model."""
+
+        self.id = id
+        self.namespace = namespace
+        self.claim_name = claim_name
+        self.path = path
+        self.values = values
 
 
-class ClaimsQuerySchema:
+class ClaimsQuerySchema(BaseModelSchema):
     """A DCQL claims query."""
+
+    class Meta:
+        """Metadata for Claims Query Schema."""
+
+        model_class = "ClaimsQuery"
 
     id = fields.Str(
         required=False, metadata={"description": "Identifier for this claims query."}
@@ -103,13 +123,31 @@ ClaimQueryID = str
 class CredentialMeta(BaseModel):
     """Metadata for credential query."""
 
-    query_type: Optional[str] = None
-    doctype_values: Optional[List[str]] = None
-    vct_values: Optional[List[str]] = None
+    class Meta:
+        """Credential Meta Schema Metadata."""
+
+        schema_class = "CredentialMetaSchema"
+
+    def __init__(
+        self,
+        query_type: Optional[str] = None,
+        doctype_values: Optional[List[str]] = None,
+        vct_values: Optional[List[str]] = None,
+    ):
+        super().__init__()
+
+        self.query_type = query_type
+        self.doctype_values = doctype_values
+        self.vct_values = vct_values
 
 
 class CredentialMetaSchema(BaseModelSchema):
     """Schema for credential query metadata."""
+
+    class Meta:
+        """Credential Meta Schema Metadata."""
+
+        model_class = "CredentialMeta"
 
     query_type = fields.Str(
         required=False,
@@ -145,6 +183,11 @@ class CredentialMetaSchema(BaseModelSchema):
         if query_type == "MdocMeta" and vct_values:
             raise ValidationError("Mdoc Meta cannot contain `vct_values`")
 
+        if vct_values and doctype_values:
+            raise ValidationError(
+                "Credential Metadata cannot have both vct_values and doctype_values."
+            )
+
 
 class CredentialQuery(BaseModel):
     """A DCQL Credential Query."""
@@ -157,7 +200,7 @@ class CredentialQuery(BaseModel):
     def __init__(
         self,
         *,
-        id: str,
+        credential_query_id: str,
         format: str,
         meta: Optional[CredentialMeta] = None,
         claims: Optional[List[ClaimsQuery]] = None,  # min_length of 1
@@ -166,7 +209,7 @@ class CredentialQuery(BaseModel):
     ) -> None:
         """Initialize a CredentialQuery object."""
 
-        self.id = id
+        self.credential_query_id = credential_query_id
         self.format = format
         self.meta = meta
         self.claims = claims
@@ -186,7 +229,9 @@ class CredentialQuerySchema(BaseModelSchema):
         model_class = "CredentialQuery"
 
     credential_query_id = fields.Str(
-        required=True, metadata={"description": "Identifier of the credential query."}
+        required=True,
+        metadata={"description": "Identifier of the credential query."},
+        data_key="id",
     )
     format = fields.Str(
         required=True,
@@ -197,7 +242,7 @@ class CredentialQuerySchema(BaseModelSchema):
     )
 
     claims = fields.List(
-        ClaimsQuerySchema,  # TODO: Schema or model?
+        fields.Nested(ClaimsQuerySchema),
         required=False,
         metadata={"description": ""},
     )
@@ -205,16 +250,11 @@ class CredentialQuerySchema(BaseModelSchema):
         fields.List(fields.Str), required=False, metadata={"description": ""}
     )
 
-    # TODO: is this the way to do this? Is there a better way?
-    @validates_schema
-    def validate_fields(self, data):
-        """Validate schema fields."""
-
-        meta = data.get("meta")
-        if meta and not isinstance(meta, CredentialMeta):
-            raise ValidationError(
-                "Credential query metadata must be a CredentialMeta object."
-            )
+    meta = fields.Nested(
+        CredentialMetaSchema(),
+        required=False,
+        metadata={"description": "Metadata about the Credential Query"},
+    )
 
 
 CredentialQueryID = str
@@ -281,35 +321,65 @@ class DCQLQuery(BaseRecord):
         schema_class = "DCQLQuerySchema"
 
     RECORD_ID_NAME = "dcql_query_id"
+    RECORD_TOPIC = "oid4vp"
+    RECORD_TYPE = "oid4vp"
 
     def __init__(
         self,
         *,
         dcql_query_id: Optional[str] = None,
-        credentials: List[CredentialQuery],  # min_length of 1
-        credential_sets: Optional[List[CredentialSetQuery]] = None,  # min_length of 1
+        credentials: Union[List[Mapping], List[CredentialQuery]],  # min_length of 1
+        credential_sets: Optional[
+            Union[List[Mapping], List[CredentialSetQuery]]
+        ] = None,  # min_length of 1
         **kwargs,
     ):
         """Initialize a new DCQL Credential Query Record."""
         super().__init__(dcql_query_id, **kwargs)
-        self.credentials = credentials
-        self.credential_set = credential_sets
+
+        self._credentials = [CredentialQuery.serde(cred) for cred in credentials]
+        self._credential_set = (
+            [CredentialSetQuery.serde(cred) for cred in credential_sets]
+            if credential_sets
+            else None
+        )
 
     @property
     def dcql_query_id(self) -> str:
         """Accessor for the ID associated with this DCQL query record."""
         return self._id
 
-    # TODO: double check that this works the way I think it does
+    @property
+    def credentials(self) -> List[CredentialQuery]:
+        """Accessor for CredentialQuery list; deserialized view."""
+        return [cred.de for cred in self._credentials if cred is not None]
+
+    @credentials.setter
+    def credentials(self, value):
+        self._credentials = [CredentialQuery.serde(cred) for cred in value]
+
+    @property
+    def credential_set(self) -> Union[List[CredentialQuery], None]:
+        """Accessor for CredentialQuery list; deserialized view."""
+
+        if self._credential_set is not None:
+            return [cred.de for cred in self._credential_set if cred is not None]
+        return None
+
+    @credential_set.setter
+    def credential_set(self, value):
+        self._credential_set = [CredentialQuery.serde(cred) for cred in value]
+
     @property
     def record_value(self) -> Mapping:
         """Accessor for the JSON record value generated for this DCQL query."""
         val = {
-            "dcql_query_id": getattr(self, "dcql_query_id"),
-            "credentials": [cred.serialize() for cred in self.credentials],
+            "credentials": [cred.ser for cred in self._credentials if cred is not None],
         }
-        if self.credential_set is not None:
-            val["credential_sets"] = [set.serialize() for set in self.credential_set]
+        if self._credential_set is not None:
+            val["credential_sets"] = [
+                set.ser for set in self._credential_set if set is not None
+            ]
 
         return val
 
@@ -326,14 +396,14 @@ class DCQLQuerySchema(BaseRecordSchema):
         model_class = "DCQLQuery"
 
     credentials = fields.List(
-        CredentialQuerySchema,  # TODO: Schema or regular?
+        fields.Nested(CredentialQuerySchema),
         required=True,
         metadata={
             "description": "A list of credential query objects",
         },
     )
     credential_sets = fields.List(
-        CredentialSetQuerySchema,  # TODO: Schema or regular?
+        fields.Nested(CredentialSetQuerySchema),
         required=False,
         metadata={
             "description": "A list of credential set query objects",
