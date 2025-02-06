@@ -134,6 +134,7 @@ class CredentialMeta(BaseModel):
         doctype_values: Optional[List[str]] = None,
         vct_values: Optional[List[str]] = None,
     ):
+        """Initialize a CredentialMeta model."""
         super().__init__()
 
         self.query_type = query_type
