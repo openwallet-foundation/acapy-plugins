@@ -284,7 +284,11 @@ class DIDWebVHRegistry(BaseAnonCredsResolver, BaseAnonCredsRegistrar):
         )
 
     async def get_revocation_list(
-        self, profile: Profile, revocation_registry_id: str, timestamp: int
+        self, 
+        profile: Profile, 
+        revocation_registry_id: str, 
+        timestamp_from: int, 
+        timestamp_to: int
     ) -> GetRevListResult:
         """Get a revocation list from the registry."""
         
@@ -298,7 +302,7 @@ class DIDWebVHRegistry(BaseAnonCredsResolver, BaseAnonCredsRegistrar):
         )
         for idx, entry in enumerate(index):
             status_list_id = index[idx].get('id')
-            if entry.get('timestamp') > timestamp:
+            if entry.get('timestamp') > timestamp_to:
                 status_list_id = index[idx-1].get('id')
                 break
         
