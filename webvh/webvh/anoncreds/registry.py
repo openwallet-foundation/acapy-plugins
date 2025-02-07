@@ -34,6 +34,7 @@ from acapy_agent.anoncreds.models.revocation import (
     RevRegDef,
     RevRegDefResult,
     RevRegDefState,
+    RevRegDefValue,
 )
 from acapy_agent.anoncreds.models.schema import (
     AnonCredsSchema,
@@ -238,7 +239,7 @@ class DIDWebVHRegistry(BaseAnonCredsResolver, BaseAnonCredsRegistrar):
             cred_def_id=resource["content"]["credDefId"],
             type=resource["content"]["revocDefType"],
             tag=resource["content"]["tag"],
-            value=resource["content"]["value"],
+            value=RevRegDefValue.deserialize(resource["content"]["value"]),
         )
 
         return GetRevRegDefResult(
