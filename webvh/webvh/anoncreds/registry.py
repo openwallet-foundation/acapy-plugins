@@ -291,6 +291,9 @@ class DIDWebVHRegistry(BaseAnonCredsResolver, BaseAnonCredsRegistrar):
         timestamp_to: int
     ) -> GetRevListResult:
         """Get a revocation list from the registry."""
+        LOGGER.warning("Resolving Revocation List")
+        LOGGER.warning(timestamp_from)
+        LOGGER.warning(timestamp_to)
         
         revocation_registry_resource = await self.resolver.resolve_resource(
             revocation_registry_id
@@ -301,6 +304,7 @@ class DIDWebVHRegistry(BaseAnonCredsResolver, BaseAnonCredsRegistrar):
             key=lambda x: x['timestamp']
         )
         for idx, entry in enumerate(index):
+            LOGGER.warning(entry.get('timestamp'))
             status_list_id = index[idx].get('id')
             if entry.get('timestamp') > timestamp_to:
                 status_list_id = index[idx-1].get('id')
