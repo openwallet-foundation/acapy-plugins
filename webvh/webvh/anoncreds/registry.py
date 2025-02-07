@@ -297,8 +297,10 @@ class DIDWebVHRegistry(BaseAnonCredsResolver, BaseAnonCredsRegistrar):
             key=lambda x: x['timestamp']
         )
         for idx, entry in enumerate(index):
+            status_list_id = index[idx].get('id')
             if entry.get('timestamp') > timestamp:
                 status_list_id = index[idx-1].get('id')
+                break
         
         status_list_resource = await self.resolver.resolve_resource(
             status_list_id
@@ -414,9 +416,7 @@ class DIDWebVHRegistry(BaseAnonCredsResolver, BaseAnonCredsRegistrar):
         rev_reg_def_resource = await self.resolver.resolve_resource(
             prev_list.rev_reg_def_id
         )
-        rev_reg_def_resource['links'] = [
-            status_list_entry
-        ]
+        rev_reg_def_resource['links'].append(status_list_entry)
         rev_reg_def_resource.pop('proof')
         await self._update_and_upload_resource(
             profile=profile,
