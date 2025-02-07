@@ -497,7 +497,7 @@ class DIDWebVHRegistry(BaseAnonCredsResolver, BaseAnonCredsRegistrar):
                     },
                 },
             )
-            if r.status_code != 201:
+            if r.status_code != 200:
                 raise AnonCredsRegistrationError(
                     "Invalid status code returned by service endpoint"
                 )
