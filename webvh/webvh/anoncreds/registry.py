@@ -299,6 +299,7 @@ class DIDWebVHRegistry(BaseAnonCredsResolver, BaseAnonCredsRegistrar):
             revocation_registry_id
         )
         
+        timestamp_to = timestamp_to or int(time.time())
         index = sorted(
             revocation_registry_resource.get('links'), 
             key=lambda x: x['timestamp']
@@ -306,7 +307,7 @@ class DIDWebVHRegistry(BaseAnonCredsResolver, BaseAnonCredsRegistrar):
         for idx, entry in enumerate(index):
             LOGGER.warning(entry.get('timestamp'))
             status_list_id = index[idx].get('id')
-            if entry.get('timestamp') > timestamp_to:
+            if entry.get('timestamp') > timestamp_to and idx > 0:
                 status_list_id = index[idx-1].get('id')
                 break
         
