@@ -320,13 +320,25 @@ class CredOfferSchema(OpenAPISchema):
     grants = fields.Nested(CredOfferGrantSchema(), required=True)
 
 
-class CredOfferResponseSchema(OpenAPISchema):
+class CredOfferResponseSchemaVal(OpenAPISchema):
     """Credential Offer Schema."""
 
-    offer_uri = fields.Str(
+    credential_offer = fields.Str(
         required=True,
         metadata={
-            "description": "The URL of the credential issuer.",
+            "description": "The URL of the credential value for display by QR code.",
+            "example": "openid-credential-offer://...",
+        },
+    )
+    offer = fields.Nested(CredOfferSchema(), required=True)
+
+class CredOfferResponseSchemaRef(OpenAPISchema):
+    """Credential Offer Schema."""
+
+    credential_offer_uri = fields.Str(
+        required=True,
+        metadata={
+            "description": "A URL which references the credential for display by QR code.",
             "example": "openid-credential-offer://...",
         },
     )
@@ -369,12 +381,38 @@ async def _parse_cred_offer(context: AdminRequestContext, exchange_id: str) -> d
         },
     }
 
-@docs(tags=["oid4vci"], summary="Get a credential offer")
+@docs(tags=["oid4vci"], summary="Get a credential offer by value")
 @querystring_schema(CredOfferQuerySchema())
-@response_schema(CredOfferResponseSchema(), 200)
+@response_schema(CredOfferResponseSchemaVal(), 200)
 @tenant_authentication
-async def get_cred_offer(request: web.BaseRequest, return_uri: bool = False):
-    """Endpoint to retrieve an OpenID4VCI compliant offer.
+async def get_cred_offer(request: web.BaseRequest):
+    """Endpoint to retrieve an OpenID4VCI compliant offer by value.
+
+    For example, can be used in QR-Code presented to a compliant wallet.
+    """
+    context: AdminRequestContext = request["context"]
+    exchange_id = request.query["exchange_id"]
+    wallet_id = (
+        context.profile.settings.get("wallet.id")
+        if context.profile.settings.get("multitenant.enabled")
+        else None
+    )
+
+    offer = await _parse_cred_offer(context, exchange_id)
+    offer_uri = quote(json.dumps(offer))
+    offer_response = {
+        "offer": offer,
+        "credential_offer": f"openid-credential-offer://?credential_offer={offer_uri}"
+    }
+    return web.json_response(offer_response)
+
+@docs(tags=["oid4vci"], summary="Get a credential offer by reference")
+@querystring_schema(CredOfferQuerySchema())
+@response_schema(CredOfferResponseSchemaRef(), 200)
+@tenant_authentication
+async def get_cred_offer_by_ref(request: web.BaseRequest):
+    """Endpoint to retrieve an OpenID4VCI compliant offer by reference. credential_offer_uri can be
+    dereferenced at the /oid4vc/dereference-credential-offer (see public_routes.dereference_cred_offer)
 
     For example, can be used in QR-Code presented to a compliant wallet.
     """
@@ -388,22 +426,13 @@ async def get_cred_offer(request: web.BaseRequest, return_uri: bool = False):
     subpath = f"/tenant/{wallet_id}" if wallet_id else ""
 
     offer = await _parse_cred_offer(context, exchange_id)
-    if return_uri:
-        # Return a reference to the credential, which can be accessed at the following
-        # public endpoint (see public_routes.dereference_cred_offer()):
-        offer_response = {
-            "offer": offer,
-            "credential_offer": f"{subpath}/oid4vc/dereference-credential-offer"
-        }
-    else:
-        # Return the credential by value.
-        offer_uri = quote(json.dumps(offer))
-        offer_response = {
-            "offer": offer,
-            "credential_offer_uri": f"openid-credential-offer://?credential_offer={offer_uri}"
-        }
+    # TODO: JANK JANK JANK you need to fix this
+    ref_uri = f"https://url:port/oid4vci/dereference-credential-offer"
+    offer_response = {
+        "offer": offer,
+        "credential_offer_uri": f"openid-credential-offer://?credential_offer={quote(ref_uri)}"
+    }
     return web.json_response(offer_response)
-
 
 class SupportedCredCreateRequestSchema(OpenAPISchema):
     """Schema for SupportedCredCreateRequestSchema."""
@@ -1202,7 +1231,7 @@ async def register(app: web.Application):
     app.add_routes(
         [
             web.get("/oid4vci/credential-offer", get_cred_offer, allow_head=False),
-            web.get("/oid4vci/credential-offer-by-ref", lambda r: get_cred_offer(r, True), allow_head=False),
+            web.get("/oid4vci/credential-offer-by-ref", get_cred_offer_by_ref, allow_head=False),
             web.get(
                 "/oid4vci/exchange/records",
                 list_exchange_records,

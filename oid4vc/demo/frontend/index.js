@@ -214,7 +214,7 @@ async function issue_jwt_credential(req, res) {
 
 
   // Get Credential Offer information
-  const credentialOfferUrl = `${API_BASE_URL}/oid4vci/credential-offer`;
+  const credentialOfferUrl = `${API_BASE_URL}/oid4vci/credential-offer-by-ref`;
   const queryParams = {
     user_pin_required: false,
     exchange_id: exchangeId,

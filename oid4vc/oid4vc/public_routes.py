@@ -48,7 +48,7 @@ from .cred_processor import CredProcessorError, CredProcessors
 from .models.exchange import OID4VCIExchangeRecord
 from .models.supported_cred import SupportedCredential
 from .pop_result import PopResult
-from .routes import CredOfferResponseSchema, CredOfferQuerySchema, _parse_cred_offer
+from .routes import _parse_cred_offer, CredOfferQuerySchema, CredOfferSchema
 
 LOGGER = logging.getLogger(__name__)
 PRE_AUTHORIZED_CODE_GRANT_TYPE = "urn:ietf:params:oauth:grant-type:pre-authorized_code"
@@ -57,8 +57,8 @@ EXPIRES_IN = 86400
 
 
 @docs(tags=["oid4vci"], summary="Dereference a credential offer.")
-@querystring_schema(CredOfferQuerySchema())
-@response_schema(CredOfferResponseSchema, 200)
+@querystring_schema(CredOfferQuerySchema)
+@response_schema(CredOfferSchema, 200)
 async def dereference_cred_offer(request: web.BaseRequest):
     """Get a credential offer from a URI that has been acquired from the /oid4vci/credential-offer
     endpoint (see routes.get_cred_offer()).
@@ -662,7 +662,7 @@ async def register(app: web.Application, multitenant: bool):
     subpath = "/tenant/{wallet_id}" if multitenant else ""
     app.add_routes(
         [
-            web.get(f"{subpath}/oid4vci/dereference-credential-offer",
+            web.get(f"/oid4vci/dereference-credential-offer",
                 dereference_cred_offer, 
                 allow_head=False
             ),
