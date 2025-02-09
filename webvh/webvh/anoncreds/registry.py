@@ -397,11 +397,11 @@ class DIDWebVHRegistry(BaseAnonCredsResolver, BaseAnonCredsRegistrar):
         """Update a revocation list on the registry."""
         
         for idx in revoked:
-            curr_list.revocationList[idx] = 1
+            curr_list.revocation_list[idx] = 1
             
 
         content = curr_list.serialize()
-        content['timestamp'] = time.time()
+        content['timestamp'] = int(time.time())
         metadata = {
             "resource_id": self._digest_multibase(content),
             "resource_type": "anonCredsStatusList",
