@@ -19,4 +19,4 @@ async def test_api(sphereon: SphereaonWrapper):
 @pytest.mark.asyncio
 async def test_sphereon_pre_auth(sphereon: SphereaonWrapper, offer: Dict[str, Any]):
     """Test receive offer for pre auth code flow."""
-    await sphereon.accept_credential_offer(offer["offer_uri"])
+    await sphereon.accept_credential_offer(offer["credential_offer"])

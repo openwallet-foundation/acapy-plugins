@@ -332,20 +332,10 @@ class CredOfferResponseSchema(OpenAPISchema):
     )
     offer = fields.Nested(CredOfferSchema(), required=True)
 
-
-@docs(tags=["oid4vci"], summary="Get a credential offer")
-@querystring_schema(CredOfferQuerySchema())
-@response_schema(CredOfferResponseSchema(), 200)
-@tenant_authentication
-async def get_cred_offer(request: web.BaseRequest):
-    """Endpoint to retrieve an OpenID4VCI compliant offer.
-
-    For example, can be used in QR-Code presented to a compliant wallet.
-    """
-    context: AdminRequestContext = request["context"]
+async def _parse_cred_offer(context: AdminRequestContext, exchange_id: str) -> dict:
+    """Helper function for cred_offer request parsing. Used in get_cred_offer and
+    public_routes.dereference_cred_offer endpoints"""
     config = Config.from_settings(context.settings)
-    exchange_id = request.query["exchange_id"]
-
     code = secrets.token_urlsafe(CODE_BYTES)
 
     try:
@@ -368,7 +358,7 @@ async def get_cred_offer(request: web.BaseRequest):
         else None
     )
     subpath = f"/tenant/{wallet_id}" if wallet_id else ""
-    offer = {
+    return {
         "credential_issuer": f"{config.endpoint}{subpath}",
         "credentials": [supported.identifier],
         "grants": {
@@ -379,13 +369,39 @@ async def get_cred_offer(request: web.BaseRequest):
         },
     }
 
-    offer_uri = quote(json.dumps(offer))
-    full_uri = f"openid-credential-offer://?credential_offer={offer_uri}"
-    offer_response = {
-        "offer": offer,
-        "offer_uri": full_uri,
-    }
+@docs(tags=["oid4vci"], summary="Get a credential offer")
+@querystring_schema(CredOfferQuerySchema())
+@response_schema(CredOfferResponseSchema(), 200)
+@tenant_authentication
+async def get_cred_offer(request: web.BaseRequest, return_uri: bool = False):
+    """Endpoint to retrieve an OpenID4VCI compliant offer.
 
+    For example, can be used in QR-Code presented to a compliant wallet.
+    """
+    context: AdminRequestContext = request["context"]
+    exchange_id = request.query["exchange_id"]
+    wallet_id = (
+        context.profile.settings.get("wallet.id")
+        if context.profile.settings.get("multitenant.enabled")
+        else None
+    )
+    subpath = f"/tenant/{wallet_id}" if wallet_id else ""
+
+    offer = await _parse_cred_offer(context, exchange_id)
+    if return_uri:
+        # Return a reference to the credential, which can be accessed at the following
+        # public endpoint (see public_routes.dereference_cred_offer()):
+        offer_response = {
+            "offer": offer,
+            "credential_offer": f"{subpath}/oid4vc/dereference-credential-offer"
+        }
+    else:
+        # Return the credential by value.
+        offer_uri = quote(json.dumps(offer))
+        offer_response = {
+            "offer": offer,
+            "credential_offer_uri": f"openid-credential-offer://?credential_offer={offer_uri}"
+        }
     return web.json_response(offer_response)
 
 
@@ -1186,6 +1202,7 @@ async def register(app: web.Application):
     app.add_routes(
         [
             web.get("/oid4vci/credential-offer", get_cred_offer, allow_head=False),
+            web.get("/oid4vci/credential-offer-by-ref", lambda r: get_cred_offer(r, True), allow_head=False),
             web.get(
                 "/oid4vci/exchange/records",
                 list_exchange_records,

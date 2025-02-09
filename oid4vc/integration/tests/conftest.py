@@ -174,7 +174,7 @@ async def sdjwt_offer(
         "/oid4vci/credential-offer",
         params={"exchange_id": exchange["exchange_id"]},
     )
-    offer_uri = offer["offer_uri"]
+    offer_uri = offer["credential_offer"]
 
     yield offer_uri
 

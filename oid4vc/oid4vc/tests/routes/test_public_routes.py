@@ -7,7 +7,6 @@ from aiohttp import web
 
 from oid4vc import public_routes as test_module
 
-
 @pytest.mark.asyncio
 async def test_issuer_metadata(context: AdminRequestContext, req: web.Request):
     """Test issuer metadata endpoint."""

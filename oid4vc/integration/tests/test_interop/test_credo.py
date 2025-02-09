@@ -9,7 +9,7 @@ from credo_wrapper import CredoWrapper
 @pytest.mark.asyncio
 async def test_accept_credential_offer(credo: CredoWrapper, offer: Dict[str, Any]):
     """Test OOB DIDExchange Protocol."""
-    await credo.openid4vci_accept_offer(offer["offer_uri"])
+    await credo.openid4vci_accept_offer(offer["credential_offer"])
 
 
 @pytest.mark.interop
@@ -25,7 +25,7 @@ async def test_accept_auth_request(
     controller: Controller, credo: CredoWrapper, offer: Dict[str, Any], request_uri: str
 ):
     """Test OOB DIDExchange Protocol."""
-    await credo.openid4vci_accept_offer(offer["offer_uri"])
+    await credo.openid4vci_accept_offer(offer["credential_offer"])
     await credo.openid4vp_accept_request(request_uri)
     await controller.event_with_values("oid4vp", state="presentation-valid")
 
