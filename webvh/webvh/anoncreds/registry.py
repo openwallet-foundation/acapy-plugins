@@ -368,7 +368,6 @@ class DIDWebVHRegistry(BaseAnonCredsResolver, BaseAnonCredsRegistrar):
         rev_reg_def_resource['links'] = [
             status_list_entry
         ]
-        rev_reg_def_resource.pop('proof')
         await self._update_and_upload_resource(
             profile=profile,
             resource=rev_reg_def_resource,
@@ -426,7 +425,6 @@ class DIDWebVHRegistry(BaseAnonCredsResolver, BaseAnonCredsRegistrar):
             prev_list.rev_reg_def_id
         )
         rev_reg_def_resource['links'].append(status_list_entry)
-        rev_reg_def_resource.pop('proof')
         await self._update_and_upload_resource(
             profile=profile,
             resource=rev_reg_def_resource,
@@ -536,6 +534,8 @@ class DIDWebVHRegistry(BaseAnonCredsResolver, BaseAnonCredsRegistrar):
         self, profile, resource, options
     ) -> dict:  # AttestedResource:
         """Update an existing resource safely."""
+        proof = resource.pop('proof')
+        options['verificationMethod'] = proof.get("verificationMethod")
         options['serviceEndpoint'] = self._derive_update_endpoint(
             resource.get("id")
         )
@@ -553,9 +553,12 @@ class DIDWebVHRegistry(BaseAnonCredsResolver, BaseAnonCredsRegistrar):
     ) -> dict:  # AttestedResource:
         """Derive attested resource object from content and publish."""
 
+        # TODO, derive verification method some other way, currently set to default
+        options['verificationMethod'] = f'{issuer}#key-01'
         options['serviceEndpoint'] = self._derive_upload_endpoint(
             options.get("verificationMethod")
         )
+
         self._ensure_options(options)
 
         # Ensure content digest is accurate
