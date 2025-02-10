@@ -3,14 +3,6 @@
 import json
 from typing import cast
 
-from aiohttp import web
-from aiohttp_apispec import (
-    docs,
-    match_info_schema,
-    querystring_schema,
-    request_schema,
-    response_schema,
-)
 from acapy_agent.admin.decorators.auth import tenant_authentication
 from acapy_agent.admin.request_context import AdminRequestContext
 from acapy_agent.cache.base import BaseCache
@@ -18,7 +10,7 @@ from acapy_agent.messaging.models.base import BaseModelError
 from acapy_agent.messaging.models.openapi import OpenAPISchema
 from acapy_agent.messaging.models.paginated_query import (
     PaginatedQuerySchema,
-    get_paginated_query_params,
+    get_limit_offset,
 )
 from acapy_agent.messaging.valid import (
     ENDPOINT_EXAMPLE,
@@ -33,17 +25,27 @@ from acapy_agent.messaging.valid import (
 )
 from acapy_agent.storage.error import StorageError, StorageNotFoundError
 from acapy_agent.wallet.error import WalletError
+from aiohttp import web
+from aiohttp_apispec import (
+    docs,
+    match_info_schema,
+    querystring_schema,
+    request_schema,
+    response_schema,
+)
 from marshmallow import fields, validate, validates_schema
 
-from .models.conn_record import (
-    ConnectionsRecord as ConnRecord,
-    MaybeStoredConnectionsRecordSchema as ConnRecordSchema,
-)
 from .manager import ConnectionManager, ConnectionManagerError
 from .message_types import SPEC_URI
 from .messages.connection_invitation import (
     ConnectionInvitation,
     ConnectionInvitationSchema,
+)
+from .models.conn_record import (
+    ConnectionsRecord as ConnRecord,
+)
+from .models.conn_record import (
+    MaybeStoredConnectionsRecordSchema as ConnRecordSchema,
 )
 
 
@@ -475,7 +477,7 @@ async def connections_list(request: web.BaseRequest):
     if request.query.get("connection_protocol"):
         post_filter["connection_protocol"] = request.query["connection_protocol"]
 
-    limit, offset, *_ = get_paginated_query_params(request)
+    limit, offset, *_ = get_limit_offset(request)
 
     profile = context.profile
     try:
