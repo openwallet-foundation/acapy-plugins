@@ -411,8 +411,8 @@ class DIDWebVHRegistry(BaseAnonCredsResolver, BaseAnonCredsRegistrar):
         resource = await self._create_and_publish_resource(
             profile=profile,
             issuer=rev_reg_def.issuer_id,
-            resource_metadata=metadata,
-            resource_content=content,
+            metadata=metadata,
+            content=content,
             options=options,
         )
         
