@@ -11,7 +11,7 @@ python = "^3.12"
 # explicitly installed with the plugin if desired.
 acapy-agent = { version = "~1.2.2", optional = true }
 
-aiohttp = "^3.11.11"
+aiohttp = "^3.11.12"
 fastapi-slim = "^0.115.8"
 nest-asyncio = "^1.5.5"
 redis = "^5.2.1"
