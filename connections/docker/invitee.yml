@@ -1,15 +1,15 @@
-label: connections inviter
+label: connections invitee
 
-admin: [0.0.0.0, 3001]
+admin: [0.0.0.0, 4001]
 admin-insecure-mode: false
 admin-api-key: change-me
 
 inbound-transport:
-  - [http, 0.0.0.0, 3000]
-  - [ws, 0.0.0.0, 3002]
+  - [http, 0.0.0.0, 4000]
+  - [ws, 0.0.0.0, 4002]
 outbound-transport: http
 endpoint:
-  - http://localhost:3000
+  - http://localhost:4000
 
 no-ledger: true
 
@@ -24,5 +24,5 @@ auto-respond-messages: true
 # Wallet
 auto-provision: true
 wallet-type: askar
-wallet-name: connections-wallet
+wallet-name: connections-wallet-invitee
 wallet-key: insecure

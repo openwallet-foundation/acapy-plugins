@@ -13,6 +13,14 @@
         "args": ["start", "--arg-file=${workspaceRoot}/docker/default.yml"]
       },
       {
+        "name": "Run/Debug Invitee",
+        "type": "debugpy",
+        "request": "launch",
+        "module": "acapy_agent",
+        "justMyCode": false,
+        "args": ["start", "--arg-file=${workspaceRoot}/docker/invitee.yml"]
+      },
+      {
         "name": "ruff - connections",
         "type": "debugpy",
         "request": "launch",

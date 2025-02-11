@@ -43,6 +43,8 @@ class ConnectionsRecord(ConnRecord):
             {"connection_id": self.connection_id},
         )
         ser = json.loads(result.value)
+        if ser.get("@type") == "https://didcomm.org/out-of-band/1.1/invitation":
+            return OOBInvitation.deserialize(ser)
         return ConnectionInvitation.deserialize(ser)
 
     async def attach_request(self, session: ProfileSession, request: ConnectionRequest):
