@@ -1438,7 +1438,7 @@ async def register(app: web.Application):
             web.get("/oid4vp/presentations", list_oid4vp_presentations),
             web.get("/oid4vp/presentation/{request_id}", get_oid4vp_pres_by_id),
             web.delete("/oid4vp/presentation/{presentation_id}", oid4vp_pres_remove),
-            web.post("/oid4vp/dcql/query-create", create_dcql_query),
+            web.post("/oid4vp/dcql/queries", create_dcql_query),
             web.get("/oid4vp/dcql/queries", list_dcql_queries),
             web.get("/oid4vp/dcql/query/{dcql_query_id}", get_dcql_query_by_id),
             web.delete("/oid4vp/dcql/query/{dcql_query_id}", dcql_query_remove),
