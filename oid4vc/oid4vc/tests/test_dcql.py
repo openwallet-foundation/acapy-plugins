@@ -8,26 +8,26 @@ from oid4vc.dcql import DCQLQueryEvaluator
 from oid4vc.models.dcql_query import CredentialQuery, DCQLQuery
 
 
+raw_query = {
+    "credentials": [
+        {
+            "id": "pid",
+            "format": "vc+sd-jwt",
+            "meta": {
+                "vct_values": ["https://credentials.example.com/identity_credential"]
+            },
+            "claims": [
+                {"path": ["given_name"]},
+                {"path": ["family_name"]},
+                {"path": ["address", "street_address"]},
+            ],
+        }
+    ]
+}
+
+
 @pytest.mark.asyncio
 async def test_dcql_query_deser_roundtrip():
-    raw_query = {
-        "credentials": [
-            {
-                "id": "pid",
-                "format": "vc+sd-jwt",
-                "meta": {
-                    "vct_values": [
-                        "https://credentials.example.com/identity_credential"
-                    ]
-                },
-                "claims": [
-                    {"path": ["given_name"]},
-                    {"path": ["family_name"]},
-                    {"path": ["address", "street_address"]},
-                ],
-            }
-        ]
-    }
 
     des_query = DCQLQuery.deserialize(raw_query)
     ser_query = des_query.serialize()
@@ -37,24 +37,6 @@ async def test_dcql_query_deser_roundtrip():
 
 @pytest.mark.asyncio
 async def test_dcql_query_saving(profile: Profile):
-    raw_query = {
-        "credentials": [
-            {
-                "id": "pid",
-                "format": "vc+sd-jwt",
-                "meta": {
-                    "vct_values": [
-                        "https://credentials.example.com/identity_credential"
-                    ]
-                },
-                "claims": [
-                    {"path": ["given_name"]},
-                    {"path": ["family_name"]},
-                    {"path": ["address", "street_address"]},
-                ],
-            }
-        ]
-    }
 
     des_query = DCQLQuery.deserialize(raw_query)
     async with profile.session() as session:
@@ -70,24 +52,6 @@ async def test_dcql_query_saving(profile: Profile):
 
 @pytest.mark.asyncio
 async def test_dcql_verify(profile: Profile):
-    raw_query = {
-        "credentials": [
-            {
-                "id": "pid",
-                "format": "vc+sd-jwt",
-                "meta": {
-                    "vct_values": [
-                        "https://credentials.example.com/identity_credential"
-                    ]
-                },
-                "claims": [
-                    {"path": ["given_name"]},
-                    {"path": ["family_name"]},
-                    {"path": ["address", "street_address"]},
-                ],
-            }
-        ]
-    }
 
     pres_result_payload = {
         "given_name": "Sally",
@@ -129,11 +93,3 @@ async def test_dcql_verify(profile: Profile):
         )
 
         assert verified.verified
-
-
-# TODO: Test the actual parsing of a query -- create_oid4vp_request
-
-# @pytest.mark.asyncio
-# async def test_dcql_query_list(profile: Profile):
-
-#     list_dcql_queries
