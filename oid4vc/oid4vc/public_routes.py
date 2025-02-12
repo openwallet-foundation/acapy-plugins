@@ -134,8 +134,8 @@ async def token(request: web.Request):
     context: AdminRequestContext = request["context"]
     form = await request.post()
     LOGGER.debug(f"Token request: {form}")
-    if (grant_type := form.get("grant_type")) != PRE_AUTHORIZED_CODE_GRANT_TYPE:
-        raise web.HTTPBadRequest(reason=f"grant_type {grant_type} not supported")
+    if (form.get("grant_type")) != PRE_AUTHORIZED_CODE_GRANT_TYPE:
+        raise web.HTTPBadRequest(reason="grant_type not supported")
 
     pre_authorized_code = form.get("pre-authorized_code")
     if not pre_authorized_code or not isinstance(pre_authorized_code, str):
