@@ -25,7 +25,7 @@ async def test_dcql_query_create(controller: Controller):
         ]
     }
 
-    query = await controller.post("/oid4vp/dcql/query-create", json=cred_json)
+    query = await controller.post("/oid4vp/dcql/queries", json=cred_json)
 
     assert isinstance(query, dict)
     assert "dcql_query" in query.keys()
@@ -55,7 +55,7 @@ async def test_dcql_query_list(controller: Controller):
         ]
     }
 
-    query = await controller.post("/oid4vp/dcql/query-create", json=cred_json)
+    query = await controller.post("/oid4vp/dcql/queries", json=cred_json)
     query_id = query["dcql_query_id"]
 
     queries_list = await controller.get(
@@ -91,7 +91,7 @@ async def test_dcql_query_get(controller: Controller):
         ]
     }
 
-    query = await controller.post("/oid4vp/dcql/query-create", json=cred_json)
+    query = await controller.post("/oid4vp/dcql/queries", json=cred_json)
     query_id = query["dcql_query_id"]
 
     ret_query = await controller.get(
@@ -123,7 +123,7 @@ async def test_dcql_query_delete(controller: Controller):
         ]
     }
 
-    query = await controller.post("/oid4vp/dcql/query-create", json=cred_json)
+    query = await controller.post("/oid4vp/dcql/queries", json=cred_json)
     query_id = query["dcql_query_id"]
 
     queries_list = await controller.get(
