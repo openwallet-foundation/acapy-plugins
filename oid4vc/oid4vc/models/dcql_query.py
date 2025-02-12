@@ -1,24 +1,12 @@
 """Models for DCQL queries."""
 
 from marshmallow import ValidationError, fields, validates_schema
-from marshmallow.validate import OneOf
 from typing import Any, List, Mapping, Optional, Union
 from acapy_agent.messaging.models.base_record import BaseRecord, BaseRecordSchema
 from acapy_agent.messaging.models.base import BaseModel, BaseModelSchema
 
 
 ClaimsPath = List[str | int | None]
-
-
-# class JsonClaimsQuery:
-#     """A DCQL claims query for JSON based structures."""
-
-#     id: Optional[str] = None
-#     values: Optional[List[str | int | bool]] = None
-
-
-# class MdocClaimsQuery:
-#     """A DCQL claims query for mdoc based structures."""
 
 
 class ClaimsQuery(BaseModel):
@@ -60,20 +48,23 @@ class ClaimsQuerySchema(BaseModelSchema):
     namespace = fields.Str(
         required=False,
         metadata={
-            "description": "",  # TODO: Add description
+            "description": "mdoc only: a string that specifies the namespace of the data "
+            "element within the mdoc."
         },
     )
     claim_name = fields.Str(
         required=False,
         metadata={
-            "description": "",  # TODO: Add description
+            "description": "mdoc only:  a string that specifies the data element "
+            "identifier of the data element within the provided namespace in the mdoc"
         },
     )
     path = fields.List(
         fields.Raw,
         required=False,
         metadata={
-            "description": "",  # TODO: Add description
+            "description": "JSON-based claims structure only: a non-empty array "
+            "representing a claims path pointer that specifies the path to a claim"
         },
     )
     values = fields.List(
@@ -101,9 +92,7 @@ class ClaimsQuerySchema(BaseModelSchema):
 
         if path:
             for p in path:
-                if not (
-                    isinstance(p, str) or isinstance(p, int) or p is None
-                ):  # TODO: check logic here
+                if not (isinstance(p, str) or isinstance(p, int) or p is None):
                     raise ValidationError("Path elements must be string, int, or None.")
 
         values = data.get("values")
@@ -111,7 +100,7 @@ class ClaimsQuerySchema(BaseModelSchema):
             for v in values:
                 if not (
                     isinstance(v, str) or isinstance(v, int) or isinstance(v, bool)
-                ):  # TODO: check logic here
+                ):
                     raise ValidationError(
                         "Values elements must be string, int, or bool."
                     )
@@ -150,16 +139,6 @@ class CredentialMetaSchema(BaseModelSchema):
 
         model_class = "CredentialMeta"
 
-    query_type = fields.Str(
-        required=False,
-        validate=OneOf(
-            [
-                "SdJwtVcMeta",
-                "MdocMeta",
-            ]
-        ),
-    )
-
     doctype_values = fields.List(
         fields.Str,
         required=False,
@@ -174,15 +153,8 @@ class CredentialMetaSchema(BaseModelSchema):
     def validate_fields(self, data, **kwargs):
         """Validate CredentialMeta object."""
 
-        query_type = data.get("query_type")
         doctype_values = data.get("doctype_values")
         vct_values = data.get("vct_values")
-
-        if query_type == "SdJwtVcMeta" and doctype_values:
-            raise ValidationError("SdJwtVc Meta cannot contain `doctype_values`")
-
-        if query_type == "MdocMeta" and vct_values:
-            raise ValidationError("Mdoc Meta cannot contain `vct_values`")
 
         if vct_values and doctype_values:
             raise ValidationError(
@@ -204,8 +176,8 @@ class CredentialQuery(BaseModel):
         credential_query_id: str,
         format: str,
         meta: Optional[CredentialMeta] = None,
-        claims: Optional[List[ClaimsQuery]] = None,  # min_length of 1
-        claim_sets: Optional[List[List[ClaimQueryID]]] = None,  # min_length of 1
+        claims: Optional[List[ClaimsQuery]] = None,
+        claim_sets: Optional[List[List[ClaimQueryID]]] = None,
         **kwargs,
     ) -> None:
         """Initialize a CredentialQuery object."""
@@ -215,10 +187,6 @@ class CredentialQuery(BaseModel):
         self.meta = meta
         self.claims = claims
         self.claim_sets = claim_sets
-
-        # TODO: add serialize/deserialize
-        # (probably use BaseModel/BaseSchema? that provides ser/deser)
-        # https://github.com/openwallet-foundation/acapy/blob/main/acapy_agent/protocols/present_proof/v2_0/models/pres_exchange.py#L211-L239
 
 
 class CredentialQuerySchema(BaseModelSchema):
@@ -257,6 +225,18 @@ class CredentialQuerySchema(BaseModelSchema):
         metadata={"description": "Metadata about the Credential Query"},
     )
 
+    @validates_schema
+    def validate_fields(self, data, **kwargs):
+        """Validate a Credential Query object."""
+
+        claims = data.get("claims")
+        if isinstance(claims, list) and len(claims) < 1:
+            raise ValidationError("Claims has a minimum length of 1")
+
+        claim_sets = data.get("claim_sets")
+        if isinstance(claim_sets, list) and len(claim_sets) < 1:
+            raise ValidationError("Claim Sets has a minimum length of 1")
+
 
 CredentialQueryID = str
 
@@ -271,7 +251,7 @@ class CredentialSetQuery(BaseModel):
 
     def __init__(
         self,
-        options: List[List[CredentialQueryID]],  # min_length of 1
+        options: List[List[CredentialQueryID]],
         required: Optional[bool] = None,
         purpose: Optional[str | int | Any] = None,
     ) -> None:
@@ -294,7 +274,9 @@ class CredentialSetQuerySchema(BaseModelSchema):
         fields.List(fields.Str),
         required=True,
         metadata={
-            "description": "",  # TODO IDK lol
+            "description": "A non-empty array, where each value in the array is a list of"
+            " Credential Query identifiers representing one set of Credentials that "
+            "satisfies the use case. ",
         },
     )
 
@@ -311,6 +293,14 @@ class CredentialSetQuerySchema(BaseModelSchema):
             "description": "The purpose for this credential set.",
         },
     )
+
+    @validates_schema
+    def validate_fields(self, data, **kwargs):
+        """Validate a Credential Query object."""
+
+        options = data.get("options")
+        if isinstance(options, list) and len(options) < 1:
+            raise ValidationError("Options has a minimum length of 1")
 
 
 class DCQLQuery(BaseRecord):
@@ -329,10 +319,10 @@ class DCQLQuery(BaseRecord):
         self,
         *,
         dcql_query_id: Optional[str] = None,
-        credentials: Union[List[Mapping], List[CredentialQuery]],  # min_length of 1
+        credentials: Union[List[Mapping], List[CredentialQuery]],
         credential_sets: Optional[
             Union[List[Mapping], List[CredentialSetQuery]]
-        ] = None,  # min_length of 1
+        ] = None,
         **kwargs,
     ):
         """Initialize a new DCQL Credential Query Record."""
@@ -385,9 +375,6 @@ class DCQLQuery(BaseRecord):
         return val
 
 
-# TODO: Add Schema for DCQLQuery
-
-
 class DCQLQuerySchema(BaseRecordSchema):
     """Schema for DCQLQuery class."""
 
@@ -410,3 +397,15 @@ class DCQLQuerySchema(BaseRecordSchema):
             "description": "A list of credential set query objects",
         },
     )
+
+    @validates_schema
+    def validate_fields(self, data, **kwargs):
+        """Validate a Credential Query object."""
+
+        credentials = data.get("credentials")
+        if isinstance(credentials, list) and len(credentials) < 1:
+            raise ValidationError("Credentials has a minimum length of 1")
+
+        credential_sets = data.get("credential_sets")
+        if isinstance(credential_sets, list) and len(credential_sets) < 1:
+            raise ValidationError("Credentials Sets has a minimum length of 1")
