@@ -130,18 +130,16 @@ async def sdjwt_supported_cred_id(controller: Controller, issuer_did: str):
                     },
                 },
             },
-            "vc_additional_data": {
-                "sd_list": [
-                    "/given_name",
-                    "/family_name",
-                    "/age_equal_or_over/12",
-                    "/age_equal_or_over/14",
-                    "/age_equal_or_over/16",
-                    "/age_equal_or_over/18",
-                    "/age_equal_or_over/21",
-                    "/age_equal_or_over/65",
-                ]
-            },
+            "sd_list": [
+                "/given_name",
+                "/family_name",
+                "/age_equal_or_over/12",
+                "/age_equal_or_over/14",
+                "/age_equal_or_over/16",
+                "/age_equal_or_over/18",
+                "/age_equal_or_over/21",
+                "/age_equal_or_over/65",
+            ],
         },
     )
     yield supported["supported_cred_id"]
