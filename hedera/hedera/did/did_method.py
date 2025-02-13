@@ -1,4 +1,4 @@
-"""New Hedera DID method."""
+"""Hedera DID method."""
 
 from acapy_agent.wallet.did_method import DIDMethod, HolderDefinedDid
 from acapy_agent.wallet.key_type import ED25519

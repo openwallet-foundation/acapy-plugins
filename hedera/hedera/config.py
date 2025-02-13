@@ -1,4 +1,4 @@
-"""Load configuration parameters."""
+"""Hedera configuration."""
 
 from dataclasses import dataclass
 from os import getenv

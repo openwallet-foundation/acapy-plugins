@@ -26,17 +26,15 @@ from acapy_agent.anoncreds.models.revocation import (
     RevRegDefValue as AcapyRevRegDefValue,
 )
 from acapy_agent.anoncreds.models.schema import SchemaState as AcapySchemaState
-from did_sdk_py.anoncreds.models import (
+from hiero_did_sdk_python.anoncreds.models import (
     CredDefValue as HederaCredDefValue,
     CredDefValuePrimary as HederaCredDefValuePrimary,
     CredDefValueRevocation as HederaCredDefValueRevocation,
-)
-from did_sdk_py.anoncreds.models.revocation.revocation_registry_definition import (
     AnonCredsRevRegDef as HederaAnonCredsRevRegDef,
     RevRegDefValue as HederaRevRegDefValue,
+    AnonCredsSchema as HederaAnonCredsSchema,
 )
-from did_sdk_py.anoncreds.models.schema import AnonCredsSchema as HederaAnonCredsSchema
-from did_sdk_py.anoncreds.types import (
+from hiero_did_sdk_python.anoncreds.types import (
     AnonCredsCredDef as HederaAnonCredsCredDef,
     AnonCredsRevList as HederaAnonCredsRevList,
     GetCredDefResult as HederaGetCredDefResult,

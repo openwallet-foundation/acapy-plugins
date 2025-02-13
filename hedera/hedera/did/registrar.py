@@ -2,7 +2,7 @@
 
 from acapy_agent.wallet.base import BaseWallet, DIDInfo
 from acapy_agent.wallet.key_type import ED25519, KeyTypes
-from did_sdk_py.did.hedera_did_resolver import HederaDid
+from hiero_did_sdk_python.did.hedera_did_resolver import HederaDid
 from hiero_sdk_python import PrivateKey
 
 from ..client import get_client

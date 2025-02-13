@@ -33,7 +33,7 @@ class TestHederaAnonCredsRegistry:
         response = holder.get_credential_definition(credential_definition_id)
 
         assert response == {
-            # FIXME Acapy is not returning this item, why not?
+            # Not returned from ACA-Py side
             # "credential_definition_metadata": {},
             "resolution_metadata": {},
             "credential_definition_id": credential_definition_id,

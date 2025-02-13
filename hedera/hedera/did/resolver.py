@@ -5,8 +5,10 @@ from typing import Pattern, cast
 
 from acapy_agent.core.profile import Profile
 from acapy_agent.resolver.base import BaseDIDResolver, ResolverError, ResolverType
-from did_sdk_py.did.hedera_did_resolver import HederaDidResolver as SdkHederaDidResolver
-from did_sdk_py.did.types import DIDResolutionResult
+from hiero_did_sdk_python.did.hedera_did_resolver import (
+    HederaDidResolver as SdkHederaDidResolver,
+)
+from hiero_did_sdk_python.did.types import DIDResolutionResult
 
 from ..client import get_client
 from ..config import Config

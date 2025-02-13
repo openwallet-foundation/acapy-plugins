@@ -14,7 +14,7 @@ from acapy_agent.anoncreds.models.credential_definition import (
 )
 from acapy_agent.anoncreds.models.revocation import RevList, RevRegDef, RevRegDefValue
 
-from did_sdk_py.anoncreds import (
+from hiero_did_sdk_python.anoncreds import (
     CredDefValue as HederaCredDefValue,
     CredDefValuePrimary as HederaCredDefValuePrimary,
     CredDefValueRevocation as HederaCredDefValueRevocation,
@@ -22,7 +22,7 @@ from did_sdk_py.anoncreds import (
     RevRegDefValue as HederaRevRegDefValue,
     AnonCredsRevList as HederaAnonCredsRevList,
 )
-from did_sdk_py.anoncreds.types import (
+from hiero_did_sdk_python.anoncreds.types import (
     AnonCredsCredDef as HederaAnonCredsCredDef,
     AnonCredsSchema as HederaAnonCredsSchema,
     CredDefState,

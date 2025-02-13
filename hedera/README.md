@@ -46,6 +46,7 @@ Please see corresponding [demo folder and README](./demo)
   - Hedera Operator configuration
     - Includes Hedera Operator ID and private key
     - Used for Hedera network integration and paying fees
+    - Can be obtained by creating developer account on [Hedera Dev Portal](https://portal.hedera.com/)
 - The plugin works only with `askar-anoncreds` wallet type
 
 An example configuration for the plugin can be found in [plugins-config.yml](./docker/plugins-config.yml)

@@ -1,4 +1,4 @@
-"""Shared objects."""
+"""Client helpers."""
 
 from hiero_sdk_python import Client, Network, AccountId, PrivateKey
 
