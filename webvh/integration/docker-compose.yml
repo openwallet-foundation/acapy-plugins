@@ -25,8 +25,8 @@ services:
         --plugin-config-value did-webvh.role=witness
         --plugin-config-value did-webvh.auto_attest=true
         --plugin-config-value did-webvh.server_url=https://id.test-suite.app
-        --wallet-allow-insecure-seed
         --tails-server-base-url https://tails.anoncreds.vc
+        --auto-provision
         --seed 00000000000000000000000000000000
 
   controller:

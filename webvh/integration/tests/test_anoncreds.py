@@ -2,16 +2,20 @@
 Integration tests for the AnonCreds Registry.
 """
 
-import asyncio
-from os import getenv
-
 import pytest
+import uuid
 import urllib.parse
 from acapy_controller import Controller
 
-WITNESS = getenv("WITNESS", "http://witness:3001")
-WITNESS_KEY = 'z6MkgKA7yrw5kYSiDuQFcye4bMaJpcfHFry3Bx45pdWh3s8i'
-SERVER_URL = 'https://id.test-suite.app'
+from .constants import (
+    WITNESS_KEY,
+    WITNESS,
+    SERVER_URL,
+    TEST_TAG,
+    TEST_SIZE,
+    TEST_SCHEMA,
+    TEST_NAMESPACE
+)
 
 async def create_did(agent):
     await agent.post(
@@ -22,9 +26,10 @@ async def create_did(agent):
             'witness': True
         },
     )
+    identifier = str(uuid.uuid4())
     response = await agent.post(
         "/did/webvh/create",
-        json={"options": {"namespace": "test"}},
+        json={"options": {"namespace": TEST_NAMESPACE, "identifier": identifier}},
     )
     return response["id"] 
     
@@ -37,19 +42,15 @@ async def test_anoncreds():
     ):
         did = await create_did(agent)
         
-        options = {
-            'serviceEndpoint': f'{SERVER_URL}/resources',
-            'verificationMethod': f'{did}#key-01'
-        }
         response = await agent.post(
             "/anoncreds/schema",
             json={
-                'options': options,
+                'options': {},
                 'schema': {
-                    'attrNames': ['test'],
+                    'attrNames': TEST_SCHEMA['attributes'],
                     'issuerId': did,
-                    'name': 'test',
-                    'version': '1.0'
+                    'name': TEST_SCHEMA['name'],
+                    'version': TEST_SCHEMA['version']
                 }
             },
         )
@@ -65,11 +66,11 @@ async def test_anoncreds():
         response = await agent.post(
             "/anoncreds/credential-definition",
             json={
-                'options': options | {'support_revocation': True},
+                'options': {'support_revocation': True},
                 'credential_definition': {
                     'issuerId': did,
                     'schemaId': schema_id,
-                    'tag': 'test'
+                    'tag': TEST_TAG
                 }
             },
         )
@@ -86,12 +87,12 @@ async def test_anoncreds():
         response = await agent.post(
             "/anoncreds/revocation-registry-definition",
             json={
-                'options': options,
+                'options': {},
                 'revocation_registry_definition': {
                     'issuerId': did,
                     'credDefId': cred_def_id,
-                    "maxCredNum": 4,
-                    'tag': 'test'
+                    "maxCredNum": TEST_SIZE,
+                    'tag': TEST_TAG
                 }
             },
         )

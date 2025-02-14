@@ -192,8 +192,9 @@ async def deactivate(request: web.BaseRequest):
 async def witness_get_pending(request: web.BaseRequest):
     """Get all pending log entries."""
     context: AdminRequestContext = request["context"]
+    pending_requests = await WitnessManager(context.profile).get_pending_did_request_docs()
     return web.json_response(
-        await WitnessManager(context.profile).get_pending_did_request_docs()
+        {'results': pending_requests}
     )
 
 
@@ -275,8 +276,8 @@ async def register(app: web.Application):
     app.add_routes([web.post("/did/webvh/create", create)])
     app.add_routes([web.post("/did/webvh/update", update)])
     app.add_routes([web.post("/did/webvh/deactivate", deactivate)])
-    app.add_routes([web.post("/did/webvh/witness/attest", witness_get_pending)])
-    app.add_routes([web.post("/did/webvh/witness/pending", attest_log_entry)])
+    app.add_routes([web.post("/did/webvh/witness/attest", attest_log_entry)])
+    app.add_routes([web.get("/did/webvh/witness/pending", witness_get_pending)])
     app.add_routes([web.post("/did/webvh/configuration", configure)])
 
 
