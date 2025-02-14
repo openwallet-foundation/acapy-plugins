@@ -14,7 +14,7 @@ endpoint:
 
 plugin:
   - hedera
-plugin-config: plugins-config.yml
+plugin-config: plugins-config-integration.yml
 
 genesis-url: http://test.bcovrin.vonx.io/genesis
 
