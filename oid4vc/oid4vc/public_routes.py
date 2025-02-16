@@ -61,11 +61,10 @@ EXPIRES_IN = 86400
 @querystring_schema(CredOfferQuerySchema())
 @response_schema(CredOfferResponseSchemaVal(), 200)
 async def dereference_cred_offer(request: web.BaseRequest):
-    """Get a credential offer from a URI that has been acquired from the /oid4vci/credential-offer
-    endpoint (see routes.get_cred_offer()).
-
-    Works identically to routes.get_cred_offer() when returning by value, except it returns as a
-    JSON object rather than a URL encoding thereof.
+    """Dereference a credential offer.
+    
+    Reference URI is acquired from the /oid4vci/credential-offer-by-ref endpoint 
+    (see routes.get_cred_offer_by_ref()).
     """
     context: AdminRequestContext = request["context"]
     exchange_id = request.query["exchange_id"]

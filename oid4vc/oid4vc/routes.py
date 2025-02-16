@@ -338,15 +338,17 @@ class CredOfferResponseSchemaRef(OpenAPISchema):
     credential_offer_uri = fields.Str(
         required=True,
         metadata={
-            "description": "A URL which references the credential for display by QR code.",
+            "description": "A URL which references the credential for display.",
             "example": "openid-credential-offer://...",
         },
     )
     offer = fields.Nested(CredOfferSchema(), required=True)
 
 async def _parse_cred_offer(context: AdminRequestContext, exchange_id: str) -> dict:
-    """Helper function for cred_offer request parsing. Used in get_cred_offer and
-    public_routes.dereference_cred_offer endpoints"""
+    """Helper function for cred_offer request parsing.
+    
+    Used in get_cred_offer and public_routes.dereference_cred_offer endpoints.
+    """
     config = Config.from_settings(context.settings)
     code = secrets.token_urlsafe(CODE_BYTES)
 
@@ -392,11 +394,6 @@ async def get_cred_offer(request: web.BaseRequest):
     """
     context: AdminRequestContext = request["context"]
     exchange_id = request.query["exchange_id"]
-    wallet_id = (
-        context.profile.settings.get("wallet.id")
-        if context.profile.settings.get("multitenant.enabled")
-        else None
-    )
 
     offer = await _parse_cred_offer(context, exchange_id)
     offer_uri = quote(json.dumps(offer))
@@ -411,8 +408,10 @@ async def get_cred_offer(request: web.BaseRequest):
 @response_schema(CredOfferResponseSchemaRef(), 200)
 @tenant_authentication
 async def get_cred_offer_by_ref(request: web.BaseRequest):
-    """Endpoint to retrieve an OpenID4VCI compliant offer by reference. credential_offer_uri can be
-    dereferenced at the /oid4vc/dereference-credential-offer (see public_routes.dereference_cred_offer)
+    """Endpoint to retrieve an OpenID4VCI compliant offer by reference.
+    
+    credential_offer_uri can be dereferenced at the /oid4vc/dereference-credential-offer 
+    (see public_routes.dereference_cred_offer)
 
     For example, can be used in QR-Code presented to a compliant wallet.
     """
@@ -1232,7 +1231,11 @@ async def register(app: web.Application):
     app.add_routes(
         [
             web.get("/oid4vci/credential-offer", get_cred_offer, allow_head=False),
-            web.get("/oid4vci/credential-offer-by-ref", get_cred_offer_by_ref, allow_head=False),
+            web.get(
+                "/oid4vci/credential-offer-by-ref",
+                get_cred_offer_by_ref,
+                allow_head=False
+            ),
             web.get(
                 "/oid4vci/exchange/records",
                 list_exchange_records,
