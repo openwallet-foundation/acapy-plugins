@@ -423,11 +423,12 @@ async def get_cred_offer_by_ref(request: web.BaseRequest):
         if context.profile.settings.get("multitenant.enabled")
         else None
     )
-    subpath = f"/tenant/{wallet_id}" if wallet_id else ""
 
     offer = await _parse_cred_offer(context, exchange_id)
-    # TODO: JANK JANK JANK you need to fix this
-    ref_uri = f"https://url:port/oid4vci/dereference-credential-offer"
+
+    config = Config.from_settings(context.settings)
+    subpath = f"/tenant/{wallet_id}" if wallet_id else ""
+    ref_uri = f"{config.endpoint}{subpath}/oid4vci/dereference-credential-offer"
     offer_response = {
         "offer": offer,
         "credential_offer_uri": f"openid-credential-offer://?credential_offer={quote(ref_uri)}"
