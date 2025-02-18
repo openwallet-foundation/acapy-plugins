@@ -39,6 +39,13 @@ from marshmallow.validate import OneOf
 
 from oid4vc.cred_processor import CredProcessors
 from oid4vc.jwk import DID_JWK, P256
+from oid4vc.models.dcql_query import (
+    CredentialQuery,
+    CredentialQuerySchema,
+    CredentialSetQuerySchema,
+    DCQLQuery,
+    DCQLQuerySchema,
+)
 from oid4vc.models.presentation import OID4VPPresentation, OID4VPPresentationSchema
 from oid4vc.models.presentation_definition import OID4VPPresDef, OID4VPPresDefSchema
 from oid4vc.models.request import OID4VPRequest, OID4VPRequestSchema
@@ -754,6 +761,13 @@ class CreateOID4VPReqRequestSchema(OpenAPISchema):
         },
     )
 
+    dcql_query_id = fields.Str(
+        required=False,
+        metadata={
+            "description": "Identifier used to identify DCQL query",
+        },
+    )
+
     vp_formats = fields.Dict(
         required=True,
         metadata={
@@ -775,17 +789,29 @@ async def create_oid4vp_request(request: web.Request):
     body = await request.json()
 
     async with context.session() as session:
-        req_record = OID4VPRequest(
-            pres_def_id=body["pres_def_id"], vp_formats=body["vp_formats"]
-        )
-        await req_record.save(session=session)
 
-        pres_record = OID4VPPresentation(
-            pres_def_id=body["pres_def_id"],
-            state=OID4VPPresentation.REQUEST_CREATED,
-            request_id=req_record.request_id,
-        )
-        await pres_record.save(session=session)
+        if pres_def_id := body.get("pres_def_id"):
+            req_record = OID4VPRequest(
+                pres_def_id=pres_def_id, vp_formats=body["vp_formats"]
+            )
+            await req_record.save(session=session)
+
+            pres_record = OID4VPPresentation(
+                pres_def_id=pres_def_id,
+                state=OID4VPPresentation.REQUEST_CREATED,
+                request_id=req_record.request_id,
+            )
+            await pres_record.save(session=session)
+
+        elif dcql_query_id := body.get("dcql_query_id"):
+            req_record = OID4VPRequest(
+                dcql_query_id=dcql_query_id, vp_formats=body["vp_formats"]
+            )
+            await req_record.save(session=session)
+        else:
+            raise web.HTTPBadRequest(
+                reason="One of pres_def_id or dcql_query_id must be provided"
+            )
 
     config = Config.from_settings(context.settings)
     wallet_id = (
@@ -804,6 +830,196 @@ async def create_oid4vp_request(request: web.Request):
             "presentation": pres_record.serialize(),
         }
     )
+
+
+class CreateDCQLQueryRequestSchema(OpenAPISchema):
+    """Request schema for creating a DCQL Query."""
+
+    credentials = fields.List(
+        fields.Nested(CredentialQuerySchema),
+        required=True,
+        metadata={"description": "A list of Credential Queries."},
+    )
+
+    credential_sets = fields.List(
+        fields.Nested(CredentialSetQuerySchema),
+        required=False,
+        metadata={"description": "A list of Credential Set Queries."},
+    )
+
+
+class CreateDCQLQueryResponseSchema(OpenAPISchema):
+    """Response schema from creating a DCQL Query."""
+
+    dcql_query = fields.Dict(
+        required=True,
+        metadata={
+            "description": "The DCQL query.",
+        },
+    )
+
+
+@docs(
+    tags=["oid4vp"],
+    summary="Create a DCQL Query record.",
+)
+@request_schema(CreateDCQLQueryRequestSchema())
+@response_schema(CreateDCQLQueryResponseSchema())
+async def create_dcql_query(request: web.Request):
+    """Create a DCQL Query Record."""
+
+    body = await request.json()
+    context: AdminRequestContext = request["context"]
+
+    credentials = body["credentials"]
+    credential_sets = body.get("credential_sets")
+
+    async with context.session() as session:
+
+        cred_queries = []
+        for cred in credentials:
+            cred_queries.append(CredentialQuery.deserialize(cred))
+
+        dcql_query = DCQLQuery(
+            credentials=cred_queries, credential_sets=credential_sets
+        )
+        await dcql_query.save(session=session)
+
+    return web.json_response(
+        {
+            "dcql_query": dcql_query.serialize(),
+            "dcql_query_id": dcql_query.dcql_query_id,
+        }
+    )
+
+
+class DCQLQueriesQuerySchema(OpenAPISchema):
+    """Parameters and validators for DCQL Query List query."""
+
+    dcql_query_id = fields.Str(
+        required=False,
+        metadata={"description": "Filter by presentation identifier."},
+    )
+
+
+class DCQLQueryListSchema(OpenAPISchema):
+    """Result schema for an DCQL Query List query."""
+
+    results = fields.Nested(
+        DCQLQuerySchema(),
+        many=True,
+        metadata={"description": "Presentations"},
+    )
+
+
+@docs(
+    tags=["oid4vp"],
+    summary="List all DCQL Query records.",
+)
+@querystring_schema(DCQLQueriesQuerySchema())
+@response_schema(DCQLQueryListSchema())
+async def list_dcql_queries(request: web.Request):
+    """List all DCQL Query Records."""
+
+    context: AdminRequestContext = request["context"]
+
+    try:
+        async with context.profile.session() as session:
+            if dcql_query_id := request.query.get("dcql_query_id"):
+                record = await DCQLQuery.retrieve_by_id(session, dcql_query_id)
+                results = [record.serialize()]
+            else:
+                records = await DCQLQuery.query(session=session)
+                results = [record.serialize() for record in records]
+    except (StorageError, BaseModelError, StorageNotFoundError) as err:
+        raise web.HTTPBadRequest(reason=err.roll_up) from err
+    return web.json_response({"results": results})
+
+
+class DCQLQueryIDMatchSchema(OpenAPISchema):
+    """Path parameters and validators for request taking presentation id."""
+
+    dcql_query_id = fields.Str(
+        required=True,
+        metadata={
+            "description": "Presentation identifier",
+        },
+    )
+
+
+class GetDCQLQueryResponseSchema(OpenAPISchema):
+    """Request handler for returning a single DCQL Query."""
+
+    dcql_query_id = fields.Str(
+        required=True,
+        metadata={
+            "description": "Query identifier",
+        },
+    )
+
+    credentials = fields.List(
+        fields.Nested(CredentialQuerySchema),
+        required=True,
+        metadata={
+            "description": "A list of credential query objects",
+        },
+    )
+
+    credential_sets = fields.List(
+        fields.Nested(CredentialSetQuerySchema),
+        required=False,
+        metadata={
+            "description": "A list of credential set query objects",
+        },
+    )
+
+
+@docs(
+    tags=["oid4vp"],
+    summary="Fetch DCQL query.",
+)
+@match_info_schema(DCQLQueryIDMatchSchema())
+@response_schema(GetDCQLQueryResponseSchema())
+async def get_dcql_query_by_id(request: web.Request):
+    """Request handler for retrieving a DCQL query."""
+
+    context: AdminRequestContext = request["context"]
+    dcql_query_id = request.match_info["dcql_query_id"]
+
+    try:
+        async with context.session() as session:
+            record = await DCQLQuery.retrieve_by_id(session, dcql_query_id)
+
+    except StorageNotFoundError as err:
+        raise web.HTTPNotFound(reason=err.roll_up) from err
+    except (StorageError, BaseModelError) as err:
+        raise web.HTTPBadRequest(reason=err.roll_up) from err
+
+    return web.json_response(record.serialize())
+
+
+@docs(
+    tags=["oid4vp"],
+    summary="Delete DCQL Query.",
+)
+@match_info_schema(DCQLQueryIDMatchSchema())
+@response_schema(DCQLQuerySchema())
+async def dcql_query_remove(request: web.Request):
+    """Request handler for removing a DCQL Query."""
+
+    context: AdminRequestContext = request["context"]
+    dcql_query_id = request.match_info["dcql_query_id"]
+
+    try:
+        async with context.session() as session:
+            record = await DCQLQuery.retrieve_by_id(session, dcql_query_id)
+            await record.delete_record(session)
+    except StorageNotFoundError as err:
+        raise web.HTTPNotFound(reason=err.roll_up) from err
+    except (StorageError, BaseModelError) as err:
+        raise web.HTTPBadRequest(reason=err.roll_up) from err
+
+    return web.json_response(record.serialize())
 
 
 class CreateOID4VPPresDefResponseSchema(OpenAPISchema):
@@ -1221,6 +1437,10 @@ async def register(app: web.Application):
             web.get("/oid4vp/presentations", list_oid4vp_presentations),
             web.get("/oid4vp/presentation/{request_id}", get_oid4vp_pres_by_id),
             web.delete("/oid4vp/presentation/{presentation_id}", oid4vp_pres_remove),
+            web.post("/oid4vp/dcql/queries", create_dcql_query),
+            web.get("/oid4vp/dcql/queries", list_dcql_queries),
+            web.get("/oid4vp/dcql/query/{dcql_query_id}", get_dcql_query_by_id),
+            web.delete("/oid4vp/dcql/query/{dcql_query_id}", dcql_query_remove),
             web.post("/did/jwk/create", create_did_jwk),
         ]
     )
