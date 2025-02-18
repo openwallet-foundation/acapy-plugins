@@ -1,0 +1,55 @@
+{
+    // Use IntelliSense to learn about possible attributes.
+    // Hover to view descriptions of existing attributes.
+    // For more information, visit: https://go.microsoft.com/fwlink/?linkid=830387
+    "version": "0.2.0",
+    "configurations": [
+      {
+        "name": "Run/Debug Witness",
+        "type": "debugpy",
+        "request": "launch",
+        "module": "acapy_agent",
+        "justMyCode": false,
+        "args": ["start", "--arg-file=${workspaceRoot}/docker/witness.yml"]
+      },
+      {
+        "name": "Run/Debug Multitenant",
+        "type": "debugpy",
+        "request": "launch",
+        "module": "acapy_agent",
+        "justMyCode": false,
+        "args": ["start", "--arg-file=${workspaceRoot}/docker/multitenant.yml"]
+      },
+      {
+        "name": "Run/Debug Controller",
+        "type": "debugpy",
+        "request": "launch",
+        "module": "acapy_agent",
+        "justMyCode": false,
+        "args": ["start", "--arg-file=${workspaceRoot}/docker/controller.yml"]
+      },
+      {
+        "name": "ruff - webvh",
+        "type": "debugpy",
+        "request": "launch",
+        "module": "ruff",
+        "console": "integratedTerminal",
+        "sudo": true,
+        "justMyCode": true,
+        "cwd": "${workspaceFolder}/webvh",
+        "args": ["check", "."]
+      },
+      {
+        "name": "ruff fix - webvh",
+        "type": "debugpy",
+        "request": "launch",
+        "module": "ruff",
+        "console": "integratedTerminal",
+        "sudo": true,
+        "justMyCode": true,
+        "cwd": "${workspaceFolder}/webvh",
+        "args": ["check", ".", "--fix"]
+      }
+    ]
+  }
+  
