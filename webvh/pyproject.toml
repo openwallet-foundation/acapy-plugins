@@ -10,7 +10,11 @@ python = "^3.12"
 # Define ACA-Py as an optional/extra dependency so it can be
 # explicitly installed with the plugin if desired.
 acapy-agent = { git = "https://github.com/openwallet-foundation/acapy.git", optional = true }
-did-webvh = "~0.2.1"
+did-webvh = "^0.3.0"
+jcs = "^0.2.1"
+multiformats = "^0.3.1.post4"
+bitstring = "^4.3.0"
+aries-askar = "^0.4.3"
 
 [tool.poetry.extras]
 aca-py = ["acapy-agent"]
@@ -23,7 +27,6 @@ pytest-cov = "^5.0.0"
 pytest-ruff = "^0.4.1"
 
 [tool.poetry.group.integration.dependencies]
-aries-askar = { version = "~0.3.2" }
 indy-credx = { version = "~1.1.1" }
 indy-vdr = { version = "~0.4.1" }
 python3-indy = { version = "^1.11.1" }
