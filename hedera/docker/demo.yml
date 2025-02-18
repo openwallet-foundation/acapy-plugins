@@ -1,0 +1,35 @@
+auto-provision: true
+label: hedera
+
+admin: [0.0.0.0, 3001]
+admin-insecure-mode: true
+
+inbound-transport:
+  - [http, 0.0.0.0, 3000]
+  - [ws, 0.0.0.0, 3002]
+outbound-transport: http
+endpoint:
+  - http://host.docker.internal:3000
+  - ws://host.docker.internal:3002
+
+plugin:
+  - hedera
+plugin-config: plugins-config.yml
+
+genesis-url: http://test.bcovrin.vonx.io/genesis
+
+log-level: info
+
+auto-accept-invites: true
+auto-accept-requests: true
+
+wallet-type: askar-anoncreds
+wallet-storage-type: default
+wallet-name: test-provider-wallet
+wallet-key: test-provider-key
+
+multitenant: true
+multitenant-admin: true
+jwt-secret: test
+
+tails-server-base-url: http://tails:6543

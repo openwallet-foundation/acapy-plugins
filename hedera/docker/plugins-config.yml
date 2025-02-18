@@ -1,0 +1,4 @@
+hedera:
+  operator_id: <CHANGE_ME>
+  operator_key: <CHANGE_ME>
+  network: testnet

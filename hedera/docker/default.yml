@@ -1,0 +1,39 @@
+auto-provision: true
+label: hedera
+
+admin: [0.0.0.0, 3001]
+admin-insecure-mode: true
+
+inbound-transport:
+  - [http, 0.0.0.0, 3000]
+  - [ws, 0.0.0.0, 3002]
+outbound-transport: http
+endpoint:
+  - http://host.docker.internal:3000
+  - ws://host.docker.internal:3002
+
+plugin:
+  - hedera
+plugin-config: plugins-config.yml
+
+genesis-url: http://test.bcovrin.vonx.io/genesis
+
+wallet-name: default
+wallet-type: askar-anoncreds
+wallet-key: "insecure, for use in demo only"
+
+log-level: info
+
+debug-connections: true
+auto-accept-invites: true
+auto-accept-requests: true
+auto-ping-connection: true
+auto-respond-messages: true
+
+# Tails server connection is needed for revocation feature
+# See Indy Tails server repo: https://github.com/bcgov/indy-tails-server
+# tails-server-base-url: <CHANGE_ME>
+
+multitenant: true
+multitenant-admin: true
+jwt-secret: test

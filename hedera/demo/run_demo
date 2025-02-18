@@ -1,0 +1,41 @@
+#!/bin/bash
+
+cd $(dirname $0)
+
+ACTOR="$1"
+
+
+EXEC_SHELL="docker-compose exec "
+
+case $ACTOR in
+  issuer)
+    docker-compose up -d tails
+
+    if [[ ! -z "${NGROK_AUTHTOKEN}" ]]
+    then
+      echo "Setting up NGROK tunnel..."
+      ngrok http 3001 > /dev/null &
+      sleep 5
+      NGROK_ENDPOINT="$(curl http://localhost:4040/api/tunnels | jq ".tunnels[0].public_url" | tr -d '"')"
+      EXEC_SHELL="${EXEC_SHELL} -e NGROK_ENDPOINT=${NGROK_ENDPOINT} "
+    else
+      echo "Skipping NGROK setup"
+    fi
+  ;;
+
+  holder)
+  ;;
+
+  *)
+    echo "Please specify which agent you want to run. Choose from 'issuer', 'holder'."
+    exit 1
+esac
+
+docker-compose up -d "agent-${ACTOR}"
+docker-compose up -d "${ACTOR}"
+
+sleep 5 # Time for agent to startup
+
+EXEC_SHELL="${EXEC_SHELL} ${ACTOR} python -m app"
+
+eval "${EXEC_SHELL}"
