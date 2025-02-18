@@ -929,7 +929,6 @@ async def list_dcql_queries(request: web.Request):
                 record = await DCQLQuery.retrieve_by_id(session, dcql_query_id)
                 results = [record.serialize()]
             else:
-
                 records = await DCQLQuery.query(session=session)
                 results = [record.serialize() for record in records]
     except (StorageError, BaseModelError, StorageNotFoundError) as err:

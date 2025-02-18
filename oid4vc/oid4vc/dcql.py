@@ -15,7 +15,7 @@ Absent = object()
 
 
 class ClaimsPathPointer:
-    """A pointer into a JSON structure, idetnifying one or more claims in a VC.
+    """A pointer into a JSON structure, identifying one or more claims in a VC.
 
     Example:
     {
@@ -114,7 +114,7 @@ class DCQLVerifyResult:
 
 
 class DCQLQueryEvaluator:
-    """Evalute a query against a submission to ensure it matches."""
+    """Evaluate a query against a submission to ensure it matches."""
 
     def __init__(self, query: DCQLQuery):
         """Init the evaluator."""
