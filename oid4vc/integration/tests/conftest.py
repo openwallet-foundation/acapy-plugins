@@ -2,6 +2,9 @@ from os import getenv
 from uuid import uuid4
 
 from acapy_controller.controller import Controller
+from aiohttp import ClientSession
+from urllib.parse import urlparse, parse_qs
+
 import pytest
 import pytest_asyncio
 
@@ -74,6 +77,34 @@ async def offer(controller: Controller, issuer_did: str, supported_cred_id: str)
         params={"exchange_id": exchange["exchange_id"]},
     )
     yield offer
+
+@pytest_asyncio.fixture
+async def offer_by_ref(controller: Controller, issuer_did: str, supported_cred_id: str):
+    """Create a credential offer."""
+    exchange = await controller.post(
+        "/oid4vci/exchange/create",
+        json={
+            "supported_cred_id": supported_cred_id,
+            "credential_subject": {"name": "alice"},
+            "verification_method": issuer_did + "#0",
+        },
+    )
+
+    exchange_param = {"exchange_id": exchange["exchange_id"]}
+    offer_ref_full = await controller.get(
+        "/oid4vci/credential-offer-by-ref",
+        params=exchange_param,
+    )
+
+    offer_ref = urlparse(offer_ref_full["credential_offer_uri"])
+    offer_ref = parse_qs(offer_ref.query)["credential_offer"][0]
+    async with ClientSession(
+        headers=controller.headers
+    ) as session:
+        async with session.request(
+            "GET", url=offer_ref, params=exchange_param, headers=controller.headers
+        ) as offer:
+            yield await offer.json()
 
 
 @pytest_asyncio.fixture
@@ -174,9 +205,52 @@ async def sdjwt_offer(
         "/oid4vci/credential-offer",
         params={"exchange_id": exchange["exchange_id"]},
     )
-    offer_uri = offer["offer_uri"]
+    offer_uri = offer["credential_offer"]
 
     yield offer_uri
+
+
+@pytest_asyncio.fixture
+async def sdjwt_offer_by_ref(
+    controller: Controller, issuer_did: str, sdjwt_supported_cred_id: str
+):
+    """Create a cred offer for an SD-JWT VC."""
+    exchange = await controller.post(
+        "/oid4vci/exchange/create",
+        json={
+            "supported_cred_id": sdjwt_supported_cred_id,
+            "credential_subject": {
+                "given_name": "Erika",
+                "family_name": "Mustermann",
+                "source_document_type": "id_card",
+                "age_equal_or_over": {
+                    "12": True,
+                    "14": True,
+                    "16": True,
+                    "18": True,
+                    "21": True,
+                    "65": False,
+                },
+            },
+            "verification_method": issuer_did + "#0",
+        },
+    )
+
+    exchange_param = {"exchange_id": exchange["exchange_id"]}
+    offer_ref_full = await controller.get(
+        "/oid4vci/credential-offer-by-ref",
+        params=exchange_param,
+    )
+
+    offer_ref = urlparse(offer_ref_full["credential_offer_uri"])
+    offer_ref = parse_qs(offer_ref.query)["credential_offer"][0]
+    async with ClientSession(
+        headers=controller.headers
+    ) as session:
+        async with session.request(
+            "GET", url=offer_ref, params=exchange_param, headers=controller.headers
+        ) as offer:
+            yield (await offer.json())["credential_offer"]
 
 
 @pytest_asyncio.fixture

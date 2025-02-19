@@ -6,6 +6,7 @@ import logging
 import time
 import uuid
 from secrets import token_urlsafe
+from urllib.parse import quote
 from typing import Any, Dict, List, Optional
 
 from acapy_agent.admin.request_context import AdminRequestContext
@@ -28,6 +29,7 @@ from aiohttp_apispec import (
     docs,
     form_schema,
     match_info_schema,
+    querystring_schema,
     request_schema,
     response_schema,
 )
@@ -53,11 +55,31 @@ from .cred_processor import CredProcessorError, CredProcessors
 from .models.exchange import OID4VCIExchangeRecord
 from .models.supported_cred import SupportedCredential
 from .pop_result import PopResult
+from .routes import _parse_cred_offer, CredOfferQuerySchema, CredOfferResponseSchemaVal
 
 LOGGER = logging.getLogger(__name__)
 PRE_AUTHORIZED_CODE_GRANT_TYPE = "urn:ietf:params:oauth:grant-type:pre-authorized_code"
 NONCE_BYTES = 16
 EXPIRES_IN = 86400
+
+
+@docs(tags=["oid4vci"], summary="Dereference a credential offer.")
+@querystring_schema(CredOfferQuerySchema())
+@response_schema(CredOfferResponseSchemaVal(), 200)
+async def dereference_cred_offer(request: web.BaseRequest):
+    """Dereference a credential offer.
+    
+    Reference URI is acquired from the /oid4vci/credential-offer-by-ref endpoint 
+    (see routes.get_cred_offer_by_ref()).
+    """
+    context: AdminRequestContext = request["context"]
+    exchange_id = request.query["exchange_id"]
+
+    offer = await _parse_cred_offer(context, exchange_id)
+    return web.json_response({
+        "offer": offer,
+        "credential_offer": f"openid-credential-offer://?credential_offer={quote(json.dumps(offer))}", 
+    })
 
 
 class CredentialIssuerMetadataSchema(OpenAPISchema):
@@ -698,6 +720,10 @@ async def register(app: web.Application, multitenant: bool):
     subpath = "/tenant/{wallet_id}" if multitenant else ""
     app.add_routes(
         [
+            web.get(f"{subpath}/oid4vci/dereference-credential-offer",
+                dereference_cred_offer, 
+                allow_head=False
+            ),
             web.get(
                 f"{subpath}/.well-known/openid-credential-issuer",
                 credential_issuer_metadata,

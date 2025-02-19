@@ -232,7 +232,17 @@ async function issue_jwt_credential(req, res) {
   // Generate QRCode and send it to the browser via HTMX events
   logger.info(JSON.stringify(offerResponse.data));
   logger.info(exchangeId);
-  const qrcode = credentialOffer.offer_uri;
+  
+  let qrcode;
+  if (credentialOffer.hasOwnProperty("credential_offer")) {
+    // credential offer is passed by value
+    qrcode = credentialOffer.credential_offer
+  } else {
+    // credential offer is passed by reference, and the wallet must dereference it using the
+    // /oid4vci/dereference-credential-offer endpoint
+    qrcode = credentialOffer.credential_offer_uri
+  }
+
   events.emit(`issuance-${req.body.registrationId}`, {type: "message", message: `Sending offer to user: ${qrcode}`});
   events.emit(`issuance-${req.body.registrationId}`, {type: "qrcode", credentialOffer, exchangeId, qrcode});
   exchangeCache.set(exchangeId, { exchangeId, credentialOffer, did, supportedCredId, registrationId: req.body.registrationId });
@@ -431,7 +441,17 @@ async function issue_sdjwt_credential(req, res) {
   // Generate QRCode and send it to the browser via HTMX events
   logger.info(JSON.stringify(offerResponse.data));
   logger.info(exchangeId);
-  const qrcode = credentialOffer.offer_uri;
+
+  let qrcode;
+  if (credentialOffer.hasOwnProperty("credential_offer")) {
+    // credential offer is passed by value
+    qrcode = credentialOffer.credential_offer
+  } else {
+    // credential offer is passed by reference, and the wallet must dereference it using the
+    // /oid4vci/dereference-credential-offer endpoint
+    qrcode = credentialOffer.credential_offer_uri
+  }
+
   events.emit(`issuance-${req.body.registrationId}`, {type: "message", message: `Sending offer to user: ${qrcode}`});
   events.emit(`issuance-${req.body.registrationId}`, {type: "qrcode", credentialOffer, exchangeId, qrcode});
   exchangeCache.set(exchangeId, { exchangeId, credentialOffer, did, supportedCredId, registrationId: req.body.registrationId });
