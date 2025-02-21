@@ -1215,7 +1215,7 @@
 - <code>GET /wallet/did/public</code></p>
 <h2 id="demo">Demo<a class="headerlink" href="#demo" title="Permanent link">&para;</a></h2>
 <p>The repo contains an interactive demo of ACA-Py + Hedera plugin that can be used to test Hedera DID and AnonCreds Registry functionality.</p>
-<p>Please see corresponding <a href="./demo">demo folder and README</a></p>
+<p>Please see corresponding <a href="https://github.com/openwallet-foundation/acapy-plugins/tree/main/hedera/demo">demo folder and README</a></p>
 <h2 id="usage">Usage<a class="headerlink" href="#usage" title="Permanent link">&para;</a></h2>
 <h3 id="prerequisites">Prerequisites<a class="headerlink" href="#prerequisites" title="Permanent link">&para;</a></h3>
 <ul>
@@ -1236,7 +1236,7 @@
 </li>
 <li>The plugin works only with <code>askar-anoncreds</code> wallet type</li>
 </ul>
-<p>An example configuration for the plugin can be found in <a href="./docker/plugins-config.yml">plugins-config.yml</a></p>
+<p>An example configuration for the plugin can be found in <a href="https://github.com/openwallet-foundation/acapy-plugins/blob/main/hedera/docker/plugins-config.yml">plugins-config.yml</a></p>
 <p>You can also use environment variables to configure the plugin:
 - <code>HEDERA_NETWORK</code>
 - <code>HEDERA_OPERATOR_ID</code>
@@ -1261,7 +1261,7 @@
 <a id="__codelineno-0-14" name="__codelineno-0-14" href="#__codelineno-0-14"></a>
 <a id="__codelineno-0-15" name="__codelineno-0-15" href="#__codelineno-0-15"></a><span class="k">ENTRYPOINT</span><span class="w"> </span><span class="p">[</span><span class="s2">&quot;aca-py&quot;</span><span class="p">]</span>
 </code></pre></div>
-<p>More complete example (including complete dependencies setup) can be found <a href="./docker/Dockerfile">in docker folder</a> </p>
+<p>More complete example (including complete dependencies setup) can be found <a href="https://github.com/openwallet-foundation/acapy-plugins/blob/main/hedera/docker/Dockerfile">in docker folder</a> </p>
 <h3 id="create-a-did">Create a DID<a class="headerlink" href="#create-a-did" title="Permanent link">&para;</a></h3>
 <p>Process of creating Hedera DID is different comparing to DID Methods that are natively supported by ACA-Py, despite having the same API structure.</p>
 <p>To create new Hedera DID, you need to use a specific endpoint added by the plugin: <code>POST /hedera/did/register</code></p>
@@ -1315,7 +1315,7 @@ Recommended tool for running Dev Containers is <a href="https://code.visualstudi
 A coverage report is created when ran from the devcontainer. </p>
 <h2 id="integration-tests">Integration tests<a class="headerlink" href="#integration-tests" title="Permanent link">&para;</a></h2>
 <p>Integration tests and configurations are hosted in <code>integration</code> folder.</p>
-<p>See corresponding <a href="./integration/README.md">README</a> for details.</p>
+<p>See corresponding <a href="https://github.com/openwallet-foundation/acapy-plugins/blob/main/hedera/integration/README.md">README</a> for details.</p>
 
 
 
