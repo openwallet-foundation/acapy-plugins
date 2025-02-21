@@ -276,6 +276,79 @@ async def assign_status_entries(
         return status_list[0]
 
 
+async def get_status_list_entry(
+    session: ProfileSession, definition_id: str, credential_id: str
+):
+    """Get status list entry."""
+
+    tag_filter = {
+        "definition_id": definition_id,
+        "credential_id": credential_id,
+    }
+    record = await StatusListCred.retrieve_by_tag_filter(session, tag_filter)
+    list_number = record.list_number
+    entry_index = record.list_index
+
+    definition = await StatusListDef.retrieve_by_id(session, definition_id)
+    shard_number = entry_index // definition.shard_size
+    shard_index = entry_index % definition.shard_size
+    tag_filter = {
+        "definition_id": definition_id,
+        "list_number": str(list_number),
+        "shard_number": str(shard_number),
+    }
+    shard = await StatusListShard.retrieve_by_tag_filter(session, tag_filter)
+    bit_index = shard_index * definition.status_size
+    return {
+        "list": definition.list_number,
+        "index": entry_index,
+        "status": shard.status_bits[
+            bit_index : bit_index + definition.status_size
+        ].to01(),
+        "assigned": not shard.mask_bits[shard_index],
+    }
+
+
+async def update_status_list_entry(
+    session: ProfileSession, definition_id: str, credential_id: str, bitstring: str
+):
+    """Update status list entry by list number and entry index."""
+
+    tag_filter = {
+        "definition_id": definition_id,
+        "credential_id": credential_id,
+    }
+    record = await StatusListCred.retrieve_by_tag_filter(session, tag_filter)
+    list_number = record.list_number
+    entry_index = record.list_index
+
+    definition = await StatusListDef.retrieve_by_id(session, definition_id)
+    shard_number = entry_index // definition.shard_size
+    shard_index = entry_index % definition.shard_size
+    tag_filter = {
+        "definition_id": definition_id,
+        "list_number": str(list_number),
+        "shard_number": str(shard_number),
+    }
+    shard = await StatusListShard.retrieve_by_tag_filter(
+        session, tag_filter, for_update=True
+    )
+    bit_index = shard_index * definition.status_size
+    status_bits = shard.status_bits
+    status_bits[bit_index : bit_index + definition.status_size] = bitarray(bitstring)
+    shard.status_bits = status_bits
+    await shard.save(session, reason="Update status list entry.")
+
+    return {
+        "list": definition.list_number,
+        "index": entry_index,
+        "status": shard.status_bits[
+            bit_index : bit_index + definition.status_size
+        ].to01(),
+        "assigned": not shard.mask_bits[shard_index],
+    }
+
+
 async def get_status_list(
     context: AdminRequestContext,
     definition: StatusListDef,
@@ -291,7 +364,7 @@ async def get_status_list(
     async with context.profile.session() as session:
         tag_filter = {"definition_id": definition.id, "list_number": list_number}
         shards = await StatusListShard.query(session, tag_filter)
-        shards = sorted(shards, key=lambda s: s.shard_number)
+        shards = sorted(shards, key=lambda s: int(s.shard_number))
 
         status_bits = bitarray()
         for shard in shards:
