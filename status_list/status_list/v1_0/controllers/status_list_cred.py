@@ -12,10 +12,8 @@ from acapy_agent.storage.error import StorageError, StorageNotFoundError
 from aiohttp import web
 from aiohttp_apispec import docs, request_schema, response_schema, match_info_schema
 from marshmallow import fields
-from bitarray import bitarray
 
-from ..models import StatusListDef, StatusListShard, StatusListCred
-
+from .. import status_handler
 
 LOGGER = logging.getLogger(__name__)
 
@@ -70,32 +68,9 @@ async def get_status_list_cred(request: web.BaseRequest):
     try:
         context: AdminRequestContext = request["context"]
         async with context.profile.session() as session:
-            tag_filter = {
-                "definition_id": definition_id,
-                "credential_id": credential_id,
-            }
-            record = await StatusListCred.retrieve_by_tag_filter(session, tag_filter)
-            list_number = record.list_number
-            entry_index = record.list_index
-
-            definition = await StatusListDef.retrieve_by_id(session, definition_id)
-            shard_number = entry_index // definition.shard_size
-            shard_index = entry_index % definition.shard_size
-            tag_filter = {
-                "definition_id": definition_id,
-                "list_number": str(list_number),
-                "shard_number": str(shard_number),
-            }
-            shard = await StatusListShard.retrieve_by_tag_filter(session, tag_filter)
-            bit_index = shard_index * definition.status_size
-            result = {
-                "list": definition.list_number,
-                "index": entry_index,
-                "status": shard.status_bits[
-                    bit_index : bit_index + definition.status_size
-                ].to01(),
-                "assigned": not shard.mask_bits[shard_index],
-            }
+            result = await status_handler.get_status_list_entry(
+                session, definition_id, credential_id
+            )
             LOGGER.debug(f"Retrieved status list entry {result}.")
 
     except StorageNotFoundError as err:
@@ -141,41 +116,9 @@ async def update_status_list_cred(request: web.BaseRequest):
     try:
         context: AdminRequestContext = request["context"]
         async with context.profile.session() as session:
-            tag_filter = {
-                "definition_id": definition_id,
-                "credential_id": credential_id,
-            }
-            record = await StatusListCred.retrieve_by_tag_filter(session, tag_filter)
-            list_number = record.list_number
-            entry_index = record.list_index
-
-            definition = await StatusListDef.retrieve_by_id(session, definition_id)
-            shard_number = entry_index // definition.shard_size
-            shard_index = entry_index % definition.shard_size
-            tag_filter = {
-                "definition_id": definition_id,
-                "list_number": str(list_number),
-                "shard_number": str(shard_number),
-            }
-            shard = await StatusListShard.retrieve_by_tag_filter(
-                session, tag_filter, for_update=True
+            result = await status_handler.update_status_list_entry(
+                session, definition_id, credential_id, bitstring
             )
-            bit_index = shard_index * definition.status_size
-            status_bits = shard.status_bits
-            status_bits[bit_index : bit_index + definition.status_size] = bitarray(
-                bitstring
-            )
-            shard.status_bits = status_bits
-            await shard.save(session, reason="Update status list entry.")
-
-            result = {
-                "list": definition.list_number,
-                "index": entry_index,
-                "status": shard.status_bits[
-                    bit_index : bit_index + definition.status_size
-                ].to01(),
-                "assigned": not shard.mask_bits[shard_index],
-            }
             LOGGER.debug(f"Updated status list entry {result}.")
 
     except StorageNotFoundError as err:

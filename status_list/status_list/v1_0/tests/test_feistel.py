@@ -1,10 +1,8 @@
-import pytest
 import random
 
 from ..feistel import FeistelPermutation
 
 
-@pytest.mark.asyncio
 def test_feistel_permutation():
     # Example usage:
     # Let's pick an odd d scenario: N=32 (d=5, which is odd)

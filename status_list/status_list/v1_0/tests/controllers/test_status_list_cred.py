@@ -13,7 +13,6 @@ from ...controllers import status_list_cred as controller
 async def test_status_list_cred_routes(context: AdminRequestContext, seed_db):
     """Test status_list_cred routes."""
 
-    # Test get_status_list_cred
     request_dict = {
         "context": context,
         "outbound_message_router": AsyncMock(),
@@ -26,29 +25,6 @@ async def test_status_list_cred_routes(context: AdminRequestContext, seed_db):
         headers={},
         json={},
     )
-
-    with patch.object(controller, "web", autospec=True) as mock_web:
-        await controller.get_status_list_cred(request)
-        result = mock_web.json_response.call_args[0][0]
-        result = SimpleNamespace(**result)
-        assert result.status == "0"
-
-    # Test get_status_list_cred errors
-    with patch(
-        "status_list.v1_0.models.StatusListCred.retrieve_by_tag_filter",
-        side_effect=StorageNotFoundError("No record found"),
-    ):
-        with pytest.raises(HTTPNotFound) as err:
-            await controller.get_status_list_cred(request)
-    assert isinstance(err.value, HTTPNotFound)
-
-    with patch(
-        "status_list.v1_0.models.StatusListCred.retrieve_by_tag_filter",
-        side_effect=StorageError("Storage error"),
-    ):
-        with pytest.raises(HTTPInternalServerError) as err:
-            await controller.get_status_list_cred(request)
-    assert isinstance(err.value, HTTPInternalServerError)
 
     # Test update_status_list_cred
     request.json = AsyncMock(return_value={"status": "1"})
@@ -87,3 +63,25 @@ async def test_status_list_cred_routes(context: AdminRequestContext, seed_db):
         await controller.update_status_list_cred(request)
     except HTTPBadRequest as err:
         assert err
+    with patch.object(controller, "web", autospec=True) as mock_web:
+        await controller.get_status_list_cred(request)
+        result = mock_web.json_response.call_args[0][0]
+        result = SimpleNamespace(**result)
+        assert result.status == "1"
+
+    # Test get_status_list_cred errors
+    with patch(
+        "status_list.v1_0.models.StatusListCred.retrieve_by_tag_filter",
+        side_effect=StorageNotFoundError("No record found"),
+    ):
+        with pytest.raises(HTTPNotFound) as err:
+            await controller.get_status_list_cred(request)
+    assert isinstance(err.value, HTTPNotFound)
+
+    with patch(
+        "status_list.v1_0.models.StatusListCred.retrieve_by_tag_filter",
+        side_effect=StorageError("Storage error"),
+    ):
+        with pytest.raises(HTTPInternalServerError) as err:
+            await controller.get_status_list_cred(request)
+    assert isinstance(err.value, HTTPInternalServerError)
