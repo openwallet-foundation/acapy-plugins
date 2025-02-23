@@ -3,18 +3,56 @@ from unittest import IsolatedAsyncioTestCase
 
 from acapy_agent.connections.models.conn_record import ConnRecord
 from acapy_agent.messaging.models.base import BaseModelError
+from acapy_agent.messaging.responder import BaseResponder
 from acapy_agent.protocols.coordinate_mediation.v1_0.route_manager import RouteManager
 from acapy_agent.protocols.out_of_band.v1_0.manager import OutOfBandManager
 from acapy_agent.tests import mock
 from acapy_agent.utils.testing import create_test_profile
+from acapy_agent.wallet.key_type import KeyTypes
+from acapy_agent.wallet.keys.manager import MultikeyManager
 
 from ..exceptions import ConfigurationError, WitnessError
-from ..witness_manager import WitnessManager
+from ..witness_manager import PENDING_DOCUMENT_TABLE_NAME, WitnessManager
+
+mock_did_doc = {
+    "@context": ["https://www.w3.org/ns/did/v1", "https://w3id.org/security/multikey/v1"],
+    "id": "did:web:id.test-suite.app:prod:38c35877-6b40-4ef2-b5dd-1b9154911604",
+    "verificationMethod": [
+        {
+            "id": "did:web:id.test-suite.app:prod:38c35877-6b40-4ef2-b5dd-1b9154911604#key-01",
+            "type": "Multikey",
+            "controller": "did:web:id.test-suite.app:prod:38c35877-6b40-4ef2-b5dd-1b9154911604",
+            "publicKeyMultibase": "z6MkrkHx84xReNNx2oK9Hefr7CtnQeVEEKrcpSCtoNhBVGJV",
+        }
+    ],
+    "authentication": [
+        "did:web:id.test-suite.app:prod:38c35877-6b40-4ef2-b5dd-1b9154911604#key-01"
+    ],
+    "assertionMethod": [
+        "did:web:id.test-suite.app:prod:38c35877-6b40-4ef2-b5dd-1b9154911604#key-01"
+    ],
+    "proof": [
+        {
+            "type": "DataIntegrityProof",
+            "proofPurpose": "assertionMethod",
+            "verificationMethod": "did:key:z6MkqY5kWa85eTgHsN6uRSRWxgAoxi5CHz1onvqrPNTqgvwe#z6MkqY5kWa85eTgHsN6uRSRWxgAoxi5CHz1onvqrPNTqgvwe",
+            "cryptosuite": "eddsa-jcs-2022",
+            "expires": "2025-02-22T00:56:48+00:00",
+            "domain": "id.test-suite.app",
+            "challenge": "7f005295-a8e7-5eee-b43d-c2a6167d2d6b",
+            "proofValue": "z2bmbwqbziW3BYLt6vJQ5A5qmcuBqn8HGhPua4CFzsbAPKHTrG8yHRd75mJtmDN1iXFLRBUp1Zsf8GLPjpwP2xuhz",
+        }
+    ],
+}
 
 
 class TestWitnessManager(IsolatedAsyncioTestCase):
     async def asyncSetUp(self):
         self.profile = await create_test_profile({"wallet.type": "askar-anoncreds"})
+        self.profile.context.injector.bind_instance(KeyTypes, KeyTypes())
+        self.profile.context.injector.bind_instance(
+            BaseResponder, mock.MagicMock(BaseResponder, autospec=True)
+        )
 
     @mock.patch.object(WitnessManager, "_get_active_witness_connection")
     async def test_auto_witness_setup_as_witness(
@@ -22,7 +60,7 @@ class TestWitnessManager(IsolatedAsyncioTestCase):
     ):
         self.profile.settings.set_value(
             "plugin_config",
-            {"did-webvh": {"role": "witness"}},
+            {"did-webvh": {"role": "witness", "server_url": "http://localhost:8000"}},
         )
         await WitnessManager(self.profile).auto_witness_setup()
         assert not mock_get_active_witness_connection.called
@@ -124,3 +162,53 @@ class TestWitnessManager(IsolatedAsyncioTestCase):
 
         asyncio.create_task(_create_connection())
         await WitnessManager(self.profile).auto_witness_setup()
+
+    async def test_attest_did_request_doc_no_doc(self):
+        with self.assertRaises(WitnessError):
+            await WitnessManager(self.profile).attest_did_request_doc("test-id")
+
+    async def test_attest_did_request_doc_no_proof(self):
+        mock_did_doc.pop("proof")
+        async with self.profile.session() as session:
+            await session.handle.insert(
+                PENDING_DOCUMENT_TABLE_NAME,
+                "test-id",
+                value_json=mock_did_doc,
+            )
+        with self.assertRaises(WitnessError):
+            await WitnessManager(self.profile).attest_did_request_doc("test-id")
+
+    async def test_attest_did_request_doc_no_witness_key(self):
+        async with self.profile.session() as session:
+            await session.handle.insert(
+                PENDING_DOCUMENT_TABLE_NAME,
+                "test-id",
+                value_json=mock_did_doc,
+            )
+        with self.assertRaises(WitnessError):
+            await WitnessManager(self.profile).attest_did_request_doc("test-id")
+
+    async def test_attest_did_request_doc(self):
+        async with self.profile.session() as session:
+            await MultikeyManager(session).create(
+                alg="ed25519",
+                kid="webvh:id.test-suite.app@witnessKey",
+            )
+            await session.handle.insert(
+                PENDING_DOCUMENT_TABLE_NAME,
+                "test-id",
+                value_json=mock_did_doc,
+            )
+
+        result = await WitnessManager(self.profile).attest_did_request_doc("test-id")
+        assert result["status"] == "success"
+        assert self.profile.context.injector.get_provider(
+            BaseResponder
+        )._instance.send.called
+
+        async with self.profile.session() as session:
+            record = await session.handle.fetch(
+                PENDING_DOCUMENT_TABLE_NAME,
+                "test-id",
+            )
+            assert record is None

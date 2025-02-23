@@ -8,5 +8,6 @@ class RegistrationState(Enum):
 
     SUCCESS = "success"
     PENDING = "pending"
+    ATTESTED = "attested"
     POSTED = "posted"
     FINISHED = "finished"

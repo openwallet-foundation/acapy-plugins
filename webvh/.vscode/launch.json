@@ -35,7 +35,7 @@
         "module": "ruff",
         "console": "integratedTerminal",
         "sudo": true,
-        "justMyCode": true,
+        "justMyCode": false,
         "cwd": "${workspaceFolder}/webvh",
         "args": ["check", "."]
       },
@@ -46,9 +46,18 @@
         "module": "ruff",
         "console": "integratedTerminal",
         "sudo": true,
-        "justMyCode": true,
+        "justMyCode": false,
         "cwd": "${workspaceFolder}/webvh",
         "args": ["check", ".", "--fix"]
+      },
+      { 
+        "name": "Python: Debug Tests",
+        "type": "debugpy",
+        "request": "launch",
+        "program": "${file}",
+        "purpose": ["debug-test"],
+        "console": "integratedTerminal",
+        "justMyCode": false
       }
     ]
   }

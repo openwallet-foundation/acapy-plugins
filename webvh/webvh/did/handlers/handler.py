@@ -9,11 +9,12 @@ from acapy_agent.vc.data_integrity.manager import DataIntegrityManager
 from acapy_agent.vc.data_integrity.models.options import DataIntegrityProofOptions
 from acapy_agent.wallet.keys.manager import MultikeyManager
 
+from ...config.config import get_plugin_config
+from ..constants import ALIASES
 from ..messages.witness import WitnessRequest, WitnessResponse
 from ..operations_manager import DidWebvhOperationsManager
 from ..registration_state import RegistrationState
 from ..utils import get_url_decoded_domain, key_to_did_key_vm
-from ..constants import ALIASES
 from ..witness_manager import WitnessManager
 
 LOGGER = logging.getLogger(__name__)
@@ -33,7 +34,7 @@ class WitnessRequestHandler(BaseHandler):
         """Handle automatic witness."""
         domain = proof.get("domain")
         url_decoded_domain = get_url_decoded_domain(domain)
-        witness_kid = f'{url_decoded_domain}{ALIASES["witnessKey"]}'
+        witness_kid = f"webvh:{url_decoded_domain}{ALIASES['witnessKey']}"
 
         async with context.profile.session() as session:
             # Attempt to get the witness key for the domain
@@ -55,7 +56,9 @@ class WitnessRequestHandler(BaseHandler):
                     type="DataIntegrityProof",
                     cryptosuite="eddsa-jcs-2022",
                     proof_purpose="assertionMethod",
-                    verification_method=key_to_did_key_vm(witness_key_info.get('multikey')),
+                    verification_method=key_to_did_key_vm(
+                        witness_key_info.get("multikey")
+                    ),
                     expires=proof.get("expires"),
                     domain=domain,
                     challenge=proof.get("challenge"),
@@ -64,7 +67,7 @@ class WitnessRequestHandler(BaseHandler):
         # If the witness is successful, return a success message
         await responder.send(
             message=WitnessResponse(
-                state="posted",
+                state=RegistrationState.ATTESTED.value,
                 document=witnessed_document,
                 parameters=parameters,
             ),
@@ -86,11 +89,7 @@ class WitnessRequestHandler(BaseHandler):
             return
         proof = proof[0]
 
-        if (
-            context.profile.settings.get("plugin_config", {})
-            .get("did-webvh", {})
-            .get("auto_attest")
-        ):
+        if (await get_plugin_config(context.profile)).get("auto_attest", False):
             await self._handle_auto_witness(
                 context, responder, proof, document, context.message.parameters
             )

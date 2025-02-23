@@ -11,8 +11,11 @@ from acapy_agent.wallet.key_type import KeyTypes
 from acapy_agent.wallet.keys.manager import MultikeyManager
 from aiohttp import ClientConnectionError
 
+from ...config.config import set_config
 from ..exceptions import ConfigurationError, DidCreationError, WitnessError
 from ..operations_manager import DidWebvhOperationsManager
+from ..pending_dids import PendingWebvhDids
+from ..registration_state import RegistrationState
 
 log_entry_response = {
     "logEntry": {
@@ -78,6 +81,11 @@ request_namespace_fail = mock.AsyncMock(
 class TestOperationsManager(IsolatedAsyncioTestCase):
     async def asyncSetUp(self):
         self.profile = await create_test_profile({"wallet.type": "askar-anoncreds"})
+        async with self.profile.session() as session:
+            await MultikeyManager(session).create(
+                alg="ed25519",
+                kid="webvh:localhost:8000@witnessKey",
+            )
 
     async def test_create_invalid(self):
         self.profile.settings.set_value(
@@ -120,9 +128,7 @@ class TestOperationsManager(IsolatedAsyncioTestCase):
             )
         )
         self.profile.context.injector.bind_instance(DIDResolver, resolver)
-        self.profile.context.injector.bind_instance(
-            EventBus, mock.MagicMock(EventBus, autospec=True)
-        )
+        self.profile.context.injector.bind_instance(EventBus, EventBus())
         self.profile.context.injector.bind_instance(KeyTypes, KeyTypes())
 
         await DidWebvhOperationsManager(self.profile).create(
@@ -171,9 +177,7 @@ class TestOperationsManager(IsolatedAsyncioTestCase):
             )
         )
         self.profile.context.injector.bind_instance(DIDResolver, resolver)
-        self.profile.context.injector.bind_instance(
-            EventBus, mock.MagicMock(EventBus, autospec=True)
-        )
+        self.profile.context.injector.bind_instance(EventBus, EventBus())
         self.profile.context.injector.bind_instance(KeyTypes, KeyTypes())
 
         await DidWebvhOperationsManager(self.profile).create(
@@ -189,11 +193,6 @@ class TestOperationsManager(IsolatedAsyncioTestCase):
         "aiohttp.ClientSession.get",
         request_namespace,
     )
-    @mock.patch.object(
-        DidWebvhOperationsManager,
-        "_wait_for_witness",
-        mock.AsyncMock(return_value=None),
-    )
     async def test_create_as_controller(self):
         self.profile.settings.set_value(
             "plugin_config",
@@ -208,6 +207,7 @@ class TestOperationsManager(IsolatedAsyncioTestCase):
             BaseResponder, mock.AsyncMock(BaseResponder, autospec=True)
         )
         self.profile.context.injector.bind_instance(KeyTypes, KeyTypes())
+        self.profile.context.injector.bind_instance(EventBus, EventBus())
 
         # No active connection
         with self.assertRaises(WitnessError):
@@ -218,13 +218,19 @@ class TestOperationsManager(IsolatedAsyncioTestCase):
         # Has connection
         async with self.profile.session() as session:
             record = ConnRecord(
-                alias="http://localhost:8000@Witness",
+                alias="webvh:localhost:8000@witness",
                 state="active",
             )
             await record.save(session)
 
         await DidWebvhOperationsManager(self.profile).create(
             options={"namespace": "test"}
+        )
+        await DidWebvhOperationsManager(self.profile).finish_create(
+            witnessed_document={"id": "did:web:server.localhost%3A8000:prod:1"},
+            parameters={},
+            state=RegistrationState.PENDING.value,
+            authorized_key_info=None,
         )
 
     @mock.patch(
@@ -301,41 +307,93 @@ class TestOperationsManager(IsolatedAsyncioTestCase):
                 options={"namespace": "test"}
             )
 
+    @mock.patch("asyncio.sleep", mock.AsyncMock())
     @mock.patch(
-        "aiohttp.ClientSession.get",
-        request_namespace,
+        "aiohttp.ClientSession.post",
+        mock.AsyncMock(
+            return_value=mock.MagicMock(
+                json=mock.AsyncMock(
+                    return_value={
+                        # For first response
+                        "didDocument": {
+                            "@context": ["https://www.w3.org/ns/did/v1"],
+                            "id": "did:webvh:QmVSevWDZeaFYcTx2FaVaU91G9ABtyEW5vG3wzKTxN7cuS:server.localhost%3A8000:prod:3",
+                        },
+                        # For second response
+                        "state": {
+                            "id": "did:webvh:QmVSevWDZeaFYcTx2FaVaU91G9ABtyEW5vG3wzKTxN7cuS:server.localhost%3A8000:prod:3"
+                        },
+                    }
+                )
+            )
+        ),
     )
-    @mock.patch.object(
-        DidWebvhOperationsManager,
-        "_wait_for_witness",
-        mock.AsyncMock(return_value=None),
-    )
-    async def test_create_as_controller_with_existing_key(self):
-        self.profile.settings.set_value(
-            "plugin_config",
+    async def test_finish_create(self):
+        self.profile.context.injector.bind_instance(EventBus, EventBus())
+        self.profile.context.injector.bind_instance(KeyTypes, KeyTypes())
+        self.profile.context.injector.bind_instance(
+            DIDResolver,
+            mock.MagicMock(
+                DIDResolver,
+                autospec=True,
+                resolve_with_metadata=mock.AsyncMock(
+                    return_value=ResolutionResult(
+                        did_document={},
+                        metadata=ResolutionMetadata(
+                            resolver_type=ResolverType.NATIVE,
+                            resolver="resolver",
+                            retrieved_time="retrieved_time",
+                            duration=0,
+                        ),
+                    )
+                ),
+            ),
+        )
+        test_did = "did:webvh:QmVSevWDZeaFYcTx2FaVaU91G9ABtyEW5vG3wzKTxN7cuS:server.localhost%3A8000:prod:3"
+
+        # No pending dids - attested
+        await DidWebvhOperationsManager(self.profile).finish_create(
+            witnessed_document={"id": test_did},
+            parameters={},
+            state=RegistrationState.ATTESTED.value,
+            authorized_key_info=None,
+        )
+
+        # Pending state
+        await DidWebvhOperationsManager(self.profile).finish_create(
+            witnessed_document={"id": test_did},
+            parameters={},
+            state=RegistrationState.PENDING.value,
+            authorized_key_info=None,
+        )
+
+        # Has pending dids - attested
+        await PendingWebvhDids().set_pending_did(
+            self.profile,
+            test_did,
+        )
+
+        await set_config(
+            self.profile,
             {
-                "did-webvh": {
-                    "server_url": "http://localhost:8000",
-                    "role": "controller",
-                }
+                "server_url": "http://localhost:8000",
+                "role": "controller",
             },
         )
-        responder = mock.AsyncMock(BaseResponder, autospec=True)
-        responder.send = mock.AsyncMock(return_value=None)
-        self.profile.context.injector.bind_instance(BaseResponder, responder)
-        self.profile.context.injector.bind_instance(KeyTypes, KeyTypes())
 
         async with self.profile.session() as session:
-            record = ConnRecord(
-                alias="http://localhost:8000@Witness",
-                state="active",
-            )
-            await record.save(session)
             await MultikeyManager(session).create(
                 alg="ed25519",
-                kid="did:web:server.localhost%3A8000:prod:1#authorized",
+                kid=f"webvh:{test_did}@updateKey",
             )
 
-        await DidWebvhOperationsManager(self.profile).create(
-            options={"namespace": "test"}
+        await DidWebvhOperationsManager(self.profile).finish_create(
+            witnessed_document={
+                "id": test_did,
+                "proof": [{"domain": "server.localhost%3A8000"}],
+            },
+            parameters={},
+            state=RegistrationState.ATTESTED.value,
+            authorized_key_info=None,
         )
+        assert test_did not in (await PendingWebvhDids().get_pending_dids(self.profile))

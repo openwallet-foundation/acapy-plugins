@@ -115,9 +115,9 @@ class ConfigureWebvhSchema(OpenAPISchema):
         metadata={
             "description": "Existing key to use as witness key",
             "example": "z6MkwHAfotoRgkYeS4xDMSMQdQfiTHsmKq82qudwcD5YdCo9",
-        }
+        },
     )
-    witness_auto = fields.Bool(
+    auto_attest = fields.Bool(
         required=False,
         metadata={
             "description": "Auto sign witness requests",
@@ -141,11 +141,11 @@ class ConfigureWebvhSchema(OpenAPISchema):
 async def create(request: web.BaseRequest):
     """Create a Webvh DID."""
     context: AdminRequestContext = request["context"]
-
+    request_json = await request.json()
     try:
         return web.json_response(
             await DidWebvhOperationsManager(context.profile).create(
-                options=request["data"]["options"]
+                options=request_json["options"]
             )
         )
     except (DidCreationError, WitnessError, ConfigurationError) as err:
@@ -159,10 +159,11 @@ async def create(request: web.BaseRequest):
 async def update(request: web.BaseRequest):
     """Create a Webvh DID."""
     context: AdminRequestContext = request["context"]
+    request_json = await request.json()
     try:
         return web.json_response(
             await DidWebvhOperationsManager(context.profile).update(
-                request["data"]["options"], request["data"].get("features", {})
+                request_json["options"], request_json.get("features", {})
             )
         )
     except DidUpdateError as err:
@@ -176,10 +177,11 @@ async def update(request: web.BaseRequest):
 async def deactivate(request: web.BaseRequest):
     """Deactivate a Webvh DID."""
     context: AdminRequestContext = request["context"]
+    request_json = await request.json()
     try:
         return web.json_response(
             await DidWebvhOperationsManager(context.profile).deactivate(
-                request["data"]["options"]
+                request_json["options"]
             )
         )
 
@@ -192,10 +194,10 @@ async def deactivate(request: web.BaseRequest):
 async def witness_get_pending(request: web.BaseRequest):
     """Get all pending log entries."""
     context: AdminRequestContext = request["context"]
-    pending_requests = await WitnessManager(context.profile).get_pending_did_request_docs()
-    return web.json_response(
-        {'results': pending_requests}
-    )
+    pending_requests = await WitnessManager(
+        context.profile
+    ).get_pending_did_request_docs()
+    return web.json_response({"results": pending_requests})
 
 
 @docs(tags=["did"], summary="Attest a log entry")
@@ -223,39 +225,37 @@ async def configure(request: web.BaseRequest):
 
     # Build the config object
     config = {}
-    
-    request_json = await request.json()
-    
-    config["server_url"] = request_json.get('server_url')
-    
-    if not config.get('server_url'):
-        raise ConfigurationError('No server url provided.')
 
-    config["role"] = "witness" if request_json.get('witness') else "controller"
-        
-    if config["role"] == 'witness':
-        witness_key = await WitnessManager(profile).setup_witness_key(
-            request_json.get('witness_key')
-        )
-        if not witness_key:
-            raise ConfigurationError('No witness key set.')
-    
+    request_json = await request.json()
+
+    config["server_url"] = request_json.get("server_url")
+
+    if not config.get("server_url"):
+        raise ConfigurationError("No server url provided.")
+
+    config["role"] = "witness" if request_json.get("witness") else "controller"
+
+    if config["role"] == "witness":
+        config["auto_attest"] = request_json.get("auto_attest")
+
     if config["role"] == "controller":
-        config["witness_invitation"] = request_json.get('witness_invitation')
-        if not config.get("witness_invitation"):
-            raise ConfigurationError('No witness invitation set.')
-    
+        config["witness_invitation"] = request_json.get("witness_invitation")
 
     try:
         await set_config(profile, config)
-        
-        if config["role"] == 'witness':
+
+        if config["role"] == "witness":
+            witness_key = await WitnessManager(profile).setup_witness_key(
+                request_json.get("witness_key")
+            )
+            if not witness_key:
+                raise ConfigurationError("No witness key set.")
             return web.json_response({"witness_key": witness_key})
-        
+
         await WitnessManager(profile).auto_witness_setup()
-        
+
         return web.json_response({"status": "success"})
-    
+
     except ConfigurationError as err:
         return web.json_response({"status": "error", "message": str(err)})
 
@@ -277,7 +277,9 @@ async def register(app: web.Application):
     app.add_routes([web.post("/did/webvh/update", update)])
     app.add_routes([web.post("/did/webvh/deactivate", deactivate)])
     app.add_routes([web.post("/did/webvh/witness/attest", attest_log_entry)])
-    app.add_routes([web.get("/did/webvh/witness/pending", witness_get_pending)])
+    app.add_routes(
+        [web.get("/did/webvh/witness/pending", witness_get_pending, allow_head=False)]
+    )
     app.add_routes([web.post("/did/webvh/configuration", configure)])
 
 
