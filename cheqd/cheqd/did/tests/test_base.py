@@ -3,7 +3,7 @@ from unittest.mock import AsyncMock
 import pytest
 from aiohttp import web
 
-from ..base import BaseDIDManager
+from ..base import BaseDIDManager, SigningResponse, SigningRequest
 
 
 @pytest.mark.asyncio
@@ -81,15 +81,15 @@ async def test_sign_requests():
         b"signature2",
     ]
 
-    signing_requests = [
-        {"kid": "key1", "serializedPayload": "payload1"},
-        {"kid": "key2", "serializedPayload": "payload2"},
-    ]
+    signing_requests = {
+        "signingRequest0": SigningRequest(kid="key1", serializedPayload="payload1"),
+        "signingRequest1": SigningRequest(kid="key2", serializedPayload="payload2"),
+    }
 
-    expected_responses = [
-        {"kid": "key1", "signature": "c2lnbmF0dXJlMQ=="},
-        {"kid": "key2", "signature": "c2lnbmF0dXJlMg=="},
-    ]
+    expected_responses = {
+        "signingRequest0": SigningResponse(kid="key1", signature="c2lnbmF0dXJlMQ=="),
+        "signingRequest1": SigningResponse(kid="key2", signature="c2lnbmF0dXJlMg=="),
+    }
 
     # Act
     signed_responses = await BaseDIDManager.sign_requests(wallet, signing_requests)
@@ -106,9 +106,12 @@ async def test_sign_requests_missing_key():
     wallet = AsyncMock()
     wallet.get_key_by_kid.return_value = None
 
-    signing_requests = [
-        {"kid": "MOCK_KID", "serializedPayload": "MOCK"},
-    ]
+    signing_requests = {
+        "signingRequest0": SigningRequest(
+            kid="MOCK_KID",
+            serializedPayload="TW9jaw==",
+        )
+    }
 
     # Act
     with pytest.raises(Exception) as e:
@@ -123,12 +126,12 @@ async def test_sign_requests_missing_key():
 async def test_sign_requests_empty_requests():
     # Arrange
     wallet = AsyncMock()
-    signing_requests = []
+    signing_requests = {}
 
     # Act
     signed_responses = await BaseDIDManager.sign_requests(wallet, signing_requests)
 
     # Assert
-    assert signed_responses == []
+    assert signed_responses == {}
     wallet.get_key_by_kid.assert_not_called()
     wallet.sign_message.assert_not_called()

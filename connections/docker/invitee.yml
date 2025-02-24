@@ -1,0 +1,28 @@
+label: connections invitee
+
+admin: [0.0.0.0, 4001]
+admin-insecure-mode: false
+admin-api-key: change-me
+
+inbound-transport:
+  - [http, 0.0.0.0, 4000]
+  - [ws, 0.0.0.0, 4002]
+outbound-transport: http
+endpoint:
+  - http://localhost:4000
+
+no-ledger: true
+
+plugin:
+  - connections
+
+log-level: debug
+
+auto-accept-invites: true
+auto-respond-messages: true
+
+# Wallet
+auto-provision: true
+wallet-type: askar
+wallet-name: connections-wallet-invitee
+wallet-key: insecure

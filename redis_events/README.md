@@ -35,7 +35,7 @@ For the outbound scenario:
 
 The code for the Deliverer and Relay processes are in the `redis_events.v1_0.services.deliverer` and `redis_events.v1_0.services.redis_relay` directories, respectively. The `redis_events.v1_0.status_endpoint` directory contains code for health endpoints that is used by both of these processes.
 
-The `docker` [directory](https://github.com/hyperledger/aries-acapy-plugins/blob/main/redis_events/docker) contains a dockerfile (and instructions) for running ACA-Py with the redis plugin.
+The `docker` [directory](https://github.com/openwallet-foundation/acapy-plugins/blob/main/redis_events/docker) contains a dockerfile (and instructions) for running ACA-Py with the redis plugin.
 
 ## Configuration
 

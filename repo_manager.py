@@ -325,7 +325,12 @@ def upgrade_library_in_all_plugins(library: str = None):
                         break
 
 
-def main(arg_1=None, arg_2=None):
+def close_pr_range(start: int, end: int):
+    for i in range(start, end + 1):
+        os.system(f"gh pr close {i}")
+
+
+def main(arg_1=None, arg_2=None, arg_3=None):
     options = """
         What would you like to do? 
         (1) Create a new plugin
@@ -335,7 +340,8 @@ def main(arg_1=None, arg_2=None):
         (5) Get the plugins that upgraded since last release
         (6) Update all poetry.lock files
         (7) Upgrade a specific library in all plugins
-        (8) Exit \n\nInput:  """
+        (8) Close a range of PRs
+        (9) Exit \n\nInput:  """
 
     if arg_1:
         selection = arg_1
@@ -513,6 +519,9 @@ def main(arg_1=None, arg_2=None):
         print("Upgrading a specific library in all plugins...")
         upgrade_library_in_all_plugins(arg_2)
     elif selection == "8":
+        print(f"Closing a range prs from {arg_2} to {arg_3}...")
+        close_pr_range(int(arg_2), int(arg_3))
+    elif selection == "9":
         print("Exiting...")
         exit(0)
     else:
@@ -522,6 +531,10 @@ def main(arg_1=None, arg_2=None):
 
 if __name__ == "__main__":
     try:
-        main(sys.argv[1], sys.argv[2] if len(sys.argv) > 2 else None)
+        main(
+            sys.argv[1],
+            sys.argv[2] if len(sys.argv) > 2 else None,
+            sys.argv[3] if len(sys.argv) > 3 else None,
+        )
     except Exception:
         main()

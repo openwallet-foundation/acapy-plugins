@@ -1,0 +1,24 @@
+label: status_list
+
+admin: [0.0.0.0, 3001]
+admin-insecure-mode: true
+
+inbound-transport:
+  - [http, 0.0.0.0, 3000]
+outbound-transport: http
+endpoint:
+  - http://host.docker.internal:3000
+
+plugin:
+  - status_list.v1_0
+
+genesis-url: http://test.bcovrin.vonx.io/genesis
+
+auto-provision: true
+wallet-name: wallet-name
+wallet-key: wallet-key
+
+log-level: info
+
+auto-accept-invites: true
+auto-respond-messages: true

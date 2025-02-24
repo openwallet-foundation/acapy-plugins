@@ -177,12 +177,12 @@ async def update_did(issuer, did, did_document):
     updated_did = did_update_result.get("did")
 
     assert updated_did == did, "DID mismatch after update."
-    assert (
-        "service" in updated_did_doc
-    ), "Key 'service' is missing in updated DID document."
-    assert (
-        updated_did_doc["service"] == service
-    ), "Service does not match the expected value!"
+    assert "service" in updated_did_doc, (
+        "Key 'service' is missing in updated DID document."
+    )
+    assert updated_did_doc["service"] == service, (
+        "Service does not match the expected value!"
+    )
 
     print(f"Updated DID Document: {format_json(updated_did_doc)}")
     return updated_did_doc
@@ -200,10 +200,10 @@ async def deactivate_did(issuer, did):
 
     assert did_deactivate_result.get("did") == did, "DID mismatch after deactivation."
     assert (
-        did_deactivate_result.get("did_document_metadata", {}).get("deactivated") is True
+        did_deactivate_result.get("didDocumentMetadata", {}).get("deactivated") is True
     ), "DID document metadata does not contain deactivated=true."
 
-    print(f"Deactivated DID: {format_json(did_deactivate_result) }")
+    print(f"Deactivated DID: {format_json(did_deactivate_result)}")
     remove_cache()
 
 
@@ -226,15 +226,19 @@ async def create_schema(issuer, did):
     assert "schema_id" in schema_state, "Key 'schema_id' is missing in schema_state."
 
     schema_id = schema_state.get("schema_id")
-    assert (
-        did in schema_id
-    ), f"schema_id does not contain the expected DID. Expected '{did}' in '{schema_id}'."
+    assert did in schema_id, (
+        f"schema_id does not contain the expected DID. Expected '{did}' in '{schema_id}'."
+    )
 
     return schema_id
 
 
 async def create_credential_definition(
-    issuer: str, did: str, schema_id: str, support_revocation: bool = False
+    issuer,
+    did: str,
+    schema_id: str,
+    support_revocation: bool = False,
+    tag: str = "default",
 ):
     """Create a credential definition on the connected datastore."""
     cred_def_create_result = await issuer.post(
@@ -243,7 +247,7 @@ async def create_credential_definition(
             "credential_definition": {
                 "issuerId": did,
                 "schemaId": schema_id,
-                "tag": "default",
+                "tag": tag,
             },
             "options": {"support_revocation": support_revocation},
         },
@@ -251,14 +255,14 @@ async def create_credential_definition(
 
     cred_def_state = cred_def_create_result.get("credential_definition_state", {})
     assert cred_def_state.get("state") == "finished", "Cred def state is not finished."
-    assert (
-        "credential_definition_id" in cred_def_state
-    ), "Key 'credential_definition_id' is missing in credential_definition_state."
+    assert "credential_definition_id" in cred_def_state, (
+        "Key 'credential_definition_id' is missing in credential_definition_state."
+    )
 
     credential_definition_id = cred_def_state.get("credential_definition_id")
-    assert (
-        did in credential_definition_id
-    ), "credential_definition_id does not contain the expected DID."
+    assert did in credential_definition_id, (
+        "credential_definition_id does not contain the expected DID."
+    )
 
     return credential_definition_id
 
@@ -268,9 +272,9 @@ async def assert_credential_definitions(issuer, credential_definition_id):
     get_result = await issuer.get("/anoncreds/credential-definitions")
 
     credential_definition_ids = get_result.get("credential_definition_ids", [])
-    assert (
-        credential_definition_id in credential_definition_ids
-    ), "credential_definition_ids does not contain the expected credential_definition_id."
+    assert credential_definition_id in credential_definition_ids, (
+        "credential_definition_ids does not contain the expected credential_definition_id."
+    )
 
 
 async def assert_active_revocation_registry(issuer, credential_definition_id):

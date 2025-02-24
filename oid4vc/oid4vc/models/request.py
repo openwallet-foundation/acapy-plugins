@@ -17,13 +17,14 @@ class OID4VPRequest(BaseRecord):
     RECORD_ID_NAME = "request_id"
     RECORD_TYPE = "oid4vp"
     RECORD_TOPIC = "oid4vp"
-    TAG_NAMES = {"pres_def_id"}
+    TAG_NAMES = {"pres_def_id", "dcql_query_id"}
 
     def __init__(
         self,
         *,
         request_id: Optional[str] = None,
-        pres_def_id: str,
+        pres_def_id: Optional[str] = None,
+        dcql_query_id: Optional[str] = None,
         vp_formats: Dict[str, Any],
         **kwargs,
     ) -> None:
@@ -32,6 +33,7 @@ class OID4VPRequest(BaseRecord):
         super().__init__(request_id, **kwargs)
 
         self.pres_def_id = pres_def_id
+        self.dcql_query_id = dcql_query_id
         self.vp_formats = vp_formats
 
     @property
@@ -62,9 +64,16 @@ class OID4VPRequestSchema(BaseRecordSchema):
     )
 
     pres_def_id = fields.Str(
-        required=True,
+        required=False,
         metadata={
             "description": "Identifier used to identify presentation definition",
+        },
+    )
+
+    dcql_query_id = fields.Str(
+        required=False,
+        metadata={
+            "description": "Identifier used to identify DCQL Query",
         },
     )
 
