@@ -23,7 +23,6 @@ services:
         --notify-revocation
         --plugin webvh
         --plugin-config-value did-webvh.role=witness
-        --plugin-config-value did-webvh.auto_attest=true
         --plugin-config-value did-webvh.server_url=https://id.test-suite.app
         --tails-server-base-url https://tails.anoncreds.vc
         --auto-provision

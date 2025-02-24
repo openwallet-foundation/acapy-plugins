@@ -1,8 +1,8 @@
 """DID Webvh Manager."""
 
 import asyncio
-import http
 import copy
+import http
 import json
 import logging
 import re
@@ -27,15 +27,17 @@ from pydid import DIDDocument
 
 from ..config.config import get_server_url, use_strict_ssl
 from .exceptions import DidCreationError
-from .utils import key_to_did_key_vm, create_alias
+from .pending_dids import PendingWebvhDids
 from .registration_state import RegistrationState
+from .utils import create_alias, key_to_did_key_vm
 from .witness_manager import WitnessManager
 
 LOGGER = logging.getLogger(__name__)
 
-WEBVH_METHOD = "did:webvh:0.4"
+WEBVH_METHOD = "did:webvh:0.5"
 WITNESS_WAIT_TIMEOUT_SECONDS = 2
 WITNESS_EVENT = "witness_response::"
+
 
 class DidWebvhOperationsManager:
     """DID Webvh Manager class."""
@@ -99,11 +101,10 @@ class DidWebvhOperationsManager:
 
     async def _get_key(self, key_alias):
         async with self.profile.session() as session:
-            key_info = await MultikeyManager(session).from_kid(
-                key_alias
-            )
+            if not await MultikeyManager(session).kid_exists(key_alias):
+                raise DidCreationError("Signing key not found.")
 
-        return key_info
+            return await MultikeyManager(session).from_kid(key_alias)
 
     async def _get_or_create_key(self, key_alias):
         async with self.profile.session() as session:
@@ -114,9 +115,7 @@ class DidWebvhOperationsManager:
                     kid=key_alias,
                 )
             except MultikeyManagerError:
-                key_info = await MultikeyManager(session).from_kid(
-                    key_alias
-                )
+                key_info = await MultikeyManager(session).from_kid(key_alias)
 
         return key_info
 
@@ -151,18 +150,28 @@ class DidWebvhOperationsManager:
             self.profile, re.compile(rf"^{WITNESS_EVENT}{did}$")
         ) as await_event:
             event = await await_event
-            return await self.finish_create(
-                event.payload.get("document"),
-                state=RegistrationState.FINISHED.value,
-                authorized_key_info=event.payload.get("authorized_key_info"),
-                parameters=event.payload.get("metadata", {}).get("parameters"),
-            )
+            if (
+                event.payload.get("metadata", {}).get("state")
+                == RegistrationState.PENDING.value
+            ):
+                return {
+                    "status": RegistrationState.PENDING.value,
+                    "message": "The witness is pending.",
+                }
+            else:
+                await PendingWebvhDids().remove_pending_did(self.profile, did)
+                return await self.finish_create(
+                    event.payload.get("document"),
+                    state=RegistrationState.FINISHED.value,
+                    authorized_key_info=event.payload.get("authorized_key_info"),
+                    parameters=event.payload.get("metadata", {}).get("parameters"),
+                )
 
     async def create(self, options: dict):
         """Register identities."""
 
         server_url = await get_server_url(self.profile)
-        
+
         # Set default namespace if none provided
         namespace = options.get("namespace", "default")
 
@@ -173,17 +182,17 @@ class DidWebvhOperationsManager:
         did_doc, proof_options = await self._request_identifier(
             server_url, namespace, identifier
         )
-        did = did_doc.get('id')
+        did = did_doc.get("id")
 
-        update_key_alias = create_alias(did.replace('did:web:', 'webvh'), 'updateKey')
+        update_key_alias = create_alias(did.replace("did:web:", "webvh"), "updateKey")
         authorized_key_info = await self._get_or_create_key(update_key_alias)
-        
-        first_key_alias = f'{did}#key-01'
+
+        first_key_alias = f"{did}#key-01"
         first_key_info = await self._get_or_create_key(first_key_alias)
-        
+
         controller_proof_options = copy.deepcopy(proof_options)
-        controller_proof_options['verificationMethod'] = key_to_did_key_vm(
-            authorized_key_info.get('multikey')
+        controller_proof_options["verificationMethod"] = key_to_did_key_vm(
+            authorized_key_info.get("multikey")
         )
         controller_secured_document = (
             await self._create_controller_signed_registration_document(
@@ -206,6 +215,7 @@ class DidWebvhOperationsManager:
             )
 
         try:
+            await PendingWebvhDids().set_pending_did(self.profile, did)
             return await asyncio.wait_for(
                 self._wait_for_witness(did),
                 WITNESS_WAIT_TIMEOUT_SECONDS,
@@ -228,29 +238,30 @@ class DidWebvhOperationsManager:
         initial_doc = {
             "@context": [
                 "https://www.w3.org/ns/did/v1",
-                "https://w3id.org/security/multikey/v1"
+                "https://w3id.org/security/multikey/v1",
             ],
             "id": r"did:webvh:{SCID}:" + f"{domain}:{namespace}:{identifier}",
         }
-        
-        first_webvh_key_id = initial_doc['id'] + '#key-01'
+
+        first_webvh_key_id = initial_doc["id"] + "#key-01"
         first_webvh_key_info = await self._get_or_create_key(first_webvh_key_id)
-        
-        initial_doc['authentication'] = [first_webvh_key_info.get("kid")]
-        initial_doc['assertionMethod'] = [first_webvh_key_info.get("kid")]
-        initial_doc['verificationMethod'] = [
+
+        initial_doc["authentication"] = [first_webvh_key_info.get("kid")]
+        initial_doc["assertionMethod"] = [first_webvh_key_info.get("kid")]
+        initial_doc["verificationMethod"] = [
             {
                 "id": first_webvh_key_info.get("kid"),
                 "type": "Multikey",
-                "controller": initial_doc['id'],
+                "controller": initial_doc["id"],
                 "publicKeyMultibase": first_webvh_key_info.get("multikey"),
             }
         ]
+        # TODO: Add support for prerotation and portable
         doc_state = DocumentState.initial(
             {
                 "updateKeys": [authorized_key_info.get("multikey")],
-                "prerotation": parameters.get("prerotation", False),
-                "portable": parameters.get("portable", False),
+                # "prerotation": parameters.get("prerotation", False),
+                # "portable": parameters.get("portable", False),
                 "method": WEBVH_METHOD,
             },
             initial_doc,
@@ -263,15 +274,17 @@ class DidWebvhOperationsManager:
                 type="DataIntegrityProof",
                 cryptosuite="eddsa-jcs-2022",
                 proof_purpose="assertionMethod",
-                verification_method=key_to_did_key_vm(authorized_key_info.get('multikey')),
+                verification_method=key_to_did_key_vm(
+                    authorized_key_info.get("multikey")
+                ),
             ),
         )
         async with self.profile.session() as session:
             await MultikeyManager(session).update(
                 multikey=first_webvh_key_info.get("multikey"),
-                kid=signed_entry.get('state').get('verificationMethod')[0].get('id'),
+                kid=signed_entry.get("state").get("verificationMethod")[0].get("id"),
             )
-        
+
         return signed_entry
 
     async def finish_create(
@@ -282,7 +295,7 @@ class DidWebvhOperationsManager:
         authorized_key_info: Optional[dict] = None,
     ):
         """Finish the creation of a Webvh DID."""
-        if state == RegistrationState.POSTED.value:
+        if state == RegistrationState.ATTESTED.value:
             event_bus = self.profile.inject(EventBus)
             await event_bus.notify(
                 self.profile,
@@ -291,13 +304,20 @@ class DidWebvhOperationsManager:
                     {
                         "document": witnessed_document,
                         "metadata": {
-                            "state": RegistrationState.POSTED.value,
+                            "state": RegistrationState.ATTESTED.value,
                             "parameters": parameters,
                         },
                     },
                 ),
             )
-            return
+            await asyncio.sleep(WITNESS_WAIT_TIMEOUT_SECONDS)
+            if witnessed_document["id"] not in await PendingWebvhDids().get_pending_dids(
+                self.profile
+            ):
+                return
+            await PendingWebvhDids().remove_pending_did(
+                self.profile, witnessed_document["id"]
+            )
 
         if state == RegistrationState.PENDING.value:
             event_bus = self.profile.inject(EventBus)
@@ -330,7 +350,7 @@ class DidWebvhOperationsManager:
 
             if not authorized_key_info:
                 key_alias = create_alias(
-                    witnessed_document["id"].replace('did:web:', 'webvh'), 'updateKey'
+                    witnessed_document["id"].replace("did:web:", "webvh"), "updateKey"
                 )
                 authorized_key_info = await self._get_key(key_alias)
 
@@ -388,7 +408,7 @@ class DidWebvhOperationsManager:
             event_bus = self.profile.inject(EventBus)
 
             metadata = resolved_did_doc["metadata"]
-            metadata["state"] = RegistrationState.POSTED.value
+            metadata["state"] = RegistrationState.ATTESTED.value
             await event_bus.notify(
                 self.profile,
                 Event(
@@ -398,7 +418,6 @@ class DidWebvhOperationsManager:
             )
 
         return response_json.get("state", {})
-        # return resolved_did_doc
 
     async def update(self, options: dict, features: dict):
         """Update a Webvh DID."""
@@ -425,9 +444,7 @@ class DidWebvhOperationsManager:
         for feature, values in features.items():
             document[feature].extend([values])
 
-        authorized_key_info = await self._get_key(
-            document_state.document["id"]
-        )
+        authorized_key_info = await self._get_key(document_state.document["id"])
 
         document_state = document_state.create_next(
             document, {}, datetime.now(timezone.utc).replace(microsecond=0)
@@ -492,9 +509,7 @@ class DidWebvhOperationsManager:
         document["authentication"] = []
         document["assertionMethod"] = []
 
-        authorized_key_info = await self._get_key(
-            document_state.document["id"]
-        )
+        authorized_key_info = await self._get_key(document_state.document["id"])
 
         document_state = document_state.create_next(
             document,

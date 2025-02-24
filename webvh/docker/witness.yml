@@ -37,7 +37,6 @@ multitenant-admin: true
 
 # Plugin
 plugin-config-value:
-   - did-webvh.server_url=https://localhost:8000
+   - did-webvh.server_url=https://id.test-suite.app
    - did-webvh.role=witness
-   - did-webvh.auto_attest=true
-   - did-webvh.strict_ssl=false
+  #  - did-webvh.auto_attest=True

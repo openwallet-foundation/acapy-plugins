@@ -1,28 +1,21 @@
 """DID Webvh Registry."""
 
 import logging
-import re
 import time
-from datetime import datetime, timezone
-from bitstring import BitArray
-import gzip
-import requests
-import jcs
-from multiformats import multibase, multihash
-
 from typing import Optional, Pattern, Sequence
 
+import jcs
 from acapy_agent.anoncreds.base import (
-    AnonCredsResolutionError,
     AnonCredsRegistrationError,
+    AnonCredsResolutionError,
     BaseAnonCredsRegistrar,
     BaseAnonCredsResolver,
 )
 from acapy_agent.anoncreds.models.credential_definition import (
     CredDef,
     CredDefResult,
-    CredDefValue,
     CredDefState,
+    CredDefValue,
     GetCredDefResult,
 )
 from acapy_agent.anoncreds.models.revocation import (
@@ -47,11 +40,14 @@ from acapy_agent.config.injection_context import InjectionContext
 from acapy_agent.core.profile import Profile
 from acapy_agent.vc.data_integrity.manager import (
     DataIntegrityManager,
-    DataIntegrityManagerError,
 )
 from acapy_agent.vc.data_integrity.models.options import DataIntegrityProofOptions
+from aiohttp import ClientConnectionError, ClientResponseError, ClientSession
+from multiformats import multibase, multihash
+
 from ..resolver.resolver import DIDWebVHResolver
 from ..validation import WebVHDID
+
 # from ..models.resources import AttestedResource
 
 LOGGER = logging.getLogger(__name__)
@@ -96,14 +92,14 @@ class DIDWebVHRegistry(BaseAnonCredsResolver, BaseAnonCredsRegistrar):
     @staticmethod
     def _derive_upload_endpoint(verification_method) -> str:
         """Derive service upload endpoint."""
-        domain = verification_method.split(':')[3]
-        return f'https://{domain}/resources'
+        domain = verification_method.split(":")[3]
+        return f"https://{domain}/resources"
 
     @staticmethod
     def _derive_update_endpoint(resource_id) -> str:
         """Derive service update endpoint."""
-        url = '/'.join(resource_id.split(':')[3:])
-        return f'https://{url}'
+        url = "/".join(resource_id.split(":")[3:])
+        return f"https://{url}"
 
     @staticmethod
     def _create_resource_uri(issuer, content_digest) -> str:
@@ -118,7 +114,7 @@ class DIDWebVHRegistry(BaseAnonCredsResolver, BaseAnonCredsRegistrar):
         """Get a schema from the registry."""
         try:
             resource = await self.resolver.resolve_resource(schema_id)
-        except:
+        except Exception:
             raise AnonCredsResolutionError("Error resolving resource")
 
         try:
@@ -128,8 +124,10 @@ class DIDWebVHRegistry(BaseAnonCredsResolver, BaseAnonCredsRegistrar):
                 name=resource["content"]["name"],
                 version=resource["content"]["version"],
             )
-        except:
-            raise AnonCredsResolutionError("Resource returned not an anoncreds schema")
+        except Exception as e:
+            raise AnonCredsResolutionError(
+                f"Resource returned not an anoncreds schema: {e}"
+            )
 
         return GetSchemaResult(
             schema_id=schema_id,
@@ -231,7 +229,7 @@ class DIDWebVHRegistry(BaseAnonCredsResolver, BaseAnonCredsRegistrar):
         self, profile: Profile, revocation_registry_id: str
     ) -> GetRevRegDefResult:
         """Get a revocation registry definition from the registry."""
-        
+
         resource = await self.resolver.resolve_resource(revocation_registry_id)
 
         anoncreds_revocation_registry_definition = RevRegDef(
@@ -284,49 +282,43 @@ class DIDWebVHRegistry(BaseAnonCredsResolver, BaseAnonCredsRegistrar):
         )
 
     async def get_revocation_list(
-        self, 
-        profile: Profile, 
-        revocation_registry_id: str, 
-        timestamp_from: int, 
-        timestamp_to: int
+        self,
+        profile: Profile,
+        revocation_registry_id: str,
+        timestamp_from: int,
+        timestamp_to: int,
     ) -> GetRevListResult:
         """Get a revocation list from the registry."""
-        LOGGER.warning("Resolving Revocation List")
-        LOGGER.warning(timestamp_from)
-        LOGGER.warning(timestamp_to)
-        
         revocation_registry_resource = await self.resolver.resolve_resource(
             revocation_registry_id
         )
-        
+
         timestamp_to = timestamp_to or int(time.time())
         index = sorted(
-            revocation_registry_resource.get('links'), 
-            key=lambda x: x['timestamp']
+            revocation_registry_resource.get("links"), key=lambda x: x["timestamp"]
         )
         for idx, entry in enumerate(index):
-            LOGGER.warning(entry.get('timestamp'))
-            status_list_id = index[idx].get('id')
-            if entry.get('timestamp') > timestamp_to and idx > 0:
-                status_list_id = index[idx-1].get('id')
+            status_list_id = index[idx].get("id")
+            if entry.get("timestamp") > timestamp_to and idx > 0:
+                status_list_id = index[idx - 1].get("id")
                 break
-        
-        status_list_resource = await self.resolver.resolve_resource(
-            status_list_id
-        )
-        
+
+        status_list_resource = await self.resolver.resolve_resource(status_list_id)
+
         revocation_list = RevList(
-            issuer_id=revocation_registry_id.split('/')[0],
+            issuer_id=revocation_registry_id.split("/")[0],
             rev_reg_def_id=revocation_registry_id,
-            revocation_list=status_list_resource.get('content').get("revocationList"),
-            current_accumulator=status_list_resource.get('content').get("currentAccumulator"),
-            timestamp=status_list_resource.get('content').get("timestamp")
+            revocation_list=status_list_resource.get("content").get("revocationList"),
+            current_accumulator=status_list_resource.get("content").get(
+                "currentAccumulator"
+            ),
+            timestamp=status_list_resource.get("content").get("timestamp"),
         )
 
         return GetRevListResult(
             revocation_list=revocation_list,
             resolution_metadata={},
-            revocation_registry_metadata=status_list_resource.get('metadata'),
+            revocation_registry_metadata=status_list_resource.get("metadata"),
         )
 
     async def register_revocation_list(
@@ -337,11 +329,11 @@ class DIDWebVHRegistry(BaseAnonCredsResolver, BaseAnonCredsRegistrar):
         options: Optional[dict] = None,
     ) -> RevListResult:
         """Register a revocation list on the registry."""
-        
-        resource_type = 'anonCredsStatusList'
+
+        resource_type = "anonCredsStatusList"
 
         content = rev_list.serialize()
-        content['timestamp'] = int(time.time())
+        content["timestamp"] = int(time.time())
         metadata = {
             "resource_id": self._digest_multibase(content),
             "resource_type": resource_type,
@@ -355,19 +347,17 @@ class DIDWebVHRegistry(BaseAnonCredsResolver, BaseAnonCredsRegistrar):
             content=content,
             options=options,
         )
-        
+
         status_list_entry = {
-            'type': resource_type,
-            'id': resource.get('id'),
-            'timestamp': resource.get('content').get('timestamp')
+            "type": resource_type,
+            "id": resource.get("id"),
+            "timestamp": resource.get("content").get("timestamp"),
         }
-        
+
         rev_reg_def_resource = await self.resolver.resolve_resource(
             rev_list.rev_reg_def_id
         )
-        rev_reg_def_resource['links'] = [
-            status_list_entry
-        ]
+        rev_reg_def_resource["links"] = [status_list_entry]
         await self._update_and_upload_resource(
             profile=profile,
             resource=rev_reg_def_resource,
@@ -394,19 +384,18 @@ class DIDWebVHRegistry(BaseAnonCredsResolver, BaseAnonCredsRegistrar):
         options: Optional[dict] = None,
     ) -> RevListResult:
         """Update a revocation list on the registry."""
-        
+
         for idx in revoked:
             curr_list.revocation_list[idx] = 1
-            
 
         content = curr_list.serialize()
-        content['timestamp'] = int(time.time())
+        content["timestamp"] = int(time.time())
         metadata = {
             "resource_id": self._digest_multibase(content),
             "resource_type": "anonCredsStatusList",
             "resource_name": rev_reg_def.tag,
         }
-        
+
         resource = await self._create_and_publish_resource(
             profile=profile,
             issuer=rev_reg_def.issuer_id,
@@ -414,17 +403,17 @@ class DIDWebVHRegistry(BaseAnonCredsResolver, BaseAnonCredsRegistrar):
             content=content,
             options=options,
         )
-        
+
         status_list_entry = {
-            'type': 'anonCredsStatusList',
-            'id': resource.get('id'),
-            'timestamp': resource.get('content').get('timestamp')
+            "type": "anonCredsStatusList",
+            "id": resource.get("id"),
+            "timestamp": resource.get("content").get("timestamp"),
         }
-        
+
         rev_reg_def_resource = await self.resolver.resolve_resource(
             prev_list.rev_reg_def_id
         )
-        rev_reg_def_resource['links'].append(status_list_entry)
+        rev_reg_def_resource["links"].append(status_list_entry)
         await self._update_and_upload_resource(
             profile=profile,
             resource=rev_reg_def_resource,
@@ -463,59 +452,51 @@ class DIDWebVHRegistry(BaseAnonCredsResolver, BaseAnonCredsRegistrar):
             raise AnonCredsRegistrationError("Missing verification method")
         self.proof_options["verificationMethod"] = options.get("verificationMethod")
 
-    async def _upload(
-        self, secured_resource
-    ) -> dict:  # AttestedResource:
-
+    async def _upload(self, secured_resource) -> dict:  # AttestedResource:
         # Upload secured resource to server with metadata
-        metadata = secured_resource.get('metadata')
-        try:
-            r = requests.post(
-                self.service_endpoint,
-                json={
-                    "attestedResource": secured_resource,
-                    "options": {
-                        "resourceId": metadata.get('resourceId'),
-                        "resourceType": metadata.get('resourceType'),
+        metadata = secured_resource.get("metadata")
+        async with ClientSession() as http_session:
+            try:
+                response = await http_session.post(
+                    self.service_endpoint,
+                    json={
+                        "attestedResource": secured_resource,
+                        "options": {
+                            "resourceId": metadata.get("resourceId"),
+                            "resourceType": metadata.get("resourceType"),
+                        },
                     },
-                },
-            )
-            if r.status_code != 201:
-                raise AnonCredsRegistrationError(
-                    "Invalid status code returned by service endpoint"
                 )
+                if response.status != 201:
+                    raise AnonCredsRegistrationError(
+                        "Invalid status code returned by service endpoint"
+                    )
+            except (ClientConnectionError, ClientResponseError) as e:
+                raise AnonCredsRegistrationError(f"Error uploading resource: {e}")
 
-        except:
-            raise AnonCredsRegistrationError("Error uploading resource")
-
-    async def _update(
-        self, secured_resource
-    ) -> dict:  # AttestedResource:
-
+    async def _update(self, secured_resource) -> dict:  # AttestedResource:
         # Upload secured resource to server with metadata
-        metadata = secured_resource.get('metadata')
-        try:
-            r = requests.put(
-                self.service_endpoint,
-                json={
-                    "attestedResource": secured_resource,
-                    "options": {
-                        "resourceId": metadata.get('resourceId'),
-                        "resourceType": metadata.get('resourceType'),
+        metadata = secured_resource.get("metadata")
+        async with ClientSession() as http_session:
+            try:
+                response = await http_session.put(
+                    self.service_endpoint,
+                    json={
+                        "attestedResource": secured_resource,
+                        "options": {
+                            "resourceId": metadata.get("resourceId"),
+                            "resourceType": metadata.get("resourceType"),
+                        },
                     },
-                },
-            )
-            if r.status_code != 200:
-                raise AnonCredsRegistrationError(
-                    "Invalid status code returned by service endpoint"
                 )
+                if response.status != 200:
+                    raise AnonCredsRegistrationError(
+                        "Invalid status code returned by service endpoint"
+                    )
+            except (ClientConnectionError, ClientResponseError) as e:
+                raise AnonCredsRegistrationError(f"Error uploading resource: {e}")
 
-        except:
-            raise AnonCredsRegistrationError("Error uploading resource")
-
-    async def _sign(
-        self, profile, document
-    ) -> dict:  # AttestedResource:
+    async def _sign(self, profile, document) -> dict:  # AttestedResource:
         try:
             async with profile.session() as session:
                 secured_document = await DataIntegrityManager(session).add_proof(
@@ -527,23 +508,21 @@ class DIDWebVHRegistry(BaseAnonCredsResolver, BaseAnonCredsRegistrar):
             # TODO, server currently expect a proof object, not a proof set (array)
             secured_document["proof"] = secured_document["proof"][0]
             return secured_document
-        except:
-            raise AnonCredsRegistrationError("Error securing resource")
+        except Exception as e:
+            raise AnonCredsRegistrationError(f"Error securing resource: {e}")
 
     async def _update_and_upload_resource(
         self, profile, resource, options
     ) -> dict:  # AttestedResource:
         """Update an existing resource safely."""
-        proof = resource.pop('proof')
-        options['verificationMethod'] = proof.get("verificationMethod")
-        options['serviceEndpoint'] = self._derive_update_endpoint(
-            resource.get("id")
-        )
+        options = options or {}
+        proof = resource.pop("proof")
+        options["verificationMethod"] = proof.get("verificationMethod")
+        options["serviceEndpoint"] = self._derive_update_endpoint(resource.get("id"))
         self._ensure_options(options)
-        if (
-            resource.get("id").split('/')[-1] 
-            != self._digest_multibase(resource.get("content"))
-            ):
+        if resource.get("id").split("/")[-1] != self._digest_multibase(
+            resource.get("content")
+        ):
             raise AnonCredsRegistrationError("Digest mismatch")
         secured_resource = await self._sign(profile, resource)
         await self._update(secured_resource)
@@ -552,21 +531,19 @@ class DIDWebVHRegistry(BaseAnonCredsResolver, BaseAnonCredsRegistrar):
         self, profile, issuer, content, metadata, options, links=None
     ) -> dict:  # AttestedResource:
         """Derive attested resource object from content and publish."""
-
+        options = options or {}
         # TODO, derive verification method some other way, currently set to default
-        options['verificationMethod'] = f'{issuer}#key-01'
-        options['serviceEndpoint'] = self._derive_upload_endpoint(
+        options["verificationMethod"] = f"{issuer}#key-01"
+        options["serviceEndpoint"] = self._derive_upload_endpoint(
             options.get("verificationMethod")
         )
 
         self._ensure_options(options)
 
         # Ensure content digest is accurate
-        if metadata.get("resource_id") != self._digest_multibase(
-            content
-        ):
+        if metadata.get("resource_id") != self._digest_multibase(content):
             raise AnonCredsRegistrationError("Digest mismatch")
-        
+
         content_digest = metadata.get("resource_id")
 
         # Create resource object
@@ -580,22 +557,13 @@ class DIDWebVHRegistry(BaseAnonCredsResolver, BaseAnonCredsRegistrar):
                 "resourceType": metadata.get("resource_type"),
                 "resourceName": metadata.get("resource_name"),
             },
-            # "links": links
         }
         if links:
-            resource['links'] = links
-        # attested_resource = AttestedResource(
-        #         id=f'{issuer_id}/resources/{content_digest}',
-        #         content=resource_content,
-        #         metadata={
-        #             'resourceId': content_digest,
-        #             'resourceType': resource_type
-        #         }
-        #     )
-        
+            resource["links"] = links
+
         # Secure resource with a Data Integrity proof
         secured_resource = await self._sign(profile, resource)
-        
+
         # Upload resource to server
         await self._upload(secured_resource)
 
