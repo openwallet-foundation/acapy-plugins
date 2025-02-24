@@ -1,0 +1,34 @@
+label: webvh-controller
+
+auto-provision: true
+
+admin: [0.0.0.0, 4001]
+admin-insecure-mode: true
+
+inbound-transport:
+  - [http, 0.0.0.0, 4000]
+  - [ws, 0.0.0.0, 4002]
+outbound-transport: http
+endpoint:
+  - http://localhost:4000
+
+plugin:
+  - webvh
+
+no-ledger: true
+
+# Wallet
+wallet-type: askar-anoncreds
+wallet-name: controller-wallet
+wallet-key: insecure
+
+
+log-level: info
+
+auto-accept-invites: true
+auto-respond-messages: true
+
+# Plugin
+plugin-config-value:
+  - did-webvh.server_url=https://id.test-suite.app
+  - did-webvh.role=controller

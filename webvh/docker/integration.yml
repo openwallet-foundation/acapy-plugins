@@ -1,0 +1,20 @@
+label: webvh
+
+admin: [0.0.0.0, 3001]
+admin-insecure-mode: true
+
+inbound-transport:
+  - [http, 0.0.0.0, 3000]
+outbound-transport: http
+endpoint:
+  - http://localhost:3000
+
+plugin:
+  - webvh
+
+no-ledger: true
+
+log-level: info
+
+auto-accept-invites: true
+auto-respond-messages: true

@@ -1,0 +1,69 @@
+services:
+  witness:
+    image: plugin-image
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile
+      args:
+        - install_flags=--no-interaction --with integration --extras aca-py
+    command: >
+      start
+        --label Witness
+        --inbound-transport http 0.0.0.0 3000
+        --outbound-transport http
+        --endpoint http://witness:3000
+        --admin 0.0.0.0 3001
+        --admin-insecure-mode
+        --no-ledger
+        --wallet-type askar-anoncreds
+        --wallet-name witness
+        --wallet-key insecure
+        --auto-provision
+        --log-level info
+        --notify-revocation
+        --plugin webvh
+        --plugin-config-value did-webvh.role=witness
+        --plugin-config-value did-webvh.server_url=https://id.test-suite.app
+        --tails-server-base-url https://tails.anoncreds.vc
+        --auto-provision
+        --seed 00000000000000000000000000000000
+
+  controller:
+    image: plugin-image
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile
+      args:
+        - install_flags=--no-interaction --with integration --extras aca-py
+    command: >
+      start
+        --label Controller
+        --inbound-transport http 0.0.0.0 3000
+        --outbound-transport http
+        --endpoint http://controller:3000
+        --admin 0.0.0.0 3001
+        --admin-insecure-mode
+        --no-ledger
+        --wallet-type askar-anoncreds
+        --wallet-name controller
+        --wallet-key insecure
+        --auto-provision
+        --log-level info
+        --monitor-revocation-notification
+        --plugin webvh
+        --plugin-config-value did-webvh.role=controller
+        --plugin-config-value did-webvh.server_url=https://id.test-suite.app
+  tests:
+      container_name: juggernaut
+      build:
+        context: .
+        dockerfile: Dockerfile.test.runner
+      environment:
+        - WAIT_BEFORE_HOSTS=3
+        - WAIT_HOSTS=witness:3000, controller:3000
+        - WAIT_HOSTS_TIMEOUT=60
+        - WAIT_SLEEP_INTERVAL=1
+        - WAIT_HOST_CONNECT_TIMEOUT=30
+      depends_on:
+        - witness
+        - controller

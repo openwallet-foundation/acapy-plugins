@@ -1,0 +1,42 @@
+label: webvh-witness
+
+auto-provision: true
+
+admin: [0.0.0.0, 3001]
+admin-insecure-mode: true
+
+inbound-transport:
+  - [http, 0.0.0.0, 3000]
+  - [ws, 0.0.0.0, 3002]
+outbound-transport: http
+endpoint:
+  - http://localhost:3000
+
+plugin:
+  - webvh
+
+no-ledger: true
+
+# Wallet
+wallet-type: askar-anoncreds
+wallet-name: witness-wallet
+wallet-key: insecure
+
+wallet-allow-insecure-seed: true # Don't do this in production
+
+log-level: info
+
+auto-accept-invites: true
+auto-respond-messages: true
+
+# Multi-tenancy
+multitenant: true
+jwt-secret: insecure-jwt-secret
+multitenant-admin: true
+
+
+# Plugin
+plugin-config-value:
+   - did-webvh.server_url=https://id.test-suite.app
+   - did-webvh.role=witness
+  #  - did-webvh.auto_attest=True

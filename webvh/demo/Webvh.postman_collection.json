@@ -1,0 +1,187 @@
+{
+	"info": {
+		"_postman_id": "add3b221-af64-4a29-a040-f7cfb60e6108",
+		"name": "Webvh",
+		"description": "These are helpful example requests to help understand the steps needed to create webvh dids.",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+		"_exporter_id": "8824263"
+	},
+	"item": [
+		{
+			"name": "Witness - Create Witness Signing Key",
+			"request": {
+				"method": "POST",
+				"header": [],
+				"body": {
+					"mode": "raw",
+					"raw": "{\r\n  \"alg\": \"ed25519\",\r\n  \"kid\": \"webvh:id.test-suite.app@witnessKey\",\r\n  \"seed\": \"00000000000000000000000000000000\"\r\n}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "{{WITNESS_AGENT_URL}}/wallet/keys",
+					"host": [
+						"{{WITNESS_AGENT_URL}}"
+					],
+					"path": [
+						"wallet",
+						"keys"
+					]
+				},
+				"description": "This is an optional request to make the aliased key for the did webvh server before hand with a specific seed. This will allow the witness to create dids on `id.test-suite.app`.\n\nNote that the witness agent must have the `wallet-allow-insecure-seed` configuration set to true to allow using a seed."
+			},
+			"response": []
+		},
+		{
+			"name": "Witness - Configuration",
+			"request": {
+				"method": "POST",
+				"header": [],
+				"body": {
+					"mode": "raw",
+					"raw": "{\r\n    \"auto_attest\": true,\r\n    \"server_url\": \"https://id.test-suite.app\",\r\n    \"witness\": true\r\n}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "{{WITNESS_AGENT_URL}}/did/webvh/configuration",
+					"host": [
+						"{{WITNESS_AGENT_URL}}"
+					],
+					"path": [
+						"did",
+						"webvh",
+						"configuration"
+					]
+				},
+				"description": "This will configure the witness agent to have a witness role and auto attest requests from a did controller agent. The server_url also allows the witness to self attest a did creation and create dids."
+			},
+			"response": []
+		},
+		{
+			"name": "Witness - Create Invitation",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"exec": [
+							"const {invitation_url} = pm.response.json();\r",
+							"pm.collectionVariables.set(\"invitation\", invitation_url);"
+						],
+						"type": "text/javascript",
+						"packages": {}
+					}
+				}
+			],
+			"request": {
+				"method": "POST",
+				"header": [],
+				"body": {
+					"mode": "raw",
+					"raw": "{\r\n  \"handshake_protocols\": [\r\n    \"https://didcomm.org/didexchange/1.1\"\r\n  ]\r\n}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "{{WITNESS_AGENT_URL}}/out-of-band/create-invitation?auto_accept=true",
+					"host": [
+						"{{WITNESS_AGENT_URL}}"
+					],
+					"path": [
+						"out-of-band",
+						"create-invitation"
+					],
+					"query": [
+						{
+							"key": "auto_accept",
+							"value": "true"
+						}
+					]
+				},
+				"description": "This will create an invitation that a controller agent can use to setup the didcomm connection used to get a did request that is signed by the required witnessing agent.\n\nThis is the most basic request for a one time did:peer type invitation. Your application will likely use additional request options."
+			},
+			"response": []
+		},
+		{
+			"name": "Controller - Configuration",
+			"request": {
+				"method": "POST",
+				"header": [],
+				"body": {
+					"mode": "raw",
+					"raw": "{\r\n    \"server_url\": \"https://id.test-suite.app\",\r\n    \"witness\": false,\r\n    \"witness_invitation\": {{invitation}}\r\n}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "{{CONTROLLER_AGENT_URL}}/did/webvh/configuration",
+					"host": [
+						"{{CONTROLLER_AGENT_URL}}"
+					],
+					"path": [
+						"did",
+						"webvh",
+						"configuration"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Controller - Create DID",
+			"request": {
+				"method": "POST",
+				"header": [],
+				"body": {
+					"mode": "raw",
+					"raw": "{\r\n  \"options\": {\r\n    \"namespace\": \"prod\",\r\n    \"parameters\": {\r\n      \"portable\": false,\r\n      \"prerotation\": false\r\n    }\r\n  }\r\n}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "{{CONTROLLER_AGENT_URL}}/did/webvh/create",
+					"host": [
+						"{{CONTROLLER_AGENT_URL}}"
+					],
+					"path": [
+						"did",
+						"webvh",
+						"create"
+					]
+				}
+			},
+			"response": []
+		}
+	],
+	"variable": [
+		{
+			"key": "WITNESS_AGENT_URL",
+			"value": "",
+			"type": "default"
+		},
+		{
+			"key": "invitation",
+			"value": ""
+		},
+		{
+			"key": "CONTROLLER_AGENT_URL",
+			"value": "",
+			"type": "default"
+		}
+	]
+}
