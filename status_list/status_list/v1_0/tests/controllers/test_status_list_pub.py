@@ -1,16 +1,36 @@
 import pytest
+import gzip
+from bitarray import bitarray
+from types import SimpleNamespace
 from unittest.mock import AsyncMock, MagicMock, patch
 from aiohttp.web import HTTPNotFound, HTTPBadRequest, HTTPInternalServerError
 
 from acapy_agent.admin.request_context import AdminRequestContext
 from acapy_agent.storage.error import StorageError, StorageNotFoundError
+from acapy_agent.wallet.util import b64_to_bytes, pad
 
 from ...controllers import status_list_pub as controller
+from ... import status_handler
 
 
 @pytest.mark.asyncio
 async def test_status_list_pub_routes(context: AdminRequestContext, seed_db):
     """Test status_list_pub routes."""
+
+    # Seed status list cred
+    async with context.profile.session() as session:
+        # Set status list entry
+        result = await status_handler.update_status_list_entry(
+            session, "definition_id", "credential_id", "1"
+        )
+        result = SimpleNamespace(**result)
+        assert result.status == "1"
+        # Get status list entry
+        result = await status_handler.get_status_list_entry(
+            session, "definition_id", "credential_id"
+        )
+        result = SimpleNamespace(**result)
+        assert result.status == "1"
 
     request_dict = {
         "context": context,
@@ -35,15 +55,27 @@ async def test_status_list_pub_routes(context: AdminRequestContext, seed_db):
         await controller.publish_status_list(request)
         result = mock_web.json_response.call_args[0][0]
         assert len(result) > 0
-        assert result["status_lists"][0]["vc"]
+        encoded_list = result["status_lists"][0]["vc"]["credentialSubject"][
+            "encodedList"
+        ]
+        assert encoded_list
 
     # Test publish_status_list in "ietf" format
     request.json.return_value["status_type"] = "ietf"
+    request.match_info = {"def_id": "definition_id"}
     with patch.object(controller, "web", autospec=True) as mock_web:
         await controller.publish_status_list(request)
         result = mock_web.json_response.call_args[0][0]
         assert len(result) > 0
-        assert result["status_lists"][0]["status_list"]
+        encoded_list = result["status_lists"][0]["status_list"]["lst"]
+        assert encoded_list
+        # Verify status entry
+        encoded_list = pad(encoded_list)
+        decoded_list = b64_to_bytes(encoded_list, True)
+        decoded_list = gzip.decompress(decoded_list)
+        status_bits = bitarray()
+        status_bits.frombytes(decoded_list)
+        assert status_bits[57608] == 1
 
     # Test get_status_list_pub with errors
     with patch(
