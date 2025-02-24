@@ -28,7 +28,7 @@ log_entry_response = {
         },
         "state": {
             "@context": ["..."],
-            "id": "did:webvh:QmVSevWDZeaFYcTx2FaVaU91G9ABtyEW5vG3wzKTxN7cuS:server.localhost%3A8000:prod:3",
+            "id": "did:webvh:QmVSevWDZeaFYcTx2FaVaU91G9ABtyEW5vG3wzKTxN7cuS:id.test-suite.app:prod:3",
             "verificationMethod": ["..."],
             "authentication": ["..."],
             "assertionMethod": ["..."],
@@ -38,7 +38,7 @@ log_entry_response = {
 
 initial_create_response = {
     "state": {
-        "id": "did:webvh:QmVSevWDZeaFYcTx2FaVaU91G9ABtyEW5vG3wzKTxN7cuS:server.localhost%3A8000:prod:3",
+        "id": "did:webvh:QmVSevWDZeaFYcTx2FaVaU91G9ABtyEW5vG3wzKTxN7cuS:id.test-suite.app:prod:3",
     }
 }
 
@@ -48,14 +48,14 @@ request_namespace = mock.AsyncMock(
             return_value={
                 "didDocument": {
                     "@context": ["https://www.w3.org/ns/did/v1"],
-                    "id": "did:web:server.localhost%3A8000:prod:1",
+                    "id": "did:web:id.test-suite.app:prod:1",
                 },
                 "proofOptions": {
                     "type": "DataIntegrityProof",
                     "cryptosuite": "eddsa-jcs-2022",
                     "proofPurpose": "assertionMethod",
                     "expires": "2024-12-18T20:46:01+00:00",
-                    "domain": "server.localhost%3A8000",
+                    "domain": "id.test-suite.app",
                     "challenge": "fa0b6142-cd83-576b-a7a7-5cc4eb10e0ea",
                 },
             }
@@ -84,7 +84,7 @@ class TestOperationsManager(IsolatedAsyncioTestCase):
         async with self.profile.session() as session:
             await MultikeyManager(session).create(
                 alg="ed25519",
-                kid="webvh:localhost:8000@witnessKey",
+                kid="webvh:id.test-suite.app@witnessKey",
             )
 
     async def test_create_invalid(self):
@@ -112,7 +112,7 @@ class TestOperationsManager(IsolatedAsyncioTestCase):
     async def test_create_self_witness(self):
         self.profile.settings.set_value(
             "plugin_config",
-            {"did-webvh": {"server_url": "http://localhost:8000"}},
+            {"did-webvh": {"server_url": "http://id.test-suite.app"}},
         )
 
         resolver = mock.MagicMock(DIDResolver, autospec=True)
@@ -150,7 +150,7 @@ class TestOperationsManager(IsolatedAsyncioTestCase):
                         log_entry_response,
                         {
                             "state": {
-                                "id": "did:webvh:QmVSevWDZeaFYcTx2FaVaU91G9ABtyEW5vG3wzKTxN7cuS:server.localhost%3A8000:prod:4",
+                                "id": "did:webvh:QmVSevWDZeaFYcTx2FaVaU91G9ABtyEW5vG3wzKTxN7cuS:id.test-suite.app:prod:4",
                             }
                         },
                     ]
@@ -161,7 +161,7 @@ class TestOperationsManager(IsolatedAsyncioTestCase):
     async def test_create_self_witness_as_witness(self):
         self.profile.settings.set_value(
             "plugin_config",
-            {"did-webvh": {"server_url": "http://localhost:8000", "role": "witness"}},
+            {"did-webvh": {"server_url": "http://id.test-suite.app", "role": "witness"}},
         )
 
         resolver = mock.MagicMock(DIDResolver, autospec=True)
@@ -198,7 +198,7 @@ class TestOperationsManager(IsolatedAsyncioTestCase):
             "plugin_config",
             {
                 "did-webvh": {
-                    "server_url": "http://localhost:8000",
+                    "server_url": "http://id.test-suite.app",
                     "role": "controller",
                 }
             },
@@ -218,7 +218,7 @@ class TestOperationsManager(IsolatedAsyncioTestCase):
         # Has connection
         async with self.profile.session() as session:
             record = ConnRecord(
-                alias="webvh:localhost:8000@witness",
+                alias="webvh:id.test-suite.app@witness",
                 state="active",
             )
             await record.save(session)
@@ -227,7 +227,7 @@ class TestOperationsManager(IsolatedAsyncioTestCase):
             options={"namespace": "test"}
         )
         await DidWebvhOperationsManager(self.profile).finish_create(
-            witnessed_document={"id": "did:web:server.localhost%3A8000:prod:1"},
+            witnessed_document={"id": "did:web:id.test-suite.app:prod:1"},
             parameters={},
             state=RegistrationState.PENDING.value,
             authorized_key_info=None,
@@ -242,7 +242,7 @@ class TestOperationsManager(IsolatedAsyncioTestCase):
             "plugin_config",
             {
                 "did-webvh": {
-                    "server_url": "http://localhost:8000",
+                    "server_url": "http://id.test-suite.app",
                     "role": "controller",
                 }
             },
@@ -258,7 +258,7 @@ class TestOperationsManager(IsolatedAsyncioTestCase):
             "plugin_config",
             {
                 "did-webvh": {
-                    "server_url": "http://localhost:8000",
+                    "server_url": "http://id.test-suite.app",
                 }
             },
         )
@@ -276,14 +276,14 @@ class TestOperationsManager(IsolatedAsyncioTestCase):
                     return_value={
                         "didDocument": {
                             "@context": ["https://www.w3.org/ns/did/v1"],
-                            "id": "did:web:server.localhost%3A8000:prod:1",
+                            "id": "did:web:id.test-suite.app:prod:1",
                         },
                         "proofOptions": {
                             "type": "DataIntegrityProof",
                             "cryptosuite": "eddsa-jcs-2022",
                             "proofPurpose": "assertionMethod",
                             "expires": "2024-12-18T20:46:01+00:00",
-                            # "domain": "server.localhost%3A8000",
+                            # "domain": "id.test-suite.app",
                             "challenge": "fa0b6142-cd83-576b-a7a7-5cc4eb10e0ea",
                         },
                     }
@@ -296,7 +296,7 @@ class TestOperationsManager(IsolatedAsyncioTestCase):
             "plugin_config",
             {
                 "did-webvh": {
-                    "server_url": "http://localhost:8000",
+                    "server_url": "http://id.test-suite.app",
                     "role": "witness",
                 }
             },
@@ -317,11 +317,11 @@ class TestOperationsManager(IsolatedAsyncioTestCase):
                         # For first response
                         "didDocument": {
                             "@context": ["https://www.w3.org/ns/did/v1"],
-                            "id": "did:webvh:QmVSevWDZeaFYcTx2FaVaU91G9ABtyEW5vG3wzKTxN7cuS:server.localhost%3A8000:prod:3",
+                            "id": "did:webvh:QmVSevWDZeaFYcTx2FaVaU91G9ABtyEW5vG3wzKTxN7cuS:id.test-suite.app:prod:3",
                         },
                         # For second response
                         "state": {
-                            "id": "did:webvh:QmVSevWDZeaFYcTx2FaVaU91G9ABtyEW5vG3wzKTxN7cuS:server.localhost%3A8000:prod:3"
+                            "id": "did:webvh:QmVSevWDZeaFYcTx2FaVaU91G9ABtyEW5vG3wzKTxN7cuS:id.test-suite.app:prod:3"
                         },
                     }
                 )
@@ -349,7 +349,7 @@ class TestOperationsManager(IsolatedAsyncioTestCase):
                 ),
             ),
         )
-        test_did = "did:webvh:QmVSevWDZeaFYcTx2FaVaU91G9ABtyEW5vG3wzKTxN7cuS:server.localhost%3A8000:prod:3"
+        test_did = "did:webvh:QmVSevWDZeaFYcTx2FaVaU91G9ABtyEW5vG3wzKTxN7cuS:id.test-suite.app:prod:3"
 
         # No pending dids - attested
         await DidWebvhOperationsManager(self.profile).finish_create(
@@ -376,7 +376,7 @@ class TestOperationsManager(IsolatedAsyncioTestCase):
         await set_config(
             self.profile,
             {
-                "server_url": "http://localhost:8000",
+                "server_url": "http://id.test-suite.app",
                 "role": "controller",
             },
         )
@@ -390,7 +390,7 @@ class TestOperationsManager(IsolatedAsyncioTestCase):
         await DidWebvhOperationsManager(self.profile).finish_create(
             witnessed_document={
                 "id": test_did,
-                "proof": [{"domain": "server.localhost%3A8000"}],
+                "proof": [{"domain": "id.test-suite.app"}],
             },
             parameters={},
             state=RegistrationState.ATTESTED.value,

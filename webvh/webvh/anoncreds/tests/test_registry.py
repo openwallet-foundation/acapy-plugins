@@ -30,8 +30,8 @@ from ...resolver.resolver import DIDWebVHResolver
 from ..registry import DIDWebVHRegistry
 
 test_scid = "Q"
-test_domain = "localhost"
-test_server = "http://localhost"
+test_domain = "id.test-suite.app"
+test_server = "https://id.test-suite.app"
 test_issuer_id = f"did:webvh:{test_scid}:{test_domain}"
 test_schema = AnonCredsSchema(
     issuer_id=test_issuer_id,
@@ -39,7 +39,7 @@ test_schema = AnonCredsSchema(
     name="test_schema",
     version="1.0",
 )
-test_schema_digest = "zQmRmN6TUCRFUWtM8REtx9tvVZQd3fWYAfY2K5T6dVtpieG"
+test_schema_digest = "zQmXS77mJCmsKf6aas8uwNgJ2zEh299UKcFgLJa5AVkBHTQ"
 test_schema_id = f"{test_issuer_id}/resources/{test_schema_digest}"
 test_cred_tag = ""
 test_cred_def = {}
@@ -73,7 +73,7 @@ resolve_resource = mock.AsyncMock(
         json=mock.AsyncMock(
             return_value={
                 "@context": ["https://w3id.org/security/data-integrity/v2"],
-                "id": f"{test_issuer_id}/resources/zQmPNuWdxtjcFiVuSEb2tWbD3jiALskcuUp52yzp1NvyCz2",
+                "id": f"{test_issuer_id}/resources/zQma3tUVYzMn9UfrFCEvxYv4RjaWgs4vV8MZnhR9utAffLh",
                 "type": ["AttestedResource"],
                 "content": {
                     "issuerId": test_issuer_id,
@@ -105,7 +105,7 @@ class TestAnoncredsRegistry(IsolatedAsyncioTestCase):
         async with self.profile.session() as session:
             await MultikeyManager(session).create(
                 alg="ed25519",
-                kid="webvh:localhost:8000@witnessKey",
+                kid="webvh:id.test-suite.app@witnessKey",
             )
             self.registry = DIDWebVHRegistry()
 

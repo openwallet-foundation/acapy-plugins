@@ -1,6 +1,7 @@
 """Module for handling pending webvh dids."""
 
 from acapy_agent.core.profile import Profile
+from aries_askar import AskarError
 
 RECORD_TYPE = "pending_webvh_dids"
 
@@ -32,9 +33,10 @@ class PendingWebvhDids:
 
     async def _save_pending_dids(self, profile: Profile):
         async with profile.session() as session:
+            # This is used to force save with newest when there is a race condition
             try:
                 await session.handle.remove(RECORD_TYPE, RECORD_TYPE)
-            except Exception:
+            except AskarError:
                 pass
             await session.handle.insert(
                 RECORD_TYPE, RECORD_TYPE, value_json=list(self.dids)

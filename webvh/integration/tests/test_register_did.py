@@ -287,7 +287,6 @@ async def test_create_with_witness_and_manual_attest():
         entry = response.get("results", []).pop()
         assert isinstance(entry, dict)
 
-        print(entry)
         await witness.post(
             "/did/webvh/witness/attest",
             params=params(entry_id=entry["id"]),

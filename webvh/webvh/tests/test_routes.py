@@ -52,7 +52,7 @@ class TestWebvhRoutes(IsolatedAsyncioTestCase):
             query={},
             json=mock.AsyncMock(
                 return_value={
-                    "server_url": "server.localhost",
+                    "server_url": "id.test-suite.app",
                     "witness": True,
                     "auto_attest": True,
                 }
@@ -101,9 +101,9 @@ class TestWebvhRoutes(IsolatedAsyncioTestCase):
             query={},
             json=mock.AsyncMock(
                 return_value={
-                    "server_url": "server.localhost",
+                    "server_url": "id.test-suite.app",
                     "witness": False,
-                    "witness_invitation": "http://localhost:8020/invite",
+                    "witness_invitation": "http://witness/invite",
                 }
             ),
             __getitem__=lambda _, k: self.request_dict[k],
