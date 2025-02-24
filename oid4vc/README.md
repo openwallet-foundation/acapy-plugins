@@ -68,7 +68,7 @@ In a production environment, the described processes would be more dynamic and i
 
 ## Architecture
 
-![oid4vci-component](https://raw.githubusercontent.com/hyperledger/aries-acapy-plugins/main/oid4vci/docs/images/oid4vci-component.png)
+![oid4vci-component](https://raw.githubusercontent.com/openwallet-foundation/acapy-plugins/main/oid4vc/docs/images/oid4vci-component.png)
 
 ### Public Routes
 
