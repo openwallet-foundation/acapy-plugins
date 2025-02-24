@@ -1057,7 +1057,7 @@
       OutboundQueue--&gt;Deliverer;
       Deliverer--&gt;OutboundMsg([Outbound Msg]);</code></pre>
 <p>The code for the Deliverer and Relay processes are in the <code>redis_events.v1_0.services.deliverer</code> and <code>redis_events.v1_0.services.redis_relay</code> directories, respectively. The <code>redis_events.v1_0.status_endpoint</code> directory contains code for health endpoints that is used by both of these processes.</p>
-<p>The <code>docker</code> <a href="https://github.com/hyperledger/aries-acapy-plugins/blob/main/redis_events/docker">directory</a> contains a dockerfile (and instructions) for running ACA-Py with the redis plugin.</p>
+<p>The <code>docker</code> <a href="https://github.com/openwallet-foundation/acapy-plugins/blob/main/redis_events/docker">directory</a> contains a dockerfile (and instructions) for running ACA-Py with the redis plugin.</p>
 <h2 id="configuration">Configuration<a class="headerlink" href="#configuration" title="Permanent link">&para;</a></h2>
 <p>The redis events plugin is configured using an external yaml file. An example yaml configuration is:</p>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="nt">redis_queue</span><span class="p">:</span>
