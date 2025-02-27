@@ -778,6 +778,129 @@ class SupportedCredentialMatchSchema(OpenAPISchema):
 
 @docs(
     tags=["oid4vci"],
+    summary="Get a credential supported record by ID",
+)
+@match_info_schema(SupportedCredentialMatchSchema())
+@response_schema(SupportedCredentialSchema())
+async def get_supported_credential_by_id(request: web.Request):
+    """Request handler for retrieving an credential supported record by ID."""
+
+    context: AdminRequestContext = request["context"]
+    supported_cred_id = request.match_info["supported_cred_id"]
+
+    try:
+        async with context.session() as session:
+            record = await SupportedCredential.retrieve_by_id(
+                session, supported_cred_id
+            )
+    except StorageNotFoundError as err:
+        raise web.HTTPNotFound(reason=err.roll_up) from err
+    except (StorageError, BaseModelError) as err:
+        raise web.HTTPBadRequest(reason=err.roll_up) from err
+
+    return web.json_response(record.serialize())
+
+
+class UpdateJwtSupportedCredentialResponseSchema(OpenAPISchema):
+    """Response schema for updating an OID4VP PresDef."""
+
+    supported_cred = fields.Dict(
+        required=True,
+        metadata={"descripton": "The updated Supported Credential"},
+    )
+
+    supported_cred_id = fields.Str(
+        required=True,
+        metadata={
+            "description": "Supported Credential identifier",
+        },
+    )
+
+
+async def jwt_supported_cred_update_helper(
+    record: SupportedCredential,
+    body: Dict[str, Any],
+    session: AskarProfileSession,
+) -> SupportedCredential:
+    """Helper method for updating a JWT Supported Credential Record."""
+    format_data = {}
+    vc_additional_data = {}
+
+    format_data["types"] = body.get("type")
+    format_data["credential_subject"] = body.get("credentialSubject", None)
+    format_data["context"] = body.get("@context")
+    format_data["order"] = body.get("order", None)
+    vc_additional_data["@context"] = format_data["context"]
+    # type vs types is deliberate; OID4VCI spec is inconsistent with VCDM
+    # ~ as of Draft 11, fixed in later drafts
+    vc_additional_data["type"] = format_data["types"]
+
+    record.identifier = body["id"]
+    record.format = body["format"]
+    record.cryptographic_binding_methods_supported = body.get(
+        "cryptographic_binding_methods_supported", None
+    )
+    record.cryptographic_suites_supported = body.get(
+        "cryptographic_suites_supported", None
+    )
+    record.display = body.get("display", None)
+    record.format_data = format_data
+    record.vc_additional_data = vc_additional_data
+
+    await record.save(session)
+    return record
+
+
+@docs(
+    tags=["oid4vci"],
+    summary="Update a Supported Credential. "
+    "Expected to be a complete replacement of a JWT Supported Credential record, "
+    "i.e., optional values that aren't supplied will be `None`, rather than retaining "
+    "their original value.",
+)
+@match_info_schema(SupportedCredentialMatchSchema())
+@request_schema(JwtSupportedCredCreateRequestSchema())
+@response_schema(SupportedCredentialSchema())
+async def update_supported_credential_jwt_vc(request: web.Request):
+    """Update a JWT Supported Credential record."""
+
+    context: AdminRequestContext = request["context"]
+    body: Dict[str, Any] = await request.json()
+    supported_cred_id = request.match_info["supported_cred_id"]
+
+    LOGGER.info(f"body: {body}")
+    try:
+        async with context.session() as session:
+            record = await SupportedCredential.retrieve_by_id(
+                session, supported_cred_id
+            )
+
+            assert isinstance(session, AskarProfileSession)
+            record = await jwt_supported_cred_update_helper(record, body, session)
+
+    except StorageNotFoundError as err:
+        raise web.HTTPNotFound(reason=err.roll_up) from err
+    except (StorageError, BaseModelError) as err:
+        raise web.HTTPBadRequest(reason=err.roll_up) from err
+
+    registered_processors = context.inject(CredProcessors)
+    if record.format not in registered_processors.issuers:
+        raise web.HTTPBadRequest(
+            reason=f"Format {record.format} is not supported by"
+            " currently registered processors"
+        )
+
+    processor = registered_processors.issuer_for_format(record.format)
+    try:
+        processor.validate_supported_credential(record)
+    except ValueError as err:
+        raise web.HTTPBadRequest(reason=str(err)) from err
+
+    return web.json_response(record.serialize())
+
+
+@docs(
+    tags=["oid4vci"],
     summary="Remove an existing credential supported record",
 )
 @match_info_schema(SupportedCredentialMatchSchema())
