@@ -1798,22 +1798,35 @@ async def register(app: web.Application):
                 supported_credential_list,
                 allow_head=False,
             ),
+            web.get(
+                "/oid4vci/credential-supported/records/{supported_cred_id}",
+                get_supported_credential_by_id,
+            ),
+            web.put(
+                "/oid4vci/credential-supported/records/jwt/{supported_cred_id}",
+                update_supported_credential_jwt_vc,
+            ),
             web.delete(
-                "/oid4vci/exchange-supported/records/{supported_cred_id}",
+                "/oid4vci/credential-supported/records/jwt/{supported_cred_id}",
                 supported_credential_remove,
             ),
             web.post("/oid4vp/request", create_oid4vp_request),
+            web.get("/oid4vp/requests", list_oid4vp_requests),
+            web.get("/oid4vp/request/{request_id}", get_oid4vp_request_by_id),
             web.post("/oid4vp/presentation-definition", create_oid4vp_pres_def),
             web.get("/oid4vp/presentation-definitions", list_oid4vp_pres_defs),
             web.get(
                 "/oid4vp/presentation-definition/{pres_def_id}",
                 get_oid4vp_pres_def_by_id,
             ),
+            web.put(
+                "/oid4vp/presentation-definition/{pres_def_id}", update_oid4vp_pres_def
+            ),
             web.delete(
                 "/oid4vp/presentation-definition/{pres_def_id}", oid4vp_pres_def_remove
             ),
             web.get("/oid4vp/presentations", list_oid4vp_presentations),
-            web.get("/oid4vp/presentation/{request_id}", get_oid4vp_pres_by_id),
+            web.get("/oid4vp/presentation/{presentation_id}", get_oid4vp_pres_by_id),
             web.delete("/oid4vp/presentation/{presentation_id}", oid4vp_pres_remove),
             web.post("/oid4vp/dcql/queries", create_dcql_query),
             web.get("/oid4vp/dcql/queries", list_dcql_queries),
