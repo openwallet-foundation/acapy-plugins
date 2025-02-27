@@ -1329,6 +1329,112 @@ async def create_oid4vp_pres_def(request: web.Request):
     )
 
 
+class PresDefIDMatchSchema(OpenAPISchema):
+    """Path parameters and validators for request taking presentation id."""
+
+    pres_def_id = fields.Str(
+        required=True,
+        metadata={
+            "description": "Presentation identifier",
+        },
+    )
+
+
+class UpdateOID4VPPresDefRequestSchema(OpenAPISchema):
+    """Request schema for updating an OID4VP PresDef."""
+
+    pres_def = fields.Dict(
+        required=True,
+        metadata={
+            "description": "The presentation definition",
+        },
+    )
+
+
+class UpdateOID4VPPresDefResponseSchema(OpenAPISchema):
+    """Response schema for updating an OID4VP PresDef."""
+
+    pres_def = fields.Dict(
+        required=True,
+        metadata={"descripton": "The updated presentation definition"},
+    )
+
+    pres_def_id = fields.Str(
+        required=True,
+        metadata={
+            "description": "Presentation identifier",
+        },
+    )
+
+
+@docs(
+    tags=["oid4vp"],
+    summary="Update an OID4VP Presentation Definition.",
+)
+@match_info_schema(PresDefIDMatchSchema())
+@request_schema(UpdateOID4VPPresDefRequestSchema())
+@response_schema(UpdateOID4VPPresDefResponseSchema())
+async def update_oid4vp_pres_def(request: web.Request):
+    """Update an OID4VP Presentation Request."""
+
+    context: AdminRequestContext = request["context"]
+    body = await request.json()
+    pres_def_id = request.match_info["pres_def_id"]
+
+    try:
+        async with context.session() as session:
+            record = await OID4VPPresDef.retrieve_by_id(session, pres_def_id)
+            record.pres_def = body["pres_def"]
+            await record.save(session)
+
+    except StorageNotFoundError as err:
+        raise web.HTTPNotFound(reason=err.roll_up) from err
+    except (StorageError, BaseModelError) as err:
+        raise web.HTTPBadRequest(reason=err.roll_up) from err
+
+    return web.json_response(
+        {
+            "pres_def": record.serialize(),
+            "pres_def_id": record.pres_def_id,
+        }
+    )
+
+
+class PresRequestIDMatchSchema(OpenAPISchema):
+    """Path parameters and validators for request taking presentation request id."""
+
+    request_id = fields.Str(
+        required=True,
+        metadata={
+            "description": "Request identifier",
+        },
+    )
+
+
+@docs(
+    tags=["oid4vp"],
+    summary="Fetch presentation request.",
+)
+@match_info_schema(PresRequestIDMatchSchema())
+@response_schema(OID4VPRequestSchema())
+async def get_oid4vp_request_by_id(request: web.Request):
+    """Request handler for retrieving a presentation request."""
+
+    context: AdminRequestContext = request["context"]
+    request_id = request.match_info["request_id"]
+
+    try:
+        async with context.session() as session:
+            record = await OID4VPRequest.retrieve_by_id(session, request_id)
+
+    except StorageNotFoundError as err:
+        raise web.HTTPNotFound(reason=err.roll_up) from err
+    except (StorageError, BaseModelError) as err:
+        raise web.HTTPBadRequest(reason=err.roll_up) from err
+
+    return web.json_response(record.serialize())
+
+
 class OID4VPPresQuerySchema(OpenAPISchema):
     """Parameters and validators for presentations list query."""
 
