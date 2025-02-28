@@ -552,6 +552,13 @@ async def supported_credential_create(request: web.Request):
     LOGGER.info(f"body: {body}")
     body["identifier"] = body.pop("id")
 
+    format_data: dict = body.get("format_data", {})
+    if format_data.get("vct") and format_data.get("types"):
+        raise web.HTTPBadRequest(
+            reason="Cannot have both `vct` and `types`. "
+            "`vct` is for SD JWT and `types` is for JWT VC"
+        )
+
     record = SupportedCredential(
         **body,
     )
