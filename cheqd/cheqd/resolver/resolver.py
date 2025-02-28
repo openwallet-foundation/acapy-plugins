@@ -1,6 +1,5 @@
 """DID Resolver for Cheqd."""
 
-import json
 from dataclasses import dataclass
 from typing import Optional, Pattern, Sequence, Text
 
@@ -13,10 +12,8 @@ from acapy_agent.resolver.base import (
     ResolverType,
 )
 from aiohttp import ClientSession
-from pydid import DIDDocument
 
 from ..validation import CheqdDID
-
 
 @dataclass
 class DIDLinkedResourceWithMetadata:
@@ -24,6 +21,9 @@ class DIDLinkedResourceWithMetadata:
 
     resource: dict
     metadata: dict
+
+DID_RESOLUTION_HEADER = "application/ld+json;profile=https://w3id.org/did-resolution"
+DID_URL_DEREFERENCING_HEADER = "application/ld+json;profile=https://w3id.org/did-url-dereferencing"
 
 
 class CheqdDIDResolver(BaseDIDResolver):
@@ -52,26 +52,19 @@ class CheqdDIDResolver(BaseDIDResolver):
         service_accept: Optional[Sequence[Text]] = None,
     ) -> dict:
         """Resolve a Cheqd DID."""
+        headers = {}
+        if service_accept:
+            # Convert the Sequence[Text] to a dictionary for headers
+            headers = dict(item.split(": ", 1) for item in service_accept)
         async with ClientSession() as session:
             async with session.get(
                 self.DID_RESOLVER_BASE_URL + did,
+                headers=headers,
             ) as response:
                 if response.status == 200:
                     try:
-                        # Validate DIDDoc with pyDID
                         resolver_resp = await response.json()
-                        did_doc_resp = resolver_resp.get("didDocument")
-                        did_doc_metadata = resolver_resp.get("didDocumentMetadata")
-
-                        did_doc = DIDDocument.from_json(json.dumps(did_doc_resp))
-                        result = did_doc.serialize()
-                        # Check if 'deactivated' field is present in didDocumentMetadata
-                        if (
-                            did_doc_metadata
-                            and did_doc_metadata.get("deactivated") is True
-                        ):
-                            result["deactivated"] = True
-                        return result
+                        return resolver_resp
                     except Exception as err:
                         raise ResolverError("Response was incorrectly formatted") from err
                 if response.status == 404:
@@ -80,44 +73,12 @@ class CheqdDIDResolver(BaseDIDResolver):
                 "Could not find doc for {}: {}".format(did, await response.text())
             )
 
-    async def resolve_resource(self, did: str) -> DIDLinkedResourceWithMetadata:
+    async def dereference_with_metadata(self, profile: Profile, did_url: str) -> DIDLinkedResourceWithMetadata:
         """Resolve a Cheqd DID Linked Resource and its Metadata."""
-        async with ClientSession() as session:
-            # Fetch the main resource
-            async with session.get(self.DID_RESOLVER_BASE_URL + did) as response:
-                if response.status == 200:
-                    try:
-                        resource = await response.json()
-                    except Exception as err:
-                        raise ResolverError("Response was incorrectly formatted") from err
-                elif response.status == 404:
-                    raise DIDNotFound(f"No resource found for {did}")
-                else:
-                    raise ResolverError(
-                        f"Could not find resource for {did}: {await response.text()}"
-                    )
+        # Fetch the main resource
+        result = await self._resolve(profile, did_url, [f"Accept: {DID_URL_DEREFERENCING_HEADER}"])
 
-            # Fetch the metadata
-            async with session.get(
-                f"{self.DID_RESOLVER_BASE_URL}{did}&resourceMetadata=true"
-                if "resourceName" in did
-                else f"{self.DID_RESOLVER_BASE_URL}{did}/metadata"
-            ) as response:
-                if response.status == 200:
-                    try:
-                        result = await response.json()
-                        metadata = result.get("contentStream").get(
-                            "linkedResourceMetadata"
-                        )[0]
-                    except Exception as err:
-                        raise ResolverError(
-                            "Metadata response was incorrectly formatted"
-                        ) from err
-                elif response.status == 404:
-                    raise DIDNotFound(f"No metadata found for {did}")
-                else:
-                    raise ResolverError(
-                        f"Could not find metadata for {did}: {await response.text()}"
-                    )
-
-        return DIDLinkedResourceWithMetadata(resource=resource, metadata=metadata)
+        return DIDLinkedResourceWithMetadata(
+            resource=result.get("contentStream"),
+            metadata=result.get("contentMetadata")
+        )
