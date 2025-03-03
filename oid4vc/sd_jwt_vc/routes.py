@@ -23,6 +23,7 @@ from marshmallow import fields
 from oid4vc.cred_processor import CredProcessors
 
 from oid4vc.models.supported_cred import SupportedCredential, SupportedCredentialSchema
+from oid4vc.routes import supported_cred_is_unique
 
 
 LOGGER = logging.getLogger(__name__)
@@ -150,6 +151,11 @@ async def supported_credential_create(request: web.Request):
     profile = context.profile
 
     body: Dict[str, Any] = await request.json()
+
+    if not await supported_cred_is_unique(body["id"], profile):
+        raise web.HTTPBadRequest(
+            reason=f"Record with identifier {body["id"]} already exists."
+        )
     LOGGER.info(f"body: {body}")
     body["identifier"] = body.pop("id")
     format_data = {}

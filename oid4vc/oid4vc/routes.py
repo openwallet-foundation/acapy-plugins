@@ -18,6 +18,7 @@ from acapy_agent.messaging.valid import (
 )
 from acapy_agent.storage.error import StorageError, StorageNotFoundError
 from acapy_agent.wallet.base import BaseWallet
+from acapy_agent.core.profile import Profile
 from acapy_agent.wallet.default_verification_key_strategy import (
     BaseVerificationKeyStrategy,
 )
@@ -538,18 +539,35 @@ class SupportedCredCreateRequestSchema(OpenAPISchema):
     )
 
 
+async def supported_cred_is_unique(identifier: str, profile: Profile):
+    """Check whether a record exists with a given identifier."""
+
+    async with profile.session() as session:
+        records = await SupportedCredential.query(
+            session, tag_filter={"identifier": identifier}
+        )
+
+    if len(records) > 0:
+        return False
+    return True
+
+
 @docs(tags=["oid4vci"], summary="Register a Oid4vci credential")
 @request_schema(SupportedCredCreateRequestSchema())
 @response_schema(SupportedCredentialSchema())
 @tenant_authentication
 async def supported_credential_create(request: web.Request):
     """Request handler for creating a credential supported record."""
-    context = request["context"]
-    assert isinstance(context, AdminRequestContext)
+    context: AdminRequestContext = request["context"]
     profile = context.profile
 
     body: Dict[str, Any] = await request.json()
     LOGGER.info(f"body: {body}")
+
+    if not await supported_cred_is_unique(body["id"], profile):
+        raise web.HTTPBadRequest(
+            reason=f"Record with identifier {body["id"]} already exists."
+        )
     body["identifier"] = body.pop("id")
 
     format_data: dict = body.get("format_data", {})
@@ -671,6 +689,13 @@ async def supported_credential_create_jwt(request: web.Request):
     profile = context.profile
 
     body: Dict[str, Any] = await request.json()
+
+    if not await supported_cred_is_unique(body["id"], profile):
+
+        raise web.HTTPBadRequest(
+            reason=f"Record with identifier {body["id"]} already exists."
+        )
+
     LOGGER.info(f"body: {body}")
     body["identifier"] = body.pop("id")
     format_data = {}
