@@ -460,6 +460,8 @@ async def get_request(request: web.Request):
     """Get an OID4VP Request token."""
     context: AdminRequestContext = request["context"]
     request_id = request.match_info["request_id"]
+    pres_def = None
+    dcql_query = None
 
     try:
         async with context.session() as session:
@@ -520,9 +522,9 @@ async def get_request(request: web.Request):
         "response_mode": "direct_post",
         "scope": "vp_token",
     }
-    if pres_def:
+    if pres_def is not None:
         payload["presentation_definition"] = pres_def.pres_def
-    if dcql_query:
+    if dcql_query is not None:
         payload["dcql_query"] = dcql_query.record_value
 
     headers = {

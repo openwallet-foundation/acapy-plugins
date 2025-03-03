@@ -7,11 +7,15 @@ from textwrap import dedent
 from aiohttp import web
 from aiohttp_apispec import (
     docs,
+    match_info_schema,
     request_schema,
     response_schema,
 )
 from acapy_agent.admin.decorators.auth import tenant_authentication
 from acapy_agent.admin.request_context import AdminRequestContext
+from acapy_agent.askar.profile import AskarProfileSession
+from acapy_agent.storage.error import StorageError, StorageNotFoundError
+from acapy_agent.messaging.models.base import BaseModelError
 from acapy_agent.messaging.models.openapi import OpenAPISchema
 from marshmallow import fields
 
@@ -19,6 +23,7 @@ from marshmallow import fields
 from oid4vc.cred_processor import CredProcessors
 
 from oid4vc.models.supported_cred import SupportedCredential, SupportedCredentialSchema
+from oid4vc.routes import supported_cred_is_unique
 
 
 LOGGER = logging.getLogger(__name__)
@@ -121,7 +126,7 @@ class SdJwtSupportedCredCreateReq(OpenAPISchema):
                 "/is_over_18",
                 "/is_over_21",
                 "/is_over_65",
-            ]
+            ],
         },
     )
 
@@ -146,6 +151,11 @@ async def supported_credential_create(request: web.Request):
     profile = context.profile
 
     body: Dict[str, Any] = await request.json()
+
+    if not await supported_cred_is_unique(body["id"], profile):
+        raise web.HTTPBadRequest(
+            reason=f"Record with identifier {body["id"]} already exists."
+        )
     LOGGER.info(f"body: {body}")
     body["identifier"] = body.pop("id")
     format_data = {}
@@ -180,12 +190,108 @@ async def supported_credential_create(request: web.Request):
     return web.json_response(record.serialize())
 
 
+class SupportedCredentialMatchSchema(OpenAPISchema):
+    """Match info for request taking credential supported id."""
+
+    supported_cred_id = fields.Str(
+        required=True,
+        metadata={
+            "description": "Credential supported identifier",
+        },
+    )
+
+
+async def supported_cred_update_helper(
+    record: SupportedCredential,
+    body: Dict[str, Any],
+    session: AskarProfileSession,
+) -> SupportedCredential:
+    """Helper method for updating a JWT Supported Credential Record."""
+    format_data = {}
+    vc_additional_data = {}
+
+    body["identifier"] = body.pop("id")
+
+    format_data["vct"] = body.pop("vct")
+    format_data["claims"] = body.pop("claims", None)
+    format_data["order"] = body.pop("order", None)
+    vc_additional_data["sd_list"] = body.pop("sd_list", None)
+
+    record.identifier = body["id"]
+    record.format = body["format"]
+    record.cryptographic_binding_methods_supported = body.get(
+        "cryptographic_binding_methods_supported", None
+    )
+    record.cryptographic_suites_supported = body.get(
+        "cryptographic_suites_supported", None
+    )
+    record.display = body.get("display", None)
+    record.format_data = format_data
+    record.vc_additional_data = vc_additional_data
+
+    await record.save(session)
+    return record
+
+
+@docs(
+    tags=["oid4vci"],
+    summary="Update a Supported Credential. "
+    "Expected to be a complete replacement of an SD JWT Supported Credential record, "
+    "i.e., optional values that aren't supplied will be `None`, rather than retaining "
+    "their original value.",
+)
+@match_info_schema(SupportedCredentialMatchSchema())
+@request_schema(SdJwtSupportedCredCreateReq())
+@response_schema(SupportedCredentialSchema())
+async def update_supported_credential_sd_jwt(request: web.Request):
+    """Update a JWT Supported Credential record."""
+
+    context: AdminRequestContext = request["context"]
+    body: Dict[str, Any] = await request.json()
+    supported_cred_id = request.match_info["supported_cred_id"]
+
+    LOGGER.info(f"body: {body}")
+    try:
+        async with context.session() as session:
+            record = await SupportedCredential.retrieve_by_id(
+                session, supported_cred_id
+            )
+
+            assert isinstance(session, AskarProfileSession)
+            record = await supported_cred_update_helper(record, body, session)
+
+    except StorageNotFoundError as err:
+        raise web.HTTPNotFound(reason=err.roll_up) from err
+    except (StorageError, BaseModelError) as err:
+        raise web.HTTPBadRequest(reason=err.roll_up) from err
+
+    registered_processors = context.inject(CredProcessors)
+    if record.format not in registered_processors.issuers:
+        raise web.HTTPBadRequest(
+            reason=f"Format {record.format} is not supported by"
+            " currently registered processors"
+        )
+
+    processor = registered_processors.issuer_for_format(record.format)
+    try:
+        processor.validate_supported_credential(record)
+    except ValueError as err:
+        raise web.HTTPBadRequest(reason=str(err)) from err
+
+    return web.json_response(record.serialize())
+
+
 async def register(app: web.Application):
     """Register routes."""
     app.add_routes(
         [
             web.post(
-                "/oid4vci/credential-supported/create/sd-jwt", supported_credential_create
+                "/oid4vci/credential-supported/create/sd-jwt",
+                supported_credential_create,
+            ),
+            web.put(
+                "/oid4vci/credential-supported/records/sd-jwt/{supported_cred_id}",
+                update_supported_credential_sd_jwt,
             ),
         ]
     )

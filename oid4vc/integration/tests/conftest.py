@@ -13,7 +13,7 @@ from oid4vci_client.client import OpenID4VCIClient
 ISSUER_ADMIN_ENDPOINT = getenv("ISSUER_ADMIN_ENDPOINT", "http://localhost:3001")
 
 
-@pytest_asyncio.fixture
+@pytest_asyncio.fixture(scope="session")
 async def controller():
     """Connect to Issuer."""
     controller = Controller(ISSUER_ADMIN_ENDPOINT)
@@ -27,7 +27,7 @@ def test_client():
     yield client
 
 
-@pytest_asyncio.fixture
+@pytest_asyncio.fixture(scope="session")
 async def issuer_did(controller: Controller):
     result = await controller.post(
         "/did/jwk/create",
@@ -40,7 +40,7 @@ async def issuer_did(controller: Controller):
     yield did
 
 
-@pytest_asyncio.fixture
+@pytest_asyncio.fixture(scope="session")
 async def supported_cred_id(controller: Controller, issuer_did: str):
     """Create a supported credential."""
     supported = await controller.post(
@@ -78,6 +78,7 @@ async def offer(controller: Controller, issuer_did: str, supported_cred_id: str)
     )
     yield offer
 
+
 @pytest_asyncio.fixture
 async def offer_by_ref(controller: Controller, issuer_did: str, supported_cred_id: str):
     """Create a credential offer."""
@@ -98,9 +99,7 @@ async def offer_by_ref(controller: Controller, issuer_did: str, supported_cred_i
 
     offer_ref = urlparse(offer_ref_full["credential_offer_uri"])
     offer_ref = parse_qs(offer_ref.query)["credential_offer"][0]
-    async with ClientSession(
-        headers=controller.headers
-    ) as session:
+    async with ClientSession(headers=controller.headers) as session:
         async with session.request(
             "GET", url=offer_ref, params=exchange_param, headers=controller.headers
         ) as offer:
@@ -244,9 +243,7 @@ async def sdjwt_offer_by_ref(
 
     offer_ref = urlparse(offer_ref_full["credential_offer_uri"])
     offer_ref = parse_qs(offer_ref.query)["credential_offer"][0]
-    async with ClientSession(
-        headers=controller.headers
-    ) as session:
+    async with ClientSession(headers=controller.headers) as session:
         async with session.request(
             "GET", url=offer_ref, params=exchange_param, headers=controller.headers
         ) as offer:
