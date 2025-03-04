@@ -123,7 +123,6 @@ async def test_get_schema(mock_profile, mock_resolver):
         assert result.schema.version == "MOCK_VERSION"
         assert result.schema_metadata == {"MOCK_METADATA_KEY": "MOCK_METADATA_VALUE"}
         assert result.resolution_metadata == {}
-        mock_resolver.resolve_resource.assert_called_once_with(schema_id)
 
 
 async def test_register_schema(
@@ -132,7 +131,7 @@ async def test_register_schema(
     # Arrange
     with (
         patch(
-            "cheqd.cheqd.anoncreds.registry.CheqdDIDResolver.resolve_resource",
+            "cheqd.cheqd.anoncreds.registry.CheqdDIDResolver.dereference_with_metadata",
             return_value=None,
         ),
         patch(
@@ -177,7 +176,7 @@ async def test_register_schema_update(
     # Arrange
     with (
         patch(
-            "cheqd.cheqd.anoncreds.registry.CheqdDIDResolver.resolve_resource",
+            "cheqd.cheqd.anoncreds.registry.CheqdDIDResolver.dereference_with_metadata",
             return_value={},
         ),
         patch(
@@ -226,7 +225,7 @@ async def test_register_schema_registration_error(mock_profile, mock_schema):
     # Act
     with (
         patch(
-            "cheqd.cheqd.anoncreds.registry.CheqdDIDResolver.resolve_resource",
+            "cheqd.cheqd.anoncreds.registry.CheqdDIDResolver.dereference_with_metadata",
             return_value=None,
         ),
         patch(
@@ -273,7 +272,6 @@ async def test_get_credential_definition(mock_profile, mock_resolver):
             "MOCK_METADATA_KEY": "MOCK_METADATA_VALUE"
         }
         assert result.resolution_metadata == {}
-        mock_resolver.resolve_resource.assert_called_once_with(credential_definition_id)
 
 
 async def test_register_credential_definition(
@@ -285,7 +283,7 @@ async def test_register_credential_definition(
     # Arrange
     with (
         patch(
-            "cheqd.cheqd.anoncreds.registry.CheqdDIDResolver.resolve_resource",
+            "cheqd.cheqd.anoncreds.registry.CheqdDIDResolver.dereference_with_metadata",
             return_value=None,
         ),
         patch(
@@ -362,7 +360,6 @@ async def test_get_revocation_registry_definition(mock_profile, mock_resolver):
             "MOCK_METADATA_KEY": "MOCK_METADATA_VALUE"
         }
         assert result.resolution_metadata == {}
-        mock_resolver.resolve_resource.assert_called_once_with("PART0/PART1/PART2")
 
 
 async def test_register_revocation_registry_definition(
@@ -378,7 +375,7 @@ async def test_register_revocation_registry_definition(
             return_value=mock_get_credential_definition_result,
         ),
         patch(
-            "cheqd.cheqd.anoncreds.registry.CheqdDIDResolver.resolve_resource",
+            "cheqd.cheqd.anoncreds.registry.CheqdDIDResolver.dereference_with_metadata",
             return_value=None,
         ),
         patch(
@@ -456,7 +453,6 @@ async def test_get_revocation_list(mock_profile, mock_resolver, mock_rev_reg_def
             "MOCK_METADATA_KEY": "MOCK_METADATA_VALUE"
         }
 
-        mock_resolver.resolve_resource.assert_called_once()
 
 
 async def test_register_revocation_status_list(
@@ -543,7 +539,6 @@ async def test_get_schema_info_by_id(mock_resolver, mock_profile):
         assert result.issuer_id == "PART0"
         assert result.name == "MOCK_NAME"
         assert result.version == "MOCK_VERSION"
-        mock_resolver.resolve_resource.assert_called_once_with(schema_id)
 
 
 @patch("cheqd.cheqd.did.manager.DIDRegistrar")

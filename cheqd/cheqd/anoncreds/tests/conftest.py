@@ -20,8 +20,8 @@ def mock_profile():
 @pytest.fixture
 def mock_resolver():
     mock_resolver = AsyncMock()
-    mock_resolver.resolve_resource.return_value = MagicMock()
-    mock_resolver.resolve_resource.return_value.resource = {
+    mock_resolver.dereference_with_metadata.return_value = MagicMock()
+    mock_resolver.dereference_with_metadata.return_value.resource = {
         "attrNames": "MOCK_ATTR_NAMES",
         "name": "MOCK_NAME",
         "version": "MOCK_VERSION",
@@ -34,7 +34,7 @@ def mock_resolver():
         "revocationList": [0, 1, 0],
         "currentAccumulator": "MOCK_ACCUMULATOR",
     }
-    mock_resolver.resolve_resource.return_value.metadata = {
+    mock_resolver.dereference_with_metadata.return_value.metadata = {
         "MOCK_METADATA_KEY": "MOCK_METADATA_VALUE"
     }
 
