@@ -14,7 +14,7 @@ from acapy_agent.resolver.base import (
 )
 from aiohttp import ClientSession
 from pydid import DIDDocument
-from pydantic import BaseModel
+from pydantic import BaseModel, ValidationError
 
 from ..validation import CheqdDID
 
@@ -103,15 +103,18 @@ class CheqdDIDResolver(BaseDIDResolver):
         did_doc_resp = resolver_resp.get("didDocument")
         did_doc_metadata = resolver_resp.get("didDocumentMetadata")
 
-        did_doc = DIDDocument.from_json(json.dumps(did_doc_resp))
-        result = did_doc.serialize()
-        # Check if 'deactivated' field is present in didDocumentMetadata
-        if (
-                did_doc_metadata
-                and did_doc_metadata.get("deactivated") is True
-        ):
-            result["deactivated"] = True
-        return result
+        try:
+            did_doc = DIDDocument.from_json(json.dumps(did_doc_resp))
+            result = did_doc.serialize()
+            # Check if 'deactivated' field is present in didDocumentMetadata
+            if (
+                    did_doc_metadata
+                    and did_doc_metadata.get("deactivated") is True
+            ):
+                result["deactivated"] = True
+            return result
+        except Exception as err:
+            raise ResolverError("Response was incorrectly formatted") from err
 
     async def dereference_with_metadata(
             self,
@@ -125,9 +128,11 @@ class CheqdDIDResolver(BaseDIDResolver):
             did_url,
             [f"Accept: {DID_URL_DEREFERENCING_HEADER}"]
         )
-
-        validated_resp = DIDUrlDereferencingResult(**result)
-        return DIDLinkedResourceWithMetadata(
-            resource=validated_resp.contentStream,
-            metadata=validated_resp.contentMetadata
-        )
+        try:
+            validated_resp = DIDUrlDereferencingResult(**result)
+            return DIDLinkedResourceWithMetadata(
+                resource=validated_resp.contentStream,
+                metadata=validated_resp.contentMetadata
+            )
+        except ValidationError:
+            raise ResolverError("DidUrlDereferencing result was incorrectly formatted")
