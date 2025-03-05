@@ -167,7 +167,6 @@ class DIDCheqdRegistry(BaseAnonCredsResolver, BaseAnonCredsRegistrar):
         resource_name = f"{schema.name}"
         resource_version = schema.version
 
-        LOGGER.debug("Registering schema")
         try:
             # check if schema already exists
             try:
@@ -209,7 +208,6 @@ class DIDCheqdRegistry(BaseAnonCredsResolver, BaseAnonCredsRegistrar):
                     cheqd_schema,
                 )
             else:
-                LOGGER.debug("CREATING SCHEMA")
                 cheqd_schema = ResourceCreateRequestOptions(
                     options=Options(
                         name=resource_name,

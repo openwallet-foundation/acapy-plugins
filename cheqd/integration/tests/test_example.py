@@ -12,6 +12,7 @@ from .helpers import (
     create_credential_definition,
     create_did,
     create_schema,
+    update_schema,
     deactivate_did,
     issue_credential_v2,
     load_did,
@@ -85,6 +86,14 @@ async def test_create_schema_and_credential_definition(shared_schema):
         await assert_credential_definitions(issuer, credential_definition_id)
         await assert_wallet_dids(issuer, did)
         assert credential_definition_id is not None
+
+@pytest.mark.asyncio
+async def test_update_schema():
+    """Test Update Schema."""
+    did = load_did()
+
+    async with Controller(base_url=ISSUER) as issuer:
+        await update_schema(issuer, did)
 
 
 @pytest.mark.asyncio

@@ -232,6 +232,31 @@ async def create_schema(issuer, did):
 
     return schema_id
 
+async def update_schema(issuer, did):
+    """Update a schema on the Cheqd testnet."""
+    schema_create_result = await issuer.post(
+        "/anoncreds/schema",
+        json={
+            "schema": {
+                "attrNames": ["score", "name"],
+                "issuerId": did,
+                "name": "Example schema",
+                "version": "2.0",
+            }
+        },
+    )
+    print(f"Created schema: {format_json(schema_create_result)}")
+    schema_state = schema_create_result.get("schema_state")
+    assert schema_state.get("state") == "finished", "Schema state is not finished."
+    assert "schema_id" in schema_state, "Key 'schema_id' is missing in schema_state."
+
+    schema_id = schema_state.get("schema_id")
+    assert did in schema_id, (
+        f"schema_id does not contain the expected DID. Expected '{did}' in '{schema_id}'."
+    )
+
+    return schema_id
+
 
 async def create_credential_definition(
     issuer,
