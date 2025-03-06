@@ -134,8 +134,7 @@ class DIDCheqdRegistry(BaseAnonCredsResolver, BaseAnonCredsRegistrar):
     async def get_schema(self, _profile: Profile, schema_id: str) -> GetSchemaResult:
         """Get a schema from the registry."""
         resource_with_metadata = await self.resolver.dereference_with_metadata(
-            _profile,
-            schema_id
+            _profile, schema_id
         )
         schema = resource_with_metadata.resource
         metadata = resource_with_metadata.metadata
@@ -172,7 +171,7 @@ class DIDCheqdRegistry(BaseAnonCredsResolver, BaseAnonCredsRegistrar):
             try:
                 existing_schema = await self.resolver.dereference_with_metadata(
                     profile,
-                    f"{schema.issuer_id}?resourceName={resource_name}&resourceType={resource_type}"
+                    f"{schema.issuer_id}?resourceName={resource_name}&resourceType={resource_type}",
                 )
             except DIDNotFound:
                 existing_schema = None
@@ -257,8 +256,7 @@ class DIDCheqdRegistry(BaseAnonCredsResolver, BaseAnonCredsRegistrar):
     ) -> GetCredDefResult:
         """Get a credential definition from the registry."""
         resource_with_metadata = await self.resolver.dereference_with_metadata(
-            _profile,
-            credential_definition_id
+            _profile, credential_definition_id
         )
         credential_definition = resource_with_metadata.resource
         metadata = resource_with_metadata.metadata
@@ -337,8 +335,7 @@ class DIDCheqdRegistry(BaseAnonCredsResolver, BaseAnonCredsRegistrar):
     ) -> GetRevRegDefResult:
         """Get a revocation registry definition from the registry."""
         resource_with_metadata = await self.resolver.dereference_with_metadata(
-            _profile,
-            revocation_registry_id
+            _profile, revocation_registry_id
         )
         revocation_registry_definition = resource_with_metadata.resource
         metadata = resource_with_metadata.metadata
@@ -441,7 +438,7 @@ class DIDCheqdRegistry(BaseAnonCredsResolver, BaseAnonCredsRegistrar):
         resource_time = dt_object.strftime("%Y-%m-%dT%H:%M:%SZ")
         resource_with_metadata = await self.resolver.dereference_with_metadata(
             profile,
-            f"{did}?resourceType={resource_type}&resourceName={resource_name}&resourceVersionTime={resource_time}"
+            f"{did}?resourceType={resource_type}&resourceName={resource_name}&resourceVersionTime={resource_time}",
         )
         status_list = resource_with_metadata.resource
         metadata = resource_with_metadata.metadata
@@ -465,8 +462,7 @@ class DIDCheqdRegistry(BaseAnonCredsResolver, BaseAnonCredsRegistrar):
     ) -> AnoncredsSchemaInfo:
         """Get a schema info from the registry."""
         resource_with_metadata = await self.resolver.dereference_with_metadata(
-            profile,
-            schema_id
+            profile, schema_id
         )
         schema = resource_with_metadata.resource
         (did, resource_id) = self.split_did_url(schema_id)

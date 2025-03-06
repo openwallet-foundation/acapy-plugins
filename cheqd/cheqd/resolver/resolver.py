@@ -18,12 +18,14 @@ from pydantic import BaseModel, ValidationError
 
 from ..validation import CheqdDID
 
+
 @dataclass
 class DIDLinkedResourceWithMetadata:
     """Schema for DID Linked Resource with metadata."""
 
     resource: dict
     metadata: dict
+
 
 class DIDUrlDereferencingResult(BaseModel):
     """DID Url Dereferencing Result with Metadata."""
@@ -36,8 +38,11 @@ class DIDUrlDereferencingResult(BaseModel):
 
         extra = "allow"
 
+
 DID_RESOLUTION_HEADER = "application/ld+json;profile=https://w3id.org/did-resolution"
-DID_URL_DEREFERENCING_HEADER = "application/ld+json;profile=https://w3id.org/did-url-dereferencing"
+DID_URL_DEREFERENCING_HEADER = (
+    "application/ld+json;profile=https://w3id.org/did-url-dereferencing"
+)
 
 
 class CheqdDIDResolver(BaseDIDResolver):
@@ -107,32 +112,25 @@ class CheqdDIDResolver(BaseDIDResolver):
             did_doc = DIDDocument.from_json(json.dumps(did_doc_resp))
             result = did_doc.serialize()
             # Check if 'deactivated' field is present in didDocumentMetadata
-            if (
-                    did_doc_metadata
-                    and did_doc_metadata.get("deactivated") is True
-            ):
+            if did_doc_metadata and did_doc_metadata.get("deactivated") is True:
                 result["deactivated"] = True
             return result
         except Exception as err:
             raise ResolverError("Response was incorrectly formatted") from err
 
     async def dereference_with_metadata(
-            self,
-            profile: Profile,
-            did_url: str
+        self, profile: Profile, did_url: str
     ) -> DIDLinkedResourceWithMetadata:
         """Resolve a Cheqd DID Linked Resource and its Metadata."""
         # Fetch the main resource
         result = await self._resolve(
-            profile,
-            did_url,
-            [f"Accept: {DID_URL_DEREFERENCING_HEADER}"]
+            profile, did_url, [f"Accept: {DID_URL_DEREFERENCING_HEADER}"]
         )
         try:
             validated_resp = DIDUrlDereferencingResult(**result)
             return DIDLinkedResourceWithMetadata(
                 resource=validated_resp.contentStream,
-                metadata=validated_resp.contentMetadata
+                metadata=validated_resp.contentMetadata,
             )
         except ValidationError:
             raise ResolverError("DidUrlDereferencing result was incorrectly formatted")

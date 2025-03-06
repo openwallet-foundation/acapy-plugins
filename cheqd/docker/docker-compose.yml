@@ -23,7 +23,7 @@ services:
       - driver-did-cheqd
 
   driver-did-cheqd:
-    image: ghcr.io/cheqd/did-registrar:staging-latest
+    image: ghcr.io/cheqd/did-registrar:production-latest
     ports:
       - "9089:3000"
     restart: on-failure
