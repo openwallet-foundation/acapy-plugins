@@ -72,6 +72,11 @@ const presentationCache = new NodeCache({ stdTTL: 300, checkperiod: 400 });
 
 const API_BASE_URL = process.env.API_BASE_URL || "http://localhost:3001";
 const API_KEY = process.env.API_KEY;
+let jwtVcSupportedCredCreated = false;
+let sdJwtSupportedCredCreated = false;
+let jwtVcSupportedCredID = "";
+let sdJwtSupportedCredID = "";
+
 
 //    ###     ######     ###            ########  ##    ##
 //   ## ##   ##    ##   ## ##           ##     ##  ##  ##
@@ -168,14 +173,18 @@ async function issue_jwt_credential(req, res) {
     }),
   };
 
-  events.emit(`issuance-${req.body.registrationId}`, {type: "message", message: `Posting Create Credential Request to: ${createCredentialSupportedUrl}`});
-  events.emit(`issuance-${req.body.registrationId}`, {type: "debug-message", message: "Request options", data: createCredentialSupportedOptions});
-  const supportedCredentialData = await fetchApiData(
-    createCredentialSupportedUrl,
-    createCredentialSupportedOptions
-  );
+  if (!jwtVcSupportedCredCreated){
+    events.emit(`issuance-${req.body.registrationId}`, {type: "message", message: `Posting Create Credential Request to: ${createCredentialSupportedUrl}`});
+    events.emit(`issuance-${req.body.registrationId}`, {type: "debug-message", message: "Request options", data: createCredentialSupportedOptions});
+    const supportedCredentialData = await fetchApiData(
+      createCredentialSupportedUrl,
+      createCredentialSupportedOptions
+    );
+    jwtVcSupportedCredID = supportedCredentialData.supported_cred_id;
+    jwtVcSupportedCredCreated = true;
+  }
+  
 
-  const supportedCredId = supportedCredentialData.supported_cred_id;
 
 
   // Create DID for issuance
@@ -195,7 +204,7 @@ async function issue_jwt_credential(req, res) {
   const { did } = didData;
   events.emit(`issuance-${req.body.registrationId}`, {type: "message", message: `Created DID: ${did}`});
   logger.info(did);
-  logger.info(supportedCredId);
+  logger.info(jwtVcSupportedCredID);
 
 
   // Create Credential Exchange records
@@ -203,7 +212,7 @@ async function issue_jwt_credential(req, res) {
   const exchangeCreateOptions = {
     credential_subject: { id: req.body.registrationId, first_name: firstName, last_name: lastName, email },
     verification_method: did+"#0",
-    supported_cred_id: supportedCredId,
+    supported_cred_id: jwtVcSupportedCredID,
   };
   events.emit(`issuance-${req.body.registrationId}`, {type: "message", message: "Generating Credential Exchange."});
   events.emit(`issuance-${req.body.registrationId}`, {type: "message", message: `Posting Credential Exchange Creation Request to: ${exchangeCreateUrl}`});
@@ -245,7 +254,7 @@ async function issue_jwt_credential(req, res) {
 
   events.emit(`issuance-${req.body.registrationId}`, {type: "message", message: `Sending offer to user: ${qrcode}`});
   events.emit(`issuance-${req.body.registrationId}`, {type: "qrcode", credentialOffer, exchangeId, qrcode});
-  exchangeCache.set(exchangeId, { exchangeId, credentialOffer, did, supportedCredId, registrationId: req.body.registrationId });
+  exchangeCache.set(exchangeId, { exchangeId, credentialOffer, did, jwtVcSupportedCredID, registrationId: req.body.registrationId });
 
   // Polling for the credential is an option at this stage, but we opt to just listen for the appropriate webhook instead
   events.emit(`issuance-${req.body.registrationId}`, {type: "message", message: "Begin listening for credential to be issued."});
@@ -363,14 +372,17 @@ async function issue_sdjwt_credential(req, res) {
     }),
   };
 
-  events.emit(`issuance-${req.body.registrationId}`, {type: "message", message: `Posting Create Credential Request to: ${createCredentialSupportedUrl}`});
-  events.emit(`issuance-${req.body.registrationId}`, {type: "debug-message", message: "Request options", data: createCredentialSupportedOptions});
-  const supportedCredentialData = await fetchApiData(
-    createCredentialSupportedUrl,
-    createCredentialSupportedOptions
-  );
+  if (!sdJwtSupportedCredCreated){
 
-  const supportedCredId = supportedCredentialData.supported_cred_id;
+    events.emit(`issuance-${req.body.registrationId}`, {type: "message", message: `Posting Create Credential Request to: ${createCredentialSupportedUrl}`});
+    events.emit(`issuance-${req.body.registrationId}`, {type: "debug-message", message: "Request options", data: createCredentialSupportedOptions});
+    const supportedCredentialData = await fetchApiData(
+      createCredentialSupportedUrl,
+      createCredentialSupportedOptions
+    );
+    sdJwtSupportedCredID = supportedCredentialData.supported_cred_id;
+    sdJwtSupportedCredCreated = true;
+  }
 
 
   // Create DID for issuance
@@ -390,7 +402,7 @@ async function issue_sdjwt_credential(req, res) {
   const { did } = didData;
   events.emit(`issuance-${req.body.registrationId}`, {type: "message", message: `Created DID: ${did}`});
   logger.info(did);
-  logger.info(supportedCredId);
+  logger.info(sdJwtSupportedCredID);
 
 
   // Create Credential Exchange records
@@ -398,7 +410,7 @@ async function issue_sdjwt_credential(req, res) {
   const exchangeCreateOptions = {
     did: did,
     verification_method: did+"#0",
-    supported_cred_id: supportedCredId,
+    supported_cred_id: sdJwtSupportedCredID,
     credential_subject: {
       given_name: firstName,
       family_name: lastName,
@@ -454,7 +466,7 @@ async function issue_sdjwt_credential(req, res) {
 
   events.emit(`issuance-${req.body.registrationId}`, {type: "message", message: `Sending offer to user: ${qrcode}`});
   events.emit(`issuance-${req.body.registrationId}`, {type: "qrcode", credentialOffer, exchangeId, qrcode});
-  exchangeCache.set(exchangeId, { exchangeId, credentialOffer, did, supportedCredId, registrationId: req.body.registrationId });
+  exchangeCache.set(exchangeId, { exchangeId, credentialOffer, did, sdJwtSupportedCredID, registrationId: req.body.registrationId });
 
   // Polling for the credential is an option at this stage, but we opt to just listen for the appropriate webhook instead
   events.emit(`issuance-${req.body.registrationId}`, {type: "message", message: "Begin listening for credential to be issued."});

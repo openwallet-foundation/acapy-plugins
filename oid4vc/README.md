@@ -193,7 +193,7 @@ The Plugin expects the following configuration options. These options can either
 
 ### Creating Supported Credential Records
 
-To issue a credential using OpenID4VCI, the Issuer must first prepare credential issuer metadata including which credentials the Issuer can issue. Below is an example payload to the `POST /oid4vci/credential-supported/create` endpoint:
+To issue a credential using OpenID4VCI, the Issuer must first prepare credential issuer metadata including which credentials the Issuer can issue. Below is an example payload to the `POST /oid4vci/credential-supported/create/jwt` endpoint:
 
 ```json
 {
@@ -216,56 +216,48 @@ To issue a credential using OpenID4VCI, the Issuer must first prepare credential
     }
   ],
   "format": "jwt_vc_json",
-  "format_data": {
-    "credentialSubject": {
-      "degree": {},
-      "given_name": {
-        "display": [
-          {
-            "name": "Given Name",
-            "locale": "en-US"
-          }
-        ]
-      },
-      "gpa": {
-        "display": [
-          {
-            "name": "GPA"
-          }
-        ]
-      },
-      "last_name": {
-        "display": [
-          {
-            "name": "Surname",
-            "locale": "en-US"
-          }
-        ]
-      }
+  "credentialSubject": {
+    "degree": {},
+    "given_name": {
+      "display": [
+        {
+          "name": "Given Name",
+          "locale": "en-US"
+        }
+      ]
     },
-    "types": [
-      "VerifiableCredential",
-      "UniversityDegreeCredential"
-    ]
+    "gpa": {
+      "display": [
+        {
+          "name": "GPA"
+        }
+      ]
+    },
+    "last_name": {
+      "display": [
+        {
+          "name": "Surname",
+          "locale": "en-US"
+        }
+      ]
+    }
   },
+  "type": [
+    "VerifiableCredential",
+    "UniversityDegreeCredential"
+  ],
   "id": "UniversityDegreeCredential",
-  "vc_additional_data": {
-    "@context": [
-      "https://www.w3.org/2018/credentials/v1",
-      "https://www.w3.org/2018/credentials/examples/v1"
-    ],
-    "type": [
-      "VerifiableCredential",
-      "UniversityDegreeCredential"
-    ]
-  }
+  "@context": [
+    "https://www.w3.org/2018/credentials/v1",
+    "https://www.w3.org/2018/credentials/examples/v1"
+  ],
 }
 ```
 
 For the `id`, `format`, `cryptographic_binding_supported`, `cryptographic_suites_supported`, and `display` attributes, see the [OpenID4VCI Specification, Section 10.2.3][oid4vci].
 
-- `format_data`: This attribute represents data specific to a given credential format. In this Supported Credential, which is of format `jwt_vc_json`, this includes `types` (required for JWT-VC) and `credentialSubject` (which represents display characteristics of the credential only and is not an exhaustive list of the credential attributes). These values are reported in the credential issuer metadata.
-- `vc_additional_data`: This attribute represents data that is included in all credentials of this type. In this Supported Credential, this includes the `@context` of credential to be issued as well as the `type`. These values are NOT reported in the credential issuer metadata.
+- `type` is a required attribute for JWT-VC (recorded as `types` in the `SupportedCredential.format_data` dictionary), and `credentialSubject` represents display characteristics of the credential only and is not an exhaustive list of the credential attributes. These values are reported in the credential issuer metadata.
+- The `@context` of credential to be issued, as well as the `type` are stored in the `SupportedCredential.vc_additional_data` dictionary. These values are NOT reported in the credential issuer metadata.
 
 When the Controller sets up a Supported Credential record using the Admin API, the holder, upon requesting Credential Issuer Metadata, will receive the following information in response:
 
@@ -356,9 +348,8 @@ poetry run pytest tests/
 This plugin includes two sets of integration tests:
 
 - Tests against a minimal OpenID4VCI Client written in Python
-- Tests against AFJ + OpenID4VCI Client Package (not complete!)
-
-AFJ has an active PR working on adding support for Draft 11 version of the OpenID4VCI specification. Until that PR is in and available in a release, these tests are incomplete and ignored.
+- Interop Tests against Credo and Sphereon
+  - The interop tests require an https endpoint, so they aren't run with the regular integration tests. See `integration/README.md` for instructions on running the interop tests
 
 To run the integration tests:
 
@@ -373,9 +364,8 @@ For Apple Silicon, the `DOCKER_DEFAULT_PLATFORM=linux/amd64` environment variabl
 
 ## Not Implemented
 
-- `ldp_vc`, `sd_jwt_vc`
+- `ldp_vc`
 - Authorization Code Flow
-- Only signature suite supported by ACA-Py for jwt-vc right now is `EdDSA`
 - GET /.well-known/openid-configuration
 - GET /.well-known/oauth-authorization-server
 - Batch Credential Issuance
