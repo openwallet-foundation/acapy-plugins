@@ -45,12 +45,12 @@ from acapy_agent.wallet.jwt import dict_to_b64
 from pydantic import BaseModel
 
 from ..did.base import (
+    DidUrlActionState,
+    Options,
     ResourceCreateRequestOptions,
     ResourceUpdateRequestOptions,
     Secret,
     SubmitSignatureOptions,
-    DidUrlActionState,
-    Options,
 )
 from ..did.helpers import CheqdAnoncredsResourceType
 from ..did.manager import CheqdDIDManager

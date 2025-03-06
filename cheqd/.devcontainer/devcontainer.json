@@ -36,8 +36,7 @@
           "enable": true
         },
         "ruff.fixAll": true,
-        "ruff.format.args": ["--config=./pyproject.toml"],
-        "ruff.lint.args": ["--config=./pyproject.toml"]
+        "ruff.configuration": "./pyproject.toml"
       }
     }
   },

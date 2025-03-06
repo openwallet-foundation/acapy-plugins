@@ -17,4 +17,4 @@ RUN poetry install --only main
 # add tests to image
 COPY tests/* tests/
 
-ENTRYPOINT ["/bin/sh", "-c", "/wait && poetry run pytest \"$@\"", "--"]
+ENTRYPOINT ["/bin/sh", "-c", "/wait && sleep 10 && poetry run pytest \"$@\"", "--"]

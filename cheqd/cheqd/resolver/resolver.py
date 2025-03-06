@@ -13,8 +13,8 @@ from acapy_agent.resolver.base import (
     ResolverType,
 )
 from aiohttp import ClientSession
-from pydid import DIDDocument
 from pydantic import BaseModel, ValidationError
+from pydid import DIDDocument
 
 from ..validation import CheqdDID
 
