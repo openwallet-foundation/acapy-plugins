@@ -267,7 +267,55 @@ updates:
 
   # Maintain dependencies for Python Packages
   - package-ecosystem: "pip"
+    directory: "/hedera/integration"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "04:00"
+      timezone: "Canada/Pacific"
+    ignore:
+      - dependency-name: "*"
+        update-types: ["version-update:semver-major"]
+
+  # Maintain dependencies for Python Packages
+  - package-ecosystem: "pip"
+    directory: "/hedera"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "04:00"
+      timezone: "Canada/Pacific"
+    ignore:
+      - dependency-name: "*"
+        update-types: ["version-update:semver-major"]
+
+  # Maintain dependencies for Python Packages
+  - package-ecosystem: "pip"
     directory: "/connections/integration"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "04:00"
+      timezone: "Canada/Pacific"
+    ignore:
+      - dependency-name: "*"
+        update-types: ["version-update:semver-major"]
+
+  # Maintain dependencies for Python Packages
+  - package-ecosystem: "pip"
+    directory: "/webvh"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "04:00"
+      timezone: "Canada/Pacific"
+    ignore:
+      - dependency-name: "*"
+        update-types: ["version-update:semver-major"]
+
+  # Maintain dependencies for Python Packages
+  - package-ecosystem: "pip"
+    directory: "/webvh/integration"
     schedule:
       interval: "weekly"
       day: "monday"
@@ -666,7 +714,52 @@ updates:
 
   # Maintain dependencies for docker
   - package-ecosystem: "docker"
+    directory: "/connections/docker"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "04:00"
+      timezone: "Canada/Pacific"
+
+  # Maintain dependencies for docker
+  - package-ecosystem: "docker"
     directory: "/connections/integration"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "04:00"
+      timezone: "Canada/Pacific"
+
+  # Maintain dependencies for docker
+  - package-ecosystem: "docker"
+    directory: "/hedera/docker"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "04:00"
+      timezone: "Canada/Pacific"
+
+  # Maintain dependencies for docker
+  - package-ecosystem: "docker"
+    directory: "/hedera/integration"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "04:00"
+      timezone: "Canada/Pacific"
+
+  # Maintain dependencies for docker
+  - package-ecosystem: "docker"
+    directory: "/webvh/docker"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "04:00"
+      timezone: "Canada/Pacific"
+
+  # Maintain dependencies for docker
+  - package-ecosystem: "docker"
+    directory: "/webvh/integration"
     schedule:
       interval: "weekly"
       day: "monday"
