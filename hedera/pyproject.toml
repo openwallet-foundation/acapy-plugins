@@ -11,8 +11,7 @@ python = "^3.12"
 # explicitly installed with the plugin if desired.
 acapy-agent = { version = "~1.2.2", optional = true }
 
-hiero-did-sdk-python = { git = "https://github.com/hiero-ledger/hiero-did-sdk-python", branch="main" }
-# Define ACA-Py as an optional/extra dependancy so it can be
+hiero-did-sdk-python = { git = "https://github.com/hiero-ledger/hiero-did-sdk-python", branch = "main" }
 
 [tool.poetry.extras]
 aca-py = ["acapy-agent"]
@@ -58,6 +57,7 @@ ignore = [
 
 [tool.ruff.lint.per-file-ignores]
 "**/{tests}/*" = ["F841", "D", "E501"]
+"**/{demo}/*" = ["F841", "D", "E501"]
 
 [tool.pytest.ini_options]
 testpaths = "hedera"
@@ -86,4 +86,3 @@ output = ".test-reports/coverage.xml"
 [build-system]
 requires = ["setuptools", "poetry-core>=1.2"]
 build-backend = "poetry.core.masonry.api"
-
