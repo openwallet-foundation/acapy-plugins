@@ -25,7 +25,7 @@ async def test_resolve(resolver, resolve_url, did):
         mocked.get(resolve_url, status=200, payload=mock_response)
 
         # Act
-        did_doc = await resolver._resolve(None, did)
+        did_doc = await resolver.resolve(None, did)
 
         # Assert
         assert did_doc == {
@@ -46,7 +46,7 @@ async def test_resolve_deactivated(resolver, resolve_url, did):
         mocked.get(resolve_url, status=200, payload=mock_response)
 
         # Act
-        did_doc = await resolver._resolve(None, did)
+        did_doc = await resolver.resolve(None, did)
 
         # Assert
         assert did_doc == {
@@ -69,7 +69,7 @@ async def test_resolve_incorrectly_formatted(resolver, resolve_url, did):
 
         # Act
         with pytest.raises(Exception) as excinfo:
-            await resolver._resolve(None, did)
+            await resolver.resolve(None, did)
 
         # Assert
         assert str(excinfo.value) == "Response was incorrectly formatted"
@@ -84,7 +84,7 @@ async def test_resolve_path_not_found(resolver, resolve_url, did):
 
         # Act
         with pytest.raises(Exception) as excinfo:
-            await resolver._resolve(None, did)
+            await resolver.resolve(None, did)
 
         # Assert
         assert str(excinfo.value) == f"No document found for {did}"
@@ -94,11 +94,9 @@ async def test_resolve_path_not_found(resolver, resolve_url, did):
 @pytest.mark.asyncio
 async def test_resolve_resource(resolver, resolve_resource_params):
     # Arrange
-    mock_response = {"MOCK_KEY": "MOCK_VALUE"}
-    mock_metadata_response = {
-        "contentStream": {
-            "linkedResourceMetadata": [{"MOCK_METADATA_KEY": "MOCK_METADATA_VALUE"}]
-        }
+    mock_response = {
+        "contentStream": {"MOCK_KEY": "MOCK_VALUE"},
+        "contentMetadata": {"MOCK_METADATA_KEY": "MOCK_METADATA_VALUE"}
     }
     did_resource, resolve_resource_url, resolve_resource_metadata_url = (
         resolve_resource_params
@@ -106,12 +104,9 @@ async def test_resolve_resource(resolver, resolve_resource_params):
 
     with aioresponses() as mocked:
         mocked.get(resolve_resource_url, status=200, payload=mock_response)
-        mocked.get(
-            resolve_resource_metadata_url, status=200, payload=mock_metadata_response
-        )
 
         # Act
-        response = await resolver.resolve_resource(did_resource)
+        response = await resolver.dereference_with_metadata(None, did_resource)
 
         # Assert
         assert response is not None
@@ -129,7 +124,7 @@ async def test_resolve_resource_incorrectly_formatted(resolver, resolve_resource
 
         # Act
         with pytest.raises(Exception) as excinfo:
-            await resolver.resolve_resource(did_resource)
+            await resolver.dereference_with_metadata(None, did_resource)
 
         # Assert
         assert str(excinfo.value) == "Response was incorrectly formatted"
@@ -146,10 +141,10 @@ async def test_resolve_resource_path_not_found(resolver, resolve_resource_params
 
         # Act
         with pytest.raises(Exception) as excinfo:
-            await resolver.resolve_resource(did_resource)
+            await resolver.dereference_with_metadata(None, did_resource)
 
         # Assert
-        assert str(excinfo.value) == f"No resource found for {did_resource}"
+        assert str(excinfo.value) == f"No document found for {did_resource}"
         assert isinstance(excinfo.value, DIDNotFound)
 
 
@@ -158,43 +153,21 @@ async def test_resolve_resource_metadata_incorrectly_formatted(
     resolver, resolve_resource_params
 ):
     # Arrange
-    mock_response = {"MOCK_KEY": "MOCK_VALUE"}
+    mock_response = {
+        "contentStream": {"MOCK_KEY": "MOCK_VALUE"},
+        "contentMetadata": "MOCK_VALUE"
+    }
     did_resource, resolve_resource_url, resolve_resource_metadata_url = (
         resolve_resource_params
     )
 
     with aioresponses() as mocked:
         mocked.get(resolve_resource_url, status=200, payload=mock_response)
-        mocked.get(
-            resolve_resource_metadata_url, status=200, body="Invalid JSON Response"
-        )
 
         # Act
         with pytest.raises(Exception) as excinfo:
-            await resolver.resolve_resource(did_resource)
+            await resolver.dereference_with_metadata(None, did_resource)
 
         # Assert
-        assert str(excinfo.value) == "Metadata response was incorrectly formatted"
+        assert str(excinfo.value) == "DidUrlDereferencing result was incorrectly formatted"
         assert isinstance(excinfo.value, ResolverError)
-
-
-@pytest.mark.asyncio
-async def test_resolve_resource_metadata_path_not_found(
-    resolver, resolve_resource_params
-):
-    # Arrange
-    mock_response = {"MOCK_KEY": "MOCK_VALUE"}
-    did_resource, resolve_resource_url, resolve_resource_metadata_url = (
-        resolve_resource_params
-    )
-    with aioresponses() as mocked:
-        mocked.get(resolve_resource_url, status=200, payload=mock_response)
-        mocked.get(resolve_resource_metadata_url, status=404)
-
-        # Act
-        with pytest.raises(Exception) as excinfo:
-            await resolver.resolve_resource(did_resource)
-
-        # Assert
-        assert str(excinfo.value) == f"No metadata found for {did_resource}"
-        assert isinstance(excinfo.value, DIDNotFound)
