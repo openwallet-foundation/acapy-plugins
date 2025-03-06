@@ -1,24 +1,24 @@
 """Status list publisher controller."""
 
-import os
 import logging
+import os
 from typing import Any, Dict
-from aiohttp import web
-from aiohttp_apispec import docs, request_schema, response_schema, match_info_schema
-from marshmallow import fields
-from marshmallow.validate import OneOf
 
 from acapy_agent.admin.decorators.auth import tenant_authentication
 from acapy_agent.admin.request_context import AdminRequestContext
 from acapy_agent.core.error import BaseError
 from acapy_agent.messaging.models.base import BaseModelError
-from acapy_agent.storage.error import StorageError, StorageNotFoundError
 from acapy_agent.messaging.models.openapi import OpenAPISchema
+from acapy_agent.storage.error import StorageError, StorageNotFoundError
+from aiohttp import web
+from aiohttp_apispec import docs, match_info_schema, request_schema, response_schema
+from marshmallow import fields
+from marshmallow.validate import OneOf
 
-from ..models import StatusListDef
-from ..jwt import jwt_sign
-from ..config import Config
 from .. import status_handler
+from ..config import Config
+from ..jwt import jwt_sign
+from ..models import StatusListDef
 
 LOGGER = logging.getLogger(__name__)
 
@@ -46,7 +46,7 @@ class PublishStatusListSchema(OpenAPISchema):
         required=False,
         metadata={
             "description": "verification method",
-            "example": "did:web:dev.lab.di.gov.on.ca#z6Mkgg342Ycpuk263R9d8Aq6MUaxPn1DDeHyGo38EefXmgDL",
+            "example": "did:web:dev.lab.di.gov.on.ca#z6Mkgg342Ycpuk263R9d8Aq6MUaxPn1DDeHyGo38EefXmgDL",  # noqa: E501
         },
     )
     status_type = fields.Str(

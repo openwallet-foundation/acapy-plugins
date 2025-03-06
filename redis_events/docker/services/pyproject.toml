@@ -7,17 +7,17 @@ authors = ["Shaanjot Gill <gill.shaanjots@gmail.com>"]
 [tool.poetry.dependencies]
 python = "^3.12"
 redis = "^5.2.1"
-aiohttp = "^3.11.12"
-fastapi-slim = "^0.115.8"
+aiohttp = "^3.11.13"
+fastapi-slim = "^0.115.11"
 uvicorn = "^0.32.1"
 nest-asyncio = "^1.5.5"
-pydantic = "^2.10.5"
+pydantic = "^2.10.6"
 
 [tool.poetry.dev-dependencies]
 black = "~24.8.0"
 flake8 = "^3.9.1"
 pre-commit = "^2.12.1"
-pytest = "^8.3.1"
+pytest = "^8.3.5"
 pytest-cov = "^5.0.0"
 pytest-asyncio = "^0.24.0"
 rope = "^1.13.0"

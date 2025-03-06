@@ -11,12 +11,13 @@ python = "^3.12"
 # explicitly installed with the plugin if desired.
 acapy-agent = { git = "https://github.com/openwallet-foundation/acapy.git", branch = "main", optional = true }
 
+
 [tool.poetry.extras]
 aca-py = ["acapy-agent"]
 
 [tool.poetry.dev-dependencies]
-ruff = "^0.9.5"
-pytest = "^8.3.3"
+ruff = "^0.9.9"
+pytest = "^8.3.5"
 pytest-asyncio = "^0.25.3"
 pytest-cov = "^5.0.0"
 pytest-ruff = "^0.4.1"

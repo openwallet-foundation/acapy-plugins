@@ -1,7 +1,7 @@
 """Feistel Permutation."""
 
-import hmac
 import hashlib
+import hmac
 
 
 class FeistelPermutation:
@@ -14,8 +14,9 @@ class FeistelPermutation:
 
         Args:
             N (int): The size of the domain, must be a power of two.
-            master_key_bytes (bytes): The master key used to derive round keys (e.g., 16 bytes).
-            rounds (int): Number of Feistel rounds.
+            master_key_bytes (bytes): The master key used to derive round keys
+            (e.g., 16 bytes). rounds (int): Number of Feistel rounds.
+            rounds (int): Number of Feistel rounds
 
         """
         if N <= 0:

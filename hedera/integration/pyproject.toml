@@ -7,10 +7,14 @@ package-mode = false
 
 [tool.poetry.dependencies]
 python = "^3.12"
-pytest = "^8.2.2"
-pytest-anything = "^0.1.4"
-pytest-asyncio = "~0.23.7"
+pytest = "^8.3.5"
+pytest-asyncio = "~0.25.3"
 requests = "^2.32.0"
+pytest-anything = "^0.1.4"
+
+[tool.poetry.dev-dependencies]
+
+[tool.pytest.ini_options]
 
 [build-system]
 requires = ["poetry-core>=1.0.0"]

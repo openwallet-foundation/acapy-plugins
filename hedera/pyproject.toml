@@ -6,19 +6,20 @@ authors = []
 
 [tool.poetry.dependencies]
 python = "^3.12"
-hiero-did-sdk-python = { git = "https://github.com/hiero-ledger/hiero-did-sdk-python", branch="main" }
 
-# Define ACA-Py as an optional/extra dependancy so it can be
+# Define ACA-Py as an optional/extra dependency so it can be
 # explicitly installed with the plugin if desired.
 acapy-agent = { version = "~1.2.2", optional = true }
+
+hiero-did-sdk-python = { git = "https://github.com/hiero-ledger/hiero-did-sdk-python", branch = "main" }
 
 [tool.poetry.extras]
 aca-py = ["acapy-agent"]
 
 [tool.poetry.dev-dependencies]
-ruff = "^0.7.3"
-pytest = "^8.3.3"
-pytest-asyncio = "^0.24.0"
+ruff = "^0.9.9"
+pytest = "^8.3.5"
+pytest-asyncio = "^0.25.3"
 pytest-cov = "^5.0.0"
 pytest-ruff = "^0.4.1"
 
@@ -85,4 +86,3 @@ output = ".test-reports/coverage.xml"
 [build-system]
 requires = ["setuptools", "poetry-core>=1.2"]
 build-backend = "poetry.core.masonry.api"
-

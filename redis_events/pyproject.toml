@@ -12,7 +12,7 @@ python = "^3.12"
 acapy-agent = { version = "~1.2.2", optional = true }
 
 aiohttp = "^3.11.12"
-fastapi-slim = "^0.115.8"
+fastapi-slim = "^0.115.11"
 nest-asyncio = "^1.5.5"
 redis = "^5.2.1"
 uvicorn = "^0.32.1"
@@ -22,8 +22,8 @@ pydantic = "^2.10.6"
 aca-py = ["acapy-agent"]
 
 [tool.poetry.dev-dependencies]
-ruff = "^0.9.5"
-pytest = "^8.3.3"
+ruff = "^0.9.9"
+pytest = "^8.3.5"
 pytest-asyncio = "^0.25.3"
 pytest-cov = "^5.0.0"
 pytest-ruff = "^0.4.1"
@@ -92,4 +92,3 @@ output = ".test-reports/coverage.xml"
 [build-system]
 requires = ["setuptools", "poetry-core>=1.2"]
 build-backend = "poetry.core.masonry.api"
-
