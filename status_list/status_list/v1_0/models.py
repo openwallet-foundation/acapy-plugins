@@ -2,15 +2,17 @@
 
 import random
 import string
-from typing import Optional, List
-from bitarray import bitarray, util as bitutil
-from marshmallow import fields
+from typing import List, Optional
+
 from acapy_agent.messaging.models.base_record import BaseRecord, BaseRecordSchema
 from acapy_agent.wallet.util import b64_to_bytes, bytes_to_b64
+from bitarray import bitarray
+from bitarray import util as bitutil
+from marshmallow import fields
 
-from .feistel import FeistelPermutation
 from .config import Config
 from .error import DuplicateListNumberError
+from .feistel import FeistelPermutation
 
 
 class StatusListDef(BaseRecord):
@@ -179,7 +181,8 @@ class StatusListDefSchema(BaseRecordSchema):
     list_size = fields.Int(
         required=False,
         metadata={
-            "description": "Number of entries in the list, must be power of two, minimum 131072",
+            "description": "Number of entries in the list, must be power of two, "
+            "minimum 131072",
             "example": 131072,
         },
     )
