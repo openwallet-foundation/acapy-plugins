@@ -1,7 +1,7 @@
 [tool.poetry]
 name = "oid4vc"
 version = "0.1.0"
-description = "OpenID for Verifiable Credentials plugin for acapy. (Supported acapy-agent version: 1.2.0) "
+description = "OpenID for Verifiable Credentials plugin for acapy. (Supported acapy-agent version: 1.2.3) "
 authors = [
     "Adam Burdett <burdettadam@gmail.com>",
     "Char Howland <char@indicio.tech>",
@@ -22,7 +22,7 @@ python = "^3.12"
 
 # Define ACA-Py as an optional/extra dependency so it can be
 # explicitly installed with the plugin if desired.
-acapy-agent = { version = "~1.2.2", optional = true }
+acapy-agent = { version = "~1.2.3", optional = true }
 
 aiohttp = "^3.9.5"
 aries-askar = "~0.4.3"
@@ -110,4 +110,3 @@ output = ".test-reports/coverage.xml"
 [build-system]
 requires = ["setuptools", "poetry-core>=1.2"]
 build-backend = "poetry.core.masonry.api"
-
