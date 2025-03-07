@@ -1,4 +1,23 @@
 # Plugin Release Status
+## ACA-Py Release 1.2.3
+
+| Plugin Name | Supported ACA-Py Release |
+| --- | --- |
+|basicmessage_storage | 1.2.2|
+|cheqd | 1.2.2|
+|connection_update | 1.2.2|
+|connections | 1.2.1|
+|firebase_push_notifications | 1.2.2|
+|hedera | 1.2.2|
+|multitenant_provider | 1.2.2|
+|oid4vc | 1.2.2|
+|redis_events | 1.2.2|
+|rpc | 1.2.2|
+|status_list | 1.2.2|
+|webvh | 1.2.3| 
+
+### Plugins Upgraded For ACA-Py Release 1.2.3 
+ - webvh 
 ## ACA-Py Release 1.2.2
 
 | Plugin Name | Supported ACA-Py Release |

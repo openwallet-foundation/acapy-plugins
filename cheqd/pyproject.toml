@@ -1,7 +1,7 @@
 [tool.poetry]
 name = "cheqd"
 version = "0.1.0"
-description = " (Supported acapy-agent version: 1.2.0) "
+description = " (Supported acapy-agent version: 1.2.2) "
 authors = []
 
 [tool.poetry.dependencies]

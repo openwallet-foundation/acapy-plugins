@@ -1,7 +1,7 @@
 [tool.poetry]
 name = "oid4vc"
 version = "0.1.0"
-description = "OpenID for Verifiable Credentials plugin for acapy. (Supported acapy-agent version: 1.2.0) "
+description = "OpenID for Verifiable Credentials plugin for acapy. (Supported acapy-agent version: 1.2.2) "
 authors = [
     "Adam Burdett <burdettadam@gmail.com>",
     "Char Howland <char@indicio.tech>",

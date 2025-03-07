@@ -1,7 +1,7 @@
 [tool.poetry]
 name = "redis_events"
 version = "0.1.0"
-description = "ACA-PY persisted events using Redis (Supported acapy-agent version: 1.2.0) "
+description = "ACA-PY persisted events using Redis (Supported acapy-agent version: 1.2.2) "
 authors = ["Shaanjot Gill <gill.shaanjots@gmail.com>"]
 
 [tool.poetry.dependencies]
@@ -92,3 +92,4 @@ output = ".test-reports/coverage.xml"
 [build-system]
 requires = ["setuptools", "poetry-core>=1.2"]
 build-backend = "poetry.core.masonry.api"
+
