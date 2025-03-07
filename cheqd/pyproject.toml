@@ -1,7 +1,7 @@
 [tool.poetry]
 name = "cheqd"
 version = "0.1.0"
-description = " (Supported acapy-agent version: 1.2.0) "
+description = " (Supported acapy-agent version: 1.2.3) "
 authors = []
 
 [tool.poetry.dependencies]
@@ -9,7 +9,7 @@ python = "^3.12"
 
 # Define ACA-Py as an optional/extra dependency so it can be
 # explicitly installed with the plugin if desired.
-acapy-agent = { version = "~1.2.2", optional = true }
+acapy-agent = { version = "~1.2.3", optional = true }
 
 cryptography = "<38.0.0"
 
@@ -89,4 +89,3 @@ output = ".test-reports/coverage.xml"
 [build-system]
 requires = ["setuptools", "poetry-core>=1.2"]
 build-backend = "poetry.core.masonry.api"
-
