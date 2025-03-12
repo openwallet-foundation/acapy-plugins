@@ -180,8 +180,9 @@ async def bind_status_list_cred(request: web.BaseRequest):
     result: Dict[str, Any] = {}
 
     try:
+        context: AdminRequestContext = request["context"]
         credential_status = await status_handler.assign_status_entries(
-            supported_cred_id, exchange_id, status_type
+            context, supported_cred_id, exchange_id, status_type
         )
         if credential_status:
             result["credentialStatus"] = credential_status
