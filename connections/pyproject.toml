@@ -1,7 +1,7 @@
 [tool.poetry]
 name = "connections"
 version = "0.1.0"
-description = ""
+description = " (Supported acapy-agent version: 1.2.1) "
 authors = []
 
 [tool.poetry.dependencies]
