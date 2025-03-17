@@ -22,7 +22,7 @@ python = "^3.12"
 
 # Define ACA-Py as an optional/extra dependency so it can be
 # explicitly installed with the plugin if desired.
-acapy-agent = { version = "~1.2.3", optional = true }
+acapy-agent = { version = "~1.2.4", optional = true }
 
 aiohttp = "^3.9.5"
 aries-askar = "~0.4.3"
@@ -82,6 +82,7 @@ ignore = [
 
 [tool.ruff.lint.per-file-ignores]
 "**/{tests}/*" = ["F841", "D", "E501"]
+"**/{demo}/*" = ["F841", "D", "E501"]
 
 [tool.pytest.ini_options]
 testpaths = "oid4vc"
@@ -110,3 +111,4 @@ output = ".test-reports/coverage.xml"
 [build-system]
 requires = ["setuptools", "poetry-core>=1.2"]
 build-backend = "poetry.core.masonry.api"
+
