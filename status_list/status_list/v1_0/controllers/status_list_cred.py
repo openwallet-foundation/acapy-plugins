@@ -171,8 +171,8 @@ class BindStatusListCredRequest(OpenAPISchema):
 async def bind_status_list_cred(request: web.BaseRequest):
     """Request handler for update status list entry by list number and entry index."""
 
-    supported_cred_id = request.match_info["cred_id"]
-    exchange_id = request.match_info["exchange_id"]
+    supported_cred_id = request.match_info["supported_cred_id"]
+    cred_id = request.match_info["cred_id"]
 
     body: Dict[str, Any] = await request.json()
     status_type = body.get("status_type", "w3c")
@@ -182,11 +182,11 @@ async def bind_status_list_cred(request: web.BaseRequest):
     try:
         context: AdminRequestContext = request["context"]
         credential_status = await status_handler.assign_status_entries(
-            context, supported_cred_id, exchange_id, status_type
+            context, supported_cred_id, cred_id, status_type
         )
         if credential_status:
             result["credentialStatus"] = credential_status
-        LOGGER.debug(f"Bound status list entry to {exchange_id} {result}.")
+        LOGGER.debug(f"Bound status list entry to {cred_id} {result}.")
 
     except StorageNotFoundError as err:
         raise web.HTTPNotFound(reason=err.roll_up) from err

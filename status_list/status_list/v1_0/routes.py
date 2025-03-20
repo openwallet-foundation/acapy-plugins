@@ -30,7 +30,7 @@ async def register(app: web.Application):
             # status list credentials
             #
             web.post(
-                "/status-list/target-creds/{cred_id}/exchange/{exchange_id}",
+                "/status-list/assign/{supported_cred_id}/creds/{cred_id}",
                 bind_status_list_cred,
             ),
             web.get(
