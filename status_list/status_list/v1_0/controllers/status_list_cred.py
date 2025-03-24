@@ -133,11 +133,11 @@ async def update_status_list_cred(request: web.BaseRequest):
 class MatchBindStatusListCredRequest(OpenAPISchema):
     """Request schema for querying status list entry."""
 
-    cred_id = fields.Str(
+    supported_cred_id = fields.Str(
         required=True,
         metadata={"description": "Status list definition identifier."},
     )
-    exchange_id = fields.Str(
+    cred_id = fields.Str(
         required=True,
         metadata={"description": "Status list credential identifier."},
     )
