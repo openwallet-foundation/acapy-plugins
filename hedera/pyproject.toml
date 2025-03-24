@@ -1,7 +1,7 @@
 [tool.poetry]
 name = "hedera"
 version = "0.1.0"
-description = " (Supported acapy-agent version: 1.2.3) "
+description = " (Supported acapy-agent version: 1.2.4) "
 authors = []
 
 [tool.poetry.dependencies]
@@ -11,7 +11,7 @@ python = "^3.12"
 # explicitly installed with the plugin if desired.
 acapy-agent = { version = "~1.2.4", optional = true }
 
-hiero-did-sdk-python = { git = "https://github.com/hiero-ledger/hiero-did-sdk-python", branch = "main" }
+hiero-did-sdk-python = "0.1.0"
 
 [tool.poetry.extras]
 aca-py = ["acapy-agent"]
