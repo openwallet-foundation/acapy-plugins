@@ -63,6 +63,7 @@ ignore = [
 "**/{demo}/*" = ["F841", "D", "E501"]
 
 [tool.pytest.ini_options]
+asyncio_default_fixture_loop_scope = "function"
 testpaths = "firebase_push_notifications"
 addopts = """
     -p no:warnings

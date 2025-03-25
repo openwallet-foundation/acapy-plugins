@@ -68,6 +68,7 @@ ignore = [
 "**/{demo}/*" = ["F841", "D", "E501"]
 
 [tool.pytest.ini_options]
+asyncio_default_fixture_loop_scope = "function"
 testpaths = "status_list"
 addopts = """
     -p no:warnings
@@ -77,7 +78,6 @@ addopts = """
 markers = []
 junit_family = "xunit1"
 asyncio_mode = "auto"
-asyncio_default_fixture_loop_scope = "session"
 
 [tool.coverage.run]
 omit = ["*/tests/*", "docker/*", "integration/*", "*/definition.py"]
