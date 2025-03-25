@@ -17,7 +17,7 @@ redis = "^5.1.1"
 uvicorn = "^0.32.1"
 pydantic = "^2.10.6"
 
-[tool.poetry.dev-dependencies]
+[tool.poetry.group.dev.dependencies]
 
 [tool.pytest.ini_options]
 

@@ -13,7 +13,7 @@ acapy-controller = { git = "https://github.com/indicio-tech/acapy-minimal-exampl
 pydantic = "^2.10.6"
 typing-extensions = "^4.12.2"
 
-[tool.poetry.dev-dependencies]
+[tool.poetry.group.dev.dependencies]
 
 [tool.pytest.ini_options]
 
