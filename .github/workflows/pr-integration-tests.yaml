@@ -95,8 +95,13 @@ jobs:
           for dir in ${{ steps.changed-plugins.outputs.changed-plugins }}; do
             echo "Running integration tests for $dir"
             cd $dir/integration
-            docker compose down --remove-orphans
             docker compose build
-            docker compose run tests
+            if ! docker compose up --exit-code-from tests; then
+              echo "❌ Tests failed for $dir - dumping logs:"
+              docker compose logs
+              docker compose down --remove-orphans
+              exit 1
+            fi
+            docker compose down --remove-orphans
             cd ../..
           done
