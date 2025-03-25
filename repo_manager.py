@@ -26,7 +26,7 @@ class PluginInfo:
 class ManagedPoetrySections(str, Enum):
     META = "[tool.poetry]"
     DEPS = "[tool.poetry.dependencies]"
-    DEV_DEPS = "[tool.poetry.dev-dependencies]"
+    DEV_DEPS = "[tool.poetry.group.dev.dependencies]"
     INT_DEPS = "[tool.poetry.group.integration.dependencies]"
     RUFF = "[tool.ruff]"
     RUFF_LINT = "[tool.ruff.lint]"

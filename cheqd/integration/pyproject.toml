@@ -3,6 +3,7 @@ name = "plugin-globals-tests"
 version = "0.1.0"
 description = ""
 authors = []
+package-mode = false
 
 [tool.poetry.dependencies]
 python = "^3.12"
@@ -13,11 +14,11 @@ acapy-controller = { git = "https://github.com/indicio-tech/acapy-minimal-exampl
 pydantic = "^2.10.6"
 typing-extensions = "^4.12.2"
 
-[tool.poetry.dev-dependencies]
+[tool.poetry.group.dev.dependencies]
 
 [tool.pytest.ini_options]
 
 [build-system]
-requires = ["poetry-core>=1.0.0"]
+requires = ["poetry-core>=2.1"]
 build-backend = "poetry.core.masonry.api"
 

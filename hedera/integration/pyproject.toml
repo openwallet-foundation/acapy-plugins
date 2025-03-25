@@ -12,11 +12,11 @@ pytest-asyncio = "~0.25.3"
 requests = "^2.32.0"
 pytest-anything = "^0.1.4"
 
-[tool.poetry.dev-dependencies]
+[tool.poetry.group.dev.dependencies]
 
 [tool.pytest.ini_options]
 
 [build-system]
-requires = ["poetry-core>=1.0.0"]
+requires = ["poetry-core>=2.1"]
 build-backend = "poetry.core.masonry.api"
 
