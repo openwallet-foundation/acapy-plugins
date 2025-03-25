@@ -83,6 +83,6 @@ show_missing = true
 output = ".test-reports/coverage.xml"
 
 [build-system]
-requires = ["setuptools", "poetry-core>=1.2"]
+requires = ["setuptools", "poetry-core>=2.1"]
 build-backend = "poetry.core.masonry.api"
 

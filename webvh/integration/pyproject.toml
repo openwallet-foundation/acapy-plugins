@@ -16,6 +16,6 @@ acapy-controller = {git = "https://github.com/indicio-tech/acapy-minimal-example
 [tool.pytest.ini_options]
 
 [build-system]
-requires = ["poetry-core>=1.0.0"]
+requires = ["poetry-core>=2.1"]
 build-backend = "poetry.core.masonry.api"
 
