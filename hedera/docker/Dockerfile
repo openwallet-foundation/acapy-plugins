@@ -1,4 +1,4 @@
-FROM python:3.12-slim-bullseye AS base
+FROM python:3.12-slim-bookworm AS base
 
 ARG GITHUB_TOKEN
 
@@ -26,7 +26,7 @@ RUN poetry install --without dev --with integration --all-extras \
 
 USER $user
 
-FROM python:3.12-bullseye
+FROM python:3.12-bookworm
 
 WORKDIR /usr/src/app
 COPY --from=base /usr/src/app/.venv /usr/src/app/.venv
