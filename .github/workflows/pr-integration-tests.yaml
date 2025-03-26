@@ -92,7 +92,28 @@ jobs:
       - name: Run Integration Tests
         id: integration-tests
         run: |
+          # Process redis_events first if it exists in the list
+          if [[ "${{ steps.changed-plugins.outputs.changed-plugins }}" == *"redis_events"* ]]; then
+            echo "Running integration tests for redis_events first"
+            cd redis_events/integration
+            docker compose build
+            if ! docker compose up --exit-code-from tests; then
+              echo "❌ Tests failed for redis_events - dumping logs:"
+              docker compose logs
+              docker compose down --remove-orphans
+              exit 1
+            fi
+            docker compose down --remove-orphans
+            cd ../..
+          fi
+          
+          # Process the rest of the directories
           for dir in ${{ steps.changed-plugins.outputs.changed-plugins }}; do
+            # Skip redis_events as it was already processed
+            if [[ "$dir" == "redis_events" ]]; then
+              continue
+            fi
+            
             echo "Running integration tests for $dir"
             cd $dir/integration
             docker compose build
