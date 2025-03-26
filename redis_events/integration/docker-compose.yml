@@ -6,7 +6,8 @@ services:
   redis-cluster:
     image: redis:7.2.2
     container_name: cluster
-    command: redis-cli --cluster create 172.28.0.101:6377 172.28.0.102:6378 172.28.0.103:6379 172.28.0.104:6380 172.28.0.105:6381 172.28.0.106:6382 --cluster-replicas 1 --cluster-yes
+    command: >
+      /bin/sh -c "redis-cli --cluster create 172.28.0.101:6377 172.28.0.102:6378 172.28.0.103:6379 172.28.0.104:6380 172.28.0.105:6381 172.28.0.106:6382 --cluster-replicas 1 --cluster-yes && tail -f /dev/null"
     environment:
       - REDISCLI_AUTH=${REDIS_PASSWORD:-test1234}
     networks:
