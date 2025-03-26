@@ -221,9 +221,9 @@ services:
     environment:
       - WAIT_BEFORE=15
       - WAIT_HOSTS=faber:3001, alice:8020, relay:8071
-      - WAIT_TIMEOUT=60
+      - WAIT_TIMEOUT=120
       - WAIT_SLEEP_INTERVAL=1
-      - WAIT_HOST_CONNECT_TIMEOUT=30
+      - WAIT_HOST_CONNECT_TIMEOUT=60
     depends_on:
       - redis-cluster
       - faber
