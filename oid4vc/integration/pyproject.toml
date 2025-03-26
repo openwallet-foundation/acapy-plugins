@@ -25,7 +25,7 @@ ruff = "^0.5.0"
 [tool.poetry.dev-dependencies]
 
 [tool.pytest.ini_options]
-asyncio_default_fixture_loop_scope = "function"
+asyncio_default_fixture_loop_scope = "session"
 addopts = "-m 'not interop'"
 markers = """
 interop: interop testing
