@@ -110,9 +110,9 @@ services:
       - STATUS_ENDPOINT_PORT=7001
       - STATUS_ENDPOINT_API_KEY=test_api_key_1
       - INBOUND_TRANSPORT_CONFIG=[["http", "0.0.0.0", "8071"],["ws", "0.0.0.0", "8081"]]
-      - WAIT_BEFORE_HOSTS=5
+      - WAIT_BEFORE=5
       - WAIT_HOSTS=redis-node-3:6379
-      - WAIT_HOSTS_TIMEOUT=120
+      - WAIT_TIMEOUT=120
       - WAIT_SLEEP_INTERVAL=1
       - WAIT_HOST_CONNECT_TIMEOUT=60
     depends_on:
@@ -140,9 +140,9 @@ services:
       - STATUS_ENDPOINT_HOST=0.0.0.0
       - STATUS_ENDPOINT_PORT=7002
       - STATUS_ENDPOINT_API_KEY=test_api_key_2
-      - WAIT_BEFORE_HOSTS=5
+      - WAIT_BEFORE=5
       - WAIT_HOSTS=redis-node-3:6379
-      - WAIT_HOSTS_TIMEOUT=120
+      - WAIT_TIMEOUT=120
       - WAIT_SLEEP_INTERVAL=1
       - WAIT_HOST_CONNECT_TIMEOUT=60
     depends_on:
