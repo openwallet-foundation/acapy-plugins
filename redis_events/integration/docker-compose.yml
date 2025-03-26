@@ -188,7 +188,7 @@ services:
       - deliverer
     command: start --arg-file integration.yml --label faber
     environment:
-      - WAIT_BEFORE=20
+      - WAIT_BEFORE=10
       - WAIT_HOSTS=redis-node-3:6379, relay:8071
       - WAIT_TIMEOUT=120
       - WAIT_SLEEP_INTERVAL=1
@@ -222,7 +222,7 @@ services:
       context: .
       dockerfile: Dockerfile.test.runner
     environment:
-      - WAIT_BEFORE=30
+      - WAIT_BEFORE=15
       - WAIT_HOSTS=faber:3001, alice:8020, relay:8071
       - WAIT_TIMEOUT=120
       - WAIT_SLEEP_INTERVAL=1
