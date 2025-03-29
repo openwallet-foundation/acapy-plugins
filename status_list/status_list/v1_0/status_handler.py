@@ -264,11 +264,16 @@ async def assign_status_entries(
                 credential_id=credential_id,
                 list_number=entry.list_number,
                 list_index=entry.list_index,
-                state="entry-assigned",
             )
             await status_list_cred.save(
-                session, reason="Assign a new status list credential entry"
+                session, reason="Assign a new status list credential entry", event=False
             )
+
+            # Emit event
+            payload = status_list_cred.serialize()
+            payload["state"] = "assigned"
+            payload["status"] = entry.status
+            await status_list_cred.emit_event(session, payload)
 
     if len(status_list) > 1:
         return status_list
@@ -338,6 +343,14 @@ async def update_status_list_entry(
     status_bits[bit_index : bit_index + definition.status_size] = bitarray(bitstring)
     shard.status_bits = status_bits
     await shard.save(session, reason="Update status list entry.")
+
+    # Emit event
+    shard.state = "updated"
+    payload = shard.serialize()
+    payload["credential_id"] = credential_id
+    payload["list_index"] = entry_index
+    payload["status"] = bitstring
+    await shard.emit_event(session, payload)
 
     return {
         "list": definition.list_number,
