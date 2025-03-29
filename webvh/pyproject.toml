@@ -14,7 +14,7 @@ acapy-agent = { git = "https://github.com/openwallet-foundation/acapy.git", bran
 did-webvh = "^0.3.0"
 jcs = "^0.2.1"
 multiformats = "^0.3.1.post4"
-bitstring = "^4.3.0"
+bitstring = "^4.3.1"
 aries-askar = "^0.4.3"
 
 [tool.poetry.extras]
