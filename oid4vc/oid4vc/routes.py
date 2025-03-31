@@ -700,7 +700,7 @@ async def supported_credential_create_jwt(request: web.Request):
     body["identifier"] = body.pop("id")
     format_data = {}
     format_data["types"] = body.pop("type")
-    format_data["credential_subject"] = body.pop("credentialSubject", None)
+    format_data["credentialSubject"] = body.pop("credentialSubject", None)
     format_data["context"] = body.pop("@context")
     format_data["order"] = body.pop("order", None)
     vc_additional_data = {}
@@ -859,7 +859,7 @@ async def jwt_supported_cred_update_helper(
     vc_additional_data = {}
 
     format_data["types"] = body.get("type")
-    format_data["credential_subject"] = body.get("credentialSubject", None)
+    format_data["credentialSubject"] = body.get("credentialSubject", None)
     format_data["context"] = body.get("@context")
     format_data["order"] = body.get("order", None)
     vc_additional_data["@context"] = format_data["context"]
@@ -1786,14 +1786,15 @@ async def create_did_jwk(request: web.Request):
         did = "did:jwk:" + bytes_to_b64(
             json.dumps(jwk).encode(), urlsafe=True, pad=False
         )
-
         did_info = DIDInfo(
             did=did,
             verkey=key.get_jwk_thumbprint(),
             metadata={},
             method=DID_JWK,
-            key_type=P256,
+            key_type=key_type_instance,
         )
+
+        LOGGER.debug(f"Storing DID: {did_info}")
 
         await wallet.store_did(did_info)
 
