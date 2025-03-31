@@ -700,7 +700,7 @@ async def supported_credential_create_jwt(request: web.Request):
     body["identifier"] = body.pop("id")
     format_data = {}
     format_data["types"] = body.pop("type")
-    format_data["credential_subject"] = body.pop("credentialSubject", None)
+    format_data["credentialSubject"] = body.pop("credentialSubject", None)
     format_data["context"] = body.pop("@context")
     format_data["order"] = body.pop("order", None)
     vc_additional_data = {}
@@ -859,7 +859,7 @@ async def jwt_supported_cred_update_helper(
     vc_additional_data = {}
 
     format_data["types"] = body.get("type")
-    format_data["credential_subject"] = body.get("credentialSubject", None)
+    format_data["credentialSubject"] = body.get("credentialSubject", None)
     format_data["context"] = body.get("@context")
     format_data["order"] = body.get("order", None)
     vc_additional_data["@context"] = format_data["context"]
