@@ -97,7 +97,7 @@ class DIDDocumentSchema(Schema):
         fields.Str, required=True, metadata={"description": "Authentication Methods"}
     )
     assertionMethod = fields.List(
-        fields.Str, required=True, metadata={"description": "Assertion Methods"}
+        fields.Str, required=False, metadata={"description": "Assertion Methods"}
     )
     service = fields.List(
         fields.Nested(ServiceSchema), required=False, metadata={"description": "Services"}
