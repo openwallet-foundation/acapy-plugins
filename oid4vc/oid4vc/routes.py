@@ -1786,15 +1786,14 @@ async def create_did_jwk(request: web.Request):
         did = "did:jwk:" + bytes_to_b64(
             json.dumps(jwk).encode(), urlsafe=True, pad=False
         )
+
         did_info = DIDInfo(
             did=did,
             verkey=key.get_jwk_thumbprint(),
             metadata={},
             method=DID_JWK,
-            key_type=key_type_instance,
+            key_type=P256,
         )
-
-        LOGGER.debug(f"Storing DID: {did_info}")
 
         await wallet.store_did(did_info)
 
