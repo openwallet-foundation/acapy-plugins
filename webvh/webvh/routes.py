@@ -51,22 +51,23 @@ async def get_config(request: web.BaseRequest):
 async def configure(request: web.BaseRequest):
     """Configure a webvh agent."""
     profile = request["context"].profile
-    # Build the config object
-    config = {}
-    base_config = await get_plugin_config(profile)
-
     request_json = await request.json()
+    
+    # Build the config object
+    config = await get_plugin_config(profile)
 
-    config["server_url"] = request_json.get("server_url") or base_config.get("server_url")
+    config['scids'] = config.get('scids') or {}
+    config['witnesses'] = config.get('witnesses') or []
+    config["server_url"] = request_json.get("server_url") or config.get("server_url")
 
     if not config.get("server_url"):
         raise ConfigurationError("No server url provided.")
-
-    config["role"] = "witness" if request_json.get("witness") else "controller"
-    config['scids'] = {}
+    
     try:
         witness_manager = WitnessManager(profile)
-        if config["role"] == "witness":
+        if request_json.get("witness"):
+            config["role"] = "witness"
+            config["auto_attest"] = request_json.get("auto_attest")
             witness_key_info = await witness_manager.setup_witness_key(
                 config["server_url"], request_json.get("witness_key")
             )
@@ -74,14 +75,15 @@ async def configure(request: web.BaseRequest):
             if not witness_key:
                 raise ConfigurationError("No witness key set.")
 
-            config["witnesses"] = [f"did:key:{witness_key}"]
-            config["auto_attest"] = request_json.get("auto_attest")
-
+            if f"did:key:{witness_key}" not in config["witnesses"]:
+                config["witnesses"].append(f"did:key:{witness_key}")
+    
             await set_config(profile, config)
             
             return web.json_response(witness_key_info)
 
-        elif config["role"] == "controller":
+        elif not request_json.get("witness"):
+            config["role"] = "controller"
             config["witness_invitation"] = request_json.get("witness_invitation")
 
             witness_invitation = decode_invitation(config["witness_invitation"])
@@ -91,7 +93,8 @@ async def configure(request: web.BaseRequest):
             ):
                 raise ConfigurationError("Missing invitation goal-code and witness did.")
 
-            config["witnesses"] = [witness_invitation.get("goal")]
+            if witness_invitation.get("goal") not in config["witnesses"]:
+                config["witnesses"].append(witness_invitation.get("goal"))
 
             await set_config(profile, config)
             
