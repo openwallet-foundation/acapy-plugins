@@ -110,7 +110,7 @@ async def add_scid_mapping(profile: Profile, scid: str, did: str):
             _get_wallet_identifier(profile),
         )
         config = json.loads(stored_config_record.value)["config"]
-        config['scids'][scid] = did
+        config["scids"][scid] = did
         await storage.update_record(
             stored_config_record,
             value=json.dumps(
@@ -121,6 +121,7 @@ async def add_scid_mapping(profile: Profile, scid: str, did: str):
             tags={},
         )
 
+
 async def did_from_scid(profile: Profile, scid: str):
     """Check if the agent should use strict SSL."""
     async with profile.session() as session:
@@ -130,6 +131,6 @@ async def did_from_scid(profile: Profile, scid: str):
             _get_wallet_identifier(profile),
         )
         config = json.loads(stored_config_record.value)["config"]
-        if not config['scids'].get(scid):
+        if not config["scids"].get(scid):
             raise ConfigurationError(f"SCID {scid} not listed.")
-        return config['scids'].get(scid)
+        return config["scids"].get(scid)

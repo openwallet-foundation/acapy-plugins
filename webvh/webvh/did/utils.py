@@ -139,7 +139,7 @@ def key_hash(key):
     return multibase.encode(multihash.digest(key.encode(), "sha2-256"), "base58btc")[1:]
 
 
-async def create_signing_key(profile, did: str, key_id: str = None, key_type = None):
+async def create_signing_key(profile, did: str, key_id: str = None, key_type=None):
     """Create new signing key."""
     async with profile.session() as session:
         manager = MultikeyManager(session)
@@ -184,10 +184,15 @@ def multikey_to_jwk(multikey):
     jwk = {
         "kty": "OKP",
         "crv": "Ed25519",
-        "x": base64.urlsafe_b64encode(multibase.decode(multikey)[2:]).decode().rstrip("=")
+        "x": base64.urlsafe_b64encode(multibase.decode(multikey)[2:])
+        .decode()
+        .rstrip("="),
     }
-    thumbprint = base64.urlsafe_b64encode(
-        hashlib.sha256(jcs.canonicalize(jwk)).digest()).decode().rstrip("=")
+    thumbprint = (
+        base64.urlsafe_b64encode(hashlib.sha256(jcs.canonicalize(jwk)).digest())
+        .decode()
+        .rstrip("=")
+    )
     return jwk, thumbprint
 
 

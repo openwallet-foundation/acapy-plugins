@@ -1,4 +1,5 @@
 """DID operations models."""
+
 import enum
 from collections import Counter
 
@@ -212,32 +213,32 @@ class WebvhAddVMSchema(OpenAPISchema):
     type = fields.Str(
         validate=validate.OneOf(["Multikey", "JsonWebKey"]),
         required=False,
-        metadata={"description": ""}
+        metadata={"description": ""},
     )
 
     relationships = fields.List(
         fields.Enum(RelationshipsEnum),
         required=False,
         metadata={"description": ""},
-        default=["assertionMethod"]
+        default=["assertionMethod"],
     )
 
     multikey = fields.Str(
         required=False,
         metadata={"description": "An existing multikey to bind.", "example": ""},
-    )    
-    
-    @validates('id')
+    )
+
+    @validates("id")
     def validate_key_id(self, value):
         """Relationship validator."""
-        if '#' in value:
-            raise ValidationError('Forbidden character in id.') 
-    
-    @validates('relationships')
+        if "#" in value:
+            raise ValidationError("Forbidden character in id.")
+
+    @validates("relationships")
     def validate_relationships(self, value):
         """Relationship validator."""
-        if [k for k,v in Counter(value).items() if v>1]:
-            raise ValidationError('Duplicate relationship.')
+        if [k for k, v in Counter(value).items() if v > 1]:
+            raise ValidationError("Duplicate relationship.")
 
 
 class WebvhDeactivateSchema(OpenAPISchema):

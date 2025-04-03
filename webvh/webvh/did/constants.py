@@ -13,4 +13,4 @@ PROOF_OPTIONS = {
     "proofPurpose": "assertionMethod",
 }
 
-SUPPORTED_KEY_TYPES = ['Multikey', 'JsonWebKey']
+SUPPORTED_KEY_TYPES = ["Multikey", "JsonWebKey"]

@@ -9,12 +9,12 @@ from acapy_agent.core.profile import Profile
 from acapy_agent.messaging.models.base import BaseModelError
 from acapy_agent.messaging.responder import BaseResponder
 from acapy_agent.protocols.out_of_band.v1_0.manager import (
-    OutOfBandManager, 
-    OutOfBandManagerError
+    OutOfBandManager,
+    OutOfBandManagerError,
 )
 from acapy_agent.protocols.out_of_band.v1_0.messages.invitation import (
-    HSProto, 
-    InvitationMessage
+    HSProto,
+    InvitationMessage,
 )
 from acapy_agent.vc.data_integrity.manager import DataIntegrityManager
 from acapy_agent.vc.data_integrity.models.options import DataIntegrityProofOptions
@@ -103,9 +103,10 @@ class WitnessManager:
                     message=WitnessRequest(controller_secured_document, parameters),
                     connection_id=witness_connection.connection_id,
                 )
+
     async def setup_witness_key(self, server_url, key=None) -> None:
         """Ensure witness key is setup."""
-        
+
         witness_alias = create_alias(server_url_to_domain(server_url), "witnessKey")
 
         witness_key_info = await create_or_get_witness_did(
@@ -116,8 +117,8 @@ class WitnessManager:
             raise WitnessError("Witness key creation error.")
 
         return {
-            'multikey': witness_key_info.get("multikey"),
-            'kid': witness_key_info.get("kid")
+            "multikey": witness_key_info.get("multikey"),
+            "kid": witness_key_info.get("kid"),
         }
 
     async def auto_witness_setup(self) -> None:
@@ -260,7 +261,7 @@ class WitnessManager:
         witness_key = await self.get_witness_key()
         if not witness_key:
             raise WitnessError("No active witness key.")
-        
+
         try:
             invi_rec = await OutOfBandManager(self.profile).create_invitation(
                 hs_protos=[HSProto.get("https://didcomm.org/didexchange/1.0")],

@@ -36,6 +36,7 @@ from .did.witness_manager import WitnessManager
 
 LOGGER = logging.getLogger(__name__)
 
+
 @docs(tags=["did-webvh"], summary="Get webvh agent configuration")
 @tenant_authentication
 async def get_config(request: web.BaseRequest):
@@ -52,17 +53,17 @@ async def configure(request: web.BaseRequest):
     """Configure a webvh agent."""
     profile = request["context"].profile
     request_json = await request.json()
-    
+
     # Build the config object
     config = await get_plugin_config(profile)
 
-    config['scids'] = config.get('scids') or {}
-    config['witnesses'] = config.get('witnesses') or []
+    config["scids"] = config.get("scids") or {}
+    config["witnesses"] = config.get("witnesses") or []
     config["server_url"] = request_json.get("server_url") or config.get("server_url")
 
     if not config.get("server_url"):
         raise ConfigurationError("No server url provided.")
-    
+
     try:
         witness_manager = WitnessManager(profile)
         if request_json.get("witness"):
@@ -71,15 +72,15 @@ async def configure(request: web.BaseRequest):
             witness_key_info = await witness_manager.setup_witness_key(
                 config["server_url"], request_json.get("witness_key")
             )
-            witness_key = witness_key_info.get('multikey')
+            witness_key = witness_key_info.get("multikey")
             if not witness_key:
                 raise ConfigurationError("No witness key set.")
 
             if f"did:key:{witness_key}" not in config["witnesses"]:
                 config["witnesses"].append(f"did:key:{witness_key}")
-    
+
             await set_config(profile, config)
-            
+
             return web.json_response(witness_key_info)
 
         elif not request_json.get("witness"):
@@ -97,7 +98,7 @@ async def configure(request: web.BaseRequest):
                 config["witnesses"].append(witness_invitation.get("goal"))
 
             await set_config(profile, config)
-            
+
             await witness_manager.auto_witness_setup()
 
             return web.json_response({"status": "success"})
@@ -122,7 +123,6 @@ async def witness_create_invite(request: web.BaseRequest):
         )
     except (StorageNotFoundError, ValidationError, WitnessError) as e:
         raise web.HTTPBadRequest(reason=e.roll_up)
-
 
 
 @docs(tags=["did-webvh"], summary="Create a did:webvh")
@@ -152,9 +152,7 @@ async def update(request: web.BaseRequest):
     context: AdminRequestContext = request["context"]
     try:
         return web.json_response(
-            await ControllerManager(context.profile).update(
-                request.query.get("scid")
-            )
+            await ControllerManager(context.profile).update(request.query.get("scid"))
         )
 
     except DidUpdateError as err:
@@ -188,23 +186,22 @@ async def add_verification_method_request(request: web.BaseRequest):
     """Add a Webvh Verification Method."""
     context: AdminRequestContext = request["context"]
     request_json = await request.json()
-    
-    scid=request.query.get("scid")
-    key_type = request_json.get('type') or 'Multikey'
-    relationships = request_json.get('relationships') or []
-    
+
+    scid = request.query.get("scid")
+    key_type = request_json.get("type") or "Multikey"
+    relationships = request_json.get("relationships") or []
+
     try:
         did_document = await ControllerManager(context.profile).add_verification_method(
-            scid=scid, 
+            scid=scid,
             key_type=key_type,
             relationships=relationships,
-            key_id=request_json.get('id'),
-            multikey=request_json.get('multikey'),
+            key_id=request_json.get("id"),
+            multikey=request_json.get("multikey"),
         )
         return web.json_response(
             await ControllerManager(context.profile).update(
-                scid=scid,
-                did_document=did_document
+                scid=scid, did_document=did_document
             )
         )
     except (DidUpdateError, MultikeyManagerError) as err:
@@ -238,9 +235,7 @@ async def deactivate(request: web.BaseRequest):
     request_json = await request.json()
     try:
         return web.json_response(
-            await ControllerManager(context.profile).deactivate(
-                request_json["options"]
-            )
+            await ControllerManager(context.profile).deactivate(request_json["options"])
         )
 
     except DidUpdateError as err:

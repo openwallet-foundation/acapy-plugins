@@ -24,7 +24,13 @@ from aiohttp import ClientConnectionError, ClientResponseError, ClientSession
 from did_webvh.core.state import DocumentState
 from pydid import DIDDocument
 
-from ..config.config import get_server_url, use_strict_ssl, get_witnesses, did_from_scid, add_scid_mapping
+from ..config.config import (
+    get_server_url,
+    use_strict_ssl,
+    get_witnesses,
+    did_from_scid,
+    add_scid_mapping,
+)
 from .exceptions import DidCreationError, OperationError
 from .pending_dids import PendingWebvhDids
 from .registration_state import RegistrationState
@@ -36,7 +42,7 @@ from .utils import (
     update_signing_key,
     delete_signing_key,
     multikey_to_jwk,
-    resolve
+    resolve,
 )
 from .witness_manager import WitnessManager
 
@@ -306,7 +312,7 @@ class ControllerManager:
         state: str = RegistrationState.SUCCESS.value,
     ):
         """Finish the creation of a Webvh DID."""
-        did_web = witnessed_document['id']
+        did_web = witnessed_document["id"]
         if state == RegistrationState.ATTESTED.value:
             event_bus = self.profile.inject(EventBus)
             await event_bus.notify(
@@ -366,7 +372,7 @@ class ControllerManager:
             signing_key = witnessed_document["verificationMethod"][0].get(
                 "publicKeyMultibase"
             )
-            update_key_id = f'{did_web}#updateKey'
+            update_key_id = f"{did_web}#updateKey"
             update_key_info = await self._get_or_create_key(update_key_id)
             update_key = update_key_info.get("multikey")
 
@@ -493,9 +499,9 @@ class ControllerManager:
             key_manager = MultikeyManager(session)
             di_manager = DataIntegrityManager(session)
 
-            update_key = (
-                await key_manager.from_kid(kid=f"{did}#updateKey")
-            ).get("multikey")
+            update_key = (await key_manager.from_kid(kid=f"{did}#updateKey")).get(
+                "multikey"
+            )
 
             signed_log_entry = await di_manager.add_proof(
                 new_log_entry.history_line(),
@@ -508,7 +514,7 @@ class ControllerManager:
                     }
                 ),
             )
-            
+
         return await self.finish_update_did(signed_log_entry)
 
     async def deactivate(self, options: dict):
@@ -583,45 +589,46 @@ class ControllerManager:
         ).serialize()
 
     async def add_verification_method(
-        self, 
-        scid: str, 
+        self,
+        scid: str,
         key_type: str,
         relationships: list,
         key_id: str = None,
-        multikey: str = None
-        ):
+        multikey: str = None,
+    ):
         """Add a verification method."""
         async with self.profile.session() as session:
             scid_info = await session.handle.fetch("scid", scid)
 
-        did_document = scid_info.value_json.get('didDocument')
-        did = did_document.get('id')
+        did_document = scid_info.value_json.get("didDocument")
+        did = did_document.get("id")
         async with self.profile.session() as session:
             key_manager = MultikeyManager(session)
             multikey = (
                 await key_manager.from_multikey(multikey)
-                if multikey else await key_manager.create()
-            ).get('multikey')
-            if key_type == 'Multikey':
+                if multikey
+                else await key_manager.create()
+            ).get("multikey")
+            if key_type == "Multikey":
                 verification_method = {
-                    'type': key_type,
-                    'id': f"{did}#{key_id}" if key_id else f"{did}#{multikey}",
-                    'controller': did,
-                    'publicKeyMultibase': multikey
+                    "type": key_type,
+                    "id": f"{did}#{key_id}" if key_id else f"{did}#{multikey}",
+                    "controller": did,
+                    "publicKeyMultibase": multikey,
                 }
-            elif key_type == 'JsonWebKey':
+            elif key_type == "JsonWebKey":
                 jwk, thumbprint = multikey_to_jwk(multikey)
                 verification_method = {
-                    'type': key_type,
-                    'id': f"{did}#{key_id}" if key_id else f"{did}#{thumbprint}",
-                    'controller': did,
-                    'publicKeyJwk': jwk
+                    "type": key_type,
+                    "id": f"{did}#{key_id}" if key_id else f"{did}#{thumbprint}",
+                    "controller": did,
+                    "publicKeyJwk": jwk,
                 }
 
-            await key_manager.update(multikey, verification_method['id'])
-            did_document['verificationMethod'].append(verification_method)
+            await key_manager.update(multikey, verification_method["id"])
+            did_document["verificationMethod"].append(verification_method)
             for relationship in relationships:
-                did_document[relationship].append(verification_method['id'])
+                did_document[relationship].append(verification_method["id"])
 
         return did_document
 
