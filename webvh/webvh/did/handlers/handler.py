@@ -12,7 +12,7 @@ from acapy_agent.wallet.keys.manager import MultikeyManager
 from ...config.config import get_plugin_config
 from ..constants import ALIASES
 from ..messages.witness import WitnessRequest, WitnessResponse
-from ..operations_manager import DidWebvhOperationsManager
+from ..controller_manager import ControllerManager
 from ..registration_state import RegistrationState
 from ..utils import get_url_decoded_domain, key_to_did_key_vm
 from ..witness_manager import WitnessManager
@@ -123,7 +123,7 @@ class WitnessResponseHandler(BaseHandler):
         )
         assert isinstance(context.message, WitnessResponse)
 
-        await DidWebvhOperationsManager(context.profile).finish_create(
+        await ControllerManager(context.profile).finish_create(
             context.message.document,
             state=context.message.state,
             parameters=context.message.parameters,

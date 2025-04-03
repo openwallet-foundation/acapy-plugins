@@ -12,8 +12,7 @@ wallet-type: askar-anoncreds
 wallet-storage-type: default
 wallet-name: multitenant-admin-wallet
 wallet-key: multitenant-admin-wallet-key
-
-admin-insecure-mode: true
+wallet-allow-insecure-seed: true
 
 admin: [0.0.0.0, 9051]
 

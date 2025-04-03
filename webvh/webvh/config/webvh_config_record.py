@@ -5,6 +5,46 @@ from marshmallow import fields
 from marshmallow.utils import EXCLUDE
 
 
+class WebvhConfig(BaseRecord):
+    """Webvh configuration."""
+
+    class Meta:
+        """Webvh configuration metadata."""
+
+        schema_class = "WebvhConfigSchema"
+
+
+class WebvhConfigSchema(BaseRecordSchema):
+    """Webvh configuration schema."""
+
+    class Meta:
+        """Webvh configuration schema metadata."""
+
+        model_class = WebvhConfig
+        unkown = EXCLUDE
+
+    role = fields.Str(
+        required=True,
+        description="Role",
+    )
+
+    server_url = fields.Str(
+        required=True,
+        description="WebVH Server",
+    )
+
+    witnesses = fields.List(
+        fields.Str(),
+        required=False,
+        description="Witnesses",
+    )
+
+    scids = fields.Dict(
+        required=False,
+        description="Scid to DID mappings",
+    )
+
+
 class WebvhConfigRecord(BaseRecord):
     """Webvh configuration record."""
 
