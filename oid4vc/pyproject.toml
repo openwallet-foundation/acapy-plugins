@@ -33,6 +33,7 @@ jsonpath = "^0.82.2"
 cbor2 = { version = "~5", optional = true }
 cbor-diag = { version = "*", optional = true }
 cwt = { version = "~2", optional = true }
+oscrypto = { git = "https://github.com/wbond/oscrypto.git", rev = "1547f53" }  # Resolves https://github.com/wbond/oscrypto/issues/78
 pycose = { version = "~1", optional = true }
 jsonpointer = { version = "^3.0.0", optional = true }
 
