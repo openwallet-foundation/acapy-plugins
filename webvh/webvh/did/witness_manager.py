@@ -18,20 +18,14 @@ from acapy_agent.protocols.out_of_band.v1_0.messages.invitation import (
 )
 from acapy_agent.vc.data_integrity.manager import DataIntegrityManager
 from acapy_agent.vc.data_integrity.models.options import DataIntegrityProofOptions
-from acapy_agent.wallet.keys.manager import MultikeyManager
+from acapy_agent.wallet.keys.manager import MultikeyManager, MultikeyManagerError
 from aries_askar import AskarError
 
 from ..config.config import get_plugin_config, get_server_url, is_controller
 from .exceptions import WitnessError
 from .messages.witness import WitnessRequest, WitnessResponse
 from .registration_state import RegistrationState
-from .utils import (
-    create_alias,
-    create_or_get_witness_did,
-    key_to_did_key_vm,
-    server_url_to_domain,
-    sign_document,
-)
+from .utils import create_alias, server_url_to_domain
 
 LOGGER = logging.getLogger(__name__)
 
@@ -65,9 +59,29 @@ class WitnessManager:
 
         return None
 
+    async def _create_or_get_witness_did(self, key_alias, key=None):
+        """Create new multikey with alias or return existing one."""
+        async with self.profile.session() as session:
+            manager = MultikeyManager(session)
+            try:
+                if key:
+                    key_info = await manager.update(
+                        kid=key_alias,
+                        multikey=key,
+                    )
+
+                else:
+                    key_info = await manager.create(
+                        kid=key_alias,
+                        alg="ed25519",
+                    )
+            except MultikeyManagerError:
+                key_info = await manager.from_kid(key_alias)
+        return key_info
+
     async def witness_registration_document(
         self,
-        controller_secured_document: dict,
+        registration_document: dict,
         proof_options: dict,
         parameters: dict,
     ) -> Optional[dict]:
@@ -84,11 +98,14 @@ class WitnessManager:
                 if not witness_key_info:
                     raise WitnessError(f"Witness key [{witness_alias}] not found.")
 
-                proof_options["verificationMethod"] = key_to_did_key_vm(
-                    witness_key_info.get("multikey")
-                )
-                return await sign_document(
-                    session, controller_secured_document, proof_options
+                witness_key = witness_key_info.get("multikey")
+
+                return await DataIntegrityManager(session).add_proof(
+                    registration_document,
+                    DataIntegrityProofOptions.deserialize(
+                        proof_options
+                        | {"verificationMethod": f"did:key:{witness_key}#{witness_key}"}
+                    ),
                 )
 
             # Need proof from witness agent
@@ -100,7 +117,7 @@ class WitnessManager:
                     raise WitnessError("No active witness connection found.")
 
                 await responder.send(
-                    message=WitnessRequest(controller_secured_document, parameters),
+                    message=WitnessRequest(registration_document, parameters),
                     connection_id=witness_connection.connection_id,
                 )
 
@@ -109,9 +126,7 @@ class WitnessManager:
 
         witness_alias = create_alias(server_url_to_domain(server_url), "witnessKey")
 
-        witness_key_info = await create_or_get_witness_did(
-            self.profile, witness_alias, key
-        )
+        witness_key_info = await self._create_or_get_witness_did(witness_alias, key)
 
         if not witness_key_info.get("multikey"):
             raise WitnessError("Witness key creation error.")
@@ -216,6 +231,7 @@ class WitnessManager:
 
             # If the key is found, perform witness attestation
             witness_key_info = await MultikeyManager(session).from_kid(key_alias)
+            witness_key = witness_key_info.get("multikey")
 
             # Note: The witness key is used as the verification method
             witnessed_document = await DataIntegrityManager(session).add_proof(
@@ -224,9 +240,7 @@ class WitnessManager:
                     type="DataIntegrityProof",
                     cryptosuite="eddsa-jcs-2022",
                     proof_purpose="assertionMethod",
-                    verification_method=key_to_did_key_vm(
-                        witness_key_info.get("multikey")
-                    ),
+                    verification_method=f"did:key:{witness_key}#{witness_key}",
                     expires=proof.get("expires"),
                     domain=proof.get("domain"),
                     challenge=proof.get("challenge"),

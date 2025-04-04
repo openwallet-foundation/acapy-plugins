@@ -9,23 +9,9 @@ from multiformats import multibase, multihash
 
 from aiohttp import ClientResponseError, ClientSession
 
-from did_webvh.resolver import resolve_did
 from did_webvh.core.state import DocumentState
 
-from acapy_agent.wallet.error import WalletDuplicateError
-from acapy_agent.wallet.base import BaseWallet
-from acapy_agent.wallet.key_type import ED25519
-from acapy_agent.wallet.did_method import KEY
-from acapy_agent.wallet.keys.manager import (
-    MultikeyManager,
-    MultikeyManagerError,
-)
-from acapy_agent.vc.data_integrity.manager import DataIntegrityManager
-from acapy_agent.vc.data_integrity.models.options import DataIntegrityProofOptions
-
 WITNESS_CONNECTION_ALIAS_SUFFIX = "@witness"
-
-KEY_ID_SUFFIXES = {"next": "#next", "update": "#update", "witness": "#witness"}
 ALIAS_PURPOSES = {
     "witnessConnection": "@witness",
     "nextKey": "@nextKey",
@@ -41,21 +27,9 @@ def version_time():
     )
 
 
-def log_entry_hash(log_entry):
-    """Create hash for log entries."""
-    return multibase.encode(
-        multihash.digest(jcs.canonicalize(log_entry), "sha2-256"), "base58btc"
-    )[1:]
-
-
 def create_alias(identifier: str, purpose: str):
     """Get static alias."""
     return f"webvh:{identifier}{ALIAS_PURPOSES[purpose]}"
-
-
-def key_to_did_key_vm(multikey: str):
-    """Transform a multikey to a did key verification method."""
-    return f"did:key:{multikey}#{multikey}"
 
 
 def server_url_to_domain(server_url: str):
@@ -73,61 +47,6 @@ def get_url_decoded_domain(domain: str):
     return domain
 
 
-async def create_or_get_witness_did(profile, key_alias, key=None):
-    """Create new multikey with alias or return existing one."""
-    async with profile.session() as session:
-        manager = MultikeyManager(session)
-        try:
-            if key:
-                key_info = await manager.update(
-                    kid=key_alias,
-                    multikey=key,
-                )
-
-            else:
-                wallet = session.inject_or(BaseWallet)
-                info = await wallet.create_local_did(method=KEY, key_type=ED25519)
-                key_info = await manager.update(
-                    kid=key_alias,
-                    multikey=info.did.split(":")[-1],
-                )
-                # key_info = await manager.create(
-                #     kid=key_alias,
-                #     alg="ed25519",
-                # )
-        except (MultikeyManagerError, WalletDuplicateError):
-            key_info = await manager.from_kid(key_alias)
-    return key_info
-
-
-async def create_or_get_key(profile, key_alias, key=None):
-    """Create new multikey with alias or return existing one."""
-    async with profile.session() as session:
-        manager = MultikeyManager(session)
-        try:
-            if key:
-                key_info = await manager.update(
-                    kid=key_alias,
-                    multikey=key,
-                )
-
-            else:
-                key_info = await manager.create(
-                    kid=key_alias,
-                    alg="ed25519",
-                )
-        except (MultikeyManagerError, WalletDuplicateError):
-            key_info = await manager.from_kid(key_alias)
-    return key_info
-
-
-async def sign_document(session, document, proof_options):
-    """Sign document with data integrity proof."""
-    return await DataIntegrityManager(session).add_proof(
-        document, DataIntegrityProofOptions.deserialize(proof_options)
-    )
-
-
 def decode_invitation(invitation_url: str):
     """Decode an oob invitation url."""
     encoded_invitation = invitation_url.split("oob=")[-1]
@@ -137,45 +56,6 @@ def decode_invitation(invitation_url: str):
 def key_hash(key):
     """Return key hash."""
     return multibase.encode(multihash.digest(key.encode(), "sha2-256"), "base58btc")[1:]
-
-
-async def create_signing_key(profile, did: str, key_id: str = None, key_type=None):
-    """Create new signing key."""
-    async with profile.session() as session:
-        key_manager = MultikeyManager(session)
-        signing_key_info = await key_manager.create(alg="ed25519")
-        signing_key = signing_key_info.get("multikey")
-        await key_manager.update(kid=f"{did}#{signing_key}", multikey=signing_key)
-    return signing_key
-
-
-async def update_signing_key(profile, key, kid):
-    """Update signing key."""
-    async with profile.session() as session:
-        await MultikeyManager(session).update(
-            kid=kid,
-            multikey=key,
-        )
-
-
-async def delete_signing_key(profile, key_id):
-    """Delete signing key."""
-    async with profile.session() as session:
-        key_info = await MultikeyManager(session).from_kid(
-            kid=key_id,
-        )
-        await MultikeyManager(session).update(
-            kid="",
-            multikey=key_info.get("multikey"),
-        )
-
-
-async def resolve(did):
-    """Resolve did."""
-    response = await resolve_did(did)
-    if response.resolution_metadata and response.resolution_metadata.get("error"):
-        return response.resolution_metadata
-    return response
 
 
 def multikey_to_jwk(multikey):
@@ -194,34 +74,6 @@ def multikey_to_jwk(multikey):
         .rstrip("=")
     )
     return jwk, thumbprint
-
-
-async def rotate_keys(profile, did, next_key_hash):
-    """Rotate prerotation keys."""
-
-    update_key_id = f"{did}#updateKey"
-    next_key_id = f"{did}#nextKey"
-
-    async with profile.session() as session:
-        manager = MultikeyManager(session)
-
-        # Find current keys
-        update_key_info = await manager.from_kid(kid=update_key_id)
-        next_key_info = await manager.from_kid(kid=next_key_id)
-
-        if key_hash(next_key_info.get("multikey")) != next_key_hash:
-            pass
-
-        # Unbind current update key and replace with next key
-        await manager.update(kid="", multikey=update_key_info.get("multikey"))
-        await manager.update(kid=update_key_id, multikey=next_key_info.get("multikey"))
-        update_key_info = next_key_info
-
-        # Create and update the new next key
-        next_key_info = await manager.create(alg="ed25519")
-        await manager.update(kid=next_key_id, multikey=next_key_info.get("multikey"))
-
-        return update_key_info.get("multikey"), key_hash(next_key_info.get("multikey"))
 
 
 async def fetch_jsonl(url):

@@ -124,9 +124,6 @@ class WebvhCreateSchema(OpenAPISchema):
     class CreateOptionsSchema(OpenAPISchema):
         """Options for a Webvh DID request."""
 
-        # class ParametersSchema(OpenAPISchema):
-        #     """Parameters for a Webvh DID request."""
-
         prerotation = fields.Bool(
             required=False,
             metadata={
@@ -165,7 +162,6 @@ class WebvhCreateSchema(OpenAPISchema):
                 "example": "1",
             },
         )
-        # parameters = fields.Nested(ParametersSchema())
 
     options = fields.Nested(CreateOptionsSchema())
 
@@ -175,7 +171,6 @@ class WebvhDIDQueryStringSchema(OpenAPISchema):
 
     did = fields.Str(
         required=True,
-        # validate=GENERIC_DID_VALIDATE,
         metadata={"description": "DID of interest", "example": ""},
     )
 
@@ -185,7 +180,6 @@ class WebvhSCIDQueryStringSchema(OpenAPISchema):
 
     scid = fields.Str(
         required=True,
-        # validate=GENERIC_DID_VALIDATE,
         metadata={"description": "SCID of interest", "example": ""},
     )
 

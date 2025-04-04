@@ -123,7 +123,7 @@ async def add_scid_mapping(profile: Profile, scid: str, did: str):
 
 
 async def did_from_scid(profile: Profile, scid: str):
-    """Check if the agent should use strict SSL."""
+    """Find DID mapped to a specific SCID."""
     async with profile.session() as session:
         storage = session.inject(BaseStorage)
         stored_config_record = await storage.get_record(

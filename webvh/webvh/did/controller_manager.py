@@ -38,7 +38,6 @@ from .registration_state import RegistrationState
 from .utils import (
     fetch_document_state,
     key_hash,
-    delete_signing_key,
     multikey_to_jwk,
 )
 from .witness_manager import WitnessManager
@@ -601,7 +600,14 @@ class ControllerManager:
         """Remove a verification method."""
         did = await did_from_scid(self.profile, scid)
         key_id = f"{did}#{key_id}"
-        await delete_signing_key(self.profile, key_id)
+        async with self.profile.session() as session:
+            key_info = await MultikeyManager(session).from_kid(
+                kid=key_id,
+            )
+            await MultikeyManager(session).update(
+                kid="",
+                multikey=key_info.get("multikey"),
+            )
         return {"status": "ok"}
 
     async def _rotate_update_key(self, did: str):
