@@ -269,33 +269,6 @@ async def attest_pending_registration(request: web.BaseRequest):
         return web.json_response({"status": "error", "message": str(err)})
 
 
-@docs(tags=["did-webvh"], summary="Get all pending log entry signature requests")
-@tenant_authentication
-async def get_pending_log_entries(request: web.BaseRequest):
-    """Get all pending log entries."""
-    context: AdminRequestContext = request["context"]
-    pending_requests = await WitnessManager(
-        context.profile
-    ).get_pending_did_request_docs()
-    return web.json_response({"results": pending_requests})
-
-
-@docs(tags=["did-webvh"], summary="Attest a pending log entry")
-@querystring_schema(WebvhSCIDQueryStringSchema())
-@tenant_authentication
-async def attest_pending_log_entry(request: web.BaseRequest):
-    """Get all pending log entries."""
-    context: AdminRequestContext = request["context"]
-
-    try:
-        controller_id = request.query.get("scid")
-        return web.json_response(
-            await WitnessManager(context.profile).attest_did_request_doc(controller_id)
-        )
-    except WitnessError as err:
-        return web.json_response({"status": "error", "message": str(err)})
-
-
 def register_events(event_bus: EventBus):
     """Register to the acapy startup event."""
     event_bus.subscribe(STARTUP_EVENT_PATTERN, on_startup_event)
@@ -348,23 +321,6 @@ async def register(app: web.Application):
             web.post(
                 "/did/webvh/witness/registrations",
                 attest_pending_registration,
-            )
-        ]
-    )
-    app.add_routes(
-        [
-            web.get(
-                "/did/webvh/witness/log-updates",
-                get_pending_log_entries,
-                allow_head=False,
-            )
-        ]
-    )
-    app.add_routes(
-        [
-            web.post(
-                "/did/webvh/witness/log-updates",
-                attest_pending_log_entry,
             )
         ]
     )
