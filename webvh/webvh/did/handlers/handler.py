@@ -12,9 +12,9 @@ from acapy_agent.wallet.keys.manager import MultikeyManager
 from ...config.config import get_plugin_config
 from ..constants import ALIASES
 from ..messages.witness import WitnessRequest, WitnessResponse
-from ..operations_manager import DidWebvhOperationsManager
+from ..controller_manager import ControllerManager
 from ..registration_state import RegistrationState
-from ..utils import get_url_decoded_domain, key_to_did_key_vm
+from ..utils import get_url_decoded_domain
 from ..witness_manager import WitnessManager
 
 LOGGER = logging.getLogger(__name__)
@@ -49,6 +49,7 @@ class WitnessRequestHandler(BaseHandler):
 
             # If the key is found, perform witness
             witness_key_info = await MultikeyManager(session).from_kid(witness_kid)
+            witness_key = witness_key_info.get("multikey")
             # Note: The witness key is used as the verification method
             witnessed_document = await DataIntegrityManager(session).add_proof(
                 document,
@@ -56,9 +57,7 @@ class WitnessRequestHandler(BaseHandler):
                     type="DataIntegrityProof",
                     cryptosuite="eddsa-jcs-2022",
                     proof_purpose="assertionMethod",
-                    verification_method=key_to_did_key_vm(
-                        witness_key_info.get("multikey")
-                    ),
+                    verification_method=f"did:key:{witness_key}#{witness_key}",
                     expires=proof.get("expires"),
                     domain=domain,
                     challenge=proof.get("challenge"),
@@ -123,7 +122,7 @@ class WitnessResponseHandler(BaseHandler):
         )
         assert isinstance(context.message, WitnessResponse)
 
-        await DidWebvhOperationsManager(context.profile).finish_create(
+        await ControllerManager(context.profile).finish_registration(
             context.message.document,
             state=context.message.state,
             parameters=context.message.parameters,

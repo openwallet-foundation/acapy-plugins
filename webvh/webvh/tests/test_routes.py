@@ -6,7 +6,7 @@ from acapy_agent.protocols.out_of_band.v1_0.manager import OutOfBandManager
 from acapy_agent.utils.testing import create_test_profile
 from aiohttp.web_response import Response
 
-from webvh.routes import attest_log_entry, configure, create, witness_get_pending
+from webvh.routes import attest_pending_registration, configure, create, get_pending_registrations
 
 
 class TestWebvhRoutes(IsolatedAsyncioTestCase):
@@ -73,7 +73,7 @@ class TestWebvhRoutes(IsolatedAsyncioTestCase):
             headers={"x-api-key": "secret-key"},
         )
 
-        result = await witness_get_pending(self.request)
+        result = await get_pending_registrations(self.request)
         assert isinstance(result, Response)
 
     async def test_attest(self):
@@ -87,7 +87,7 @@ class TestWebvhRoutes(IsolatedAsyncioTestCase):
             headers={"x-api-key": "secret-key"},
         )
 
-        result = await attest_log_entry(self.request)
+        result = await attest_pending_registration(self.request)
         assert isinstance(result, Response)
 
     @mock.patch.object(OutOfBandManager, "receive_invitation")
