@@ -1,3 +1,5 @@
+"""Model for webvh DID log entry."""
+
 from acapy_agent.messaging.models.openapi import OpenAPISchema
 from marshmallow import fields, validate
 
