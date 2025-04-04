@@ -27,7 +27,6 @@ from .messages.witness import WitnessRequest, WitnessResponse
 from .registration_state import RegistrationState
 from .utils import (
     create_alias,
-    create_or_get_key,
     create_or_get_witness_did,
     key_to_did_key_vm,
     server_url_to_domain,
@@ -91,6 +90,7 @@ class WitnessManager:
                 return await sign_document(
                     session, controller_secured_document, proof_options
                 )
+
             # Need proof from witness agent
             else:
                 responder = self.profile.inject(BaseResponder)

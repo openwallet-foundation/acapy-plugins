@@ -123,7 +123,7 @@ class WitnessResponseHandler(BaseHandler):
         )
         assert isinstance(context.message, WitnessResponse)
 
-        await ControllerManager(context.profile).finish_create(
+        await ControllerManager(context.profile).finish_registration(
             context.message.document,
             state=context.message.state,
             parameters=context.message.parameters,

@@ -24,7 +24,7 @@ from .did.models.operations import (
     WebvhSCIDQueryStringSchema,
     WebvhDIDQueryStringSchema,
 )
-from .config.config import set_config, get_plugin_config, get_server_url
+from .config.config import set_config, get_plugin_config
 from .did.exceptions import (
     ConfigurationError,
     DidCreationError,
@@ -135,7 +135,7 @@ async def create(request: web.BaseRequest):
     request_json = await request.json()
     try:
         return web.json_response(
-            await ControllerManager(context.profile).create(
+            await ControllerManager(context.profile).register(
                 options=request_json["options"]
             )
         )

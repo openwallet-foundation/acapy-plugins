@@ -9,7 +9,7 @@ from multiformats import multibase, multihash
 
 from aiohttp import ClientResponseError, ClientSession
 
-from did_webvh.resolver import ResolutionResult, resolve_did
+from did_webvh.resolver import resolve_did
 from did_webvh.core.state import DocumentState
 
 from acapy_agent.wallet.error import WalletDuplicateError
@@ -142,10 +142,10 @@ def key_hash(key):
 async def create_signing_key(profile, did: str, key_id: str = None, key_type=None):
     """Create new signing key."""
     async with profile.session() as session:
-        manager = MultikeyManager(session)
-        signing_key_info = await manager.create(alg="ed25519")
+        key_manager = MultikeyManager(session)
+        signing_key_info = await key_manager.create(alg="ed25519")
         signing_key = signing_key_info.get("multikey")
-        await manager.update(kid=f"{did}#{signing_key}", multikey=signing_key)
+        await key_manager.update(kid=f"{did}#{signing_key}", multikey=signing_key)
     return signing_key
 
 
