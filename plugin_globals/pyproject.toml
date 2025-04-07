@@ -15,7 +15,7 @@ acapy-agent = { version = "~1.2.4", optional = true }
 [tool.poetry.extras]
 aca-py = ["acapy-agent"]
 
-[tool.poetry.dev-dependencies]
+[tool.poetry.group.dev.dependencies]
 ruff = "^0.9.9"
 pytest = "^8.3.5"
 pytest-asyncio = "^0.25.3"
@@ -83,5 +83,5 @@ show_missing = true
 output = ".test-reports/coverage.xml"
 
 [build-system]
-requires = ["setuptools", "poetry-core>=1.2"]
+requires = ["setuptools", "poetry-core>=2.1"]
 build-backend = "poetry.core.masonry.api"

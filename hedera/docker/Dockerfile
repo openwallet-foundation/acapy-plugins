@@ -8,7 +8,7 @@ WORKDIR /usr/src/app
 USER root
 
 WORKDIR /usr/src/app
-ENV POETRY_VERSION=1.7.1
+ENV POETRY_VERSION=2.1.2
 ENV POETRY_HOME=/opt/poetry
 RUN apt-get update && apt-get install -y curl wget git && apt-get clean 
 RUN curl -sSL https://install.python-poetry.org | python -
