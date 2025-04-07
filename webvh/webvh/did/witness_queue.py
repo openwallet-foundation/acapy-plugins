@@ -3,12 +3,11 @@
 from acapy_agent.core.profile import Profile
 from aries_askar import AskarError
 
-RECORD_TYPE = "pending_webvh_dids"
 
-
-class PendingWebvhDids:
+class PendingRegistrations:
     """Class to manage pending webvh dids."""
 
+    RECORD_TYPE = "pending_registrations"
     instance = None
     dids = None
 
@@ -22,11 +21,13 @@ class PendingWebvhDids:
         """Check and initialize the class."""
         if self.dids is None:
             async with profile.session() as session:
-                pending_dids_record = await session.handle.fetch(RECORD_TYPE, RECORD_TYPE)
+                pending_dids_record = await session.handle.fetch(
+                    self.RECORD_TYPE, self.RECORD_TYPE
+                )
                 if not pending_dids_record:
                     self.dids = set()
                     await session.handle.insert(
-                        RECORD_TYPE, RECORD_TYPE, value_json=list(self.dids)
+                        self.RECORD_TYPE, self.RECORD_TYPE, value_json=list(self.dids)
                     )
                 else:
                     self.dids = set(pending_dids_record.value_json)
@@ -35,11 +36,11 @@ class PendingWebvhDids:
         async with profile.session() as session:
             # This is used to force save with newest when there is a race condition
             try:
-                await session.handle.remove(RECORD_TYPE, RECORD_TYPE)
+                await session.handle.remove(self.RECORD_TYPE, self.RECORD_TYPE)
             except AskarError:
                 pass
             await session.handle.insert(
-                RECORD_TYPE, RECORD_TYPE, value_json=list(self.dids)
+                self.RECORD_TYPE, self.RECORD_TYPE, value_json=list(self.dids)
             )
 
     async def set_pending_did(self, profile: Profile, did: str):

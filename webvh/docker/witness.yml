@@ -21,18 +21,12 @@ no-ledger: true
 wallet-type: askar-anoncreds
 wallet-name: witness-wallet
 wallet-key: insecure
-
 wallet-allow-insecure-seed: true # Don't do this in production
 
 log-level: info
 
 auto-accept-invites: true
 auto-respond-messages: true
-
-# Multi-tenancy
-multitenant: true
-jwt-secret: insecure-jwt-secret
-multitenant-admin: true
 
 
 # Plugin
