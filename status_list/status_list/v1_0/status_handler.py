@@ -77,9 +77,7 @@ async def assign_status_list_number(session: ProfileSession, wallet_id: str):
     """Get status list number."""
 
     try:
-        registry = await StatusListReg.retrieve_by_id(
-            session, wallet_id, for_update=True
-        )
+        registry = await StatusListReg.retrieve_by_id(session, wallet_id, for_update=True)
         if registry.list_count < 0:
             raise StatusListError("Status list registry has negative list count.")
     except StorageNotFoundError:
@@ -126,9 +124,7 @@ async def generate_random_index(context: AdminRequestContext, definition_id: str
         # create a spare list
         if definition.list_number == definition.next_list_number:
             wallet_id = get_wallet_id(context)
-            definition.next_list_number = await assign_status_list_number(
-                txn, wallet_id
-            )
+            definition.next_list_number = await assign_status_list_number(txn, wallet_id)
             definition.add_list_number(definition.next_list_number)
             await create_next_status_list(txn, definition)
 
@@ -449,11 +445,11 @@ async def get_status_list(
                 },
             }
             if definition.status_purpose == "message":
-                status_list["vc"]["credentialSubject"][
-                    "statusSize"
-                ] = definition.status_size
-                status_list["vc"]["credentialSubject"][
-                    "statusMessage"
-                ] = definition.status_message
+                status_list["vc"]["credentialSubject"]["statusSize"] = (
+                    definition.status_size
+                )
+                status_list["vc"]["credentialSubject"]["statusMessage"] = (
+                    definition.status_message
+                )
 
         return status_list

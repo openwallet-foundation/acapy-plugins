@@ -232,6 +232,7 @@ async def create_schema(issuer, did):
 
     return schema_id
 
+
 async def update_schema(issuer, did):
     """Update a schema on the Cheqd testnet."""
     schema_create_result = await issuer.post(

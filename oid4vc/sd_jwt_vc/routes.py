@@ -139,7 +139,7 @@ class SdJwtSupportedCredCreateReq(OpenAPISchema):
 
     See the SD-JWT VC profile for more details on these properties:
     https://openid.net/specs/openid-4-verifiable-credential-issuance-1_0-ID1.html#name-credential-issuer-metadata-6
-    """), # noqa
+    """),  # noqa
 )
 @request_schema(SdJwtSupportedCredCreateReq())
 @response_schema(SupportedCredentialSchema())
@@ -154,7 +154,7 @@ async def supported_credential_create(request: web.Request):
 
     if not await supported_cred_is_unique(body["id"], profile):
         raise web.HTTPBadRequest(
-            reason=f"Record with identifier {body["id"]} already exists."
+            reason=f"Record with identifier {body['id']} already exists."
         )
     LOGGER.info(f"body: {body}")
     body["identifier"] = body.pop("id")
@@ -253,9 +253,7 @@ async def update_supported_credential_sd_jwt(request: web.Request):
     LOGGER.info(f"body: {body}")
     try:
         async with context.session() as session:
-            record = await SupportedCredential.retrieve_by_id(
-                session, supported_cred_id
-            )
+            record = await SupportedCredential.retrieve_by_id(session, supported_cred_id)
 
             assert isinstance(session, AskarProfileSession)
             record = await supported_cred_update_helper(record, body, session)

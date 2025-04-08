@@ -96,7 +96,7 @@ async def test_resolve_resource(resolver, resolve_resource_params):
     # Arrange
     mock_response = {
         "contentStream": {"MOCK_KEY": "MOCK_VALUE"},
-        "contentMetadata": {"MOCK_METADATA_KEY": "MOCK_METADATA_VALUE"}
+        "contentMetadata": {"MOCK_METADATA_KEY": "MOCK_METADATA_VALUE"},
     }
     did_resource, resolve_resource_url, resolve_resource_metadata_url = (
         resolve_resource_params
@@ -155,7 +155,7 @@ async def test_resolve_resource_metadata_incorrectly_formatted(
     # Arrange
     mock_response = {
         "contentStream": {"MOCK_KEY": "MOCK_VALUE"},
-        "contentMetadata": "MOCK_VALUE"
+        "contentMetadata": "MOCK_VALUE",
     }
     did_resource, resolve_resource_url, resolve_resource_metadata_url = (
         resolve_resource_params
@@ -169,5 +169,7 @@ async def test_resolve_resource_metadata_incorrectly_formatted(
             await resolver.dereference_with_metadata(None, did_resource)
 
         # Assert
-        assert str(excinfo.value) == "DidUrlDereferencing result was incorrectly formatted"
+        assert (
+            str(excinfo.value) == "DidUrlDereferencing result was incorrectly formatted"
+        )
         assert isinstance(excinfo.value, ResolverError)

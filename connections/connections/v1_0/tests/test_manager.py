@@ -5,7 +5,12 @@ import pytest
 from acapy_agent.cache.base import BaseCache
 from acapy_agent.cache.in_memory import InMemoryCache
 from acapy_agent.connections.models.conn_record import ConnRecord
-from acapy_agent.connections.models.diddoc import DIDDoc, PublicKey, PublicKeyType, Service
+from acapy_agent.connections.models.diddoc import (
+    DIDDoc,
+    PublicKey,
+    PublicKeyType,
+    Service,
+)
 from acapy_agent.core.oob_processor import OobMessageProcessor
 from acapy_agent.messaging.responder import BaseResponder, MockResponder
 from acapy_agent.multitenant.base import BaseMultitenantManager
@@ -21,8 +26,12 @@ from acapy_agent.wallet.base import BaseWallet, DIDInfo
 from acapy_agent.wallet.did_method import SOV, DIDMethods
 from acapy_agent.wallet.key_type import ED25519, KeyTypes
 from acapy_agent.protocols.coordinate_mediation.v1_0.manager import MediationManager
-from acapy_agent.protocols.coordinate_mediation.v1_0.messages.mediate_request import MediationRequest
-from acapy_agent.protocols.coordinate_mediation.v1_0.models.mediation_record import MediationRecord
+from acapy_agent.protocols.coordinate_mediation.v1_0.messages.mediate_request import (
+    MediationRequest,
+)
+from acapy_agent.protocols.coordinate_mediation.v1_0.models.mediation_record import (
+    MediationRecord,
+)
 from acapy_agent.protocols.coordinate_mediation.v1_0.route_manager import RouteManager
 from ..manager import ConnectionManager, ConnectionManagerError
 from ..messages.connection_invitation import ConnectionInvitation

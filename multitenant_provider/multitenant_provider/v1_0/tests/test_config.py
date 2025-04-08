@@ -4,7 +4,6 @@ from ..config import MultitenantProviderConfig, TokenExpiryConfig, get_config
 
 
 class TestConfig(IsolatedAsyncioTestCase):
-
     async def test_get_token_expiry_delta(self):
         token_config = TokenExpiryConfig()
         assert token_config.get_token_expiry_delta().days == 364

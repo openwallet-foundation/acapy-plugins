@@ -35,13 +35,13 @@ async def profile(resolver: DIDResolver):
                     "port": 8020,
                 }
             },
-        })
+        }
+    )
 
     profile.context.injector.bind_instance(DIDResolver, resolver)
     profile.context.injector.bind_instance(CredProcessors, processors)
 
     yield profile
-
 
 
 @pytest.fixture

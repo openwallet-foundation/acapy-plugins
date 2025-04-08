@@ -55,9 +55,7 @@ async def test_status_list_pub_routes(context: AdminRequestContext, seed_db):
         await controller.publish_status_list(request)
         result = mock_web.json_response.call_args[0][0]
         assert len(result) > 0
-        encoded_list = result["status_lists"][0]["vc"]["credentialSubject"][
-            "encodedList"
-        ]
+        encoded_list = result["status_lists"][0]["vc"]["credentialSubject"]["encodedList"]
         assert encoded_list
 
     # Test publish_status_list in "ietf" format

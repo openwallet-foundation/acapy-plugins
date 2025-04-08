@@ -1,6 +1,11 @@
 from unittest import IsolatedAsyncioTestCase, TestCase, mock
 
-from acapy_agent.connections.models.diddoc import DIDDoc, PublicKey, PublicKeyType, Service
+from acapy_agent.connections.models.diddoc import (
+    DIDDoc,
+    PublicKey,
+    PublicKeyType,
+    Service,
+)
 from acapy_agent.utils.testing import create_test_profile
 from acapy_agent.wallet.base import BaseWallet
 from acapy_agent.wallet.key_type import ED25519
@@ -59,8 +64,7 @@ class TestConnectionResponse(TestCase, TestConfig):
         )
 
     @mock.patch(
-        "connections.v1_0.messages."
-        "connection_response.ConnectionResponseSchema.load"
+        "connections.v1_0.messages.connection_response.ConnectionResponseSchema.load"
     )
     def test_deserialize(self, mock_connection_response_schema_load):
         """
@@ -74,8 +78,7 @@ class TestConnectionResponse(TestCase, TestConfig):
         assert connection_response is mock_connection_response_schema_load.return_value
 
     @mock.patch(
-        "connections.v1_0.messages."
-        "connection_response.ConnectionResponseSchema.dump"
+        "connections.v1_0.messages.connection_response.ConnectionResponseSchema.dump"
     )
     def test_serialize(self, mock_connection_response_schema_dump):
         """

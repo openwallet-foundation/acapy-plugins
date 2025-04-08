@@ -87,6 +87,7 @@ async def test_create_schema_and_credential_definition(shared_schema):
         await assert_wallet_dids(issuer, did)
         assert credential_definition_id is not None
 
+
 @pytest.mark.asyncio
 async def test_update_schema():
     """Test Update Schema."""
