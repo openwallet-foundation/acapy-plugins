@@ -83,6 +83,7 @@ jobs:
           for dir in ${{ steps.changed-plugins.outputs.changed-plugins }}; do
             cd $dir
             poetry run ruff check .
+            poetry run ruff format --check .
             cd ..
           done
       #----------------------------------------------
