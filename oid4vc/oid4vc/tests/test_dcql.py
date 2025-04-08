@@ -28,7 +28,6 @@ raw_query = {
 
 @pytest.mark.asyncio
 async def test_dcql_query_deser_roundtrip():
-
     des_query = DCQLQuery.deserialize(raw_query)
     ser_query = des_query.serialize()
 
@@ -37,14 +36,11 @@ async def test_dcql_query_deser_roundtrip():
 
 @pytest.mark.asyncio
 async def test_dcql_query_saving(profile: Profile):
-
     des_query = DCQLQuery.deserialize(raw_query)
     async with profile.session() as session:
         await des_query.save(session=session)
 
-        retrieved_query = await DCQLQuery.retrieve_by_id(
-            session, des_query.dcql_query_id
-        )
+        retrieved_query = await DCQLQuery.retrieve_by_id(session, des_query.dcql_query_id)
 
     assert len(retrieved_query.credentials) == 1
     assert isinstance(retrieved_query.credentials[0], CredentialQuery)
@@ -52,7 +48,6 @@ async def test_dcql_query_saving(profile: Profile):
 
 @pytest.mark.asyncio
 async def test_dcql_verify(profile: Profile):
-
     pres_result_payload = {
         "given_name": "Sally",
         "family_name": "Sparrow",
@@ -85,7 +80,6 @@ async def test_dcql_verify(profile: Profile):
     profile.context.injector.bind_instance(CredProcessors, mock_cred_processors)
 
     async with profile.session() as session:
-
         eval = DCQLQueryEvaluator.compile(raw_query)
 
         verified = await eval.verify(

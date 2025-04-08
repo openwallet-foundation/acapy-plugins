@@ -4,7 +4,12 @@ from acapy_agent.tests import mock
 
 from acapy_agent.connections.models import connection_target
 from acapy_agent.connections.models.conn_record import ConnRecord
-from acapy_agent.connections.models.diddoc import DIDDoc, PublicKey, PublicKeyType, Service
+from acapy_agent.connections.models.diddoc import (
+    DIDDoc,
+    PublicKey,
+    PublicKeyType,
+    Service,
+)
 from acapy_agent.messaging.request_context import RequestContext
 from acapy_agent.messaging.responder import MockResponder
 from acapy_agent.storage.base import BaseStorage

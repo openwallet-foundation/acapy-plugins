@@ -125,10 +125,7 @@ class TestRedisEvents(IsolatedAsyncioTestCase):
         )
         redis_cluster = MagicMock(RedisCluster, auto_spec=True)
         redis_cluster.rpush = AsyncMock()
-        self.profile.context.injector.bind_instance(
-            RedisCluster,
-            redis_cluster
-        )
+        self.profile.context.injector.bind_instance(RedisCluster, redis_cluster)
         test_event_with_metadata = MagicMock(
             payload={
                 "state": "test_state",
@@ -223,10 +220,7 @@ class TestRedisEvents(IsolatedAsyncioTestCase):
         )
         redis_cluster = MagicMock(RedisCluster, auto_spec=True)
         redis_cluster.rpush = AsyncMock()
-        self.profile.context.injector.bind_instance(
-            RedisCluster,
-            redis_cluster
-        )
+        self.profile.context.injector.bind_instance(RedisCluster, redis_cluster)
         test_event_with_metadata = MagicMock(
             payload={
                 "state": "test_state",

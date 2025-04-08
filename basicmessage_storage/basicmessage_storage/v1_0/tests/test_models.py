@@ -40,7 +40,9 @@ class TestBasicMessageRecord(IsolatedAsyncioTestCase):
         _message_id = "messageid"
         mock_retrieve.return_value = BasicMessageRecord(record_id=_id)
 
-        rec = await BasicMessageRecord.retrieve_by_message_id(self.profile.session, _message_id)
+        rec = await BasicMessageRecord.retrieve_by_message_id(
+            self.profile.session, _message_id
+        )
         args = mock_retrieve.call_args.args
         expected_args = {"message_id": _message_id}
 

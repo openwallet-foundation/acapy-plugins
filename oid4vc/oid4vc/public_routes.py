@@ -68,18 +68,20 @@ EXPIRES_IN = 86400
 @response_schema(CredOfferResponseSchemaVal(), 200)
 async def dereference_cred_offer(request: web.BaseRequest):
     """Dereference a credential offer.
-    
-    Reference URI is acquired from the /oid4vci/credential-offer-by-ref endpoint 
+
+    Reference URI is acquired from the /oid4vci/credential-offer-by-ref endpoint
     (see routes.get_cred_offer_by_ref()).
     """
     context: AdminRequestContext = request["context"]
     exchange_id = request.query["exchange_id"]
 
     offer = await _parse_cred_offer(context, exchange_id)
-    return web.json_response({
-        "offer": offer,
-        "credential_offer": f"openid-credential-offer://?credential_offer={quote(json.dumps(offer))}", 
-    })
+    return web.json_response(
+        {
+            "offer": offer,
+            "credential_offer": f"openid-credential-offer://?credential_offer={quote(json.dumps(offer))}",
+        }
+    )
 
 
 class CredentialIssuerMetadataSchema(OpenAPISchema):
@@ -99,9 +101,7 @@ class CredentialIssuerMetadataSchema(OpenAPISchema):
     )
     authorization_server = fields.Str(
         required=False,
-        metadata={
-            "description": "The authorization server endpoint. Currently ignored."
-        },
+        metadata={"description": "The authorization server endpoint. Currently ignored."},
     )
     batch_credential_endpoint = fields.Str(
         required=False,
@@ -235,9 +235,7 @@ async def check_token(
     return result
 
 
-async def handle_proof_of_posession(
-    profile: Profile, proof: Dict[str, Any], nonce: str
-):
+async def handle_proof_of_posession(profile: Profile, proof: Dict[str, Any], nonce: str):
     """Handle proof of posession."""
     encoded_headers, encoded_payload, encoded_signature = proof["jwt"].split(".", 3)
     headers = b64_to_dict(encoded_headers)
@@ -343,9 +341,7 @@ async def issue_cred(request: web.Request):
     if "proof" not in body:
         raise web.HTTPBadRequest(reason=f"proof is required for {supported.format}")
 
-    pop = await handle_proof_of_posession(
-        context.profile, body["proof"], ex_record.nonce
-    )
+    pop = await handle_proof_of_posession(context.profile, body["proof"], ex_record.nonce)
     if not pop.verified:
         raise web.HTTPBadRequest(reason="Invalid proof")
 
@@ -476,13 +472,9 @@ async def get_request(request: web.Request):
             await pres.save(session=session, reason="Retrieved presentation request")
 
             if record.pres_def_id:
-                pres_def = await OID4VPPresDef.retrieve_by_id(
-                    session, record.pres_def_id
-                )
+                pres_def = await OID4VPPresDef.retrieve_by_id(session, record.pres_def_id)
             elif record.dcql_query_id:
-                dcql_query = await DCQLQuery.retrieve_by_id(
-                    session, record.dcql_query_id
-                )
+                dcql_query = await DCQLQuery.retrieve_by_id(session, record.dcql_query_id)
             jwk = await retrieve_or_create_did_jwk(session)
 
     except StorageNotFoundError as err:
@@ -608,9 +600,7 @@ async def verify_pres_def_presentation(
 
     processors = profile.inject(CredProcessors)
     if not submission.descriptor_maps:
-        raise web.HTTPBadRequest(
-            reason="Descriptor map of submission must not be empty"
-        )
+        raise web.HTTPBadRequest(reason="Descriptor map of submission must not be empty")
 
     # TODO: Support longer descriptor map arrays
     if len(submission.descriptor_maps) != 1:
@@ -722,9 +712,10 @@ async def register(app: web.Application, multitenant: bool):
     subpath = "/tenant/{wallet_id}" if multitenant else ""
     app.add_routes(
         [
-            web.get(f"{subpath}/oid4vci/dereference-credential-offer",
-                dereference_cred_offer, 
-                allow_head=False
+            web.get(
+                f"{subpath}/oid4vci/dereference-credential-offer",
+                dereference_cred_offer,
+                allow_head=False,
             ),
             web.get(
                 f"{subpath}/.well-known/openid-credential-issuer",

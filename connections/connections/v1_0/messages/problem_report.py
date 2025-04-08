@@ -12,8 +12,7 @@ from marshmallow import EXCLUDE, ValidationError, validates_schema
 from ..message_types import PROBLEM_REPORT
 
 HANDLER_CLASS = (
-    "connections.v1_0.handlers."
-    "problem_report_handler.ConnectionProblemReportHandler"
+    "connections.v1_0.handlers.problem_report_handler.ConnectionProblemReportHandler"
 )
 
 LOGGER = logging.getLogger(__name__)

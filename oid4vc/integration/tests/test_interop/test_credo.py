@@ -14,7 +14,9 @@ async def test_accept_credential_offer(credo: CredoWrapper, offer: Dict[str, Any
 
 @pytest.mark.interop
 @pytest.mark.asyncio
-async def test_accept_credential_offer_by_ref(credo: CredoWrapper, offer_by_ref: Dict[str, Any]):
+async def test_accept_credential_offer_by_ref(
+    credo: CredoWrapper, offer_by_ref: Dict[str, Any]
+):
     """Test OOB DIDExchange Protocol where offer is passed by reference from the
     credential-offer-by-ref endpoint and then dereferenced."""
     await credo.openid4vci_accept_offer(offer_by_ref["credential_offer"])
@@ -29,10 +31,13 @@ async def test_accept_credential_offer_sdjwt(credo: CredoWrapper, sdjwt_offer: s
 
 @pytest.mark.interop
 @pytest.mark.asyncio
-async def test_accept_credential_offer_sdjwt_by_ref(credo: CredoWrapper, sdjwt_offer_by_ref: str):
+async def test_accept_credential_offer_sdjwt_by_ref(
+    credo: CredoWrapper, sdjwt_offer_by_ref: str
+):
     """Test OOB DIDExchange Protocol where offer is passed by reference from the
     credential-offer-by-ref endpoint and then dereferenced."""
     await credo.openid4vci_accept_offer(sdjwt_offer_by_ref)
+
 
 @pytest.mark.interop
 @pytest.mark.asyncio

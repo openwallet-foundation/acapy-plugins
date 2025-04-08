@@ -208,23 +208,26 @@ class TestRedisOutbound(IsolatedAsyncioTestCase):
         redis = MagicMock(
             hset=AsyncMock(),
         )
-        with patch.object(
-            test_util,
-            "get_new_valid_uid",
-            AsyncMock(return_value=b"test_uid_a"),
-        ), patch.object(
-            test_util,
-            "get_recip_keys_list_for_uid",
-            AsyncMock(
-                return_value=base64.urlsafe_b64encode(
-                    json.dumps(
-                        [
-                            "test_recip_key_a",
-                            "test_recip_key_b",
-                            "test_recip_key_c",
-                        ]
-                    ).encode("utf-8")
-                ).decode()
+        with (
+            patch.object(
+                test_util,
+                "get_new_valid_uid",
+                AsyncMock(return_value=b"test_uid_a"),
+            ),
+            patch.object(
+                test_util,
+                "get_recip_keys_list_for_uid",
+                AsyncMock(
+                    return_value=base64.urlsafe_b64encode(
+                        json.dumps(
+                            [
+                                "test_recip_key_a",
+                                "test_recip_key_b",
+                                "test_recip_key_c",
+                            ]
+                        ).encode("utf-8")
+                    ).decode()
+                ),
             ),
         ):
             assert (
@@ -240,34 +243,37 @@ class TestRedisOutbound(IsolatedAsyncioTestCase):
             hdel=AsyncMock(),
             hincrby=AsyncMock(),
         )
-        with patch.object(
-            test_util,
-            "get_new_valid_uid",
-            AsyncMock(return_value=b"test_uid_a"),
-        ), patch.object(
-            test_util,
-            "get_recip_keys_list_for_uid",
-            AsyncMock(
-                side_effect=[
-                    base64.urlsafe_b64encode(
-                        json.dumps(
-                            [
-                                "test_recip_key_a",
-                                "test_recip_key_b",
-                                "test_recip_key_c",
-                            ]
-                        ).encode("utf-8")
-                    ).decode(),
-                    base64.urlsafe_b64encode(
-                        json.dumps(
-                            [
-                                "test_recip_key_p",
-                                "test_recip_key_q",
-                                "test_recip_key_r",
-                            ]
-                        ).encode("utf-8")
-                    ).decode(),
-                ]
+        with (
+            patch.object(
+                test_util,
+                "get_new_valid_uid",
+                AsyncMock(return_value=b"test_uid_a"),
+            ),
+            patch.object(
+                test_util,
+                "get_recip_keys_list_for_uid",
+                AsyncMock(
+                    side_effect=[
+                        base64.urlsafe_b64encode(
+                            json.dumps(
+                                [
+                                    "test_recip_key_a",
+                                    "test_recip_key_b",
+                                    "test_recip_key_c",
+                                ]
+                            ).encode("utf-8")
+                        ).decode(),
+                        base64.urlsafe_b64encode(
+                            json.dumps(
+                                [
+                                    "test_recip_key_p",
+                                    "test_recip_key_q",
+                                    "test_recip_key_r",
+                                ]
+                            ).encode("utf-8")
+                        ).decode(),
+                    ]
+                ),
             ),
         ):
             assert (
@@ -282,34 +288,37 @@ class TestRedisOutbound(IsolatedAsyncioTestCase):
             hdel=AsyncMock(),
             hincrby=AsyncMock(),
         )
-        with patch.object(
-            test_util,
-            "get_new_valid_uid",
-            AsyncMock(return_value=b"test_uid_a"),
-        ), patch.object(
-            test_util,
-            "get_recip_keys_list_for_uid",
-            AsyncMock(
-                side_effect=[
-                    base64.urlsafe_b64encode(
-                        json.dumps(
-                            [
-                                "test_recip_key_a",
-                                "test_recip_key_b",
-                                "test_recip_key_c",
-                            ]
-                        ).encode("utf-8")
-                    ).decode(),
-                    base64.urlsafe_b64encode(
-                        json.dumps(
-                            [
-                                "test_recip_key_p",
-                                "test_recip_key_q",
-                                "test_recip_key_r",
-                            ]
-                        ).encode("utf-8")
-                    ).decode(),
-                ]
+        with (
+            patch.object(
+                test_util,
+                "get_new_valid_uid",
+                AsyncMock(return_value=b"test_uid_a"),
+            ),
+            patch.object(
+                test_util,
+                "get_recip_keys_list_for_uid",
+                AsyncMock(
+                    side_effect=[
+                        base64.urlsafe_b64encode(
+                            json.dumps(
+                                [
+                                    "test_recip_key_a",
+                                    "test_recip_key_b",
+                                    "test_recip_key_c",
+                                ]
+                            ).encode("utf-8")
+                        ).decode(),
+                        base64.urlsafe_b64encode(
+                            json.dumps(
+                                [
+                                    "test_recip_key_p",
+                                    "test_recip_key_q",
+                                    "test_recip_key_r",
+                                ]
+                            ).encode("utf-8")
+                        ).decode(),
+                    ]
+                ),
             ),
         ):
             assert (
@@ -404,24 +413,27 @@ class TestRedisOutbound(IsolatedAsyncioTestCase):
         self.profile.context.injector.bind_instance(
             redis.asyncio.RedisCluster, redis_cluster
         )
-        with patch.object(
-            test_outbound,
-            "get_config",
-            MagicMock(
-                return_value=MagicMock(
-                    outbound=MagicMock(
-                        mediator_mode=True, acapy_outbound_topic="acapy_inbound"
+        with (
+            patch.object(
+                test_outbound,
+                "get_config",
+                MagicMock(
+                    return_value=MagicMock(
+                        outbound=MagicMock(
+                            mediator_mode=True, acapy_outbound_topic="acapy_inbound"
+                        )
                     )
-                )
+                ),
             ),
-        ), patch.object(
-            test_outbound,
-            "process_payload_recip_key",
-            AsyncMock(
-                return_value=(
-                    "acapy_inbound_test_recip_key_a",
-                    str.encode(json.dumps({"test": "test"})),
-                )
+            patch.object(
+                test_outbound,
+                "process_payload_recip_key",
+                AsyncMock(
+                    return_value=(
+                        "acapy_inbound_test_recip_key_a",
+                        str.encode(json.dumps({"test": "test"})),
+                    )
+                ),
             ),
         ):
             redis_outbound_inst = RedisOutboundQueue(root_profile=self.profile)
@@ -461,28 +473,31 @@ class TestRedisOutbound(IsolatedAsyncioTestCase):
             hincrby=AsyncMock(),
             hdel=AsyncMock(),
         )
-        with patch.object(
-            test_util,
-            "get_recip_keys_list_for_uid",
-            AsyncMock(
-                side_effect=[
-                    [
-                        "BDg8S6gkvnwDB75v5royCE1XrWn42Spx885aV7cxaNJL",
-                        "test_recip_key_b",
-                        "test_recip_key_c",
-                    ],
-                    [],
-                ]
+        with (
+            patch.object(
+                test_util,
+                "get_recip_keys_list_for_uid",
+                AsyncMock(
+                    side_effect=[
+                        [
+                            "BDg8S6gkvnwDB75v5royCE1XrWn42Spx885aV7cxaNJL",
+                            "test_recip_key_b",
+                            "test_recip_key_c",
+                        ],
+                        [],
+                    ]
+                ),
             ),
-        ), patch.object(
-            test_util,
-            "reassign_recip_key_to_uid",
-            AsyncMock(
-                side_effect=[
-                    b"test_uid_p",
-                    b"test_uid_q",
-                    b"test_uid_r",
-                ]
+            patch.object(
+                test_util,
+                "reassign_recip_key_to_uid",
+                AsyncMock(
+                    side_effect=[
+                        b"test_uid_p",
+                        b"test_uid_q",
+                        b"test_uid_r",
+                    ]
+                ),
             ),
         ):
             await test_util.process_payload_recip_key(
@@ -509,28 +524,31 @@ class TestRedisOutbound(IsolatedAsyncioTestCase):
             hincrby=AsyncMock(),
             hdel=AsyncMock(),
         )
-        with patch.object(
-            test_util,
-            "get_recip_keys_list_for_uid",
-            AsyncMock(
-                side_effect=[
-                    [
-                        "test_recip_key_a",
-                        "BDg8S6gkvnwDB75v5royCE1XrWn42Spx885aV7cxaNJL",
-                        "test_recip_key_c",
-                    ],
-                    [],
-                ]
+        with (
+            patch.object(
+                test_util,
+                "get_recip_keys_list_for_uid",
+                AsyncMock(
+                    side_effect=[
+                        [
+                            "test_recip_key_a",
+                            "BDg8S6gkvnwDB75v5royCE1XrWn42Spx885aV7cxaNJL",
+                            "test_recip_key_c",
+                        ],
+                        [],
+                    ]
+                ),
             ),
-        ), patch.object(
-            test_util,
-            "reassign_recip_key_to_uid",
-            AsyncMock(
-                side_effect=[
-                    b"test_uid_p",
-                    b"test_uid_q",
-                    b"test_uid_a",
-                ]
+            patch.object(
+                test_util,
+                "reassign_recip_key_to_uid",
+                AsyncMock(
+                    side_effect=[
+                        b"test_uid_p",
+                        b"test_uid_q",
+                        b"test_uid_a",
+                    ]
+                ),
             ),
         ):
             await test_util.process_payload_recip_key(
@@ -553,28 +571,31 @@ class TestRedisOutbound(IsolatedAsyncioTestCase):
             hincrby=AsyncMock(),
             hdel=AsyncMock(),
         )
-        with patch.object(
-            test_util,
-            "get_recip_keys_list_for_uid",
-            AsyncMock(
-                side_effect=[
-                    [
-                        "test_recip_key_a",
-                        "test_recip_key_b",
-                        "BDg8S6gkvnwDB75v5royCE1XrWn42Spx885aV7cxaNJL",
-                    ],
-                    ["test_recip_key_d"],
-                ]
+        with (
+            patch.object(
+                test_util,
+                "get_recip_keys_list_for_uid",
+                AsyncMock(
+                    side_effect=[
+                        [
+                            "test_recip_key_a",
+                            "test_recip_key_b",
+                            "BDg8S6gkvnwDB75v5royCE1XrWn42Spx885aV7cxaNJL",
+                        ],
+                        ["test_recip_key_d"],
+                    ]
+                ),
             ),
-        ), patch.object(
-            test_util,
-            "reassign_recip_key_to_uid",
-            AsyncMock(
-                side_effect=[
-                    b"test_uid_p",
-                    b"test_uid_p",
-                    b"test_uid_a",
-                ]
+            patch.object(
+                test_util,
+                "reassign_recip_key_to_uid",
+                AsyncMock(
+                    side_effect=[
+                        b"test_uid_p",
+                        b"test_uid_p",
+                        b"test_uid_a",
+                    ]
+                ),
             ),
         ):
             await test_util.process_payload_recip_key(

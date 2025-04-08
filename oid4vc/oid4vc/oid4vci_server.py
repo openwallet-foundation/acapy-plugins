@@ -66,7 +66,7 @@ class Oid4vciServer(BaseAdminServer):
         async def setup_context(request: web.Request, handler):
             """Set up request context.
 
-            This middleware is responsible for setting up the request context for the 
+            This middleware is responsible for setting up the request context for the
             handler. If multitenancy is enabled and a wallet_id is provided in the request
             the wallet profile is retrieved and injected into the context.
 
@@ -75,7 +75,7 @@ class Oid4vciServer(BaseAdminServer):
                 handler: The handler function to be executed.
 
             Returns:
-                The result of executing the handler function with the updated request 
+                The result of executing the handler function with the updated request
                 context.
             """
             multitenant = self.multitenant_manager

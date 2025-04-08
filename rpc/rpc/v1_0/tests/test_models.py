@@ -70,8 +70,7 @@ def test_invalid_rpc_request_internal_method(test_input):
 
     assert "method" in exc_info.value.messages
     assert (
-        "Method name cannot be internal RPC method."
-        in exc_info.value.messages["method"]
+        "Method name cannot be internal RPC method." in exc_info.value.messages["method"]
     )
 
 
@@ -279,8 +278,7 @@ def test_invalid_rpc_response_result_id_null(test_input):
 
     assert "_schema" in exc_info.value.messages
     assert (
-        "RPC response with result must have an ID."
-        in exc_info.value.messages["_schema"]
+        "RPC response with result must have an ID." in exc_info.value.messages["_schema"]
     )
 
 
@@ -436,8 +434,7 @@ def test_valid_drpc_record_completed(test_input):
             if "error" in test_input["response"][i]:
                 # Check for error
                 assert (
-                    responses[i].error.code
-                    == test_input["response"][i]["error"]["code"]
+                    responses[i].error.code == test_input["response"][i]["error"]["code"]
                 )
                 assert (
                     responses[i].error.message
