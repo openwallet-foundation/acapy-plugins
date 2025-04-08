@@ -16,7 +16,7 @@ no-ledger: true
 plugin:
   - connections
 
-log-level: debug
+log-level: info
 
 auto-accept-invites: true
 auto-respond-messages: true

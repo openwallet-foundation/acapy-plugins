@@ -33,7 +33,7 @@ services:
       --wallet-name agency
       --wallet-key insecure
       --auto-provision
-      --log-level debug
+      --log-level info
       --debug-webhooks
       --no-ledger
       --plugin cheqd
