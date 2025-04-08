@@ -11,7 +11,7 @@ python = "^3.12"
 # explicitly installed with the plugin if desired.
 acapy-agent = { version = "~1.2.4", optional = true }
 
-cryptography = "<38.0.0"
+cryptography = "<45.0.0"
 
 [tool.poetry.extras]
 aca-py = ["acapy-agent"]
