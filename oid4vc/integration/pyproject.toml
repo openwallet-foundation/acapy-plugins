@@ -24,6 +24,7 @@ black = "^24.4.2"
 ruff = "0.11.4"
 
 [tool.pytest.ini_options]
+asyncio_default_fixture_loop_scope = "session"
 addopts = "-m 'not interop'"
 markers = """
 interop: interop testing
