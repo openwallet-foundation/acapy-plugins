@@ -31,7 +31,7 @@ class VerificationMethods(Enum):
     JWK = "JsonWebKey2020"
 
 
-class CheqdAnoncredsResourceType(Enum):
+class CheqdAnonCredsResourceType(Enum):
     """Resource type values for anoncreds objects."""
 
     schema = "anonCredsSchema"

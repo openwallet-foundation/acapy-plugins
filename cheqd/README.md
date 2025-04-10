@@ -2,7 +2,7 @@
 
 ## Description
 
-This plugin contains the components needed for ACA-Py to use [did:cheqd](https://cheqd.io) method for did creation and Anoncreds issuance, presentation and revocation. It also contains the Base class definitions for `DIDRegistrar` and `DIDManager`. 
+This plugin contains the components needed for ACA-Py to use [did:cheqd](https://cheqd.io) method for did creation and AnonCreds issuance, presentation and revocation. It also contains the Base class definitions for `DIDRegistrar` and `DIDManager`. 
 
 ### Operations 
 
