@@ -14,10 +14,10 @@ async def setup(context: InjectionContext):
     """Setup."""
     LOGGER.info("webvh plugin setup...")
 
-    # Anoncreds Registry
+    # AnonCreds Registry
     anoncreds_registry = context.inject_or(AnonCredsRegistry)
     if not anoncreds_registry:
-        LOGGER.warning("No Anoncreds Registry instance found in context")
+        LOGGER.warning("No AnonCreds Registry instance found in context")
         return
 
     webvh_registry = ClassProvider("webvh.anoncreds.registry.DIDWebVHRegistry").provide(

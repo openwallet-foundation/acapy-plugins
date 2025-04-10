@@ -2,7 +2,7 @@
 
 ## Description
 
-This plugin provides components for adding [Hedera DID method](https://github.com/hashgraph/did-method) and Anoncreds registry support for ACA-Py.
+This plugin provides components for adding [Hedera DID method](https://github.com/hashgraph/did-method) and AnonCreds registry support for ACA-Py.
 
 ### Structure
 Under the hood, the plugin consists from following core components:
@@ -18,7 +18,7 @@ Hedera plugin aims to add Hedera DID support to existing ACA-Py flows, without b
 The plugin adds a new endpoint for creating Hedera DID:
 - `POST /hedera/did/register`
 
-Other operations with Hedera DID and Anoncreds registry supported via existing ACA-Py endpoints:
+Other operations with Hedera DID and AnonCreds registry supported via existing ACA-Py endpoints:
 - `POST /anoncreds/schema`
 - `POST /anoncreds/credential-definition`
 - `POST /anoncreds/revocation/revoke`

@@ -19,7 +19,7 @@ from acapy_agent.anoncreds.base import (
     SchemaResult,
 )
 from acapy_agent.anoncreds.events import RevListFinishedEvent
-from acapy_agent.anoncreds.models.schema_info import AnoncredsSchemaInfo
+from acapy_agent.anoncreds.models.schema_info import AnonCredsSchemaInfo
 from acapy_agent.core.event_bus import EventBus
 from acapy_agent.wallet.base import BaseWallet
 from hiero_sdk_python import Client
@@ -138,7 +138,7 @@ class HederaAnonCredsRegistry(BaseAnonCredsResolver, BaseAnonCredsRegistrar):
 
         return build_acapy_get_rev_list_result(hedera_res)
 
-    async def get_schema_info_by_id(self, profile, schema_id) -> AnoncredsSchemaInfo:
+    async def get_schema_info_by_id(self, profile, schema_id) -> AnonCredsSchemaInfo:
         """Get schema info by schema id."""
         res = await self._hedera_anoncreds_registry.get_schema(schema_id)
 
@@ -146,7 +146,7 @@ class HederaAnonCredsRegistry(BaseAnonCredsResolver, BaseAnonCredsRegistrar):
 
         assert res.schema
 
-        return AnoncredsSchemaInfo(
+        return AnonCredsSchemaInfo(
             issuer_id=res.schema.issuer_id,
             name=res.schema.name,
             version=res.schema.version,
