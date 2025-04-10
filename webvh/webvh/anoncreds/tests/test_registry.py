@@ -99,7 +99,7 @@ upload_resource = mock.AsyncMock(
 )
 
 
-class TestAnoncredsRegistry(IsolatedAsyncioTestCase):
+class TestAnonCredsRegistry(IsolatedAsyncioTestCase):
     async def asyncSetUp(self):
         self.profile = await create_test_profile({"wallet.type": "askar-anoncreds"})
         async with self.profile.session() as session:
