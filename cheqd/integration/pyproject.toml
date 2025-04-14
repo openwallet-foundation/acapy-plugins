@@ -12,7 +12,7 @@ pytest-asyncio = "~0.26.0"
 requests = "^2.32.0"
 acapy-controller = { git = "https://github.com/indicio-tech/acapy-minimal-example.git", rev = "main" }
 pydantic = "^2.10.6"
-typing-extensions = "^4.12.2"
+typing-extensions = "^4.13.2"
 
 [tool.poetry.group.dev.dependencies]
 
