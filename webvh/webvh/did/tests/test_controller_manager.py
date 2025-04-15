@@ -77,9 +77,8 @@ request_namespace_fail = mock.AsyncMock(
     )
 )
 
-registration_options = {
-    'namespace': 'test'
-}
+registration_options = {"namespace": "test"}
+
 
 class TestOperationsManager(IsolatedAsyncioTestCase):
     async def asyncSetUp(self):
@@ -347,7 +346,7 @@ class TestOperationsManager(IsolatedAsyncioTestCase):
                         "id": f"{test_did}#{test_key}",
                         "publicKeyMultibase": test_key,
                     }
-                ]
+                ],
             },
             parameters={},
             state=RegistrationState.ATTESTED.value,

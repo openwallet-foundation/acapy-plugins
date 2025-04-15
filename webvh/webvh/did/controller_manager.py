@@ -367,9 +367,8 @@ class ControllerManager:
                 raise DidCreationError("No state returned")
 
             scid = webvh_did.split(":")[2]
-            
-        async with self.profile.session() as session:
 
+        async with self.profile.session() as session:
             # Save the did in the wallet
             parameters = initial_log_entry.get("parameters")
             update_key = parameters.get("updateKeys")[0]

@@ -19,7 +19,7 @@ TEST_WITNESS_INVITATION = {
     "label": "Witness Service",
     "handshake_protocols": [
         "https://didcomm.org/didexchange/1.0",
-        "https://didcomm.org/didexchange/1.1"
+        "https://didcomm.org/didexchange/1.1",
     ],
     "services": [
         {
@@ -28,13 +28,13 @@ TEST_WITNESS_INVITATION = {
             "recipientKeys": [
                 "did:key:z6MkmzPEig7GBQBeSRt7b2D55GTpzJ5ynyVgC5ifmS4X5HJK#z6MkmzPEig7GBQBeSRt7b2D55GTpzJ5ynyVgC5ifmS4X5HJK"
             ],
-            "serviceEndpoint": "https://example.com"
+            "serviceEndpoint": "https://example.com",
         }
     ],
     "goal_code": "witness-service",
-    "goal": "did:key:z6Mko6hFCJNZwfhCefDf1iEHwwM9FtENHDTmkT5BQyt9eYiQ"
+    "goal": "did:key:z6Mko6hFCJNZwfhCefDf1iEHwwM9FtENHDTmkT5BQyt9eYiQ",
 }
-TEST_WITNESS_INVITATION_URL = 'https://example.com?oob=ew0KICAgICJAdHlwZSI6ICJodHRwczovL2RpZGNvbW0ub3JnL291dC1vZi1iYW5kLzEuMS9pbnZpdGF0aW9uIiwNCiAgICAiQGlkIjogImZlNDY5ZjNkLWIyODgtNGUzZi05OWJhLWI2MzFhZjk4MjQ4YiIsDQogICAgImxhYmVsIjogIldpdG5lc3MgU2VydmljZSIsDQogICAgImhhbmRzaGFrZV9wcm90b2NvbHMiOiBbDQogICAgICAgICJodHRwczovL2RpZGNvbW0ub3JnL2RpZGV4Y2hhbmdlLzEuMCIsDQogICAgICAgICJodHRwczovL2RpZGNvbW0ub3JnL2RpZGV4Y2hhbmdlLzEuMSINCiAgICBdLA0KICAgICJzZXJ2aWNlcyI6IFsNCiAgICAgICAgew0KICAgICAgICAgICAgImlkIjogIiNpbmxpbmUiLA0KICAgICAgICAgICAgInR5cGUiOiAiZGlkLWNvbW11bmljYXRpb24iLA0KICAgICAgICAgICAgInJlY2lwaWVudEtleXMiOiBbDQogICAgICAgICAgICAgICAgImRpZDprZXk6ejZNa216UEVpZzdHQlFCZVNSdDdiMkQ1NUdUcHpKNXlueVZnQzVpZm1TNFg1SEpLI3o2TWttelBFaWc3R0JRQmVTUnQ3YjJENTVHVHB6SjV5bnlWZ0M1aWZtUzRYNUhKSyINCiAgICAgICAgICAgIF0sDQogICAgICAgICAgICAic2VydmljZUVuZHBvaW50IjogImh0dHBzOi8vZXhhbXBsZS5jb20iDQogICAgICAgIH0NCiAgICBdLA0KICAgICJnb2FsX2NvZGUiOiAid2l0bmVzcy1zZXJ2aWNlIiwNCiAgICAiZ29hbCI6ICJkaWQ6a2V5Ono2TWtvNmhGQ0pOWndmaENlZkRmMWlFSHd3TTlGdEVOSERUbWtUNUJReXQ5ZVlpUSINCn0'
+TEST_WITNESS_INVITATION_URL = "https://example.com?oob=ew0KICAgICJAdHlwZSI6ICJodHRwczovL2RpZGNvbW0ub3JnL291dC1vZi1iYW5kLzEuMS9pbnZpdGF0aW9uIiwNCiAgICAiQGlkIjogImZlNDY5ZjNkLWIyODgtNGUzZi05OWJhLWI2MzFhZjk4MjQ4YiIsDQogICAgImxhYmVsIjogIldpdG5lc3MgU2VydmljZSIsDQogICAgImhhbmRzaGFrZV9wcm90b2NvbHMiOiBbDQogICAgICAgICJodHRwczovL2RpZGNvbW0ub3JnL2RpZGV4Y2hhbmdlLzEuMCIsDQogICAgICAgICJodHRwczovL2RpZGNvbW0ub3JnL2RpZGV4Y2hhbmdlLzEuMSINCiAgICBdLA0KICAgICJzZXJ2aWNlcyI6IFsNCiAgICAgICAgew0KICAgICAgICAgICAgImlkIjogIiNpbmxpbmUiLA0KICAgICAgICAgICAgInR5cGUiOiAiZGlkLWNvbW11bmljYXRpb24iLA0KICAgICAgICAgICAgInJlY2lwaWVudEtleXMiOiBbDQogICAgICAgICAgICAgICAgImRpZDprZXk6ejZNa216UEVpZzdHQlFCZVNSdDdiMkQ1NUdUcHpKNXlueVZnQzVpZm1TNFg1SEpLI3o2TWttelBFaWc3R0JRQmVTUnQ3YjJENTVHVHB6SjV5bnlWZ0M1aWZtUzRYNUhKSyINCiAgICAgICAgICAgIF0sDQogICAgICAgICAgICAic2VydmljZUVuZHBvaW50IjogImh0dHBzOi8vZXhhbXBsZS5jb20iDQogICAgICAgIH0NCiAgICBdLA0KICAgICJnb2FsX2NvZGUiOiAid2l0bmVzcy1zZXJ2aWNlIiwNCiAgICAiZ29hbCI6ICJkaWQ6a2V5Ono2TWtvNmhGQ0pOWndmaENlZkRmMWlFSHd3TTlGdEVOSERUbWtUNUJReXQ5ZVlpUSINCn0"
 
 
 class TestWebvhRoutes(IsolatedAsyncioTestCase):
