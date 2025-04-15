@@ -36,7 +36,7 @@ def register_events(event_bus: EventBus):
 async def handle_event_forwarding(profile: Profile, event: Event):
     """Handle event forwarding."""
     LOGGER.debug(
-        f'handling event forwarding of connection {event.payload["connection_id"]}'
+        f"handling event forwarding of connection {event.payload['connection_id']}"
     )
     await send_message(profile, event.payload["connection_id"])
 

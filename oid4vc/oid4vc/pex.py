@@ -204,9 +204,7 @@ class DescriptorEvaluator:
         self._field_constraints = field_constraints
 
     @classmethod
-    def compile(
-        cls, descriptor: Union[dict, InputDescriptors]
-    ) -> "DescriptorEvaluator":
+    def compile(cls, descriptor: Union[dict, InputDescriptors]) -> "DescriptorEvaluator":
         """Compile an input descriptor."""
         if isinstance(descriptor, dict):
             descriptor = InputDescriptors.deserialize(descriptor)
@@ -313,9 +311,7 @@ class PresentationExchangeEvaluator:
 
             result = await processor.verify_credential(profile, vc)
             if not result.verified:
-                return PexVerifyResult(
-                    details="Credential signature verification failed"
-                )
+                return PexVerifyResult(details="Credential signature verification failed")
 
             try:
                 fields = evaluator.match(result.payload)

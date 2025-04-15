@@ -454,7 +454,6 @@ async def test_get_revocation_list(mock_profile, mock_resolver, mock_rev_reg_def
         }
 
 
-
 async def test_register_revocation_status_list(
     mock_profile,
     mock_rev_list,

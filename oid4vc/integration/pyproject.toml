@@ -5,11 +5,12 @@ description = "Minimal OpenID4VCI Client"
 authors = ["Daniel Bluhm <dbluhm@pm.me>"]
 license = "Apache-2.0"
 readme = "README.md"
+package-mode = false
 
 [tool.poetry.dependencies]
 python = "^3.12"
 pytest = "^8.3.5"
-pytest-asyncio = "~0.25.3"
+pytest-asyncio = "~0.26.0"
 requests = "^2.32.0"
 aries-askar = "^0.3.0"
 did-peer-4 = "^0.1.4"
@@ -20,9 +21,7 @@ pydantic = "~2.7.0"
 
 [tool.poetry.group.dev.dependencies]
 black = "^24.4.2"
-ruff = "^0.5.0"
-
-[tool.poetry.dev-dependencies]
+ruff = "0.11.4"
 
 [tool.pytest.ini_options]
 addopts = "-m 'not interop'"
@@ -31,6 +30,6 @@ interop: interop testing
 """
 
 [build-system]
-requires = ["poetry-core>=1.0.0"]
+requires = ["poetry-core>=2.1"]
 build-backend = "poetry.core.masonry.api"
 

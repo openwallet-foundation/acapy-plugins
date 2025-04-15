@@ -3,11 +3,12 @@ name = "redis_events-tests"
 version = "0.1.0"
 description = ""
 authors = []
+package-mode = false
 
 [tool.poetry.dependencies]
 python = "^3.12"
 pytest = "^8.3.5"
-pytest-asyncio = "~0.25.3"
+pytest-asyncio = "~0.26.0"
 requests = "^2.32.0"
 aiohttp = "^3.9.5"
 acapy-agent = { version = "~1.1.0", optional = true }
@@ -17,10 +18,11 @@ redis = "^5.1.1"
 uvicorn = "^0.32.1"
 pydantic = "^2.10.6"
 
-[tool.poetry.dev-dependencies]
+[tool.poetry.group.dev.dependencies]
 
 [tool.pytest.ini_options]
 
 [build-system]
-requires = ["poetry-core>=1.0.0"]
+requires = ["poetry-core>=2.1"]
 build-backend = "poetry.core.masonry.api"
+

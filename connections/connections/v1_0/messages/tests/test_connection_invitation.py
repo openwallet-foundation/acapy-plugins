@@ -35,8 +35,7 @@ class TestConnectionInvitation(TestCase):
         )
 
     @mock.patch(
-        "connections.v1_0.messages."
-        "connection_invitation.ConnectionInvitationSchema.load"
+        "connections.v1_0.messages.connection_invitation.ConnectionInvitationSchema.load"
     )
     def test_deserialize(self, mock_connection_invitation_schema_load):
         obj = {"obj": "obj"}
@@ -49,8 +48,7 @@ class TestConnectionInvitation(TestCase):
         )
 
     @mock.patch(
-        "connections.v1_0.messages."
-        "connection_invitation.ConnectionInvitationSchema.dump"
+        "connections.v1_0.messages.connection_invitation.ConnectionInvitationSchema.dump"
     )
     def test_serialize(self, mock_connection_invitation_schema_dump):
         connection_invitation = ConnectionInvitation(

@@ -82,9 +82,7 @@ class CreateStatusListDefResponse(OpenAPISchema):
 
     status = fields.Bool(required=True)
     error = fields.Str(required=False, metadata={"description": "Error text"})
-    id = fields.Str(
-        required=True, metadata={"description": "status list definition id."}
-    )
+    id = fields.Str(required=True, metadata={"description": "status list definition id."})
 
 
 @docs(
@@ -301,9 +299,7 @@ async def delete_status_list_def(request: web.Request):
             context: AdminRequestContext = request["context"]
             async with context.profile.transaction() as txn:
                 # detete status list creds
-                creds = await StatusListCred.query(
-                    txn, {"definition_id": definition_id}
-                )
+                creds = await StatusListCred.query(txn, {"definition_id": definition_id})
                 for cred in creds:
                     await cred.delete_record(txn)
 

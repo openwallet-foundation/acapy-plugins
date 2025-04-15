@@ -4,7 +4,7 @@ FROM mcr.microsoft.com/devcontainers/python:${VARIANT}
 
 ARG GITHUB_TOKEN
 
-ARG POETRY_VERSION="1.8.3"
+ARG POETRY_VERSION="2.1.2"
 ENV POETRY_HOME="/opt/poetry" \
     POETRY_VERSION=${POETRY_VERSION}
 

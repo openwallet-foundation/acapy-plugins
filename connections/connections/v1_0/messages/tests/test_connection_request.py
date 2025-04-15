@@ -1,6 +1,11 @@
 from unittest import IsolatedAsyncioTestCase, TestCase, mock
 
-from acapy_agent.connections.models.diddoc import DIDDoc, PublicKey, PublicKeyType, Service
+from acapy_agent.connections.models.diddoc import (
+    DIDDoc,
+    PublicKey,
+    PublicKeyType,
+    Service,
+)
 from acapy_agent.protocols.didcomm_prefix import DIDCommPrefix
 from ...message_types import CONNECTION_REQUEST
 from ...models.connection_detail import ConnectionDetail
@@ -62,8 +67,7 @@ class TestConnectionRequest(TestCase, TestConfig):
         )
 
     @mock.patch(
-        "connections.v1_0.messages."
-        "connection_request.ConnectionRequestSchema.load"
+        "connections.v1_0.messages.connection_request.ConnectionRequestSchema.load"
     )
     def test_deserialize(self, mock_connection_request_schema_load):
         """
@@ -77,8 +81,7 @@ class TestConnectionRequest(TestCase, TestConfig):
         assert connection_request is mock_connection_request_schema_load.return_value
 
     @mock.patch(
-        "connections.v1_0.messages."
-        "connection_request.ConnectionRequestSchema.dump"
+        "connections.v1_0.messages.connection_request.ConnectionRequestSchema.dump"
     )
     def test_serialize(self, mock_connection_request_schema_dump):
         """

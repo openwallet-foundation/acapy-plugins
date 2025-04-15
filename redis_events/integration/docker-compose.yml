@@ -6,7 +6,8 @@ services:
   redis-cluster:
     image: redis:7.2.2
     container_name: cluster
-    command: redis-cli --cluster create 172.28.0.101:6377 172.28.0.102:6378 172.28.0.103:6379 172.28.0.104:6380 172.28.0.105:6381 172.28.0.106:6382 --cluster-replicas 1 --cluster-yes
+    command: >
+      /bin/sh -c "redis-cli --cluster create 172.28.0.101:6377 172.28.0.102:6378 172.28.0.103:6379 172.28.0.104:6380 172.28.0.105:6381 172.28.0.106:6382 --cluster-replicas 1 --cluster-yes && tail -f /dev/null"
     environment:
       - REDISCLI_AUTH=${REDIS_PASSWORD:-test1234}
     networks:
@@ -113,9 +114,9 @@ services:
       - STATUS_ENDPOINT_PORT=7001
       - STATUS_ENDPOINT_API_KEY=test_api_key_1
       - INBOUND_TRANSPORT_CONFIG=[["http", "0.0.0.0", "8071"],["ws", "0.0.0.0", "8081"]]
-      - WAIT_BEFORE_HOSTS=5
+      - WAIT_BEFORE=5
       - WAIT_HOSTS=redis-node-3:6379
-      - WAIT_HOSTS_TIMEOUT=120
+      - WAIT_TIMEOUT=120
       - WAIT_SLEEP_INTERVAL=1
       - WAIT_HOST_CONNECT_TIMEOUT=60
     depends_on:
@@ -143,9 +144,9 @@ services:
       - STATUS_ENDPOINT_HOST=0.0.0.0
       - STATUS_ENDPOINT_PORT=7002
       - STATUS_ENDPOINT_API_KEY=test_api_key_2
-      - WAIT_BEFORE_HOSTS=5
+      - WAIT_BEFORE=5
       - WAIT_HOSTS=redis-node-3:6379
-      - WAIT_HOSTS_TIMEOUT=120
+      - WAIT_TIMEOUT=120
       - WAIT_SLEEP_INTERVAL=1
       - WAIT_HOST_CONNECT_TIMEOUT=60
     depends_on:
@@ -187,9 +188,9 @@ services:
       - deliverer
     command: start --arg-file integration.yml --label faber
     environment:
-      - WAIT_BEFORE_HOSTS=10
+      - WAIT_BEFORE=10
       - WAIT_HOSTS=redis-node-3:6379, relay:8071
-      - WAIT_HOSTS_TIMEOUT=120
+      - WAIT_TIMEOUT=120
       - WAIT_SLEEP_INTERVAL=1
       - WAIT_HOST_CONNECT_TIMEOUT=60
     networks:
@@ -207,7 +208,9 @@ services:
     ports:
       - 8021:8021
       - 8020:8020
-    command: start -it http 0.0.0.0 8020 -ot http -e http://alice:8020 --auto-accept-invites --auto-respond-messages --admin 0.0.0.0 8021 --admin-insecure-mode --label alice --no-ledger --log-level debug --debug-connections --wallet-test --auto-provision
+    command: start -it http 0.0.0.0 8020 -ot http -e http://alice:8020 --auto-accept-invites --auto-respond-messages --admin 0.0.0.0 8021 --admin-insecure-mode --label alice --no-ledger --log-level info --debug-connections --wallet-test --auto-provision
+    depends_on:
+      - relay
     networks:
       - acapy_default
     extra_hosts:
@@ -219,11 +222,11 @@ services:
       context: .
       dockerfile: Dockerfile.test.runner
     environment:
-      - WAIT_BEFORE_HOSTS=15
+      - WAIT_BEFORE=15
       - WAIT_HOSTS=faber:3001, alice:8020, relay:8071
-      - WAIT_HOSTS_TIMEOUT=60
+      - WAIT_TIMEOUT=120
       - WAIT_SLEEP_INTERVAL=1
-      - WAIT_HOST_CONNECT_TIMEOUT=30
+      - WAIT_HOST_CONNECT_TIMEOUT=60
     depends_on:
       - redis-cluster
       - faber

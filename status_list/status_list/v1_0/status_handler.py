@@ -77,9 +77,7 @@ async def assign_status_list_number(session: ProfileSession, wallet_id: str):
     """Get status list number."""
 
     try:
-        registry = await StatusListReg.retrieve_by_id(
-            session, wallet_id, for_update=True
-        )
+        registry = await StatusListReg.retrieve_by_id(session, wallet_id, for_update=True)
         if registry.list_count < 0:
             raise StatusListError("Status list registry has negative list count.")
     except StorageNotFoundError:
@@ -126,9 +124,7 @@ async def generate_random_index(context: AdminRequestContext, definition_id: str
         # create a spare list
         if definition.list_number == definition.next_list_number:
             wallet_id = get_wallet_id(context)
-            definition.next_list_number = await assign_status_list_number(
-                txn, wallet_id
-            )
+            definition.next_list_number = await assign_status_list_number(txn, wallet_id)
             definition.add_list_number(definition.next_list_number)
             await create_next_status_list(txn, definition)
 
@@ -264,11 +260,16 @@ async def assign_status_entries(
                 credential_id=credential_id,
                 list_number=entry.list_number,
                 list_index=entry.list_index,
-                state="entry-assigned",
             )
             await status_list_cred.save(
-                session, reason="Assign a new status list credential entry"
+                session, reason="Assign a new status list credential entry", event=False
             )
+
+            # Emit event
+            payload = status_list_cred.serialize()
+            payload["state"] = "assigned"
+            payload["status"] = entry.status
+            await status_list_cred.emit_event(session, payload)
 
     if len(status_list) > 1:
         return status_list
@@ -338,6 +339,14 @@ async def update_status_list_entry(
     status_bits[bit_index : bit_index + definition.status_size] = bitarray(bitstring)
     shard.status_bits = status_bits
     await shard.save(session, reason="Update status list entry.")
+
+    # Emit event
+    shard.state = "updated"
+    payload = shard.serialize()
+    payload["credential_id"] = credential_id
+    payload["list_index"] = entry_index
+    payload["status"] = bitstring
+    await shard.emit_event(session, payload)
 
     return {
         "list": definition.list_number,
@@ -436,11 +445,11 @@ async def get_status_list(
                 },
             }
             if definition.status_purpose == "message":
-                status_list["vc"]["credentialSubject"][
-                    "statusSize"
-                ] = definition.status_size
-                status_list["vc"]["credentialSubject"][
-                    "statusMessage"
-                ] = definition.status_message
+                status_list["vc"]["credentialSubject"]["statusSize"] = (
+                    definition.status_size
+                )
+                status_list["vc"]["credentialSubject"]["statusMessage"] = (
+                    definition.status_message
+                )
 
         return status_list

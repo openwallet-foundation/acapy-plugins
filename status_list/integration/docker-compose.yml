@@ -11,11 +11,11 @@ services:
       dockerfile: container/Dockerfile
       args:
         - install_flags=--no-interaction --with integration --all-extras
-    command: start --arg-file integration.yml --label bob -e http://bob:3000 --log-level debug
+    command: start --arg-file integration.yml --label bob -e http://bob:3000 --log-level info
 
   alice:
     image: status-list
-    command: start --arg-file integration.yml --label alice -e http://alice:3000 --log-level debug
+    command: start --arg-file integration.yml --label alice -e http://alice:3000 --log-level info
 
   tests:
     container_name: juggernaut
@@ -23,9 +23,9 @@ services:
       context: .
       dockerfile: Dockerfile.test.runner
     environment:
-      - WAIT_BEFORE_HOSTS=3
+      - WAIT_BEFORE=3
       - WAIT_HOSTS=bob:3000, alice:3000
-      - WAIT_HOSTS_TIMEOUT=60
+      - WAIT_TIMEOUT=60
       - WAIT_SLEEP_INTERVAL=1
       - WAIT_HOST_CONNECT_TIMEOUT=30
     depends_on:

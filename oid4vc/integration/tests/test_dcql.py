@@ -5,16 +5,13 @@ from acapy_controller.controller import Controller
 
 @pytest.mark.asyncio
 async def test_dcql_query_create(controller: Controller):
-
     cred_json = {
         "credentials": [
             {
                 "id": "pid",
                 "format": "vc+sd-jwt",
                 "meta": {
-                    "vct_values": [
-                        "https://credentials.example.com/identity_credential"
-                    ]
+                    "vct_values": ["https://credentials.example.com/identity_credential"]
                 },
                 "claims": [
                     {"path": ["given_name"]},
@@ -35,16 +32,13 @@ async def test_dcql_query_create(controller: Controller):
 
 @pytest.mark.asyncio
 async def test_dcql_query_list(controller: Controller):
-
     cred_json = {
         "credentials": [
             {
                 "id": "pid",
                 "format": "vc+sd-jwt",
                 "meta": {
-                    "vct_values": [
-                        "https://credentials.example.com/identity_credential"
-                    ]
+                    "vct_values": ["https://credentials.example.com/identity_credential"]
                 },
                 "claims": [
                     {"path": ["given_name"]},
@@ -71,16 +65,13 @@ async def test_dcql_query_list(controller: Controller):
 
 @pytest.mark.asyncio
 async def test_dcql_query_get(controller: Controller):
-
     cred_json = {
         "credentials": [
             {
                 "id": "pid",
                 "format": "vc+sd-jwt",
                 "meta": {
-                    "vct_values": [
-                        "https://credentials.example.com/identity_credential"
-                    ]
+                    "vct_values": ["https://credentials.example.com/identity_credential"]
                 },
                 "claims": [
                     {"path": ["given_name"]},
@@ -103,16 +94,13 @@ async def test_dcql_query_get(controller: Controller):
 
 @pytest.mark.asyncio
 async def test_dcql_query_delete(controller: Controller):
-
     cred_json = {
         "credentials": [
             {
                 "id": "pid",
                 "format": "vc+sd-jwt",
                 "meta": {
-                    "vct_values": [
-                        "https://credentials.example.com/identity_credential"
-                    ]
+                    "vct_values": ["https://credentials.example.com/identity_credential"]
                 },
                 "claims": [
                     {"path": ["given_name"]},

@@ -112,9 +112,7 @@ async def list_exchange_records(request: web.BaseRequest):
     try:
         async with context.profile.session() as session:
             if exchange_id := request.query.get("exchange_id"):
-                record = await OID4VCIExchangeRecord.retrieve_by_id(
-                    session, exchange_id
-                )
+                record = await OID4VCIExchangeRecord.retrieve_by_id(session, exchange_id)
                 results = [record.serialize()]
             else:
                 filter_ = {
@@ -566,7 +564,7 @@ async def supported_credential_create(request: web.Request):
 
     if not await supported_cred_is_unique(body["id"], profile):
         raise web.HTTPBadRequest(
-            reason=f"Record with identifier {body["id"]} already exists."
+            reason=f"Record with identifier {body['id']} already exists."
         )
     body["identifier"] = body.pop("id")
 
@@ -691,16 +689,15 @@ async def supported_credential_create_jwt(request: web.Request):
     body: Dict[str, Any] = await request.json()
 
     if not await supported_cred_is_unique(body["id"], profile):
-
         raise web.HTTPBadRequest(
-            reason=f"Record with identifier {body["id"]} already exists."
+            reason=f"Record with identifier {body['id']} already exists."
         )
 
     LOGGER.info(f"body: {body}")
     body["identifier"] = body.pop("id")
     format_data = {}
     format_data["types"] = body.pop("type")
-    format_data["credential_subject"] = body.pop("credentialSubject", None)
+    format_data["credentialSubject"] = body.pop("credentialSubject", None)
     format_data["context"] = body.pop("@context")
     format_data["order"] = body.pop("order", None)
     vc_additional_data = {}
@@ -822,9 +819,7 @@ async def get_supported_credential_by_id(request: web.Request):
 
     try:
         async with context.session() as session:
-            record = await SupportedCredential.retrieve_by_id(
-                session, supported_cred_id
-            )
+            record = await SupportedCredential.retrieve_by_id(session, supported_cred_id)
     except StorageNotFoundError as err:
         raise web.HTTPNotFound(reason=err.roll_up) from err
     except (StorageError, BaseModelError) as err:
@@ -859,7 +854,7 @@ async def jwt_supported_cred_update_helper(
     vc_additional_data = {}
 
     format_data["types"] = body.get("type")
-    format_data["credential_subject"] = body.get("credentialSubject", None)
+    format_data["credentialSubject"] = body.get("credentialSubject", None)
     format_data["context"] = body.get("@context")
     format_data["order"] = body.get("order", None)
     vc_additional_data["@context"] = format_data["context"]
@@ -903,9 +898,7 @@ async def update_supported_credential_jwt_vc(request: web.Request):
     LOGGER.info(f"body: {body}")
     try:
         async with context.session() as session:
-            record = await SupportedCredential.retrieve_by_id(
-                session, supported_cred_id
-            )
+            record = await SupportedCredential.retrieve_by_id(session, supported_cred_id)
 
             assert isinstance(session, AskarProfileSession)
             record = await jwt_supported_cred_update_helper(record, body, session)
@@ -946,9 +939,7 @@ async def supported_credential_remove(request: web.Request):
 
     try:
         async with context.session() as session:
-            record = await SupportedCredential.retrieve_by_id(
-                session, supported_cred_id
-            )
+            record = await SupportedCredential.retrieve_by_id(session, supported_cred_id)
             await record.delete_record(session)
     except StorageNotFoundError as err:
         raise web.HTTPNotFound(reason=err.roll_up) from err
@@ -1019,7 +1010,6 @@ async def create_oid4vp_request(request: web.Request):
     body = await request.json()
 
     async with context.session() as session:
-
         if pres_def_id := body.get("pres_def_id"):
             req_record = OID4VPRequest(
                 pres_def_id=pres_def_id, vp_formats=body["vp_formats"]
@@ -1161,14 +1151,11 @@ async def create_dcql_query(request: web.Request):
     credential_sets = body.get("credential_sets")
 
     async with context.session() as session:
-
         cred_queries = []
         for cred in credentials:
             cred_queries.append(CredentialQuery.deserialize(cred))
 
-        dcql_query = DCQLQuery(
-            credentials=cred_queries, credential_sets=credential_sets
-        )
+        dcql_query = DCQLQuery(credentials=cred_queries, credential_sets=credential_sets)
         await dcql_query.save(session=session)
 
     return web.json_response(
@@ -1509,9 +1496,7 @@ async def list_oid4vp_presentations(request: web.Request):
     try:
         async with context.profile.session() as session:
             if presentation_id := request.query.get("presentation_id"):
-                record = await OID4VPPresentation.retrieve_by_id(
-                    session, presentation_id
-                )
+                record = await OID4VPPresentation.retrieve_by_id(session, presentation_id)
                 results = [record.serialize()]
             else:
                 filter_ = {
@@ -1783,9 +1768,7 @@ async def create_did_jwk(request: web.Request):
         jwk = json.loads(key.get_jwk_public())
         jwk["use"] = "sig"
 
-        did = "did:jwk:" + bytes_to_b64(
-            json.dumps(jwk).encode(), urlsafe=True, pad=False
-        )
+        did = "did:jwk:" + bytes_to_b64(json.dumps(jwk).encode(), urlsafe=True, pad=False)
 
         did_info = DIDInfo(
             did=did,
@@ -1818,9 +1801,7 @@ async def register(app: web.Application):
             web.post("/oid4vci/exchange/create", exchange_create),
             web.get("/oid4vci/exchange/records/{exchange_id}", get_exchange_by_id),
             web.delete("/oid4vci/exchange/records/{exchange_id}", exchange_delete),
-            web.post(
-                "/oid4vci/credential-supported/create", supported_credential_create
-            ),
+            web.post("/oid4vci/credential-supported/create", supported_credential_create),
             web.post(
                 "/oid4vci/credential-supported/create/jwt",
                 supported_credential_create_jwt,

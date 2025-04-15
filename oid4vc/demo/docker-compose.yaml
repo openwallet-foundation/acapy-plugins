@@ -38,7 +38,7 @@ services:
         --wallet-name issuer
         --wallet-key insecure
         --auto-provision
-        --log-level debug
+        --log-level info
         --debug-webhooks
         --plugin oid4vc
         --plugin sd_jwt_vc

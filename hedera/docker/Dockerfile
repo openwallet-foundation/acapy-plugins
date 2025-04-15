@@ -1,4 +1,4 @@
-FROM python:3.12-slim-bullseye AS base
+FROM python:3.12-slim-bookworm AS base
 
 ARG GITHUB_TOKEN
 
@@ -8,7 +8,7 @@ WORKDIR /usr/src/app
 USER root
 
 WORKDIR /usr/src/app
-ENV POETRY_VERSION=1.7.1
+ENV POETRY_VERSION=2.1.2
 ENV POETRY_HOME=/opt/poetry
 RUN apt-get update && apt-get install -y curl wget git && apt-get clean 
 RUN curl -sSL https://install.python-poetry.org | python -
@@ -26,7 +26,7 @@ RUN poetry install --without dev --with integration --all-extras \
 
 USER $user
 
-FROM python:3.12-bullseye
+FROM python:3.12-bookworm
 
 WORKDIR /usr/src/app
 COPY --from=base /usr/src/app/.venv /usr/src/app/.venv
