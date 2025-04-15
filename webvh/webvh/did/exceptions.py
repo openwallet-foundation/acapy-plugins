@@ -29,3 +29,9 @@ class ConfigurationError(Exception):
     """Exception for server connection errors."""
 
     pass
+
+
+class OperationError(Exception):
+    """Exception for did operation errors."""
+
+    pass

@@ -13,8 +13,8 @@ from aiohttp import ClientConnectionError
 
 from ...config.config import set_config
 from ..exceptions import ConfigurationError, DidCreationError, WitnessError
-from ..operations_manager import DidWebvhOperationsManager
-from ..pending_dids import PendingWebvhDids
+from ..controller_manager import ControllerManager
+from ..witness_queue import PendingRegistrations
 from ..registration_state import RegistrationState
 
 log_entry_response = {
@@ -23,7 +23,7 @@ log_entry_response = {
         "versionTime": "2024-12-18T21:15:58",
         "parameters": {
             "updateKeys": ["z6MktZNLyY8wGFu9bKX3428Uzsocotpm9LWvVY4R3vkeHKxP"],
-            "method": "did:webvh:0.4",
+            "method": "did:webvh:0.5",
             "scid": "QmVSevWDZeaFYcTx2FaVaU91G9ABtyEW5vG3wzKTxN7cuS",
         },
         "state": {
@@ -77,6 +77,9 @@ request_namespace_fail = mock.AsyncMock(
     )
 )
 
+registration_options = {
+    'namespace': 'test'
+}
 
 class TestOperationsManager(IsolatedAsyncioTestCase):
     async def asyncSetUp(self):
@@ -93,7 +96,7 @@ class TestOperationsManager(IsolatedAsyncioTestCase):
         )
         # No server url
         with self.assertRaises(ConfigurationError):
-            await DidWebvhOperationsManager(self.profile).create(options={})
+            await ControllerManager(self.profile).register(options={})
 
     @mock.patch(
         "aiohttp.ClientSession.get",
@@ -112,7 +115,7 @@ class TestOperationsManager(IsolatedAsyncioTestCase):
     async def test_create_self_witness(self):
         self.profile.settings.set_value(
             "plugin_config",
-            {"did-webvh": {"server_url": "http://id.test-suite.app"}},
+            {"did-webvh": {"server_url": "https://id.test-suite.app"}},
         )
 
         resolver = mock.MagicMock(DIDResolver, autospec=True)
@@ -131,9 +134,7 @@ class TestOperationsManager(IsolatedAsyncioTestCase):
         self.profile.context.injector.bind_instance(EventBus, EventBus())
         self.profile.context.injector.bind_instance(KeyTypes, KeyTypes())
 
-        await DidWebvhOperationsManager(self.profile).create(
-            options={"namespace": "test"}
-        )
+        await ControllerManager(self.profile).register(options=registration_options)
 
     @mock.patch(
         "aiohttp.ClientSession.get",
@@ -161,7 +162,7 @@ class TestOperationsManager(IsolatedAsyncioTestCase):
     async def test_create_self_witness_as_witness(self):
         self.profile.settings.set_value(
             "plugin_config",
-            {"did-webvh": {"server_url": "http://id.test-suite.app", "role": "witness"}},
+            {"did-webvh": {"server_url": "https://id.test-suite.app", "role": "witness"}},
         )
 
         resolver = mock.MagicMock(DIDResolver, autospec=True)
@@ -180,14 +181,10 @@ class TestOperationsManager(IsolatedAsyncioTestCase):
         self.profile.context.injector.bind_instance(EventBus, EventBus())
         self.profile.context.injector.bind_instance(KeyTypes, KeyTypes())
 
-        await DidWebvhOperationsManager(self.profile).create(
-            options={"namespace": "test"}
-        )
+        await ControllerManager(self.profile).register(options=registration_options)
 
         # Same thing with existing key now
-        await DidWebvhOperationsManager(self.profile).create(
-            options={"namespace": "test"}
-        )
+        await ControllerManager(self.profile).register(options=registration_options)
 
     @mock.patch(
         "aiohttp.ClientSession.get",
@@ -198,7 +195,7 @@ class TestOperationsManager(IsolatedAsyncioTestCase):
             "plugin_config",
             {
                 "did-webvh": {
-                    "server_url": "http://id.test-suite.app",
+                    "server_url": "https://id.test-suite.app",
                     "role": "controller",
                 }
             },
@@ -211,9 +208,7 @@ class TestOperationsManager(IsolatedAsyncioTestCase):
 
         # No active connection
         with self.assertRaises(WitnessError):
-            await DidWebvhOperationsManager(self.profile).create(
-                options={"namespace": "test"}
-            )
+            await ControllerManager(self.profile).register(options=registration_options)
 
         # Has connection
         async with self.profile.session() as session:
@@ -223,14 +218,11 @@ class TestOperationsManager(IsolatedAsyncioTestCase):
             )
             await record.save(session)
 
-        await DidWebvhOperationsManager(self.profile).create(
-            options={"namespace": "test"}
-        )
-        await DidWebvhOperationsManager(self.profile).finish_create(
-            witnessed_document={"id": "did:web:id.test-suite.app:prod:1"},
+        await ControllerManager(self.profile).register(options=registration_options)
+        await ControllerManager(self.profile).finish_registration(
+            registration_document={"id": "did:web:id.test-suite.app:test:1"},
             parameters={},
             state=RegistrationState.PENDING.value,
-            authorized_key_info=None,
         )
 
     @mock.patch(
@@ -242,15 +234,13 @@ class TestOperationsManager(IsolatedAsyncioTestCase):
             "plugin_config",
             {
                 "did-webvh": {
-                    "server_url": "http://id.test-suite.app",
+                    "server_url": "https://id.test-suite.app",
                     "role": "controller",
                 }
             },
         )
         with self.assertRaises(DidCreationError):
-            await DidWebvhOperationsManager(self.profile).create(
-                options={"namespace": "test"}
-            )
+            await ControllerManager(self.profile).register(options=registration_options)
 
     @mock.patch("aiohttp.ClientSession.get", request_namespace_fail)
     async def test_create_bad_request(self):
@@ -258,15 +248,13 @@ class TestOperationsManager(IsolatedAsyncioTestCase):
             "plugin_config",
             {
                 "did-webvh": {
-                    "server_url": "http://id.test-suite.app",
+                    "server_url": "https://id.test-suite.app",
                 }
             },
         )
 
         with self.assertRaises(DidCreationError):
-            await DidWebvhOperationsManager(self.profile).create(
-                options={"namespace": "test"}
-            )
+            await ControllerManager(self.profile).register(options=registration_options)
 
     @mock.patch(
         "aiohttp.ClientSession.get",
@@ -296,16 +284,14 @@ class TestOperationsManager(IsolatedAsyncioTestCase):
             "plugin_config",
             {
                 "did-webvh": {
-                    "server_url": "http://id.test-suite.app",
+                    "server_url": "https://id.test-suite.app",
                     "role": "witness",
                 }
             },
         )
 
         with self.assertRaises(DidCreationError):
-            await DidWebvhOperationsManager(self.profile).create(
-                options={"namespace": "test"}
-            )
+            await ControllerManager(self.profile).register(options=registration_options)
 
     @mock.patch("asyncio.sleep", mock.AsyncMock())
     @mock.patch(
@@ -328,7 +314,7 @@ class TestOperationsManager(IsolatedAsyncioTestCase):
             )
         ),
     )
-    async def test_finish_create(self):
+    async def test_finish_registration(self):
         self.profile.context.injector.bind_instance(EventBus, EventBus())
         self.profile.context.injector.bind_instance(KeyTypes, KeyTypes())
         self.profile.context.injector.bind_instance(
@@ -350,25 +336,32 @@ class TestOperationsManager(IsolatedAsyncioTestCase):
             ),
         )
         test_did = "did:webvh:QmVSevWDZeaFYcTx2FaVaU91G9ABtyEW5vG3wzKTxN7cuS:id.test-suite.app:prod:3"
+        test_key = "z6Mkf5rGMoatrSj1f4CyvuHBeXJELe9RPdzo2PKGNCKVtZxP"
 
         # No pending dids - attested
-        await DidWebvhOperationsManager(self.profile).finish_create(
-            witnessed_document={"id": test_did},
+        await ControllerManager(self.profile).finish_registration(
+            registration_document={
+                "id": test_did,
+                "verificationMethod": [
+                    {
+                        "id": f"{test_did}#{test_key}",
+                        "publicKeyMultibase": test_key,
+                    }
+                ]
+            },
             parameters={},
             state=RegistrationState.ATTESTED.value,
-            authorized_key_info=None,
         )
 
         # Pending state
-        await DidWebvhOperationsManager(self.profile).finish_create(
-            witnessed_document={"id": test_did},
+        await ControllerManager(self.profile).finish_registration(
+            registration_document={"id": test_did},
             parameters={},
             state=RegistrationState.PENDING.value,
-            authorized_key_info=None,
         )
 
         # Has pending dids - attested
-        await PendingWebvhDids().set_pending_did(
+        await PendingRegistrations().set_pending_did(
             self.profile,
             test_did,
         )
@@ -376,7 +369,7 @@ class TestOperationsManager(IsolatedAsyncioTestCase):
         await set_config(
             self.profile,
             {
-                "server_url": "http://id.test-suite.app",
+                "server_url": "https://id.test-suite.app",
                 "role": "controller",
             },
         )
@@ -387,13 +380,14 @@ class TestOperationsManager(IsolatedAsyncioTestCase):
                 kid=f"webvh:{test_did}@updateKey",
             )
 
-        await DidWebvhOperationsManager(self.profile).finish_create(
-            witnessed_document={
+        await ControllerManager(self.profile).finish_registration(
+            registration_document={
                 "id": test_did,
                 "proof": [{"domain": "id.test-suite.app"}],
             },
             parameters={},
             state=RegistrationState.ATTESTED.value,
-            authorized_key_info=None,
         )
-        assert test_did not in (await PendingWebvhDids().get_pending_dids(self.profile))
+        assert test_did not in (
+            await PendingRegistrations().get_pending_dids(self.profile)
+        )
