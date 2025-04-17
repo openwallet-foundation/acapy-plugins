@@ -12,9 +12,9 @@ from acapy_agent.wallet.keys.manager import MultikeyManager
 from ...config.config import get_plugin_config
 from ..constants import ALIASES
 from ..messages.witness import WitnessRequest, WitnessResponse
-from ..operations_manager import DidWebvhOperationsManager
+from ..controller_manager import ControllerManager
 from ..registration_state import RegistrationState
-from ..utils import get_url_decoded_domain, key_to_did_key_vm
+from ..utils import get_url_decoded_domain
 from ..witness_manager import WitnessManager
 
 LOGGER = logging.getLogger(__name__)
@@ -38,7 +38,9 @@ class WitnessRequestHandler(BaseHandler):
 
         async with context.profile.session() as session:
             # Attempt to get the witness key for the domain
-            if not await MultikeyManager(session).kid_exists(witness_kid):
+            key_manager = MultikeyManager(session)
+            di_manager = DataIntegrityManager(session)
+            if not await key_manager.kid_exists(witness_kid):
                 # If the key is not found, return an error
                 LOGGER.error(
                     f"Witness key not found for domain: {witness_kid}. The "
@@ -48,17 +50,16 @@ class WitnessRequestHandler(BaseHandler):
                 return
 
             # If the key is found, perform witness
-            witness_key_info = await MultikeyManager(session).from_kid(witness_kid)
+            witness_key_info = await key_manager.from_kid(witness_kid)
+            witness_key = witness_key_info.get("multikey")
             # Note: The witness key is used as the verification method
-            witnessed_document = await DataIntegrityManager(session).add_proof(
+            witnessed_document = await di_manager.add_proof(
                 document,
                 DataIntegrityProofOptions(
                     type="DataIntegrityProof",
                     cryptosuite="eddsa-jcs-2022",
                     proof_purpose="assertionMethod",
-                    verification_method=key_to_did_key_vm(
-                        witness_key_info.get("multikey")
-                    ),
+                    verification_method=f"did:key:{witness_key}#{witness_key}",
                     expires=proof.get("expires"),
                     domain=domain,
                     challenge=proof.get("challenge"),
@@ -123,8 +124,8 @@ class WitnessResponseHandler(BaseHandler):
         )
         assert isinstance(context.message, WitnessResponse)
 
-        await DidWebvhOperationsManager(context.profile).finish_create(
-            context.message.document,
-            state=context.message.state,
+        await ControllerManager(context.profile).finish_registration(
+            registration_document=context.message.document,
             parameters=context.message.parameters,
+            state=context.message.state,
         )

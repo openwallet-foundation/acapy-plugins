@@ -153,7 +153,7 @@ async def test_create_single_tenant():
         # Create the initial did
         identifier = str(uuid.uuid4())
         response = await witness.post(
-            "/did/webvh/create",
+            "/did/webvh/controller/create",
             json={"options": {"namespace": TEST_NAMESPACE, "identifier": identifier}},
         )
 
@@ -212,7 +212,7 @@ async def test_create_with_witness_and_auto_attest():
         # Create the initial did
         identifier = str(uuid.uuid4())
         response = await controller.post(
-            "/did/webvh/create",
+            "/did/webvh/controller/create",
             json={"options": {"namespace": TEST_NAMESPACE, "identifier": identifier}},
         )
 
@@ -220,7 +220,7 @@ async def test_create_with_witness_and_auto_attest():
         assert _id
         assert identifier in _id
 
-        response = await witness.get("/did/webvh/witness/pending")
+        response = await witness.get("/did/webvh/witness/registrations")
         assert not response.get("results")
 
         await asyncio.sleep(1)
@@ -276,20 +276,20 @@ async def test_create_with_witness_and_manual_attest():
         # Create the initial did
         identifier = str(uuid.uuid4())
         response = await controller.post(
-            "/did/webvh/create",
+            "/did/webvh/controller/create",
             json={"options": {"namespace": TEST_NAMESPACE, "identifier": identifier}},
         )
 
         status = response.get("status")
         assert status == "pending"
 
-        response = await witness.get("/did/webvh/witness/pending")
+        response = await witness.get("/did/webvh/witness/registrations")
         entry = response.get("results", []).pop()
         assert isinstance(entry, dict)
 
         await witness.post(
-            "/did/webvh/witness/attest",
-            params=params(entry_id=entry["id"]),
+            "/did/webvh/witness/registrations",
+            params=params(did=entry["id"]),
         )
         await asyncio.sleep(3)
 

@@ -12,3 +12,5 @@ PROOF_OPTIONS = {
     "cryptosuite": "eddsa-jcs-2022",
     "proofPurpose": "assertionMethod",
 }
+
+SUPPORTED_KEY_TYPES = ["Multikey", "JsonWebKey"]
