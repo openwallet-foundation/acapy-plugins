@@ -128,3 +128,70 @@ async def update_status_list_cred(request: web.BaseRequest):
         raise web.HTTPInternalServerError(reason=err.roll_up) from err
 
     return web.json_response(result)
+
+
+class MatchBindStatusListCredRequest(OpenAPISchema):
+    """Request schema for querying status list entry."""
+
+    supported_cred_id = fields.Str(
+        required=True,
+        metadata={"description": "Status list definition identifier."},
+    )
+    cred_id = fields.Str(
+        required=True,
+        metadata={"description": "Status list credential identifier."},
+    )
+
+
+class BindStatusListCredRequest(OpenAPISchema):
+    """Request schema for updating status list entry."""
+
+    status_type = fields.Str(
+        required=False,
+        default="w3c",
+        metadata={"description": "Status bitstring", "example": "ietf"},
+    )
+
+
+# In cases where credential status binding is NOT automated, we need a way to
+# bind a credential to the credential status. This adds additional burden to
+# the controller and should be avoided where possible. In cases where it's not
+# possible (such as when such a binding does not occur automatically), this
+# call can be used to do so manually.
+@docs(
+    tags=["status-list"],
+    summary=(
+        "Bind a credential to a status list entry (ideally, this should be automated)"
+    ),
+)
+@match_info_schema(MatchBindStatusListCredRequest())
+@request_schema(BindStatusListCredRequest())
+@response_schema(StatusListCredSchema(), 200, description="")
+@tenant_authentication
+async def bind_status_list_cred(request: web.BaseRequest):
+    """Request handler for update status list entry by list number and entry index."""
+
+    supported_cred_id = request.match_info["supported_cred_id"]
+    cred_id = request.match_info["cred_id"]
+
+    body: Dict[str, Any] = await request.json()
+    status_type = body.get("status_type", "w3c")
+
+    result: Dict[str, Any] = {}
+
+    try:
+        context: AdminRequestContext = request["context"]
+        credential_status = await status_handler.assign_status_entries(
+            context, supported_cred_id, cred_id, status_type
+        )
+        if credential_status:
+            result["credentialStatus"] = credential_status
+        LOGGER.debug(f"Bound status list entry to {cred_id} {result}.")
+
+    except StorageNotFoundError as err:
+        raise web.HTTPNotFound(reason=err.roll_up) from err
+
+    except (StorageError, BaseModelError, BaseError) as err:
+        raise web.HTTPInternalServerError(reason=err.roll_up) from err
+
+    return web.json_response(result)

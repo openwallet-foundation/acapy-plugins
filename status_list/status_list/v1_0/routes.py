@@ -4,7 +4,11 @@ import logging
 
 from aiohttp import web
 
-from .controllers.status_list_cred import get_status_list_cred, update_status_list_cred
+from .controllers.status_list_cred import (
+    get_status_list_cred,
+    update_status_list_cred,
+    bind_status_list_cred,
+)
 from .controllers.status_list_def import (
     create_status_list_def,
     get_status_list_defs,
@@ -25,6 +29,10 @@ async def register(app: web.Application):
             #
             # status list credentials
             #
+            web.post(
+                "/status-list/assign/{supported_cred_id}/creds/{cred_id}",
+                bind_status_list_cred,
+            ),
             web.get(
                 "/status-list/defs/{def_id}/creds/{cred_id}",
                 get_status_list_cred,
