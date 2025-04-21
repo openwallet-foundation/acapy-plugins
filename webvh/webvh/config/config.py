@@ -110,6 +110,7 @@ async def add_scid_mapping(profile: Profile, scid: str, did: str):
             _get_wallet_identifier(profile),
         )
         config = json.loads(stored_config_record.value)["config"]
+        config["scids"] = config.get("scids", {})
         config["scids"][scid] = did
         await storage.update_record(
             stored_config_record,

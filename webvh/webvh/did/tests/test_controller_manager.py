@@ -12,10 +12,10 @@ from acapy_agent.wallet.keys.manager import MultikeyManager
 from aiohttp import ClientConnectionError
 
 from ...config.config import set_config
-from ..exceptions import ConfigurationError, DidCreationError, WitnessError
 from ..controller_manager import ControllerManager
-from ..witness_queue import PendingRegistrations
+from ..exceptions import ConfigurationError, DidCreationError, WitnessError
 from ..registration_state import RegistrationState
+from ..witness_queue import PendingRegistrations
 
 log_entry_response = {
     "logEntry": {
@@ -112,11 +112,6 @@ class TestOperationsManager(IsolatedAsyncioTestCase):
         ),
     )
     async def test_create_self_witness(self):
-        self.profile.settings.set_value(
-            "plugin_config",
-            {"did-webvh": {"server_url": "https://id.test-suite.app"}},
-        )
-
         resolver = mock.MagicMock(DIDResolver, autospec=True)
         resolver.resolve_with_metadata = mock.AsyncMock(
             return_value=ResolutionResult(
@@ -133,6 +128,7 @@ class TestOperationsManager(IsolatedAsyncioTestCase):
         self.profile.context.injector.bind_instance(EventBus, EventBus())
         self.profile.context.injector.bind_instance(KeyTypes, KeyTypes())
 
+        await set_config(self.profile, {"server_url": "https://id.test-suite.app"})
         await ControllerManager(self.profile).register(options=registration_options)
 
     @mock.patch(
@@ -147,10 +143,29 @@ class TestOperationsManager(IsolatedAsyncioTestCase):
                     side_effect=[
                         log_entry_response,
                         initial_create_response,
-                        log_entry_response,
+                        {
+                            "logEntry": {
+                                "versionId": "1-QmSV77yftroggmtFuUrTDQaHaxpKwDwPvKwkhLqkS1hucT",
+                                "versionTime": "2024-12-18T21:15:58",
+                                "parameters": {
+                                    "updateKeys": [
+                                        "z6MktZNLyY8wGFu9bKX3428Uzsocotpm9LWvVY4R3vkeHKxP"
+                                    ],
+                                    "method": "did:webvh:0.5",
+                                    "scid": "QmVSevWDZeaFYcTx2FaVaU91G9ABtyEW5vG3wzKTxN7cuZ",
+                                },
+                                "state": {
+                                    "@context": ["..."],
+                                    "id": "did:webvh:QmVSevWDZeaFYcTx2FaVaU91G9ABtyEW5vG3wzKTxN7cuZ:id.test-suite.app:prod:3",
+                                    "verificationMethod": ["..."],
+                                    "authentication": ["..."],
+                                    "assertionMethod": ["..."],
+                                },
+                            }
+                        },
                         {
                             "state": {
-                                "id": "did:webvh:QmVSevWDZeaFYcTx2FaVaU91G9ABtyEW5vG3wzKTxN7cuS:id.test-suite.app:prod:4",
+                                "id": "did:webvh:QmVSevWDZeaFYcTx2FaVaU91G9ABtyEW5vG3wzKTxN7cuZ:id.test-suite.app:prod:4",
                             }
                         },
                     ]
@@ -159,11 +174,6 @@ class TestOperationsManager(IsolatedAsyncioTestCase):
         ),
     )
     async def test_create_self_witness_as_witness(self):
-        self.profile.settings.set_value(
-            "plugin_config",
-            {"did-webvh": {"server_url": "https://id.test-suite.app", "role": "witness"}},
-        )
-
         resolver = mock.MagicMock(DIDResolver, autospec=True)
         resolver.resolve_with_metadata = mock.AsyncMock(
             return_value=ResolutionResult(
@@ -179,6 +189,10 @@ class TestOperationsManager(IsolatedAsyncioTestCase):
         self.profile.context.injector.bind_instance(DIDResolver, resolver)
         self.profile.context.injector.bind_instance(EventBus, EventBus())
         self.profile.context.injector.bind_instance(KeyTypes, KeyTypes())
+
+        await set_config(
+            self.profile, {"server_url": "https://id.test-suite.app", "role": "witness"}
+        )
 
         await ControllerManager(self.profile).register(options=registration_options)
 
@@ -306,7 +320,7 @@ class TestOperationsManager(IsolatedAsyncioTestCase):
                         },
                         # For second response
                         "state": {
-                            "id": "did:webvh:QmVSevWDZeaFYcTx2FaVaU91G9ABtyEW5vG3wzKTxN7cuS:id.test-suite.app:prod:3"
+                            "id": "did:webvh:QmVSevWDZeaFYcTx2FaVaU91G9ABtyEW5vG3wzKTxN7cuZ:id.test-suite.app:prod:3"
                         },
                     }
                 )
@@ -334,8 +348,12 @@ class TestOperationsManager(IsolatedAsyncioTestCase):
                 ),
             ),
         )
-        test_did = "did:webvh:QmVSevWDZeaFYcTx2FaVaU91G9ABtyEW5vG3wzKTxN7cuS:id.test-suite.app:prod:3"
-        test_key = "z6Mkf5rGMoatrSj1f4CyvuHBeXJELe9RPdzo2PKGNCKVtZxP"
+        test_did = "did:webvh:{SCID}:id.test-suite.app:prod:3"
+
+        async with self.profile.session() as session:
+            signing_key = await MultikeyManager(session).create(
+                alg="ed25519",
+            )
 
         # No pending dids - attested
         await ControllerManager(self.profile).finish_registration(
@@ -343,8 +361,8 @@ class TestOperationsManager(IsolatedAsyncioTestCase):
                 "id": test_did,
                 "verificationMethod": [
                     {
-                        "id": f"{test_did}#{test_key}",
-                        "publicKeyMultibase": test_key,
+                        "id": f"{test_did}#{signing_key['multikey']}",
+                        "publicKeyMultibase": signing_key["multikey"],
                     }
                 ],
             },
@@ -354,7 +372,15 @@ class TestOperationsManager(IsolatedAsyncioTestCase):
 
         # Pending state
         await ControllerManager(self.profile).finish_registration(
-            registration_document={"id": test_did},
+            registration_document={
+                "id": test_did,
+                "verificationMethod": [
+                    {
+                        "id": f"{test_did}#{signing_key['multikey']}",
+                        "publicKeyMultibase": signing_key["multikey"],
+                    }
+                ],
+            },
             parameters={},
             state=RegistrationState.PENDING.value,
         )
@@ -382,6 +408,12 @@ class TestOperationsManager(IsolatedAsyncioTestCase):
         await ControllerManager(self.profile).finish_registration(
             registration_document={
                 "id": test_did,
+                "verificationMethod": [
+                    {
+                        "id": f"{test_did}#{signing_key['multikey']}",
+                        "publicKeyMultibase": signing_key["multikey"],
+                    }
+                ],
                 "proof": [{"domain": "id.test-suite.app"}],
             },
             parameters={},
