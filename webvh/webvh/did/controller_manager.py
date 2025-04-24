@@ -371,16 +371,16 @@ class ControllerManager:
 
         async with self.profile.session() as session:
             # Save the did in the wallet
-            parameters = initial_log_entry.get("parameters")
-            update_key = parameters.get("updateKeys")[0]
             await session.handle.insert(
                 CATEGORY_DID,
                 webvh_did,
                 value_json={
                     "did": webvh_did,
-                    "verkey": multikey_to_verkey(update_key),
+                    # We use the created signing as the default DID key
+                    "verkey": multikey_to_verkey(signing_key),
                     "metadata": {
                         "posted": True,
+                        "scid": scid,
                         "namespace": namespace,
                         "identifier": identifier,
                     },
@@ -422,6 +422,8 @@ class ControllerManager:
 
             # Update the key id's with the webvh did
             key_manager = MultikeyManager(session)
+            parameters = initial_log_entry.get("parameters")
+            update_key = parameters.get("updateKeys")[0]
 
             await key_manager.update(multikey=update_key, kid=f"{webvh_did}#updateKey")
             await key_manager.update(
