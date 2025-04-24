@@ -260,6 +260,13 @@ class WitnessManager:
 
             return {"status": "success", "message": "Witness successful."}
 
+    async def reject_did_request_doc(self, entry_id: str) -> dict[str, str]:
+        """Reject a did request doc."""
+        async with self.profile.session() as session:
+            await session.handle.remove(PENDING_DOCUMENT_TABLE_NAME, entry_id)
+
+        return {"status": "success", "message": "Removed registration."}
+
     async def get_witness_key(self) -> str:
         """Return the witness key."""
         async with self.profile.session() as session:

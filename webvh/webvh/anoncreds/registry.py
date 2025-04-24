@@ -536,20 +536,17 @@ class DIDWebVHRegistry(BaseAnonCredsResolver, BaseAnonCredsRegistrar):
         """Derive attested resource object from content and publish."""
         options = options or {}
         # If no verification method set, fetch default signing key from did
-        if not options.get('verificationMethod'):
+        if not options.get("verificationMethod"):
             try:
                 async with profile.session() as session:
-                    did_info = await session.handle.fetch(
-                        CATEGORY_DID,
-                        issuer
-                    )
-                signing_key = verkey_to_multikey(did_info.value_json.get('verkey'))
+                    did_info = await session.handle.fetch(CATEGORY_DID, issuer)
+                signing_key = verkey_to_multikey(did_info.value_json.get("verkey"))
                 options["verificationMethod"] = f"{issuer}#{signing_key}"
             except (WalletNotFoundError, WalletError):
                 raise AnonCredsRegistrationError(
                     f"Error deriving signing key for {issuer}."
                 )
-            
+
         options["serviceEndpoint"] = self._derive_upload_endpoint(
             options.get("verificationMethod")
         )

@@ -256,14 +256,30 @@ async def get_pending_registrations(request: web.BaseRequest):
 @docs(tags=["did-webvh"], summary="Approve a pending registration")
 @querystring_schema(WebvhDIDQueryStringSchema())
 @tenant_authentication
-async def attest_pending_registration(request: web.BaseRequest):
-    """Get all pending log entries."""
+async def approve_pending_registration(request: web.BaseRequest):
+    """Approve a pending registration."""
     context: AdminRequestContext = request["context"]
 
     try:
         controller_id = request.query.get("did")
         return web.json_response(
             await WitnessManager(context.profile).attest_did_request_doc(controller_id)
+        )
+    except WitnessError as err:
+        return web.json_response({"status": "error", "message": str(err)})
+
+
+@docs(tags=["did-webvh"], summary="Reject a pending registration")
+@querystring_schema(WebvhDIDQueryStringSchema())
+@tenant_authentication
+async def reject_pending_registration(request: web.BaseRequest):
+    """Reject a pending registration."""
+    context: AdminRequestContext = request["context"]
+
+    try:
+        controller_id = request.query.get("did")
+        return web.json_response(
+            await WitnessManager(context.profile).reject_did_request_doc(controller_id)
         )
     except WitnessError as err:
         return web.json_response({"status": "error", "message": str(err)})
@@ -320,7 +336,15 @@ async def register(app: web.Application):
         [
             web.post(
                 "/did/webvh/witness/registrations",
-                attest_pending_registration,
+                approve_pending_registration,
+            )
+        ]
+    )
+    app.add_routes(
+        [
+            web.delete(
+                "/did/webvh/witness/registrations",
+                reject_pending_registration,
             )
         ]
     )
