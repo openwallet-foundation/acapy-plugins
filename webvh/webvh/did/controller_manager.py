@@ -120,6 +120,7 @@ class ControllerManager:
                         "https://www.w3.org/ns/cid/v1",
                     ],
                     id=did,
+                    key_agreement=[],
                     authentication=[signing_key_id],
                     assertion_method=[signing_key_id],
                     verification_method=[

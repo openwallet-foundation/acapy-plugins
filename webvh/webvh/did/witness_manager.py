@@ -83,7 +83,7 @@ class WitnessManager:
         self,
         registration_document: dict,
         proof_options: dict,
-        parameters: dict,
+        parameter_options: dict,
     ) -> Optional[dict]:
         """Witness the document with the given parameters."""
         role = (await get_plugin_config(self.profile)).get("role")
@@ -117,7 +117,7 @@ class WitnessManager:
                     raise WitnessError("No active witness connection found.")
 
                 await responder.send(
-                    message=WitnessRequest(registration_document, parameters),
+                    message=WitnessRequest(registration_document, parameter_options),
                     connection_id=witness_connection.connection_id,
                 )
 
