@@ -94,10 +94,13 @@ class WitnessManager:
                 witness_alias = create_alias(
                     server_url_to_domain(server_url), "witnessKey"
                 )
-                witness_key_info = await MultikeyManager(session).from_kid(witness_alias)
-                if not witness_key_info:
+                witness_key_exists = await MultikeyManager(session).kid_exists(
+                    witness_alias
+                )
+                if not witness_key_exists:
                     raise WitnessError(f"Witness key [{witness_alias}] not found.")
 
+                witness_key_info = await MultikeyManager(session).from_kid(witness_alias)
                 witness_key = witness_key_info.get("multikey")
 
                 return await DataIntegrityManager(session).add_proof(

@@ -43,7 +43,7 @@ from acapy_agent.vc.data_integrity.manager import (
 )
 from acapy_agent.vc.data_integrity.models.options import DataIntegrityProofOptions
 from acapy_agent.wallet.askar import CATEGORY_DID
-from acapy_agent.wallet.error import WalletNotFoundError, WalletError
+from acapy_agent.wallet.error import WalletError, WalletNotFoundError
 from acapy_agent.wallet.keys.manager import verkey_to_multikey
 from aiohttp import ClientConnectionError, ClientResponseError, ClientSession
 from multiformats import multibase, multihash
@@ -540,7 +540,10 @@ class DIDWebVHRegistry(BaseAnonCredsResolver, BaseAnonCredsRegistrar):
             try:
                 async with profile.session() as session:
                     did_info = await session.handle.fetch(CATEGORY_DID, issuer)
-                signing_key = verkey_to_multikey(did_info.value_json.get("verkey"))
+                signing_key = verkey_to_multikey(
+                    did_info.value_json.get("verkey"),
+                    alg=did_info.value_json.get("key_type"),
+                )
                 options["verificationMethod"] = f"{issuer}#{signing_key}"
             except (WalletNotFoundError, WalletError):
                 raise AnonCredsRegistrationError(
