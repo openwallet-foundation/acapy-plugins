@@ -84,7 +84,7 @@ services:
       - did_resolver
 
   did_registrar:
-    image: universalregistrar/uni-registrar-web:latest
+    image: universalregistrar/uni-registrar-web@sha256:d02207a156cb97dd79d3515bc90a963d12660c4ca82382f77ae6b5d32351267f
     ports:
       - "9080:9080"
     depends_on:
