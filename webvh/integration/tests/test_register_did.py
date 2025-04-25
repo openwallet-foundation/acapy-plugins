@@ -144,7 +144,7 @@ async def test_create_single_tenant():
                 "auto_attest": True,
             },
         )
-        assert response["witness_key"] == WITNESS_KEY
+        assert response["multikey"] == WITNESS_KEY
 
         # Ensure the witness key is properly configured
         response = await witness.get(f"/wallet/keys/{WITNESS_KEY}")
@@ -188,7 +188,17 @@ async def test_create_with_witness_and_auto_attest():
                 "auto_attest": True,
             },
         )
-        assert response["witness_key"] == WITNESS_KEY
+        assert response["multikey"] == WITNESS_KEY
+
+        invitation_url = (
+            await witness.post(
+                "did/webvh/witness/invitations",
+                json={
+                    "alias": "witness",
+                    "label": "witness",
+                },
+            )
+        )["invitation_url"]
 
         # Configure WebVH Controller
         response = await controller.post(
@@ -196,18 +206,16 @@ async def test_create_with_witness_and_auto_attest():
             json={
                 "server_url": server_url,
                 "witness": False,
+                "witness_invitation": invitation_url,
             },
         )
+
+        # Wait for the connection to be established
+        await asyncio.sleep(1)
 
         # Ensure the witness key is properly configured
         response = await witness.get(f"/wallet/keys/{WITNESS_KEY}")
         assert response["kid"] == WITNESS_KID
-
-        # Create the connection with witness specific alias
-        witness_alias = f"webvh:{server_url.lstrip('https://')}@witness"
-        await didexchange(witness, controller, alias=witness_alias)
-        response = await controller.get(f"/connections?alias={witness_alias}")
-        assert response["results"][0]["state"] == "active"
 
         # Create the initial did
         identifier = str(uuid.uuid4())
@@ -252,7 +260,17 @@ async def test_create_with_witness_and_manual_attest():
                 "auto_attest": False,
             },
         )
-        assert response["witness_key"] == WITNESS_KEY
+        assert response["multikey"] == WITNESS_KEY
+
+        invitation_url = (
+            await witness.post(
+                "did/webvh/witness/invitations",
+                json={
+                    "alias": "witness",
+                    "label": "witness",
+                },
+            )
+        )["invitation_url"]
 
         # Configure WebVH Controller
         response = await controller.post(
@@ -260,18 +278,16 @@ async def test_create_with_witness_and_manual_attest():
             json={
                 "server_url": server_url,
                 "witness": False,
+                "witness_invitation": invitation_url,
             },
         )
+
+        # Wait for the connection to be established
+        await asyncio.sleep(1)
 
         # Ensure the witness key is properly configured
         response = await witness.get(f"/wallet/keys/{WITNESS_KEY}")
         assert response["kid"] == WITNESS_KID
-
-        # Create the connection with witness specific alias
-        witness_alias = f"webvh:{server_url.lstrip('https://')}@witness"
-        await didexchange(witness, controller, alias=witness_alias)
-        response = await controller.get(f"/connections?alias={witness_alias}")
-        assert response["results"][0]["state"] == "active"
 
         # Create the initial did
         identifier = str(uuid.uuid4())

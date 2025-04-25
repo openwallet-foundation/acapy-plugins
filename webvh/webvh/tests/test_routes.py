@@ -7,7 +7,7 @@ from acapy_agent.utils.testing import create_test_profile
 from aiohttp.web_response import Response
 
 from webvh.routes import (
-    attest_pending_registration,
+    approve_pending_registration,
     configure,
     create,
     get_pending_registrations,
@@ -113,7 +113,7 @@ class TestWebvhRoutes(IsolatedAsyncioTestCase):
             headers={"x-api-key": "secret-key"},
         )
 
-        result = await attest_pending_registration(self.request)
+        result = await approve_pending_registration(self.request)
         assert isinstance(result, Response)
 
     @mock.patch.object(OutOfBandManager, "receive_invitation")

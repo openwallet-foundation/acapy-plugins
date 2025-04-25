@@ -14,24 +14,24 @@ from aiohttp import web
 from aiohttp_apispec import docs, querystring_schema, request_schema, response_schema
 from marshmallow.exceptions import ValidationError
 
-from .did.utils import decode_invitation
-from .did.models.operations import (
-    WebvhCreateWitnessInvitationSchema,
-    WebvhCreateSchema,
-    WebvhDeactivateSchema,
-    ConfigureWebvhSchema,
-    WebvhAddVMSchema,
-    WebvhSCIDQueryStringSchema,
-    WebvhDIDQueryStringSchema,
-)
-from .config.config import set_config, get_plugin_config
+from .config.config import get_plugin_config, set_config
+from .did.controller_manager import ControllerManager
 from .did.exceptions import (
     ConfigurationError,
     DidCreationError,
     DidUpdateError,
     WitnessError,
 )
-from .did.controller_manager import ControllerManager
+from .did.models.operations import (
+    ConfigureWebvhSchema,
+    WebvhAddVMSchema,
+    WebvhCreateSchema,
+    WebvhCreateWitnessInvitationSchema,
+    WebvhDeactivateSchema,
+    WebvhDIDQueryStringSchema,
+    WebvhSCIDQueryStringSchema,
+)
+from .did.utils import decode_invitation
 from .did.witness_manager import WitnessManager
 
 LOGGER = logging.getLogger(__name__)
@@ -87,7 +87,14 @@ async def configure(request: web.BaseRequest):
             config["role"] = "controller"
             config["witness_invitation"] = request_json.get("witness_invitation")
 
-            witness_invitation = decode_invitation(config["witness_invitation"])
+            if not config.get("witness_invitation"):
+                raise ConfigurationError("No witness invitation provided.")
+
+            try:
+                witness_invitation = decode_invitation(config["witness_invitation"])
+            except UnicodeDecodeError:
+                raise ConfigurationError("Invalid witness invitation.")
+
             if (
                 not witness_invitation.get("goal").startswith("did:key:")
                 and not witness_invitation.get("goal-code") == "witness-service"

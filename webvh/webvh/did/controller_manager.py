@@ -25,15 +25,13 @@ from did_webvh.core.state import DocumentState
 from pydid import DIDDocument
 
 from ..config.config import (
-    get_server_url,
-    use_strict_ssl,
-    get_witnesses,
-    did_from_scid,
     add_scid_mapping,
+    did_from_scid,
+    get_server_url,
+    get_witnesses,
+    use_strict_ssl,
 )
 from .exceptions import DidCreationError
-
-from .witness_queue import PendingRegistrations
 from .registration_state import RegistrationState
 from .utils import (
     fetch_document_state,
@@ -41,6 +39,7 @@ from .utils import (
     multikey_to_jwk,
 )
 from .witness_manager import WitnessManager
+from .witness_queue import PendingRegistrations
 
 LOGGER = logging.getLogger(__name__)
 
@@ -75,7 +74,10 @@ class ControllerManager:
                 raise DidCreationError(f"Failed to connect to Webvh server: {err}")
 
             response_json = await response.json()
-            if response.status == http.HTTPStatus.BAD_REQUEST:
+            if (
+                response.status == http.HTTPStatus.BAD_REQUEST
+                or response.status == http.HTTPStatus.CONFLICT
+            ):
                 raise DidCreationError(response_json.get("detail"))
 
             did_document = response_json.get("didDocument", {})
