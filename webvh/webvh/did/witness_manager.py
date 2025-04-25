@@ -8,24 +8,24 @@ from acapy_agent.connections.models.conn_record import ConnRecord
 from acapy_agent.core.profile import Profile
 from acapy_agent.messaging.models.base import BaseModelError
 from acapy_agent.messaging.responder import BaseResponder
-from acapy_agent.protocols.out_of_band.v1_0.manager import OutOfBandManager
-from acapy_agent.protocols.out_of_band.v1_0.messages.invitation import InvitationMessage
+from acapy_agent.protocols.out_of_band.v1_0.manager import (
+    OutOfBandManager,
+    OutOfBandManagerError,
+)
+from acapy_agent.protocols.out_of_band.v1_0.messages.invitation import (
+    HSProto,
+    InvitationMessage,
+)
 from acapy_agent.vc.data_integrity.manager import DataIntegrityManager
 from acapy_agent.vc.data_integrity.models.options import DataIntegrityProofOptions
-from acapy_agent.wallet.keys.manager import MultikeyManager
+from acapy_agent.wallet.keys.manager import MultikeyManager, MultikeyManagerError
 from aries_askar import AskarError
 
 from ..config.config import get_plugin_config, get_server_url, is_controller
 from .exceptions import WitnessError
 from .messages.witness import WitnessRequest, WitnessResponse
 from .registration_state import RegistrationState
-from .utils import (
-    create_alias,
-    create_or_get_key,
-    key_to_did_key_vm,
-    server_url_to_domain,
-    sign_document,
-)
+from .utils import create_alias, server_url_to_domain
 
 LOGGER = logging.getLogger(__name__)
 
@@ -59,11 +59,31 @@ class WitnessManager:
 
         return None
 
+    async def _create_or_get_witness_did(self, key_alias, key=None):
+        """Create new multikey with alias or return existing one."""
+        async with self.profile.session() as session:
+            manager = MultikeyManager(session)
+            try:
+                if key:
+                    key_info = await manager.update(
+                        kid=key_alias,
+                        multikey=key,
+                    )
+
+                else:
+                    key_info = await manager.create(
+                        kid=key_alias,
+                        alg="ed25519",
+                    )
+            except MultikeyManagerError:
+                key_info = await manager.from_kid(key_alias)
+        return key_info
+
     async def witness_registration_document(
         self,
-        controller_secured_document: dict,
+        registration_document: dict,
         proof_options: dict,
-        parameters: dict,
+        parameter_options: dict,
     ) -> Optional[dict]:
         """Witness the document with the given parameters."""
         role = (await get_plugin_config(self.profile)).get("role")
@@ -74,16 +94,23 @@ class WitnessManager:
                 witness_alias = create_alias(
                     server_url_to_domain(server_url), "witnessKey"
                 )
-                if not await MultikeyManager(session).kid_exists(witness_alias):
+                witness_key_exists = await MultikeyManager(session).kid_exists(
+                    witness_alias
+                )
+                if not witness_key_exists:
                     raise WitnessError(f"Witness key [{witness_alias}] not found.")
 
                 witness_key_info = await MultikeyManager(session).from_kid(witness_alias)
-                proof_options["verificationMethod"] = key_to_did_key_vm(
-                    witness_key_info.get("multikey")
+                witness_key = witness_key_info.get("multikey")
+
+                return await DataIntegrityManager(session).add_proof(
+                    registration_document,
+                    DataIntegrityProofOptions.deserialize(
+                        proof_options
+                        | {"verificationMethod": f"did:key:{witness_key}#{witness_key}"}
+                    ),
                 )
-                return await sign_document(
-                    session, controller_secured_document, proof_options
-                )
+
             # Need proof from witness agent
             else:
                 responder = self.profile.inject(BaseResponder)
@@ -93,22 +120,24 @@ class WitnessManager:
                     raise WitnessError("No active witness connection found.")
 
                 await responder.send(
-                    message=WitnessRequest(controller_secured_document, parameters),
+                    message=WitnessRequest(registration_document, parameter_options),
                     connection_id=witness_connection.connection_id,
                 )
 
-    async def setup_witness_key(self, key=None) -> None:
+    async def setup_witness_key(self, server_url, key=None) -> None:
         """Ensure witness key is setup."""
 
-        server_url = await get_server_url(self.profile)
         witness_alias = create_alias(server_url_to_domain(server_url), "witnessKey")
 
-        witness_key_info = await create_or_get_key(self.profile, witness_alias, key)
+        witness_key_info = await self._create_or_get_witness_did(witness_alias, key)
 
         if not witness_key_info.get("multikey"):
             raise WitnessError("Witness key creation error.")
 
-        return witness_key_info.get("multikey")
+        return {
+            "multikey": witness_key_info.get("multikey"),
+            "kid": witness_key_info.get("kid"),
+        }
 
     async def auto_witness_setup(self) -> None:
         """Automatically set up the witness the connection."""
@@ -131,7 +160,6 @@ class WitnessManager:
         if not witness_invitation:
             LOGGER.info("No witness invitation, can't create connection automatically.")
             return
-
         oob_mgr = OutOfBandManager(self.profile)
         try:
             await oob_mgr.receive_invitation(
@@ -206,6 +234,7 @@ class WitnessManager:
 
             # If the key is found, perform witness attestation
             witness_key_info = await MultikeyManager(session).from_kid(key_alias)
+            witness_key = witness_key_info.get("multikey")
 
             # Note: The witness key is used as the verification method
             witnessed_document = await DataIntegrityManager(session).add_proof(
@@ -214,9 +243,7 @@ class WitnessManager:
                     type="DataIntegrityProof",
                     cryptosuite="eddsa-jcs-2022",
                     proof_purpose="assertionMethod",
-                    verification_method=key_to_did_key_vm(
-                        witness_key_info.get("multikey")
-                    ),
+                    verification_method=f"did:key:{witness_key}#{witness_key}",
                     expires=proof.get("expires"),
                     domain=proof.get("domain"),
                     challenge=proof.get("challenge"),
@@ -235,3 +262,40 @@ class WitnessManager:
             await session.handle.remove(PENDING_DOCUMENT_TABLE_NAME, entry_id)
 
             return {"status": "success", "message": "Witness successful."}
+
+    async def reject_did_request_doc(self, entry_id: str) -> dict[str, str]:
+        """Reject a did request doc."""
+        async with self.profile.session() as session:
+            await session.handle.remove(PENDING_DOCUMENT_TABLE_NAME, entry_id)
+
+        return {"status": "success", "message": "Removed registration."}
+
+    async def get_witness_key(self) -> str:
+        """Return the witness key."""
+        async with self.profile.session() as session:
+            server_url = await get_server_url(self.profile)
+            witness_alias = create_alias(server_url_to_domain(server_url), "witnessKey")
+            if not await MultikeyManager(session).kid_exists(witness_alias):
+                raise WitnessError(f"Witness key [{witness_alias}] not found.")
+            witness_key_info = await MultikeyManager(session).from_kid(witness_alias)
+            return witness_key_info.get("multikey")
+
+    async def create_invitation(self, alias=None, label=None) -> str:
+        """Create a witness invitation."""
+        witness_key = await self.get_witness_key()
+        if not witness_key:
+            raise WitnessError("No active witness key.")
+        try:
+            invi_rec = await OutOfBandManager(self.profile).create_invitation(
+                hs_protos=[
+                    HSProto.get("https://didcomm.org/didexchange/1.0"),
+                    HSProto.get("https://didcomm.org/didexchange/1.1"),
+                ],
+                alias=alias,
+                my_label=label,
+                goal_code="witness-service",
+                goal=f"did:key:{witness_key}",
+            )
+            return invi_rec.serialize()
+        except OutOfBandManagerError as e:
+            raise WitnessError(e.roll_up)

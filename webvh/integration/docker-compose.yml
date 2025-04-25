@@ -27,6 +27,9 @@ services:
         --tails-server-base-url https://tails.anoncreds.vc
         --auto-provision
         --seed 00000000000000000000000000000000
+        --auto-accept-requests
+        --auto-accept-invites
+        --auto-respond-messages
 
   controller:
     image: plugin-image
@@ -53,6 +56,8 @@ services:
         --plugin webvh
         --plugin-config-value did-webvh.role=controller
         --plugin-config-value did-webvh.server_url=https://id.test-suite.app
+        --auto-accept-invites
+        --auto-respond-messages
   tests:
       container_name: juggernaut
       build:

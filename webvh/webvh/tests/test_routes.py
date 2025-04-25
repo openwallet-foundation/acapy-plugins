@@ -6,7 +6,35 @@ from acapy_agent.protocols.out_of_band.v1_0.manager import OutOfBandManager
 from acapy_agent.utils.testing import create_test_profile
 from aiohttp.web_response import Response
 
-from webvh.routes import attest_log_entry, configure, create, witness_get_pending
+from webvh.routes import (
+    approve_pending_registration,
+    configure,
+    create,
+    get_pending_registrations,
+)
+
+TEST_WITNESS_INVITATION = {
+    "@type": "https://didcomm.org/out-of-band/1.1/invitation",
+    "@id": "fe469f3d-b288-4e3f-99ba-b631af98248b",
+    "label": "Witness Service",
+    "handshake_protocols": [
+        "https://didcomm.org/didexchange/1.0",
+        "https://didcomm.org/didexchange/1.1",
+    ],
+    "services": [
+        {
+            "id": "#inline",
+            "type": "did-communication",
+            "recipientKeys": [
+                "did:key:z6MkmzPEig7GBQBeSRt7b2D55GTpzJ5ynyVgC5ifmS4X5HJK#z6MkmzPEig7GBQBeSRt7b2D55GTpzJ5ynyVgC5ifmS4X5HJK"
+            ],
+            "serviceEndpoint": "https://example.com",
+        }
+    ],
+    "goal_code": "witness-service",
+    "goal": "did:key:z6Mko6hFCJNZwfhCefDf1iEHwwM9FtENHDTmkT5BQyt9eYiQ",
+}
+TEST_WITNESS_INVITATION_URL = "https://example.com?oob=ew0KICAgICJAdHlwZSI6ICJodHRwczovL2RpZGNvbW0ub3JnL291dC1vZi1iYW5kLzEuMS9pbnZpdGF0aW9uIiwNCiAgICAiQGlkIjogImZlNDY5ZjNkLWIyODgtNGUzZi05OWJhLWI2MzFhZjk4MjQ4YiIsDQogICAgImxhYmVsIjogIldpdG5lc3MgU2VydmljZSIsDQogICAgImhhbmRzaGFrZV9wcm90b2NvbHMiOiBbDQogICAgICAgICJodHRwczovL2RpZGNvbW0ub3JnL2RpZGV4Y2hhbmdlLzEuMCIsDQogICAgICAgICJodHRwczovL2RpZGNvbW0ub3JnL2RpZGV4Y2hhbmdlLzEuMSINCiAgICBdLA0KICAgICJzZXJ2aWNlcyI6IFsNCiAgICAgICAgew0KICAgICAgICAgICAgImlkIjogIiNpbmxpbmUiLA0KICAgICAgICAgICAgInR5cGUiOiAiZGlkLWNvbW11bmljYXRpb24iLA0KICAgICAgICAgICAgInJlY2lwaWVudEtleXMiOiBbDQogICAgICAgICAgICAgICAgImRpZDprZXk6ejZNa216UEVpZzdHQlFCZVNSdDdiMkQ1NUdUcHpKNXlueVZnQzVpZm1TNFg1SEpLI3o2TWttelBFaWc3R0JRQmVTUnQ3YjJENTVHVHB6SjV5bnlWZ0M1aWZtUzRYNUhKSyINCiAgICAgICAgICAgIF0sDQogICAgICAgICAgICAic2VydmljZUVuZHBvaW50IjogImh0dHBzOi8vZXhhbXBsZS5jb20iDQogICAgICAgIH0NCiAgICBdLA0KICAgICJnb2FsX2NvZGUiOiAid2l0bmVzcy1zZXJ2aWNlIiwNCiAgICAiZ29hbCI6ICJkaWQ6a2V5Ono2TWtvNmhGQ0pOWndmaENlZkRmMWlFSHd3TTlGdEVOSERUbWtUNUJReXQ5ZVlpUSINCn0"
 
 
 class TestWebvhRoutes(IsolatedAsyncioTestCase):
@@ -30,12 +58,10 @@ class TestWebvhRoutes(IsolatedAsyncioTestCase):
             json=mock.AsyncMock(
                 return_value={
                     "options": {
-                        "namespace": "prod",
+                        "namespace": "test",
                         "identifier": "1234",
-                        "parameters": {
-                            "prerotation": False,
-                            "portable": False,
-                        },
+                        "prerotation": False,
+                        "portable": False,
                     },
                 }
             ),
@@ -52,7 +78,7 @@ class TestWebvhRoutes(IsolatedAsyncioTestCase):
             query={},
             json=mock.AsyncMock(
                 return_value={
-                    "server_url": "id.test-suite.app",
+                    "server_url": "https://id.test-suite.app",
                     "witness": True,
                     "auto_attest": True,
                 }
@@ -73,7 +99,7 @@ class TestWebvhRoutes(IsolatedAsyncioTestCase):
             headers={"x-api-key": "secret-key"},
         )
 
-        result = await witness_get_pending(self.request)
+        result = await get_pending_registrations(self.request)
         assert isinstance(result, Response)
 
     async def test_attest(self):
@@ -81,13 +107,13 @@ class TestWebvhRoutes(IsolatedAsyncioTestCase):
             app={},
             match_info={},
             query={
-                "entry_id": "1234",
+                "did": "did:web:id.test-suite.app:test:1234",
             },
             __getitem__=lambda _, k: self.request_dict[k],
             headers={"x-api-key": "secret-key"},
         )
 
-        result = await attest_log_entry(self.request)
+        result = await approve_pending_registration(self.request)
         assert isinstance(result, Response)
 
     @mock.patch.object(OutOfBandManager, "receive_invitation")
@@ -101,9 +127,9 @@ class TestWebvhRoutes(IsolatedAsyncioTestCase):
             query={},
             json=mock.AsyncMock(
                 return_value={
-                    "server_url": "id.test-suite.app",
+                    "server_url": "https://id.test-suite.app",
                     "witness": False,
-                    "witness_invitation": "http://witness/invite",
+                    "witness_invitation": TEST_WITNESS_INVITATION_URL,
                 }
             ),
             __getitem__=lambda _, k: self.request_dict[k],

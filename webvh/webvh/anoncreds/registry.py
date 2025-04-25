@@ -42,6 +42,9 @@ from acapy_agent.vc.data_integrity.manager import (
     DataIntegrityManager,
 )
 from acapy_agent.vc.data_integrity.models.options import DataIntegrityProofOptions
+from acapy_agent.wallet.askar import CATEGORY_DID
+from acapy_agent.wallet.error import WalletError, WalletNotFoundError
+from acapy_agent.wallet.keys.manager import verkey_to_multikey
 from aiohttp import ClientConnectionError, ClientResponseError, ClientSession
 from multiformats import multibase, multihash
 
@@ -532,8 +535,21 @@ class DIDWebVHRegistry(BaseAnonCredsResolver, BaseAnonCredsRegistrar):
     ) -> dict:  # AttestedResource:
         """Derive attested resource object from content and publish."""
         options = options or {}
-        # TODO, derive verification method some other way, currently set to default
-        options["verificationMethod"] = f"{issuer}#key-01"
+        # If no verification method set, fetch default signing key from did
+        if not options.get("verificationMethod"):
+            try:
+                async with profile.session() as session:
+                    did_info = await session.handle.fetch(CATEGORY_DID, issuer)
+                signing_key = verkey_to_multikey(
+                    did_info.value_json.get("verkey"),
+                    alg=did_info.value_json.get("key_type"),
+                )
+                options["verificationMethod"] = f"{issuer}#{signing_key}"
+            except (WalletNotFoundError, WalletError):
+                raise AnonCredsRegistrationError(
+                    f"Error deriving signing key for {issuer}."
+                )
+
         options["serviceEndpoint"] = self._derive_upload_endpoint(
             options.get("verificationMethod")
         )

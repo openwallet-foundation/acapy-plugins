@@ -52,6 +52,16 @@ async def get_server_url(profile: Profile):
     return server_url
 
 
+async def get_witnesses(profile: Profile):
+    """Get the server info."""
+    witnesses = (await get_plugin_config(profile)).get("witnesses")
+
+    if not witnesses:
+        raise ConfigurationError("No witnesses exists.")
+
+    return witnesses
+
+
 async def use_strict_ssl(profile: Profile):
     """Check if the agent should use strict SSL."""
     return (await get_plugin_config(profile)).get("strict_ssl", True)
@@ -89,3 +99,39 @@ async def set_config(profile: Profile, config: dict):
                     ),
                 )
             )
+
+
+async def add_scid_mapping(profile: Profile, scid: str, did: str):
+    """Add a scid mapping."""
+    async with profile.session() as session:
+        storage = session.inject(BaseStorage)
+        stored_config_record = await storage.get_record(
+            WebvhConfigRecord.RECORD_TYPE,
+            _get_wallet_identifier(profile),
+        )
+        config = json.loads(stored_config_record.value)["config"]
+        config["scids"] = config.get("scids", {})
+        config["scids"][scid] = did
+        await storage.update_record(
+            stored_config_record,
+            value=json.dumps(
+                WebvhConfigRecord(
+                    record_id=_get_wallet_identifier(profile), config=config
+                ).serialize()
+            ),
+            tags={},
+        )
+
+
+async def did_from_scid(profile: Profile, scid: str):
+    """Find DID mapped to a specific SCID."""
+    async with profile.session() as session:
+        storage = session.inject(BaseStorage)
+        stored_config_record = await storage.get_record(
+            WebvhConfigRecord.RECORD_TYPE,
+            _get_wallet_identifier(profile),
+        )
+        config = json.loads(stored_config_record.value)["config"]
+        if not config["scids"].get(scid):
+            raise ConfigurationError(f"SCID {scid} not listed.")
+        return config["scids"].get(scid)
