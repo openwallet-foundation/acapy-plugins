@@ -31,7 +31,7 @@ pre-commit = "^2.12.1"
 rope = "^1.13.0"
 
 [tool.poetry.group.integration.dependencies]
-aries-askar = { version = "~0.4.3" }
+aries-askar = { version = "~0.4.4" }
 indy-credx = { version = "~1.1.1" }
 indy-vdr = { version = "~0.4.1" }
 python3-indy = { version = "^1.11.1" }
