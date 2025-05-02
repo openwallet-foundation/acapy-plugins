@@ -32,6 +32,5 @@ auto-accept-requests: true
 log-level: info
 
 # Invitation
-connections-invite: true
 invite-label: "Mediator"
 invite-multi-use: true

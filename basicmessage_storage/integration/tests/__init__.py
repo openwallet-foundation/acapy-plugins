@@ -59,25 +59,16 @@ class Agent:
 
     @unwrap_json_response
     @fail_if_not_ok("Create invitation failed")
-    def create_invitation(self, **kwargs):
+    def create_invitation(self, body: dict, **kwargs):
         """Create invitation."""
-        return post(self.url, "/connections/create-invitation", params=kwargs)
+        return post(self.url, "/out-of-band/create-invitation", params=kwargs, json=body)
 
     @unwrap_json_response
     @fail_if_not_ok("Receive invitation failed")
     def receive_invite(self, invite: dict, **kwargs):
         """Receive invitation."""
         return post(
-            self.url, "/connections/receive-invitation", params=kwargs, json=invite
-        )
-
-    @unwrap_json_response
-    @fail_if_not_ok("Accept invitation failed")
-    def accept_invite(self, connection_id: str):
-        """Accept invitation."""
-        return post(
-            self.url,
-            f"/connections/{connection_id}/accept-invitation",
+            self.url, "/out-of-band/receive-invitation", params=kwargs, json=invite
         )
 
     @unwrap_json_response

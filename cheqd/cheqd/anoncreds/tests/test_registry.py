@@ -16,7 +16,7 @@ from acapy_agent.anoncreds.models.revocation import (
     RevListResult,
 )
 from acapy_agent.anoncreds.models.schema import GetSchemaResult, SchemaResult
-from acapy_agent.anoncreds.models.schema_info import AnoncredsSchemaInfo
+from acapy_agent.anoncreds.models.schema_info import AnonCredsSchemaInfo
 
 from ...did.base import (
     ResourceCreateRequestOptions,
@@ -534,7 +534,7 @@ async def test_get_schema_info_by_id(mock_resolver, mock_profile):
         result = await registry.get_schema_info_by_id(mock_profile, schema_id)
 
         # Assert
-        assert isinstance(result, AnoncredsSchemaInfo)
+        assert isinstance(result, AnonCredsSchemaInfo)
         assert result.issuer_id == "PART0"
         assert result.name == "MOCK_NAME"
         assert result.version == "MOCK_VERSION"

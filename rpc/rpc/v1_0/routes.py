@@ -320,7 +320,7 @@ async def drpc_get_records(request: web.BaseRequest):
             rows = await storage.find_all_records(
                 DRPCRecord.RECORD_TYPE,
                 DRPCRecord.prefix_tag_filter(tag_filter),
-                {"forUpdate": False, "retrieveTags": False},
+                options={"forUpdate": False, "retrieveTags": False},
             )
             results = []
             for record in rows:

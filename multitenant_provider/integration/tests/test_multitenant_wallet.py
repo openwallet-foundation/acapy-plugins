@@ -83,7 +83,7 @@ def test_deleting_wallet_invalidates_token(admin):
 
     time.sleep(0.1)
 
-    admin.remove_wallet(wallet_config["wallet_id"])
+    admin.remove_wallet(wallet_config["wallet_id"], {})
 
     time.sleep(0.1)
 
@@ -110,7 +110,7 @@ def get_multiple_tokens_from_new_wallet(admin: Agent, remove_wallet: bool = Fals
     )
 
     if remove_wallet:
-        admin.remove_wallet(wallet_config["wallet_id"])
+        admin.remove_wallet(wallet_config["wallet_id"], {})
 
     return tokens
 

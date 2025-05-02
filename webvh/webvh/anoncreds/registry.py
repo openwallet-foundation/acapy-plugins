@@ -35,7 +35,7 @@ from acapy_agent.anoncreds.models.schema import (
     SchemaResult,
     SchemaState,
 )
-from acapy_agent.anoncreds.models.schema_info import AnoncredsSchemaInfo
+from acapy_agent.anoncreds.models.schema_info import AnonCredsSchemaInfo
 from acapy_agent.config.injection_context import InjectionContext
 from acapy_agent.core.profile import Profile
 from acapy_agent.vc.data_integrity.manager import (
@@ -435,11 +435,11 @@ class DIDWebVHRegistry(BaseAnonCredsResolver, BaseAnonCredsRegistrar):
 
     async def get_schema_info_by_id(
         self, profile: Profile, schema_id: str
-    ) -> AnoncredsSchemaInfo:
+    ) -> AnonCredsSchemaInfo:
         """Get a schema info from the registry."""
         resource = await self.resolver.resolve_resource(schema_id)
         schema = resource.get("content")
-        return AnoncredsSchemaInfo(
+        return AnonCredsSchemaInfo(
             issuer_id=schema["issuerId"],
             name=schema["name"],
             version=schema["version"],

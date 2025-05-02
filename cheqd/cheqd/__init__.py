@@ -30,10 +30,10 @@ async def setup(context: InjectionContext):
         return
     resolver_registry.register_resolver(CheqdDIDResolver(resolver_url))
 
-    # Register Anoncreds provider
+    # Register AnonCreds provider
     anoncreds_registry = context.inject_or(AnonCredsRegistry)
     if not anoncreds_registry:
-        LOGGER.warning("No Anoncreds Registry instance found in context")
+        LOGGER.warning("No AnonCreds Registry instance found in context")
         return
     cheqd_registry = ClassProvider(
         "cheqd.anoncreds.registry.DIDCheqdRegistry",
