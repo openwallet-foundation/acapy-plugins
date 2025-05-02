@@ -26,7 +26,6 @@ auto-ping-connection: true
 auto-accept-requests: true
 
 # Invitation
-connections-invite: true
 invite-label: "Mediator"
 invite-multi-use: true
 
