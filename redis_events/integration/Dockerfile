@@ -24,7 +24,7 @@ WORKDIR /usr/src/app
 COPY --from=base /usr/src/app/.venv /usr/src/app/.venv
 ENV PATH="/usr/src/app/.venv/bin:$PATH"
 
-RUN pip install git+https://github.com/openwallet-foundation/acapy-plugins@main#subdirectory=basicmessage_storage
+RUN pip install git+https://github.com/jamshale/acapy-plugins@main#subdirectory=basicmessage_storage
 
 COPY redis_events/ redis_events/
 COPY docker/*.yml ./
