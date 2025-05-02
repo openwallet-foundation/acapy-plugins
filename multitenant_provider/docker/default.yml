@@ -1,5 +1,7 @@
 label: multitenant_provider
 
+auto-provision: true
+
 # Admin
 admin: [0.0.0.0, 3001]
 admin-insecure-mode: true
@@ -26,8 +28,10 @@ plugin-config-value:
 genesis-url: http://test.bcovrin.vonx.io/genesis
 
 # Wallet
-# wallet-name: default
-# wallet-key: "insecure, for use in demo only"
+wallet-type: askar
+wallet-storage-type: default
+wallet-name: test-provider-wallet
+wallet-key: test-provider-key
 
 # Multi-tenancy
 multitenant: true

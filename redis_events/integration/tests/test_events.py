@@ -48,10 +48,15 @@ PAYLOAD_B64 = """
 
 
 @pytest.fixture(scope="session", autouse=True)
-def established_connection(faber, alice):
+def established_connection(bob, alice):
     """Established connection filter."""
-    invite = alice.create_invitation(auto_accept="true")["invitation"]
-    resp = faber.receive_invite(invite, auto_accept="true")
+    invite = bob.create_invitation(
+        {
+            "handshake_protocols": ["https://didcomm.org/didexchange/1.1"],
+        },
+        auto_accept="true",
+    )["invitation"]
+    resp = alice.receive_invite(invite, auto_accept="true")
     yield resp["connection_id"]
 
 
