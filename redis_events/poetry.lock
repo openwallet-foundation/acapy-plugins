@@ -3128,4 +3128,4 @@ aca-py = ["acapy-agent"]
 [metadata]
 lock-version = "2.1"
 python-versions = "^3.12"
-content-hash = "d7629ec158b4581def687446b8716f24bdbac4618a4579170f660a489dc87a51"
+content-hash = "20b530bf30bee029312d587ed2895cabdd16569dd4a0a93caf8049765a9917ed"
