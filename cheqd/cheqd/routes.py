@@ -104,7 +104,7 @@ class DIDDocumentSchema(Schema):
     )
 
 
-class CreateRequestSchema(OpenAPISchema):
+class CreateCheqdDIDRequestSchema(OpenAPISchema):
     """Parameters and validators for create DID endpoint."""
 
     options = fields.Dict(
@@ -127,7 +127,7 @@ class CreateRequestSchema(OpenAPISchema):
     )
 
 
-class CreateResponseSchema(OpenAPISchema):
+class CreateCheqdDIDResponseSchema(OpenAPISchema):
     """Response schema for create DID endpoint."""
 
     success = fields.Bool(
@@ -156,7 +156,7 @@ class CreateResponseSchema(OpenAPISchema):
     )
 
 
-class DeactivateRequestSchema(OpenAPISchema):
+class DeactivateCheqdDIDRequestSchema(OpenAPISchema):
     """Parameters and validators for deactivate DID endpoint."""
 
     did = fields.Str(
@@ -173,7 +173,7 @@ class DeactivateRequestSchema(OpenAPISchema):
     )
 
 
-class DeactivateResponseSchema(OpenAPISchema):
+class DeactivateCheqdDIDResponseSchema(OpenAPISchema):
     """Response schema for deactivate DID endpoint."""
 
     success = fields.Bool(
@@ -185,7 +185,7 @@ class DeactivateResponseSchema(OpenAPISchema):
     did = fields.Str(
         validate=CHEQD_DID_VALIDATE,
         metadata={
-            "description": "DID that has been deactivted",
+            "description": "DID that has been deactivated",
             "example": CHEQD_DID_EXAMPLE,
         },
     )
@@ -198,7 +198,7 @@ class DeactivateResponseSchema(OpenAPISchema):
     )
 
 
-class UpdateRequestSchema(OpenAPISchema):
+class UpdateCheqdDIDRequestSchema(OpenAPISchema):
     """Parameters and validators for update DID endpoint."""
 
     did = fields.Str(
@@ -245,7 +245,7 @@ class UpdateRequestSchema(OpenAPISchema):
     )
 
 
-class UpdateResponseSchema(OpenAPISchema):
+class UpdateCheqdDIDResponseSchema(OpenAPISchema):
     """Response schema for update DID endpoint."""
 
     success = fields.Bool(
@@ -271,8 +271,8 @@ class UpdateResponseSchema(OpenAPISchema):
 
 
 @docs(tags=["did"], summary="Create a did:cheqd")
-@request_schema(CreateRequestSchema())
-@response_schema(CreateResponseSchema, HTTPStatus.OK)
+@request_schema(CreateCheqdDIDRequestSchema())
+@response_schema(CreateCheqdDIDResponseSchema, HTTPStatus.OK)
 @tenant_authentication
 async def create_cheqd_did(request: web.BaseRequest):
     """Create a Cheqd DID."""
@@ -302,8 +302,8 @@ async def create_cheqd_did(request: web.BaseRequest):
 
 
 @docs(tags=["did"], summary="Update a did:cheqd")
-@request_schema(UpdateRequestSchema())
-@response_schema(UpdateResponseSchema, HTTPStatus.OK)
+@request_schema(UpdateCheqdDIDRequestSchema())
+@response_schema(UpdateCheqdDIDResponseSchema, HTTPStatus.OK)
 @tenant_authentication
 async def update_cheqd_did(request: web.BaseRequest):
     """Update a Cheqd DID."""
@@ -335,8 +335,8 @@ async def update_cheqd_did(request: web.BaseRequest):
 
 
 @docs(tags=["did"], summary="Deactivate a did:cheqd")
-@request_schema(DeactivateRequestSchema())
-@response_schema(DeactivateResponseSchema, HTTPStatus.OK)
+@request_schema(DeactivateCheqdDIDRequestSchema())
+@response_schema(DeactivateCheqdDIDResponseSchema, HTTPStatus.OK)
 @tenant_authentication
 async def deactivate_cheqd_did(request: web.BaseRequest):
     """Deactivate a Cheqd DID."""
