@@ -1,25 +1,43 @@
-# did:cheqd Plugin
+# did:cheqd Plugin for ACA-Py
 
 ## Description
 
-This plugin contains the components needed for ACA-Py to use [did:cheqd](https://cheqd.io) method for did creation and AnonCreds issuance, presentation and revocation. It also contains the Base class definitions for `DIDRegistrar` and `DIDManager`. 
+This plugin integrates the [did:cheqd](https://cheqd.io) method with ACA-Py, providing components needed for:
+
+- DID creation, update, and deactivation
+- AnonCreds issuance, presentation, and revocation
+- JSON-LD Verifiable Credentials issuance, presentation, and revocation
+- DID Linked Resources management
+
+The plugin includes base class definitions for `DIDRegistrar` and `DIDManager` to facilitate interactions with the cheqd network.
 
 ### Operations 
 
-The did:cheqd Manager plugin supports following new endpoints:
+The did:cheqd Manager plugin supports following endpoints:
 
-1. POST /did/cheqd/create
-1. POST /did/cheqd/update
-1. POST /did/cheqd/deactivate
+#### DID Management
 
-The did:cheqd Manager plugin supports `did:cheqd` for the following existing endpoints:
+1. POST /did/cheqd/create - Create a new DID on the cheqd network
+1. POST /did/cheqd/update - Update an existing DID document
+1. POST /did/cheqd/deactivate - Deactivate a DID
 
-1. POST /anoncreds/schema
-1. POST /anoncreds/credential-definition
-1. POST /anoncreds/revocation/revoke
-1. GET /resolver/resolve/{did}
-1. GET /wallet/did
-1. GET /wallet/did/public
+#### AnonCreds & Verifiable Credential Support
+
+The plugin enables `did:cheqd` for the following existing endpoints:
+
+1. POST /anoncreds/schema - Create schemas on the cheqd network
+1. POST /anoncreds/credential-definition - Create credential definitions
+1. POST /anoncreds/revocation/revoke - Revoke credentials
+1. GET /resolver/resolve/{did} - Resolve DIDs and DID-linked resources
+1. GET /wallet/did - List DIDs in wallet
+1. GET /wallet/did/public - Get public DID information
+
+## Features
+
+- **Decentralized Identity Management**: Full DID lifecycle on the cheqd network
+- **Verifiable Credentials**: Support for both AnonCreds and JSON-LD credential formats
+- **Revocation Support**: Comprehensive credential revocation capabilities
+- **DID Linked Resources**: Ability to create and manage resources linked to DIDs
 
 ## Developer Notes
 
@@ -84,6 +102,16 @@ cd integration
 ./run_integration_tests.sh
 ```
 
+The integration tests will start 2 agents - Issuer and Holder - and a juggernaut container that will execute the tests. Test results will be found in the juggernaut container output. The juggernaut container should close itself down, the logs can be reviewed in the Docker view, open `Containers`, open `integration`, right-click the `integration-tests` container and select `View Logs`.
+
+### Postman Tests
+
+We have also included Postman collection (and environment variables) in the [postman](./integration/postman/) folder.
+
+To execute the Postman tests, import both the files into Postman application. Then start the docker environment with `docker compose up -d`. You may have to build the images if you did not run the integration tests before with `docker compose build`.
+
+Then execute the tests/calls from the Postman application as per the requests descriptions.
+
 ## Deploy
 
 For production use, this plugin should be installed as libraries to an ACA-Py image.
@@ -114,6 +142,14 @@ Now you can deploy a agent with as many plugins as you want as long as they are 
 ``` bash
 
 docker build -f <Dockerfile> --tag cheqd .
-docker run -it -p 8020:8020 -p 8021:8021 --rm cheqd start --arg-file=<config-file> -->
+docker run -it -p 8020:8020 -p 8021:8021 --rm cheqd start --arg-file=<config-file>
 
 ```
+
+## Contributing
+
+Contributions are welcome! Please feel free to submit a Pull Request.
+
+## License
+
+This project is licensed under the [Apache License 2.0](../LICENSE).
