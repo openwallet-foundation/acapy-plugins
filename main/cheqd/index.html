@@ -20,7 +20,7 @@
     
     
       
-        <title>did:cheqd Plugin - ACA-Py Plugins</title>
+        <title>did:cheqd Plugin for ACA-Py - ACA-Py Plugins</title>
       
     
     
@@ -72,7 +72,7 @@
     <div data-md-component="skip">
       
         
-        <a href="#didcheqd-plugin" class="md-skip">
+        <a href="#didcheqd-plugin-for-aca-py" class="md-skip">
           Skip to content
         </a>
       
@@ -111,7 +111,7 @@
         <div class="md-header__topic" data-md-component="header-topic">
           <span class="md-ellipsis">
             
-              did:cheqd Plugin
+              did:cheqd Plugin for ACA-Py
             
           </span>
         </div>
@@ -503,7 +503,7 @@
           
   
   <span class="md-ellipsis">
-    did:cheqd Plugin
+    did:cheqd Plugin for ACA-Py
   </span>
   
 
@@ -514,7 +514,7 @@
         
   
   <span class="md-ellipsis">
-    did:cheqd Plugin
+    did:cheqd Plugin for ACA-Py
   </span>
   
 
@@ -556,6 +556,15 @@
         
       </ul>
     </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#features" class="md-nav__link">
+    <span class="md-ellipsis">
+      Features
+    </span>
+  </a>
   
 </li>
       
@@ -620,6 +629,15 @@
   
 </li>
         
+          <li class="md-nav__item">
+  <a href="#postman-tests" class="md-nav__link">
+    <span class="md-ellipsis">
+      Postman Tests
+    </span>
+  </a>
+  
+</li>
+        
       </ul>
     </nav>
   
@@ -629,6 +647,24 @@
   <a href="#deploy" class="md-nav__link">
     <span class="md-ellipsis">
       Deploy
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#contributing" class="md-nav__link">
+    <span class="md-ellipsis">
+      Contributing
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#license" class="md-nav__link">
+    <span class="md-ellipsis">
+      License
     </span>
   </a>
   
@@ -1062,6 +1098,15 @@
 </li>
       
         <li class="md-nav__item">
+  <a href="#features" class="md-nav__link">
+    <span class="md-ellipsis">
+      Features
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#developer-notes" class="md-nav__link">
     <span class="md-ellipsis">
       Developer Notes
@@ -1122,6 +1167,15 @@
   
 </li>
         
+          <li class="md-nav__item">
+  <a href="#postman-tests" class="md-nav__link">
+    <span class="md-ellipsis">
+      Postman Tests
+    </span>
+  </a>
+  
+</li>
+        
       </ul>
     </nav>
   
@@ -1131,6 +1185,24 @@
   <a href="#deploy" class="md-nav__link">
     <span class="md-ellipsis">
       Deploy
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#contributing" class="md-nav__link">
+    <span class="md-ellipsis">
+      Contributing
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#license" class="md-nav__link">
+    <span class="md-ellipsis">
+      License
     </span>
   </a>
   
@@ -1154,25 +1226,41 @@
   
 
 
-<h1 id="didcheqd-plugin">did:cheqd Plugin<a class="headerlink" href="#didcheqd-plugin" title="Permanent link">&para;</a></h1>
+<h1 id="didcheqd-plugin-for-aca-py">did:cheqd Plugin for ACA-Py<a class="headerlink" href="#didcheqd-plugin-for-aca-py" title="Permanent link">&para;</a></h1>
 <h2 id="description">Description<a class="headerlink" href="#description" title="Permanent link">&para;</a></h2>
-<p>This plugin contains the components needed for ACA-Py to use <a href="https://cheqd.io">did:cheqd</a> method for did creation and AnonCreds issuance, presentation and revocation. It also contains the Base class definitions for <code>DIDRegistrar</code> and <code>DIDManager</code>. </p>
+<p>This plugin integrates the <a href="https://cheqd.io">did:cheqd</a> method with ACA-Py, providing components needed for:</p>
+<ul>
+<li>DID creation, update, and deactivation</li>
+<li>AnonCreds issuance, presentation, and revocation</li>
+<li>JSON-LD Verifiable Credentials issuance, presentation, and revocation</li>
+<li>DID Linked Resources management</li>
+</ul>
+<p>The plugin includes base class definitions for <code>DIDRegistrar</code> and <code>DIDManager</code> to facilitate interactions with the cheqd network.</p>
 <h3 id="operations">Operations<a class="headerlink" href="#operations" title="Permanent link">&para;</a></h3>
-<p>The did:cheqd Manager plugin supports following new endpoints:</p>
+<p>The did:cheqd Manager plugin supports following endpoints:</p>
+<h4 id="did-management">DID Management<a class="headerlink" href="#did-management" title="Permanent link">&para;</a></h4>
 <ol>
-<li>POST /did/cheqd/create</li>
-<li>POST /did/cheqd/update</li>
-<li>POST /did/cheqd/deactivate</li>
+<li>POST /did/cheqd/create - Create a new DID on the cheqd network</li>
+<li>POST /did/cheqd/update - Update an existing DID document</li>
+<li>POST /did/cheqd/deactivate - Deactivate a DID</li>
 </ol>
-<p>The did:cheqd Manager plugin supports <code>did:cheqd</code> for the following existing endpoints:</p>
+<h4 id="anoncreds-verifiable-credential-support">AnonCreds &amp; Verifiable Credential Support<a class="headerlink" href="#anoncreds-verifiable-credential-support" title="Permanent link">&para;</a></h4>
+<p>The plugin enables <code>did:cheqd</code> for the following existing endpoints:</p>
 <ol>
-<li>POST /anoncreds/schema</li>
-<li>POST /anoncreds/credential-definition</li>
-<li>POST /anoncreds/revocation/revoke</li>
-<li>GET /resolver/resolve/{did}</li>
-<li>GET /wallet/did</li>
-<li>GET /wallet/did/public</li>
+<li>POST /anoncreds/schema - Create schemas on the cheqd network</li>
+<li>POST /anoncreds/credential-definition - Create credential definitions</li>
+<li>POST /anoncreds/revocation/revoke - Revoke credentials</li>
+<li>GET /resolver/resolve/{did} - Resolve DIDs and DID-linked resources</li>
+<li>GET /wallet/did - List DIDs in wallet</li>
+<li>GET /wallet/did/public - Get public DID information</li>
 </ol>
+<h2 id="features">Features<a class="headerlink" href="#features" title="Permanent link">&para;</a></h2>
+<ul>
+<li><strong>Decentralized Identity Management</strong>: Full DID lifecycle on the cheqd network</li>
+<li><strong>Verifiable Credentials</strong>: Support for both AnonCreds and JSON-LD credential formats</li>
+<li><strong>Revocation Support</strong>: Comprehensive credential revocation capabilities</li>
+<li><strong>DID Linked Resources</strong>: Ability to create and manage resources linked to DIDs</li>
+</ul>
 <h2 id="developer-notes">Developer Notes<a class="headerlink" href="#developer-notes" title="Permanent link">&para;</a></h2>
 <p>The best way to develop and test this plugin is to use the DevContainer configured in this repository (configurations provided in the <code>.devcontainer</code> folder).</p>
 <ul>
@@ -1221,6 +1309,11 @@ To run the integration tests:</p>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a><span class="nb">cd</span><span class="w"> </span>integration
 <a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a>./run_integration_tests.sh
 </code></pre></div>
+<p>The integration tests will start 2 agents - Issuer and Holder - and a juggernaut container that will execute the tests. Test results will be found in the juggernaut container output. The juggernaut container should close itself down, the logs can be reviewed in the Docker view, open <code>Containers</code>, open <code>integration</code>, right-click the <code>integration-tests</code> container and select <code>View Logs</code>.</p>
+<h3 id="postman-tests">Postman Tests<a class="headerlink" href="#postman-tests" title="Permanent link">&para;</a></h3>
+<p>We have also included Postman collection (and environment variables) in the <a href="./integration/postman/">postman</a> folder.</p>
+<p>To execute the Postman tests, import both the files into Postman application. Then start the docker environment with <code>docker compose up -d</code>. You may have to build the images if you did not run the integration tests before with <code>docker compose build</code>.</p>
+<p>Then execute the tests/calls from the Postman application as per the requests descriptions.</p>
 <h2 id="deploy">Deploy<a class="headerlink" href="#deploy" title="Permanent link">&para;</a></h2>
 <p>For production use, this plugin should be installed as libraries to an ACA-Py image.</p>
 <p>This requires having a Dockerfile and a config file for your agent.</p>
@@ -1240,8 +1333,12 @@ To run the integration tests:</p>
 <p>An example config file is provided <a href="./docker/default.yml">here</a>.</p>
 <p>Now you can deploy a agent with as many plugins as you want as long as they are declared in your build config file and installed.</p>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a>docker<span class="w"> </span>build<span class="w"> </span>-f<span class="w"> </span>&lt;Dockerfile&gt;<span class="w"> </span>--tag<span class="w"> </span>cheqd<span class="w"> </span>.
-<a id="__codelineno-5-2" name="__codelineno-5-2" href="#__codelineno-5-2"></a>docker<span class="w"> </span>run<span class="w"> </span>-it<span class="w"> </span>-p<span class="w"> </span><span class="m">8020</span>:8020<span class="w"> </span>-p<span class="w"> </span><span class="m">8021</span>:8021<span class="w"> </span>--rm<span class="w"> </span>cheqd<span class="w"> </span>start<span class="w"> </span>--arg-file<span class="o">=</span>&lt;config-file&gt;<span class="w"> </span>--&gt;
+<a id="__codelineno-5-2" name="__codelineno-5-2" href="#__codelineno-5-2"></a>docker<span class="w"> </span>run<span class="w"> </span>-it<span class="w"> </span>-p<span class="w"> </span><span class="m">8020</span>:8020<span class="w"> </span>-p<span class="w"> </span><span class="m">8021</span>:8021<span class="w"> </span>--rm<span class="w"> </span>cheqd<span class="w"> </span>start<span class="w"> </span>--arg-file<span class="o">=</span>&lt;config-file&gt;
 </code></pre></div>
+<h2 id="contributing">Contributing<a class="headerlink" href="#contributing" title="Permanent link">&para;</a></h2>
+<p>Contributions are welcome! Please feel free to submit a Pull Request.</p>
+<h2 id="license">License<a class="headerlink" href="#license" title="Permanent link">&para;</a></h2>
+<p>This project is licensed under the <a href="../LICENSE">Apache License 2.0</a>.</p>
 
 
 
