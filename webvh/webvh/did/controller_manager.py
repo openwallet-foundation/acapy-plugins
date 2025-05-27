@@ -675,3 +675,37 @@ class ControllerManager:
                 tags={},
             )
         return await response.json()
+
+    async def update_whois(self, presentation, options):
+        """Update WHOIS linked VP."""
+        
+        holder = presentation.get('holder')
+        did = holder if isinstance(holder, str) else holder["id"]
+        
+        options = {
+            'type': 'DataIntegrityProof',
+            'cryptosuite': 'eddsa-jcs-2022',
+            'proofPurpose': 'authentication',
+            'verificationMethod': options.get('verificationMethod')
+        }
+
+        async with self.profile.session() as session:
+            key_manager = MultikeyManager(session)
+            
+            di_manager = DataIntegrityManager(session)
+            vp = await di_manager.add_proof(presentation, options)
+        
+        
+        server_url = await get_server_url(self.profile)
+        namespace = did.split(":")[4]
+        identifier = did.split(":")[5]
+        
+        async with ClientSession() as http_session:
+            try:
+                response = await http_session.post(
+                    f"{server_url}/{namespace}/{identifier}/whois", json=vp
+                )
+            except ClientConnectionError as err:
+                raise DidCreationError(f"Failed to connect to Webvh server: {err}")
+            
+        return await response.json()
