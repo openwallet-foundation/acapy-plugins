@@ -75,7 +75,7 @@ The witness key that is used by the server to authenticate any new dids.
 `POST /did/webvh/configuration`
 ```json
 {
-    "server_url": "https://id.test-suite.app",
+    "server_url": "https://example.com",
     "witness": true
 }
 ```
@@ -100,7 +100,7 @@ To configure a controller, you need to provide the webvh server url and a witnes
 `POST /did/webvh/configuration`
 ```json
 {
-    "server_url": "https://id.test-suite.app",
+    "server_url": "https://example.com",
     "witness_invitation": "<invitation_url>"
 }
 ```
@@ -144,19 +144,19 @@ Response - Unless there's a problem connecting with the witness or server you sh
     "https://www.w3.org/ns/did/v1",
     "https://www.w3.org/ns/cid/v1"
   ],
-  "id": "did:webvh:{}:id.test-suite.app:demo:01",
+  "id": "did:webvh:{SCID}:example.com:demo:01",
   "authentication": [
-    "did:webvh:{}:id.test-suite.app:demo:01#{}"
+    "did:webvh:{SCID}:example.com:demo:01#z6Mkv4ZvmGpzfkxH9xvNq5mA3zwZoHuBisiQUyfCgXCfHeh4"
   ],
   "assertionMethod": [
-    "did:webvh:{}:id.test-suite.app:demo:01#{}"
+    "did:webvh:{SCID}:example.com:demo:01#z6Mkv4ZvmGpzfkxH9xvNq5mA3zwZoHuBisiQUyfCgXCfHeh4"
   ],
   "verificationMethod": [
     {
-      "id": "did:webvh:{}:id.test-suite.app:demo:01#{}",
+      "id": "did:webvh:{SCID}:example.com:demo:01#z6Mkv4ZvmGpzfkxH9xvNq5mA3zwZoHuBisiQUyfCgXCfHeh4",
       "type": "Multikey",
-      "controller": "did:webvh:{}:id.test-suite.app:demo:01",
-      "publicKeyMultibase": "{}"
+      "controller": "did:webvh:{SCID}:example.com:demo:01",
+      "publicKeyMultibase": "z6Mkv4ZvmGpzfkxH9xvNq5mA3zwZoHuBisiQUyfCgXCfHeh4"
     }
   ]
 }
@@ -180,20 +180,20 @@ Witness get pending registrations - `GET /did/webvh/witness/registrations`
         "https://www.w3.org/ns/did/v1",
         "https://w3id.org/security/multikey/v1"
       ],
-      "id": "did:web:id.test-suite.app:demo:cfbac7a9-0e0c-4bd8-af71-05e33f9e47a5",
+      "id": "did:web:example.com:demo:01",
       "verificationMethod": [
         {
-          "id": "did:web:id.test-suite.app:demo:cfbac7a9-0e0c-4bd8-af71-05e33f9e47a5#key-01",
+          "id": "did:web:example.com:demo:01#z6Mkv4ZvmGpzfkxH9xvNq5mA3zwZoHuBisiQUyfCgXCfHeh4",
           "type": "Multikey",
-          "controller": "did:web:id.test-suite.app:demo:cfbac7a9-0e0c-4bd8-af71-05e33f9e47a5",
+          "controller": "did:web:example.com:demo:01",
           "publicKeyMultibase": "z6Mkv4ZvmGpzfkxH9xvNq5mA3zwZoHuBisiQUyfCgXCfHeh4"
         }
       ],
       "authentication": [
-        "did:web:id.test-suite.app:demo:cfbac7a9-0e0c-4bd8-af71-05e33f9e47a5#key-01"
+        "did:web:example.com:demo:01#z6Mkv4ZvmGpzfkxH9xvNq5mA3zwZoHuBisiQUyfCgXCfHeh4"
       ],
       "assertionMethod": [
-        "did:web:id.test-suite.app:demo:cfbac7a9-0e0c-4bd8-af71-05e33f9e47a5#key-01"
+        "did:web:example.com:demo:01#z6Mkv4ZvmGpzfkxH9xvNq5mA3zwZoHuBisiQUyfCgXCfHeh4"
       ],
       "proof": [
         {
@@ -202,7 +202,7 @@ Witness get pending registrations - `GET /did/webvh/witness/registrations`
           "verificationMethod": "did:key:z6MkkiMtuEqx8NJcJTTWANmwfpAxZM54jy9Sv867xCN63tpT#z6MkkiMtuEqx8NJcJTTWANmwfpAxZM54jy9Sv867xCN63tpT",
           "cryptosuite": "eddsa-jcs-2022",
           "expires": "2025-02-20T22:43:40+00:00",
-          "domain": "id.test-suite.app",
+          "domain": "example.com",
           "challenge": "6c0bbc23-be56-5f35-b873-3313c33b319b",
           "proofValue": "z9T5HpCDZVZ1c3LgM5ctrYPm2erJR8Ww9o369577beiHc4Dz49See8t78VioPDt76AbRP7r2DnesezY4dBxYTVQ7"
         }
@@ -213,7 +213,7 @@ Witness get pending registrations - `GET /did/webvh/witness/registrations`
 ``` 
 Gets a list of pending did docs that need to be attested. 
 
-Witness - Attest a did doc - `POST /did/webvh/witness/registrations?id=did:web:id.test-suite.app:demo:cfbac7a9-0e0c-4bd8-af71-05e33f9e47a5`
+Witness - Attest a did doc - `POST /did/webvh/witness/registrations?id=did:web:example.com:demo:01`
 ```json
 {
   "status": "success",
