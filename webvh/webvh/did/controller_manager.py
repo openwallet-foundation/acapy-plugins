@@ -19,9 +19,11 @@ from acapy_agent.wallet.keys.manager import (
     MultikeyManager,
     MultikeyManagerError,
     multikey_to_verkey,
+    verkey_to_multikey
 )
 from aiohttp import ClientConnectionError, ClientResponseError, ClientSession
 from did_webvh.core.state import DocumentState
+from did_webvh.core.date_utils import make_timestamp
 from pydid import DIDDocument
 
 from ..config.config import (
@@ -31,7 +33,7 @@ from ..config.config import (
     get_witnesses,
     use_strict_ssl,
 )
-from .exceptions import DidCreationError
+from .exceptions import DidCreationError, OperationError
 from .registration_state import RegistrationState
 from .utils import (
     fetch_document_state,
@@ -676,36 +678,70 @@ class ControllerManager:
             )
         return await response.json()
 
-    async def update_whois(self, presentation, options):
+    async def update_whois(self, scid: str, presentation: dict, options: dict={}):
         """Update WHOIS linked VP."""
-        
-        holder = presentation.get('holder')
-        did = holder if isinstance(holder, str) else holder["id"]
-        
-        options = {
-            'type': 'DataIntegrityProof',
-            'cryptosuite': 'eddsa-jcs-2022',
-            'proofPurpose': 'authentication',
-            'verificationMethod': options.get('verificationMethod')
-        }
 
         async with self.profile.session() as session:
-            key_manager = MultikeyManager(session)
+            scid_info = await session.handle.fetch(
+                "scid",
+                scid,
+            )
+            holder_id = json.loads(scid_info.value).get('didDocument').get('id')
+            
+            # NOTE, if presentation has holder, ensure it's the same as the provided SCID
+            if presentation.get('holder'):
+                pres_holder = presentation.get('holder')
+                pres_holder_id = (
+                    pres_holder if isinstance(pres_holder, str) else pres_holder["id"]
+                )
+                
+                if holder_id != pres_holder_id:
+                    raise OperationError("Holder ID mismatch.")
             
             di_manager = DataIntegrityManager(session)
-            vp = await di_manager.add_proof(presentation, options)
+            
+            for credential in presentation.get('verifiableCredential'):
+                # Check if holder is the credential subject
+                if credential.get('credentialSubject').get('id') != holder_id:
+                    # TODO, should we enforce this?
+                    pass
+                
+                # TODO, verify all credential proofs
+                # for proof in credential.get('proof'):
+                #     verification = di_manager.verify_proof(credential, proof)
+                #     verification.get('verified')
+            
+            # NOTE, we get the default signing key from the DID record
+            did_info = await session.handle.fetch(
+                CATEGORY_DID,
+                holder_id
+            )
+            signing_multikey = verkey_to_multikey(
+                json.loads(did_info.value).get('verkey'), 'ed25519'
+            )
+            
+            vp = await di_manager.add_proof(
+                presentation, 
+                DataIntegrityProofOptions(
+                    type='DataIntegrityProof',
+                    cryptosuite='eddsa-jcs-2022',
+                    proof_purpose='authentication',
+                    verification_method=f'{holder_id}#{signing_multikey}'
+                )
+            )
         
         
         server_url = await get_server_url(self.profile)
-        namespace = did.split(":")[4]
-        identifier = did.split(":")[5]
+        namespace = holder_id.split(":")[4]
+        identifier = holder_id.split(":")[5]
         
         async with ClientSession() as http_session:
             try:
                 response = await http_session.post(
-                    f"{server_url}/{namespace}/{identifier}/whois", json=vp
+                    f"{server_url}/{namespace}/{identifier}/whois", 
+                    json={'verifiablePresentation': vp}
                 )
             except ClientConnectionError as err:
-                raise DidCreationError(f"Failed to connect to Webvh server: {err}")
-            
+                raise OperationError(f"Failed to connect to Webvh server: {err}")
+
         return await response.json()

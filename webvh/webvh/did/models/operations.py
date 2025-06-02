@@ -268,15 +268,15 @@ class WebvhUpdateWhoisSchema(OpenAPISchema):
         required=True
     )
     
-    options = fields.Nested(
-        DataIntegrityProofOptionsSchema,
-        required=True,
-        metadata={
-            "example": {
-                "type": "DataIntegrityProof",
-                "cryptosuite": "eddsa-jcs-2022",
-                "proofPurpose": "authentication",
-                "verificationMethod": r"did:webvh:{scid}:example.com#key-01",
-            }
-        },
-    )
+    # options = fields.Nested(
+    #     DataIntegrityProofOptionsSchema,
+    #     required=True,
+    #     metadata={
+    #         "example": {
+    #             "type": "DataIntegrityProof",
+    #             "cryptosuite": "eddsa-jcs-2022",
+    #             "proofPurpose": "authentication",
+    #             "verificationMethod": r"did:webvh:{scid}:example.com#key-01",
+    #         }
+    #     },
+    # )
