@@ -260,10 +260,8 @@ class IdRequestParamSchema(OpenAPISchema):
         },
     )
 
+
 class WebvhUpdateWhoisSchema(OpenAPISchema):
     """Request model for updating a whois VP."""
-    
-    presentation = fields.Nested(
-        PresentationSchema,
-        required=True
-    )
+
+    presentation = fields.Nested(PresentationSchema, required=True)

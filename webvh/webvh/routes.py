@@ -288,8 +288,8 @@ async def update_whois(request: web.BaseRequest):
         return web.json_response(
             await ControllerManager(context.profile).update_whois(
                 request.query.get("scid"),
-                request_json.get("presentation"), 
-                request_json.get("options", {})
+                request_json.get("presentation"),
+                request_json.get("options", {}),
             )
         )
 
