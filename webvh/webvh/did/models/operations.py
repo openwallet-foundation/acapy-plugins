@@ -5,7 +5,6 @@ from collections import Counter
 
 from acapy_agent.messaging.models.openapi import OpenAPISchema
 from acapy_agent.vc.vc_ld.models.presentation import PresentationSchema
-from acapy_agent.vc.data_integrity.models import DataIntegrityProofOptionsSchema
 from marshmallow import fields, validates, validate, ValidationError
 
 

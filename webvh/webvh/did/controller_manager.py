@@ -23,7 +23,6 @@ from acapy_agent.wallet.keys.manager import (
 )
 from aiohttp import ClientConnectionError, ClientResponseError, ClientSession
 from did_webvh.core.state import DocumentState
-from did_webvh.core.date_utils import make_timestamp
 from pydid import DIDDocument
 
 from ..config.config import (
