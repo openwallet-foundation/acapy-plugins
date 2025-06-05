@@ -4,6 +4,7 @@ import enum
 from collections import Counter
 
 from acapy_agent.messaging.models.openapi import OpenAPISchema
+from acapy_agent.vc.vc_ld.models.presentation import PresentationSchema
 from marshmallow import fields, validates, validate, ValidationError
 
 
@@ -257,3 +258,9 @@ class IdRequestParamSchema(OpenAPISchema):
             "example": "did:web:server.localhost%3A8000:prod:1",
         },
     )
+
+
+class WebvhUpdateWhoisSchema(OpenAPISchema):
+    """Request model for updating a whois VP."""
+
+    presentation = fields.Nested(PresentationSchema, required=True)

@@ -20,6 +20,7 @@ from .did.exceptions import (
     ConfigurationError,
     DidCreationError,
     DidUpdateError,
+    OperationError,
     WitnessError,
 )
 from .did.models.operations import (
@@ -30,6 +31,7 @@ from .did.models.operations import (
     WebvhDeactivateSchema,
     WebvhDIDQueryStringSchema,
     WebvhSCIDQueryStringSchema,
+    WebvhUpdateWhoisSchema,
 )
 from .did.utils import decode_invitation
 from .did.witness_manager import WitnessManager
@@ -166,24 +168,6 @@ async def update(request: web.BaseRequest):
         return web.json_response({"status": "error", "message": str(err)})
 
 
-# @docs(tags=["did-webvh"], summary="Get SCID parameters")
-# @querystring_schema(WebvhSCIDQueryStringSchema())
-# @response_schema(ResolutionResultSchema(), 200)
-# @tenant_authentication
-# async def get_scid_info(request: web.BaseRequest):
-#     """Get SCID parameters."""
-#     context: AdminRequestContext = request["context"]
-#     try:
-#         return web.json_response(
-#             await ControllerManager(context.profile).get_scid_info(
-#                 request.query.get("scid")
-#             )
-#         )
-
-#     except DidUpdateError as err:
-#         return web.json_response({"status": "error", "message": str(err)})
-
-
 @docs(tags=["did-webvh"], summary="Add verification method")
 @querystring_schema(WebvhSCIDQueryStringSchema())
 @request_schema(WebvhAddVMSchema)
@@ -292,6 +276,27 @@ async def reject_pending_registration(request: web.BaseRequest):
         return web.json_response({"status": "error", "message": str(err)})
 
 
+@docs(tags=["did-webvh"], summary="Update WHOIS linked VP")
+@querystring_schema(WebvhSCIDQueryStringSchema())
+@request_schema(WebvhUpdateWhoisSchema())
+@tenant_authentication
+async def update_whois(request: web.BaseRequest):
+    """Update WHOIS linked VP."""
+    context: AdminRequestContext = request["context"]
+    request_json = await request.json()
+    try:
+        return web.json_response(
+            await ControllerManager(context.profile).update_whois(
+                request.query.get("scid"),
+                request_json.get("presentation"),
+                request_json.get("options", {}),
+            )
+        )
+
+    except OperationError as err:
+        return web.json_response({"status": "error", "message": str(err)})
+
+
 def register_events(event_bus: EventBus):
     """Register to the acapy startup event."""
     event_bus.subscribe(STARTUP_EVENT_PATTERN, on_startup_event)
@@ -326,6 +331,14 @@ async def register(app: web.Application):
             web.delete(
                 "/did/webvh/controller/verification-methods/{key_id}",
                 delete_verification_method_request,
+            )
+        ]
+    )
+    app.add_routes(
+        [
+            web.post(
+                "/did/webvh/controller/whois",
+                update_whois,
             )
         ]
     )
