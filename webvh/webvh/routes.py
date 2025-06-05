@@ -61,7 +61,9 @@ async def configure(request: web.BaseRequest):
 
     config["scids"] = config.get("scids") or {}
     config["witnesses"] = config.get("witnesses") or []
-    config["server_url"] = request_json.get("server_url") or config.get("server_url")
+    config["server_url"] = (
+        request_json.get("server_url") or config.get("server_url")
+    ).rstrip("/")
 
     if not config.get("server_url"):
         raise ConfigurationError("No server url provided.")

@@ -2,7 +2,6 @@
 
 import asyncio
 import copy
-import http
 import json
 import logging
 import re
@@ -34,7 +33,9 @@ from ..config.config import (
 )
 from .exceptions import DidCreationError, OperationError
 from .registration_state import RegistrationState
+from .server_client import WebVHServerClient
 from .utils import (
+    all_are_not_none,
     fetch_document_state,
     key_hash,
     multikey_to_jwk,
@@ -55,46 +56,6 @@ class ControllerManager:
     def __init__(self, profile: Profile) -> None:
         """Initialize the DID Webvh Manager."""
         self.profile = profile
-
-    def _all_are_not_none(*args):
-        return all(v is not None for v in args)
-
-    async def _request_identifier(self, server_url, namespace, identifier) -> tuple:
-        """Contact the trust did web server to request an identifier."""
-        async with ClientSession() as session:
-            try:
-                response = await session.get(
-                    server_url,
-                    params={
-                        "namespace": namespace,
-                        "identifier": identifier,
-                    },
-                    ssl=(await use_strict_ssl(self.profile)),
-                )
-            except ClientConnectionError as err:
-                raise DidCreationError(f"Failed to connect to Webvh server: {err}")
-
-            response_json = await response.json()
-            if (
-                response.status == http.HTTPStatus.BAD_REQUEST
-                or response.status == http.HTTPStatus.CONFLICT
-            ):
-                raise DidCreationError(response_json.get("detail"))
-
-            did_document = response_json.get("didDocument", {})
-            did = did_document.get("id")
-
-            proof_options = response_json.get("proofOptions", {})
-            challenge = proof_options.get("challenge")
-            domain = proof_options.get("domain")
-            expiration = proof_options.get("expires")
-
-            if self._all_are_not_none(did, challenge, domain, expiration):
-                return did_document, proof_options
-            else:
-                raise DidCreationError(
-                    "Invalid response from Webvh server requesting identifier"
-                )
 
     async def _get_or_create_key(self, key_alias):
         async with self.profile.session() as session:
@@ -166,15 +127,13 @@ class ControllerManager:
     async def register(self, options: dict):
         """Register identities."""
 
-        server_url = await get_server_url(self.profile)
-
         # Set default namespace and random identifier if none provided
         namespace = options.get("namespace", "default")
         identifier = options.get("identifier", str(uuid4()))
 
         # Contact the server to request the identifier
-        did_doc, proof_options = await self._request_identifier(
-            server_url, namespace, identifier
+        did_doc, proof_options = await WebVHServerClient(self.profile).request_identifier(
+            namespace, identifier
         )
         did = did_doc.get("id")
 
@@ -317,60 +276,37 @@ class ControllerManager:
             )
             return
 
-        async with ClientSession() as session:
-            # Register did document and did with the server
-            server_url = await get_server_url(self.profile)
-            response = await session.post(
-                server_url,
-                json={"didDocument": registration_document},
-                ssl=(await use_strict_ssl(self.profile)),
-            )
-            response_json = await response.json()
-            if response.status == http.HTTPStatus.BAD_REQUEST:
-                raise DidCreationError(response_json.get("detail"))
+        await WebVHServerClient(self.profile).register_did_doc(registration_document)
 
         return await self.create(registration_document, parameters)
 
     async def create(self, registration_document: dict, parameters: dict):
         """Create DID and first log entry."""
         web_did = registration_document.get("id")
-        async with ClientSession() as http_session:
-            # Create initial log entry
-            namespace = web_did.split(":")[-2]
-            identifier = web_did.split(":")[-1]
-            # update_key = parameters.get("updateKeys")[0]
-            signing_key = registration_document["verificationMethod"][0].get(
-                "publicKeyMultibase"
-            )
+        # Create initial log entry
+        namespace = web_did.split(":")[-2]
+        identifier = web_did.split(":")[-1]
+        # update_key = parameters.get("updateKeys")[0]
+        signing_key = registration_document["verificationMethod"][0].get(
+            "publicKeyMultibase"
+        )
 
-            initial_log_entry = await self._create_initial_log_entry(
-                registration_document,
-                parameters,
-            )
-            payload = {"logEntry": initial_log_entry}
-            # TODO, handle witness signatures
-            # payload['witnessSignatures'] = {}
+        initial_log_entry = await self._create_initial_log_entry(
+            registration_document,
+            parameters,
+        )
 
-            # Submit the initial log entry
-            server_url = await get_server_url(self.profile)
-            response = await http_session.post(
-                f"{server_url}/{namespace}/{identifier}",
-                json=payload,
-                ssl=(await use_strict_ssl(self.profile)),
-            )
+        response_json = await WebVHServerClient(self.profile).submit_initial_log_entry(
+            initial_log_entry,
+            namespace,
+            identifier,
+        )
 
-            if response.status == http.HTTPStatus.INTERNAL_SERVER_ERROR:
-                raise DidCreationError("Server had a problem creating log entry.")
+        webvh_did = response_json.get("state", {}).get("id")
+        if not webvh_did:
+            raise DidCreationError("No state returned")
 
-            response_json = await response.json()
-            if response.status == http.HTTPStatus.BAD_REQUEST:
-                raise DidCreationError(response_json.get("detail"))
-
-            webvh_did = response_json.get("state", {}).get("id")
-            if not webvh_did:
-                raise DidCreationError("No state returned")
-
-            scid = webvh_did.split(":")[2]
+        scid = webvh_did.split(":")[2]
 
         async with self.profile.session() as session:
             # Save the did in the wallet
@@ -492,7 +428,7 @@ class ControllerManager:
         namespace = options.get("namespace")
         identifier = options.get("identifier")
 
-        if not self._all_are_not_none(namespace, identifier):
+        if not all_are_not_none(namespace, identifier):
             raise DidCreationError("Namespace and identifier are required.")
 
         # Get the document state from the server
