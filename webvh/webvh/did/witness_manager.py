@@ -269,7 +269,7 @@ class WitnessManager:
                 from .controller_manager import ControllerManager
 
                 await ControllerManager(self.profile).finish_registration(
-                    entry.value_json, json.loads(entry.tags.get("parameters", {}))
+                    entry.value_json, json.loads(entry.tags.get("parameters", "{}"))
                 )
             else:
                 responder = self.profile.inject(BaseResponder)
