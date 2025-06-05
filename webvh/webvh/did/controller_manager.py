@@ -705,10 +705,10 @@ class ControllerManager:
                     # TODO, should we enforce this?
                     pass
 
-                # TODO, verify all credential proofs
-                # for proof in credential.get('proof'):
-                #     verification = di_manager.verify_proof(credential, proof)
-                #     verification.get('verified')
+                if not (await di_manager.verify_proof(credential)).verified:
+                    LOGGER.info("Credential verification failed.")
+                    LOGGER.info(json.dumps(credential))
+                    raise OperationError("Credential verification failed.")
 
             # NOTE, we get the default signing key from the DID record
             did_info = await session.handle.fetch(CATEGORY_DID, holder_id)
