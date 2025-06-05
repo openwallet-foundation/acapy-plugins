@@ -1,14 +1,13 @@
 """Utilities for shared functions."""
 
 import base64
-import jcs
-import json
 import hashlib
-from multiformats import multibase, multihash
+import json
 
+import jcs
 from aiohttp import ClientResponseError, ClientSession
-
 from did_webvh.core.state import DocumentState
+from multiformats import multibase, multihash
 
 WITNESS_CONNECTION_ALIAS_SUFFIX = "@witness"
 ALIAS_PURPOSES = {
@@ -93,3 +92,8 @@ async def fetch_document_state(url):
     except ClientResponseError:
         pass
     return document_state
+
+
+def all_are_not_none(*args):
+    """Check if all arguments are not None."""
+    return all(v is not None for v in args)
