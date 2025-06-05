@@ -43,7 +43,7 @@ from .witness_queue import PendingRegistrations
 
 LOGGER = logging.getLogger(__name__)
 
-WEBVH_METHOD = "did:webvh:0.5"
+WEBVH_METHOD = "did:webvh:1.0"
 WITNESS_WAIT_TIMEOUT_SECONDS = 2
 WITNESS_EVENT = "witness_response::"
 
