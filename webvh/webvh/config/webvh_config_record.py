@@ -33,6 +33,11 @@ class WebvhConfigSchema(BaseRecordSchema):
         description="WebVH Server",
     )
 
+    notify_watchers = fields.Bool(
+        required=True,
+        description="Notify watchers",
+    )
+
     witnesses = fields.List(
         fields.Str(),
         required=False,
