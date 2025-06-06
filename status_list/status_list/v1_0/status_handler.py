@@ -3,10 +3,16 @@
 import logging
 import gzip
 import math
+import os
+import time
+import tempfile
+from functools import wraps
 from typing import Optional
 from types import SimpleNamespace
 from datetime import datetime, timedelta, timezone
 from bitarray import bitarray
+from filelock import FileLock, Timeout
+from pathlib import Path
 
 from acapy_agent.admin.request_context import AdminRequestContext
 from acapy_agent.core.profile import ProfileSession
@@ -20,6 +26,66 @@ from .models import StatusListDef, StatusListShard, StatusListCred, StatusListRe
 LOGGER = logging.getLogger(__name__)
 
 
+def with_retries(max_attempts=3, delay=2):
+    def decorator(func):
+        @wraps(func)
+        def wrapper(*args, **kwargs):
+            for attempt in range(1, max_attempts + 1):
+                try:
+                    return func(*args, **kwargs)
+                except Exception as e:
+                    LOGGER.warning(f"Attempt {attempt} failed with error: {e}")
+                    if attempt == max_attempts:
+                        raise
+                    time.sleep(delay)
+
+        return wrapper
+
+    return decorator
+
+
+@with_retries(max_attempts=3, delay=2)
+def write_to_file(path: str, data: bytes) -> None:
+    """Write data to a local file atomically."""
+
+    full_path = Path(path).resolve()
+    try:
+        full_path.parent.mkdir(parents=True, exist_ok=True)
+        LOGGER.debug(f"Writing to local file (atomic): {full_path}")
+        lock_path = full_path.with_suffix(full_path.suffix + ".lock")
+        with FileLock(str(lock_path), timeout=10):
+            with tempfile.NamedTemporaryFile(
+                dir=full_path.parent, delete=False
+            ) as tmp_file:
+                tmp_file.write(data)
+                temp_path = Path(tmp_file.name)
+            try:
+                os.replace(temp_path, full_path)
+            except OSError as e:
+                LOGGER.error(f"Failed to replace {temp_path} with {full_path}: {e}")
+                try:
+                    if temp_path.exists():
+                        os.unlink(temp_path)
+                except OSError:
+                    LOGGER.warning(f"Failed to clean up temporary file: {temp_path}")
+                raise
+        LOGGER.debug("Write to local file completed.")
+        # Explicitly remove the lock file (needed on Unix)
+        try:
+            if lock_path.exists():
+                lock_path.unlink()
+        except OSError as e:
+            LOGGER.warning(f"Failed to remove lock file {lock_path}: {e}")
+    except (OSError, Timeout) as e:
+        LOGGER.error(f"Failed to write to file {full_path}: {e}")
+        try:
+            if lock_path.exists():
+                lock_path.unlink()
+        except OSError as e:
+            LOGGER.warning(f"Failed to remove lock file {lock_path}: {e}")
+        raise
+
+
 def get_wallet_id(context: AdminRequestContext):
     """Get wallet id."""
 
@@ -29,55 +95,13 @@ def get_wallet_id(context: AdminRequestContext):
         return "base"
 
 
-def get_status_list_path(
-    context: AdminRequestContext,
-    tenant_id: str,
-    status_type: str,
-    status_list_number: str,
-):
-    """Get status list path."""
-
-    config = Config.from_settings(context.profile.settings)
-    return config.path_template.format(
-        tenant_id=tenant_id,
-        status_type=status_type,
-        status_list_number=status_list_number,
-    )
-
-
-def get_status_list_public_url(
-    context: AdminRequestContext,
-    tenant_id: str,
-    status_type: str,
-    status_list_number: str,
-):
-    """Get status list public URL."""
-
-    config = Config.from_settings(context.profile.settings)
-    return config.base_url + get_status_list_path(
-        context, tenant_id, status_type, status_list_number
-    )
-
-
-def get_status_list_file_path(
-    context: AdminRequestContext,
-    tenant_id: str,
-    status_type: str,
-    status_list_number: str,
-):
-    """Get status list file path."""
-
-    config = Config.from_settings(context.profile.settings)
-    return config.base_dir + get_status_list_path(
-        context, tenant_id, status_type, status_list_number
-    )
-
-
 async def assign_status_list_number(session: ProfileSession, wallet_id: str):
     """Get status list number."""
 
     try:
-        registry = await StatusListReg.retrieve_by_id(session, wallet_id, for_update=True)
+        registry = await StatusListReg.retrieve_by_id(
+            session, wallet_id, for_update=True
+        )
         if registry.list_count < 0:
             raise StatusListError("Status list registry has negative list count.")
     except StorageNotFoundError:
@@ -124,7 +148,9 @@ async def generate_random_index(context: AdminRequestContext, definition_id: str
         # create a spare list
         if definition.list_number == definition.next_list_number:
             wallet_id = get_wallet_id(context)
-            definition.next_list_number = await assign_status_list_number(txn, wallet_id)
+            definition.next_list_number = await assign_status_list_number(
+                txn, wallet_id
+            )
             definition.add_list_number(definition.next_list_number)
             await create_next_status_list(txn, definition)
 
@@ -210,14 +236,11 @@ async def assign_status_entries(
     context: AdminRequestContext,
     supported_cred_id: str,
     credential_id: str,
-    status_type: str,
 ):
     """Create a credential status."""
 
-    if status_type not in {"w3c", "ietf"}:
-        raise StatusListError(f"Unsupported status type: {status_type}")
-
     status_list = []
+    config = Config.from_settings(context.profile.settings)
     async with context.profile.session() as session:
         definitions = await StatusListDef.query(
             session, {"supported_cred_id": supported_cred_id}
@@ -225,28 +248,25 @@ async def assign_status_entries(
         if not definitions or len(definitions) == 0:
             return None
 
-        # IETF token status list doesn't support multiple status
-        if status_type == "ietf":
-            definitions = [definitions[0]]
-
         for definition in definitions:
             wallet_id = get_wallet_id(context)
             entry = await assign_status_list_entry(context, definition.id)
             entry = SimpleNamespace(**entry)
-            public_url = get_status_list_public_url(
-                context, wallet_id, status_type, entry.list_number
+            public_uri = config.public_uri.format(
+                tenant_id=wallet_id,
+                list_number=entry.list_number,
             )
 
             # construct status by status type
-            if status_type == "ietf":
-                status = {"idx": entry.list_index, "uri": public_url}
+            if definition.list_type == "ietf":
+                status = {"idx": entry.list_index, "uri": public_uri}
             else:
                 status = {
-                    "id": f"{public_url}#{entry.list_index}",
+                    "id": f"{public_uri}#{entry.list_index}",
                     "type": "BitstringStatusListEntry",
                     "statusPurpose": definition.status_purpose,
                     "statusListIndex": entry.list_index,
-                    "statusListCredential": public_url,
+                    "statusListCredential": public_uri,
                 }
                 if definition.status_purpose == "message":
                     status["statusSize"] = definition.status_size
@@ -362,7 +382,6 @@ async def get_status_list(
     context: AdminRequestContext,
     definition: StatusListDef,
     list_number: str,
-    status_type: Optional[str] = None,
     issuer_did: Optional[str] = "issuer-did",
 ):
     """Compress status list."""
@@ -383,20 +402,9 @@ async def get_status_list(
         base64 = bytes_to_b64(bytes, True)
         encoded_list = base64.rstrip("=")
 
-        status_list = {
-            "definition_id": definition.id,
-            "list_number": list_number,
-            "list_size": definition.list_size,
-            "status_purpose": definition.status_purpose,
-            "status_message": definition.status_message,
-            "status_size": definition.status_size,
-            "encoded_list": encoded_list,
-        }
-
-        path = config.path_template.format(
+        public_uri = config.public_uri.format(
             tenant_id=wallet_id,
-            status_type=status_type,
-            status_list_number=list_number,
+            list_number=list_number,
         )
 
         now = datetime.now(timezone.utc)
@@ -409,10 +417,10 @@ async def get_status_list(
             "iss": issuer_did,
             "nbf": unix_now,
             "jti": f"urn:uuid:{list_number}",
-            "sub": config.base_url + path,
+            "sub": public_uri,
         }
 
-        if status_type == "ietf":
+        if definition.list_type == "ietf":
             status_list = {
                 **payload,
                 "iat": unix_now,
@@ -423,12 +431,12 @@ async def get_status_list(
                     "lst": encoded_list,
                 },
             }
-        elif status_type == "w3c":
+        elif definition.list_type == "w3c":
             status_list = {
                 **payload,
                 "vc": {
                     "@context": ["https://www.w3.org/ns/credentials/v2"],
-                    "id": config.base_url + path,
+                    "id": public_uri,
                     "type": [
                         "VerifiableCredential",
                         "BitstringStatusListCredential",
@@ -437,7 +445,7 @@ async def get_status_list(
                     "validFrom": now.isoformat(),
                     "validUntil": validUntil.isoformat(),
                     "credentialSubject": {
-                        "id": config.base_url + path + "#list",
+                        "id": public_uri + "#list",
                         "type": "BitstringStatusList",
                         "statusPurpose": definition.status_purpose,
                         "encodedList": encoded_list,
@@ -445,11 +453,21 @@ async def get_status_list(
                 },
             }
             if definition.status_purpose == "message":
-                status_list["vc"]["credentialSubject"]["statusSize"] = (
-                    definition.status_size
-                )
-                status_list["vc"]["credentialSubject"]["statusMessage"] = (
-                    definition.status_message
-                )
+                status_list["vc"]["credentialSubject"][
+                    "statusSize"
+                ] = definition.status_size
+                status_list["vc"]["credentialSubject"][
+                    "statusMessage"
+                ] = definition.status_message
+        else:  # raw list
+            status_list = {
+                "definition_id": definition.id,
+                "list_number": list_number,
+                "list_size": definition.list_size,
+                "status_purpose": definition.status_purpose,
+                "status_message": definition.status_message,
+                "status_size": definition.status_size,
+                "encoded_list": encoded_list,
+            }
 
         return status_list

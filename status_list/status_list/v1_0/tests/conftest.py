@@ -44,9 +44,8 @@ def plugin_settings():
             "status_list": {
                 "list_size": "131072",
                 "shard_size": "1024",
-                "base_url": "https://dev.lab.di.gov.on.ca",
-                "base_dir": "/tmp/aries/bitstring",
-                "path_template": "/tenants/{tenant_id}/{status_type}/status/{status_list_number}",
+                "public_uri": "https://status.di.gov.on.ca/tenants/{tenant_id}/status/{list_number}",
+                "file_path": "/tmp/bitstring/{tenant_id}/{list_number}",
             }
         }
     }
@@ -105,6 +104,7 @@ def status_list_def():
         status_purpose="revocation",
         status_size=1,
         shard_size=1024,
+        list_type="ietf",
         list_size=131072,
         list_number="0",
         next_list_number="0",

@@ -1,7 +1,6 @@
 """Status list publisher controller."""
 
 import logging
-import os
 from typing import Any, Dict
 
 from acapy_agent.admin.decorators.auth import tenant_authentication
@@ -49,14 +48,6 @@ class PublishStatusListSchema(OpenAPISchema):
             "example": "did:web:dev.lab.di.gov.on.ca#z6Mkgg342Ycpuk263R9d8Aq6MUaxPn1DDeHyGo38EefXmgDL",  # noqa: E501
         },
     )
-    status_type = fields.Str(
-        required=True,
-        validate=OneOf(["w3c", "ietf"]),
-        metadata={
-            "description": "status type.",
-            "example": "w3c",
-        },
-    )
 
 
 class PublishStatusListResponseSchema(OpenAPISchema):
@@ -95,53 +86,37 @@ async def publish_status_list(request: web.BaseRequest):
     if issuer_did is None and verification_method is None:
         raise web.HTTPBadRequest(reason="did or verification_method is required")
 
-    status_type = body.get("status_type", None)
-    if status_type is None:
-        raise web.HTTPBadRequest(reason="status_type is required")
-
     try:
         published = []
         context: AdminRequestContext = request["context"]
         config = Config.from_settings(context.profile.settings)
-
+        wallet_id = status_handler.get_wallet_id(context)
         async with context.profile.session() as session:
             definition = await StatusListDef.retrieve_by_id(session, definition_id)
 
         for list_number in definition.list_numbers:
             status_list = await status_handler.get_status_list(
-                context, definition, list_number, status_type, issuer_did
+                context, definition, list_number, issuer_did
             )
-
-            if status_type == "ietf":
-                headers = {"typ": "statuslist+jwt"}
-                payload = status_list
-
-            elif status_type == "w3c":
-                headers = {}
-                payload = status_list
-
-            jws = await jwt_sign(
-                context.profile,
-                headers,
-                payload,
-                did=issuer_did,
-                verification_method=verification_method,
-            )
-
             # publish status list
-            wallet_id = status_handler.get_wallet_id(context)
-            path = config.path_template.format(
-                tenant_id=wallet_id,
-                status_type=status_type,
-                status_list_number=list_number,
-            )
-            if config.base_dir is not None:
-                file_path = config.base_dir + path
-                os.makedirs(os.path.dirname(file_path), exist_ok=True)
-                with open(file_path, "w") as file:
-                    file.write(jws)
-
-            published.append(payload)
+            if config.file_path is not None:
+                path = config.file_path.format(
+                    tenant_id=wallet_id,
+                    list_number=list_number,
+                )
+                headers = (
+                    {"typ": "statuslist+jwt"} if definition.list_type == "ietf" else {}
+                )
+                jws = await jwt_sign(
+                    profile=context.profile,
+                    headers=headers,
+                    payload=status_list,
+                    did=issuer_did,
+                    verification_method=verification_method,
+                )
+                status_handler.write_to_file(path, jws.encode("utf-8"))
+            # add status_list to published list
+            published.append(status_list)
 
         return web.json_response(
             {

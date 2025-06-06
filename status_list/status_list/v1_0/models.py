@@ -37,6 +37,7 @@ class StatusListDef(BaseRecord):
         status_message: Optional[list] = None,
         status_size: Optional[int] = -1,
         shard_size: Optional[int] = -1,
+        list_type: Optional[str] = None,
         list_size: Optional[int] = -1,
         list_seed: Optional[str] = None,
         list_index: Optional[int] = -1,
@@ -54,6 +55,7 @@ class StatusListDef(BaseRecord):
         self.status_message = status_message
         self.status_size = status_size
         self.shard_size = shard_size
+        self.list_type = list_type
         self.list_size = list_size
         self.list_seed = list_seed
         self.list_index = list_index
@@ -92,8 +94,9 @@ class StatusListDef(BaseRecord):
                 "status_purpose",
                 "status_message",
                 "status_size",
-                "list_size",
                 "shard_size",
+                "list_type",
+                "list_size",
                 "list_seed",
                 "list_index",
                 "list_number",
@@ -148,7 +151,7 @@ class StatusListDefSchema(BaseRecordSchema):
         required=False,
         default="revocation",
         metadata={
-            "description": "Status purpose: refresh, revocation, suspension or message",
+            "description": "Status purpose: 'refresh', 'revocation', 'suspension' or 'message'",
             "example": "revocation",
         },
     )
@@ -176,6 +179,13 @@ class StatusListDefSchema(BaseRecordSchema):
         metadata={
             "description": "Number of entries in each shard, between 1 and list_size",
             "example": 1024,
+        },
+    )
+    list_type = fields.Str(
+        required=False,
+        metadata={
+            "description": "Status list type: 'w3c', 'ietf' or none",
+            "example": "ietf",
         },
     )
     list_size = fields.Int(
