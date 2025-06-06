@@ -191,3 +191,10 @@ async def test_assign_status_entries(context: AdminRequestContext, seed_db):
             )
         except Exception as e:
             assert isinstance(e, StatusListError)
+
+
+@pytest.mark.asyncio
+async def test_get_status_list_token(context: AdminRequestContext, seed_db):
+    token = await status_handler.get_status_list_token(context, "1")
+
+    assert token

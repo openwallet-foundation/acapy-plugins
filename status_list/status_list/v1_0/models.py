@@ -44,6 +44,8 @@ class StatusListDef(BaseRecord):
         list_number: Optional[str] = None,
         next_list_number: Optional[str] = None,
         list_numbers: Optional[List[str]] = None,
+        issuer_did: Optional[str] = None,
+        verification_method: Optional[str] = None,
         **kwargs,
     ) -> None:
         """Initialize a new status list definition instance."""
@@ -62,6 +64,8 @@ class StatusListDef(BaseRecord):
         self.list_number = list_number
         self.next_list_number = next_list_number
         self.list_numbers = list_numbers
+        self.issuer_did = issuer_did
+        self.verification_method = verification_method
 
         if not self.list_seed:
             self.seed_list()
@@ -102,6 +106,8 @@ class StatusListDef(BaseRecord):
                 "list_number",
                 "next_list_number",
                 "list_numbers",
+                "issuer_did",
+                "verification_method",
             )
         }
 
@@ -219,6 +225,20 @@ class StatusListDefSchema(BaseRecordSchema):
         fields.Str(),
         required=False,
         metadata={"description": "Status list numbers", "example": [1, 2, 3]},
+    )
+    issuer_did = fields.Str(
+        required=False,
+        metadata={
+            "description": "Issuer DID for the status list",
+            "example": "did:web:dev.lab.di.gov.on.ca",
+        },
+    )
+    verification_method = fields.Str(
+        required=False,
+        metadata={
+            "description": "Issuer DID for the status list",
+            "example": "did:web:dev.lab.di.gov.on.ca#z6Mkgg342Ycpuk263R9d8Aq6MUaxPn1DDeHyGo38EefXmgDL",
+        },
     )
 
 

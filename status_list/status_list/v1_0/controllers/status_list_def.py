@@ -290,6 +290,20 @@ class UpdateStatusListDefRequest(OpenAPISchema):
             "example": "ietf",
         },
     )
+    issuer_did = fields.Str(
+        required=False,
+        metadata={
+            "description": "Issuer DID for the status list",
+            "example": "did:web:dev.lab.di.gov.on.ca",
+        },
+    )
+    verification_method = fields.Str(
+        required=False,
+        metadata={
+            "description": "Issuer DID for the status list",
+            "example": "did:web:dev.lab.di.gov.on.ca#z6Mkgg342Ycpuk263R9d8Aq6MUaxPn1DDeHyGo38EefXmgDL",
+        },
+    )
 
 
 @docs(
@@ -305,7 +319,6 @@ async def update_status_list_def(request: web.BaseRequest):
 
     definition_id = request.match_info["def_id"]
     body: Dict[str, Any] = await request.json()
-    list_type = body.get("list_type", None)
 
     try:
         context: AdminRequestContext = request["context"]
@@ -313,7 +326,9 @@ async def update_status_list_def(request: web.BaseRequest):
             definition = await StatusListDef.retrieve_by_id(
                 txn, definition_id, for_update=True
             )
-            definition.list_type = list_type
+            definition.list_type = body.get("list_type", None)
+            definition.issuer_did = body.get("issuer_did", None)
+            definition.verification_method = body.get("verification_method", None)
 
             # Save updated status list definition
             await definition.save(txn, reason="Update status list definition.")

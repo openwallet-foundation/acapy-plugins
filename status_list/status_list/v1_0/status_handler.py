@@ -22,6 +22,7 @@ from acapy_agent.wallet.util import bytes_to_b64
 from .config import Config
 from .error import StatusListError
 from .models import StatusListDef, StatusListShard, StatusListCred, StatusListReg
+from .jwt import jwt_sign
 
 LOGGER = logging.getLogger(__name__)
 
@@ -379,10 +380,7 @@ async def update_status_list_entry(
 
 
 async def get_status_list(
-    context: AdminRequestContext,
-    definition: StatusListDef,
-    list_number: str,
-    issuer_did: Optional[str] = "issuer-did",
+    context: AdminRequestContext, definition: StatusListDef, list_number: str
 ):
     """Compress status list."""
 
@@ -414,7 +412,7 @@ async def get_status_list(
         ttl = 43200
 
         payload = {
-            "iss": issuer_did,
+            "iss": definition.issuer_did,
             "nbf": unix_now,
             "jti": f"urn:uuid:{list_number}",
             "sub": public_uri,
@@ -441,7 +439,7 @@ async def get_status_list(
                         "VerifiableCredential",
                         "BitstringStatusListCredential",
                     ],
-                    "issuer": issuer_did,
+                    "issuer": definition.issuer_did,
                     "validFrom": now.isoformat(),
                     "validUntil": validUntil.isoformat(),
                     "credentialSubject": {
@@ -471,3 +469,29 @@ async def get_status_list(
             }
 
         return status_list
+
+
+async def get_status_list_token(
+    context: AdminRequestContext,
+    list_number: str,
+    definition: Optional[StatusListDef] = None,
+):
+    """publish status list."""
+
+    if definition is None:
+        async with context.profile.session() as session:
+            tag_filter = {"list_number": list_number}
+            shards = await StatusListShard.query(session, tag_filter, limit=1)
+            definition_id = shards[0].definition_id
+            definition = await StatusListDef.retrieve_by_id(session, definition_id)
+
+    status_list = await get_status_list(context, definition, list_number)
+    headers = {"typ": "statuslist+jwt"} if definition.list_type == "ietf" else {}
+
+    return await jwt_sign(
+        profile=context.profile,
+        headers=headers,
+        payload=status_list,
+        did=definition.issuer_did,
+        verification_method=definition.verification_method,
+    )

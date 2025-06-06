@@ -169,9 +169,7 @@ async def get_status_list(request: web.BaseRequest):
         async with context.profile.session() as session:
             definition = await StatusListDef.retrieve_by_id(session, definition_id)
 
-        result = await status_handler.get_status_list(
-            context, definition, list_number, issuer_did
-        )
+        result = await status_handler.get_status_list(context, definition, list_number)
 
         return web.json_response(result)
 

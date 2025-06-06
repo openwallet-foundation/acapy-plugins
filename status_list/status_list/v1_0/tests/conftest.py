@@ -108,6 +108,8 @@ def status_list_def():
         list_size=131072,
         list_number="0",
         next_list_number="0",
+        issuer_did="did:web:dev.lab.di.gov.on.ca",
+        verification_method="did:web:dev.lab.di.gov.on.ca#z6Mkgg342Ycpuk263R9d8Aq6MUaxPn1DDeHyGo38EefXmgDL",
         id="definition_id",
         new_with_id=True,
     )
@@ -129,6 +131,8 @@ def status_list_def_msg():
         list_size=16,
         list_number="0",
         next_list_number="0",
+        issuer_did="did:web:dev.lab.di.gov.on.ca",
+        verification_method="did:web:dev.lab.di.gov.on.ca#z6Mkgg342Ycpuk263R9d8Aq6MUaxPn1DDeHyGo38EefXmgDL",
         id="definition_msg_id",
         new_with_id=True,
     )

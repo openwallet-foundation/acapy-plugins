@@ -31,25 +31,6 @@ class MatchStatusListDefRequest(OpenAPISchema):
     )
 
 
-class PublishStatusListSchema(OpenAPISchema):
-    """Request schema for publishing status list."""
-
-    did = fields.Str(
-        required=False,
-        metadata={
-            "description": "did",
-            "example": "did:web:dev.lab.di.gov.on.ca",
-        },
-    )
-    verification_method = fields.Str(
-        required=False,
-        metadata={
-            "description": "verification method",
-            "example": "did:web:dev.lab.di.gov.on.ca#z6Mkgg342Ycpuk263R9d8Aq6MUaxPn1DDeHyGo38EefXmgDL",  # noqa: E501
-        },
-    )
-
-
 class PublishStatusListResponseSchema(OpenAPISchema):
     """Response schema for publishing status list."""
 
@@ -70,21 +51,12 @@ class PublishStatusListResponseSchema(OpenAPISchema):
     summary="Publish all status lists under a status list definition",
 )
 @match_info_schema(MatchStatusListDefRequest())
-@request_schema(PublishStatusListSchema())
 @response_schema(PublishStatusListResponseSchema(), 200, description="")
 @tenant_authentication
 async def publish_status_list(request: web.BaseRequest):
     """Request handler for publishing status list."""
 
-    body: Dict[str, Any] = await request.json()
-    LOGGER.debug(f"publishing status list with: {body}")
-
     definition_id = request.match_info["def_id"]
-
-    issuer_did = body.get("did", None)
-    verification_method = body.get("verification_method", None)
-    if issuer_did is None and verification_method is None:
-        raise web.HTTPBadRequest(reason="did or verification_method is required")
 
     try:
         published = []
@@ -96,7 +68,7 @@ async def publish_status_list(request: web.BaseRequest):
 
         for list_number in definition.list_numbers:
             status_list = await status_handler.get_status_list(
-                context, definition, list_number, issuer_did
+                context, definition, list_number
             )
             # publish status list
             if config.file_path is not None:
@@ -111,8 +83,8 @@ async def publish_status_list(request: web.BaseRequest):
                     profile=context.profile,
                     headers=headers,
                     payload=status_list,
-                    did=issuer_did,
-                    verification_method=verification_method,
+                    did=definition.issuer_did,
+                    verification_method=definition.verification_method,
                 )
                 status_handler.write_to_file(path, jws.encode("utf-8"))
             # add status_list to published list
