@@ -20,23 +20,22 @@ from acapy_agent.wallet.keys.manager import (
     multikey_to_verkey,
     verkey_to_multikey,
 )
-from aiohttp import ClientConnectionError, ClientResponseError, ClientSession
+from aiohttp import ClientResponseError
 from did_webvh.core.state import DocumentState
 from pydid import DIDDocument
 
 from ..config.config import (
     add_scid_mapping,
     did_from_scid,
-    get_server_url,
+    get_plugin_config,
     get_witnesses,
-    use_strict_ssl,
 )
 from .exceptions import DidCreationError, OperationError
 from .registration_state import RegistrationState
 from .server_client import WebVHServerClient
 from .utils import (
     all_are_not_none,
-    fetch_document_state,
+    get_namespace_and_identifier_from_did,
     key_hash,
     multikey_to_jwk,
 )
@@ -48,6 +47,10 @@ LOGGER = logging.getLogger(__name__)
 WEBVH_METHOD = "did:webvh:1.0"
 WITNESS_WAIT_TIMEOUT_SECONDS = 2
 WITNESS_EVENT = "witness_response::"
+PENDING_MESSAGE = {
+    "status": RegistrationState.PENDING.value,
+    "message": "The witness is pending.",
+}
 
 
 class ControllerManager:
@@ -112,10 +115,7 @@ class ControllerManager:
                 event.payload.get("metadata", {}).get("state")
                 == RegistrationState.PENDING.value
             ):
-                return {
-                    "status": RegistrationState.PENDING.value,
-                    "message": "The witness is pending.",
-                }
+                return PENDING_MESSAGE
             else:
                 await PendingRegistrations().remove_pending_did(self.profile, did)
                 return await self.finish_registration(
@@ -164,6 +164,9 @@ class ControllerManager:
                 parameters=parameter_options,
                 state=RegistrationState.SUCCESS.value,
             )
+
+        if (await get_plugin_config(self.profile)).get("role") == "witness":
+            return PENDING_MESSAGE
 
         try:
             await PendingRegistrations().set_pending_did(self.profile, did)
@@ -296,7 +299,7 @@ class ControllerManager:
             parameters,
         )
 
-        response_json = await WebVHServerClient(self.profile).submit_initial_log_entry(
+        response_json = await WebVHServerClient(self.profile).submit_log_entry(
             initial_log_entry,
             namespace,
             identifier,
@@ -380,11 +383,8 @@ class ControllerManager:
     async def update(self, scid: str, did_document: dict = None):
         """Update a Webvh DID."""
         did = await did_from_scid(self.profile, scid)
-        server_url = await get_server_url(self.profile)
-        namespace = did.split(":")[4]
-        identifier = did.split(":")[5]
-        document_state = await fetch_document_state(
-            f"{server_url}/{namespace}/{identifier}/did.jsonl"
+        document_state = await WebVHServerClient(self.profile).fetch_document_state(
+            get_namespace_and_identifier_from_did(did)
         )
         parameters = document_state.params
 
@@ -423,7 +423,6 @@ class ControllerManager:
 
     async def deactivate(self, options: dict):
         """Create a Webvh DID."""
-        server_url = await get_server_url(self.profile)
 
         namespace = options.get("namespace")
         identifier = options.get("identifier")
@@ -434,8 +433,8 @@ class ControllerManager:
         # Get the document state from the server
         document_state = None
         try:
-            async for line in self.fetch_jsonl(
-                f"{server_url}/{namespace}/{identifier}/did.jsonl"
+            async for line in WebVHServerClient(self.profile).fetch_jsonl(
+                namespace, identifier
             ):
                 document_state = DocumentState.load_history_line(line, document_state)
         except ClientResponseError:
@@ -463,7 +462,7 @@ class ControllerManager:
             datetime.now(timezone.utc).replace(microsecond=0),
         )
 
-        async with ClientSession() as http_session, self.profile.session() as session:
+        async with self.profile.session() as session:
             # Submit the log entry
             # NOTE: The authorized key is used as the verification method.
             log_entry = document_state.history_line()
@@ -477,24 +476,17 @@ class ControllerManager:
                 ),
             )
 
-            response = await http_session.delete(
-                f"{server_url}/{namespace}/{identifier}",
-                json={"logEntry": signed_log_entry},
-                ssl=(await use_strict_ssl(self.profile)),
+            await WebVHServerClient(self.profile).deactivate_did(
+                namespace, identifier, signed_log_entry
             )
-
-            response_json = await response.json()
-
-            if response_json.get("detail") == "Key unauthorized.":
-                raise DidCreationError("Problem creating log entry: Key unauthorized.")
 
             resolver = session.inject(DIDResolver)
 
-        return (
-            await resolver.resolve_with_metadata(
-                self.profile, document_state.document["id"]
-            )
-        ).serialize()
+            return (
+                await resolver.resolve_with_metadata(
+                    self.profile, document_state.document["id"]
+                )
+            ).serialize()
 
     async def add_verification_method(
         self,
@@ -592,16 +584,13 @@ class ControllerManager:
             # TODO fetch queued witness signatures
             payload["witnessSignature"] = {}
 
-        server_url = await get_server_url(self.profile)
-        namespace = did.split(":")[4]
-        identifier = did.split(":")[5]
-        async with ClientSession() as http_session, self.profile.session() as session:
-            try:
-                response = await http_session.post(
-                    f"{server_url}/{namespace}/{identifier}", json=payload
-                )
-            except ClientConnectionError as err:
-                raise DidCreationError(f"Failed to connect to Webvh server: {err}")
+        namespace, identifier = get_namespace_and_identifier_from_did(did)
+        async with self.profile.session() as session:
+            response = await WebVHServerClient(self.profile).submit_log_entry(
+                payload,
+                namespace,
+                identifier,
+            )
             await session.handle.replace(
                 "scid",
                 did.split(":")[2],
@@ -662,17 +651,9 @@ class ControllerManager:
                 ),
             )
 
-        server_url = await get_server_url(self.profile)
-        namespace = holder_id.split(":")[4]
-        identifier = holder_id.split(":")[5]
-
-        async with ClientSession() as http_session:
-            try:
-                response = await http_session.post(
-                    f"{server_url}/{namespace}/{identifier}/whois",
-                    json={"verifiablePresentation": vp},
-                )
-            except ClientConnectionError as err:
-                raise OperationError(f"Failed to connect to Webvh server: {err}")
-
-        return await response.json()
+        namespace, identifier = get_namespace_and_identifier_from_did(holder_id)
+        return await WebVHServerClient(self.profile).submit_whois(
+            namespace,
+            identifier,
+            vp,
+        )
