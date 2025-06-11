@@ -59,6 +59,7 @@ class ControllerManager:
     def __init__(self, profile: Profile) -> None:
         """Initialize the DID Webvh Manager."""
         self.profile = profile
+        self.server_client = WebVHServerClient(profile)
 
     async def _get_or_create_key(self, key_alias):
         async with self.profile.session() as session:
@@ -132,7 +133,7 @@ class ControllerManager:
         identifier = options.get("identifier", str(uuid4()))
 
         # Contact the server to request the identifier
-        did_doc, proof_options = await WebVHServerClient(self.profile).request_identifier(
+        did_doc, proof_options = await self.server_client.request_identifier(
             namespace, identifier
         )
         did = did_doc.get("id")
@@ -279,7 +280,7 @@ class ControllerManager:
             )
             return
 
-        await WebVHServerClient(self.profile).register_did_doc(registration_document)
+        await self.server_client.register_did_doc(registration_document)
 
         return await self.create(registration_document, parameters)
 
@@ -299,7 +300,7 @@ class ControllerManager:
             parameters,
         )
 
-        response_json = await WebVHServerClient(self.profile).submit_log_entry(
+        response_json = await self.server_client.submit_log_entry(
             initial_log_entry,
             namespace,
             identifier,
@@ -383,7 +384,7 @@ class ControllerManager:
     async def update(self, scid: str, did_document: dict = None):
         """Update a Webvh DID."""
         did = await did_from_scid(self.profile, scid)
-        document_state = await WebVHServerClient(self.profile).fetch_document_state(
+        document_state = await self.server_client.fetch_document_state(
             get_namespace_and_identifier_from_did(did)
         )
         parameters = document_state.params
@@ -433,9 +434,7 @@ class ControllerManager:
         # Get the document state from the server
         document_state = None
         try:
-            async for line in WebVHServerClient(self.profile).fetch_jsonl(
-                namespace, identifier
-            ):
+            async for line in self.server_client.fetch_jsonl(namespace, identifier):
                 document_state = DocumentState.load_history_line(line, document_state)
         except ClientResponseError:
             raise DidCreationError("Failed to fetch the jsonl file from the server.")
@@ -476,7 +475,7 @@ class ControllerManager:
                 ),
             )
 
-            await WebVHServerClient(self.profile).deactivate_did(
+            await self.server_client.deactivate_did(
                 namespace, identifier, signed_log_entry
             )
 
@@ -586,7 +585,7 @@ class ControllerManager:
 
         namespace, identifier = get_namespace_and_identifier_from_did(did)
         async with self.profile.session() as session:
-            response = await WebVHServerClient(self.profile).submit_log_entry(
+            response = await self.server_client.submit_log_entry(
                 payload,
                 namespace,
                 identifier,
@@ -652,7 +651,7 @@ class ControllerManager:
             )
 
         namespace, identifier = get_namespace_and_identifier_from_did(holder_id)
-        return await WebVHServerClient(self.profile).submit_whois(
+        return await self.server_client.submit_whois(
             namespace,
             identifier,
             vp,
