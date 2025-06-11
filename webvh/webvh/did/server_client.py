@@ -20,7 +20,7 @@ class WebVHServerClient:
         self.profile = profile
 
     async def request_identifier(self, namespace, identifier) -> tuple:
-        """Contact the trust did web server to request an identifier."""
+        """Contact the webvh server to request an identifier."""
         async with ClientSession() as session:
             try:
                 response = await session.get(

@@ -266,6 +266,8 @@ class WitnessManager:
 
             if not connection_id:
                 # Becomes the controller / Avoid circular import
+                # NOTE: will have to review this behavior when witness threshold is > 1
+                # is supported
                 from .controller_manager import ControllerManager
 
                 await ControllerManager(self.profile).finish_registration(
