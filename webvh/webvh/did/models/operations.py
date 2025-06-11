@@ -161,7 +161,7 @@ class WebvhCreateSchema(OpenAPISchema):
             required=False,
             metadata={
                 "description": "List of watchers for this DID.",
-                "example": "https://watcher.webvh.test-suite.app",
+                "example": ["https://watcher.webvh.test-suite.app"],
             },
         )
         namespace = fields.Str(

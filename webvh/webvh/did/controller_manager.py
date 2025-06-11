@@ -29,6 +29,7 @@ from ..config.config import (
     did_from_scid,
     get_plugin_config,
     get_witnesses,
+    notify_watchers
 )
 from .exceptions import DidCreationError, OperationError
 from .registration_state import RegistrationState
@@ -604,7 +605,7 @@ class ControllerManager:
                 tags={},
             )
 
-        if get_plugin_config(self.profile).get("notify_watchers", False):
+        if notify_watchers(self.profile):
             for watcher in params.get("watchers", []):
                 await WebVHWatcherClient(self.profile).notify_watcher(did, watcher)
 
