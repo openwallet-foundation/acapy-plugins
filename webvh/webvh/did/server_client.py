@@ -19,11 +19,12 @@ class WebVHWatcherClient:
         """Initialize the WebVHWatcherClient with a profile."""
         self.profile = profile
 
-    async def notify_watcher(self, did: str, watcher: str):
+    async def notify_watchers(self, did: str, watchers: str):
         """Notify watchers."""
 
         async with ClientSession() as http_session:
-            await http_session.post(f"{watcher}/log?did={did}")
+            for watcher in watchers:
+                await http_session.post(f"{watcher}/log?did={did}")
 
 
 class WebVHServerClient:

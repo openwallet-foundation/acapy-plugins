@@ -29,7 +29,7 @@ from ..config.config import (
     did_from_scid,
     get_plugin_config,
     get_witnesses,
-    notify_watchers
+    notify_watchers,
 )
 from .exceptions import DidCreationError, OperationError
 from .registration_state import RegistrationState
@@ -61,6 +61,7 @@ class ControllerManager:
         """Initialize the DID Webvh Manager."""
         self.profile = profile
         self.server_client = WebVHServerClient(profile)
+        self.watcher_client = WebVHWatcherClient(profile)
 
     async def _get_or_create_key(self, key_alias):
         async with self.profile.session() as session:
@@ -606,8 +607,7 @@ class ControllerManager:
             )
 
         if notify_watchers(self.profile):
-            for watcher in params.get("watchers", []):
-                await WebVHWatcherClient(self.profile).notify_watcher(did, watcher)
+            await self.watcher_client.notify_watchers(did, params.get("watchers", []))
 
         return await response.json()
 
@@ -666,4 +666,3 @@ class ControllerManager:
             identifier,
             vp,
         )
-
