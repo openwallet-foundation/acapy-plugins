@@ -59,11 +59,12 @@ async def configure(request: web.BaseRequest):
     # Build the config object
     config = await get_plugin_config(profile)
 
-    config["scids"] = config.get("scids") or {}
-    config["witnesses"] = config.get("witnesses") or []
-    config["server_url"] = (
-        request_json.get("server_url") or config.get("server_url")
+    config["scids"] = config.get("scids", {})
+    config["witnesses"] = config.get("witnesses", [])
+    config["server_url"] = request_json.get(
+        "server_url", config.get("server_url")
     ).rstrip("/")
+    config["notify_watchers"] = request_json.get("notify_watchers", False)
 
     if not config.get("server_url"):
         raise ConfigurationError("No server url provided.")

@@ -12,6 +12,21 @@ from .exceptions import DidCreationError, OperationError
 from .utils import all_are_not_none
 
 
+class WebVHWatcherClient:
+    """A class to handle communication with the WebVH watchers."""
+
+    def __init__(self, profile: Profile):
+        """Initialize the WebVHWatcherClient with a profile."""
+        self.profile = profile
+
+    async def notify_watchers(self, did: str, watchers: str):
+        """Notify watchers."""
+
+        async with ClientSession() as http_session:
+            for watcher in watchers:
+                await http_session.post(f"{watcher}/log?did={did}")
+
+
 class WebVHServerClient:
     """A class to handle communication with the WebVH server."""
 

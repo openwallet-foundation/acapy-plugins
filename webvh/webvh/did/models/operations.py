@@ -18,6 +18,14 @@ class ConfigureWebvhSchema(OpenAPISchema):
             "example": "http://localhost:8000",
         },
     )
+    notify_watchers = fields.Boolean(
+        required=False,
+        metadata={
+            "description": "Notify watchers on DID updates",
+            "example": "false",
+        },
+        default=False,
+    )
     witness = fields.Boolean(
         required=False,
         metadata={
@@ -146,6 +154,14 @@ class WebvhCreateSchema(OpenAPISchema):
             metadata={
                 "description": "The witness treshold",
                 "example": 1,
+            },
+        )
+        watchers = fields.List(
+            fields.Str(),
+            required=False,
+            metadata={
+                "description": "List of watchers for this DID.",
+                "example": ["https://watcher.webvh.test-suite.app"],
             },
         )
         namespace = fields.Str(

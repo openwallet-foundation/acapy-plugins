@@ -29,10 +29,11 @@ from ..config.config import (
     did_from_scid,
     get_plugin_config,
     get_witnesses,
+    notify_watchers,
 )
 from .exceptions import DidCreationError, OperationError
 from .registration_state import RegistrationState
-from .server_client import WebVHServerClient
+from .server_client import WebVHServerClient, WebVHWatcherClient
 from .utils import (
     all_are_not_none,
     get_namespace_and_identifier_from_did,
@@ -60,6 +61,7 @@ class ControllerManager:
         """Initialize the DID Webvh Manager."""
         self.profile = profile
         self.server_client = WebVHServerClient(profile)
+        self.watcher_client = WebVHWatcherClient(profile)
 
     async def _get_or_create_key(self, key_alias):
         async with self.profile.session() as session:
@@ -150,6 +152,7 @@ class ControllerManager:
 
         # Set webvh parameters options
         parameter_options = {
+            "watchers": options.get("watchers", None),
             "portable": options.get("portable", False),
             "prerotation": options.get("prerotation", False),
             "witnessThreshold": options.get("witnessThreshold", None),
@@ -200,6 +203,9 @@ class ControllerManager:
             "portable": param_options.get("portable", False),
             "updateKeys": [update_key],
         }
+
+        if param_options.get("watchers", None):
+            parameters["watchers"] = param_options.get("watchers")
 
         if param_options.get("prerotation", None):
             # If prerotation is enabled, we create the next update key and hash it
@@ -420,7 +426,7 @@ class ControllerManager:
                     }
                 ),
             )
-        return await self.finish_update_did(signed_log_entry)
+        return await self.finish_update_did(signed_log_entry, document_state.params)
 
     async def deactivate(self, options: dict):
         """Create a Webvh DID."""
@@ -574,7 +580,7 @@ class ControllerManager:
             new_next_key_info.get("multikey")
         )
 
-    async def finish_update_did(self, signed_log_entry):
+    async def finish_update_did(self, signed_log_entry, params={}):
         """Finish updating an existing did."""
         did_document = signed_log_entry.get("state")
         did = did_document.get("id")
@@ -599,6 +605,10 @@ class ControllerManager:
                 },
                 tags={},
             )
+
+        if notify_watchers(self.profile):
+            await self.watcher_client.notify_watchers(did, params.get("watchers", []))
+
         return await response.json()
 
     async def update_whois(self, scid: str, presentation: dict, options: dict = {}):
