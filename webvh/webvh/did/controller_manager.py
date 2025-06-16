@@ -7,9 +7,18 @@ import logging
 import re
 from datetime import datetime, timezone
 from uuid import uuid4
+from typing import Optional
 
+from acapy_agent.connections.models.conn_record import ConnRecord
 from acapy_agent.core.event_bus import Event, EventBus
 from acapy_agent.core.profile import Profile
+from acapy_agent.messaging.models.base import BaseModelError
+from acapy_agent.protocols.out_of_band.v1_0.manager import (
+    OutOfBandManager,
+)
+from acapy_agent.protocols.out_of_band.v1_0.messages.invitation import (
+    InvitationMessage,
+)
 from acapy_agent.resolver.did_resolver import DIDResolver
 from acapy_agent.vc.data_integrity.manager import DataIntegrityManager
 from acapy_agent.vc.data_integrity.models.options import DataIntegrityProofOptions
@@ -28,17 +37,22 @@ from ..config.config import (
     add_scid_mapping,
     did_from_scid,
     get_plugin_config,
+    get_server_url,
     get_witnesses,
     notify_watchers,
+    set_config,
 )
 from .exceptions import DidCreationError, OperationError
 from .registration_state import RegistrationState
 from .server_client import WebVHServerClient, WebVHWatcherClient
 from .utils import (
     all_are_not_none,
+    decode_invitation,
     get_namespace_and_identifier_from_did,
     key_hash,
     multikey_to_jwk,
+    create_alias,
+    server_url_to_domain
 )
 from .witness_manager import WitnessManager
 from .witness_queue import PendingRegistrations
@@ -72,6 +86,25 @@ class ControllerManager:
                 key_info = await key_manager.from_kid(key_alias)
 
         return key_info
+
+    async def _get_active_witness_connection(self) -> Optional[ConnRecord]:
+        server_url = await get_server_url(self.profile)
+        witness_alias = create_alias(
+            server_url_to_domain(server_url), "witnessConnection"
+        )
+        async with self.profile.session() as session:
+            connection_records = await ConnRecord.retrieve_by_alias(
+                session, witness_alias
+            )
+
+        active_connections = [
+            conn for conn in connection_records if conn.state == "active"
+        ]
+
+        if len(active_connections) > 0:
+            return active_connections[0]
+
+        return None
 
     async def _create_registration_document(self, did, proof_options):
         async with self.profile.session() as session:
@@ -127,6 +160,69 @@ class ControllerManager:
                     parameters=event.payload.get("metadata", {}).get("parameters"),
                 )
 
+
+    async def configure(self, server_url, witness_invitation) -> None:
+        """Configure controller."""
+        config = await get_plugin_config(self.profile)
+        config["role"] = "controller"
+        
+        if not witness_invitation:
+            raise OperationError("No witness invitation provided.")
+        
+        try:
+            decoded_invitation = decode_invitation(witness_invitation)
+        except UnicodeDecodeError:
+            raise OperationError("Invalid witness invitation.")
+
+        witness_id = decoded_invitation.get("goal")
+        if (
+            not witness_id.startswith("did:key:")
+            and not decoded_invitation.get("goal-code") == "witness-service"
+        ):
+            raise OperationError("Missing invitation goal-code and witness did.")
+        
+        witness_alias = create_alias(
+            server_url_to_domain(server_url), "witnessConnection"
+        )
+        await self.connect_to_witness(witness_alias, witness_invitation)
+
+        if witness_id not in config["witnesses"]:
+            config["witnesses"].append(witness_id)
+            
+        await set_config(self.profile, config)
+        return {"status": "success"}
+            
+
+
+    async def connect_to_witness(self, alias, invitation) -> None:
+        """Process witness invitation and connect."""
+        
+        # Get the witness connection is already set up
+        if await self._get_active_witness_connection():
+            LOGGER.info("Connected to witness from previous connection.")
+            return
+        
+        try:
+            await OutOfBandManager(self.profile).receive_invitation(
+                invitation=InvitationMessage.from_url(invitation),
+                auto_accept=True,
+                alias=alias,
+            )
+        except BaseModelError as err:
+            raise OperationError(f"Error receiving witness invitation: {err}")
+
+        for _ in range(5):
+            if await self._get_active_witness_connection():
+                LOGGER.info("Connected to witness agent.")
+                return
+            await asyncio.sleep(1)
+
+        LOGGER.info(
+            "No immediate response when trying to connect to witness agent. You can "
+            f"try manually setting up a connection with alias {alias} or "
+            "restart the agent when witness is available."
+        )
+    
     async def register(self, options: dict):
         """Register identities."""
 

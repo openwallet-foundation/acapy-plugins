@@ -43,9 +43,9 @@ LOGGER = logging.getLogger(__name__)
 @tenant_authentication
 async def get_config(request: web.BaseRequest):
     """Get webvh agent configuration."""
-    profile = request["context"].profile
-    config = await get_plugin_config(profile)
-    return web.json_response(config)
+    return web.json_response(
+        await get_plugin_config(request["context"].profile)
+    )
 
 
 @docs(tags=["did-webvh"], summary="Configure a webvh agent")
@@ -70,52 +70,24 @@ async def configure(request: web.BaseRequest):
         raise ConfigurationError("No server url provided.")
 
     try:
-        witness_manager = WitnessManager(profile)
         if request_json.get("witness"):
-            config["role"] = "witness"
-            config["auto_attest"] = request_json.get("auto_attest")
-            witness_key_info = await witness_manager.setup_witness_key(
-                config["server_url"], request_json.get("witness_key")
+            return web.json_response(
+                await WitnessManager(profile).configure(
+                    config["server_url"],
+                    request_json.get("auto_attest", False),
+                    request_json.get("witness_key", None)
+                )
             )
-            witness_key = witness_key_info.get("multikey")
-            if not witness_key:
-                raise ConfigurationError("No witness key set.")
-
-            if f"did:key:{witness_key}" not in config["witnesses"]:
-                config["witnesses"].append(f"did:key:{witness_key}")
-
-            await set_config(profile, config)
-
-            return web.json_response(witness_key_info)
 
         elif not request_json.get("witness"):
-            config["role"] = "controller"
-            config["witness_invitation"] = request_json.get("witness_invitation")
+            return web.json_response(
+                await ControllerManager(profile).configure(
+                    server_url=config["server_url"],
+                    witness_invitation=request_json.get("witness_invitation", None)
+                )
+            )
 
-            if not config.get("witness_invitation"):
-                raise ConfigurationError("No witness invitation provided.")
-
-            try:
-                witness_invitation = decode_invitation(config["witness_invitation"])
-            except UnicodeDecodeError:
-                raise ConfigurationError("Invalid witness invitation.")
-
-            if (
-                not witness_invitation.get("goal").startswith("did:key:")
-                and not witness_invitation.get("goal-code") == "witness-service"
-            ):
-                raise ConfigurationError("Missing invitation goal-code and witness did.")
-
-            if witness_invitation.get("goal") not in config["witnesses"]:
-                config["witnesses"].append(witness_invitation.get("goal"))
-
-            await set_config(profile, config)
-
-            await witness_manager.auto_witness_setup()
-
-            return web.json_response({"status": "success"})
-
-    except ConfigurationError as err:
+    except (ConfigurationError, OperationError) as err:
         return web.json_response({"status": "error", "message": str(err)})
 
 
@@ -346,6 +318,7 @@ async def register(app: web.Application):
         ]
     )
     app.add_routes([web.post("/did/webvh/witness/invitations", witness_create_invite)])
+
     app.add_routes(
         [
             web.get(

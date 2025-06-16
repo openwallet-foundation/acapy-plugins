@@ -83,30 +83,22 @@ class WebvhCreateWitnessInvitationSchema(OpenAPISchema):
 class WebvhUpdateSchema(OpenAPISchema):
     """Request model for updating a Webvh DID."""
 
-    class UpdateOptionsSchema(OpenAPISchema):
-        """Options for a Webvh DID update request."""
+    # class UpdateStateSchema(OpenAPISchema):
+    #     "Webvh DID state update schema."""
 
-        addKeys = fields.List(
-            fields.Str(),
+    class UpdateParametersSchema(OpenAPISchema):
+        "Webvh DID parameters update schema."""
+        portable = fields.Bool(
             required=False,
-            metadata={"description": "Optional key id's to add to did document."},
-        )
-        removeKeys = fields.List(
-            fields.Str(),
-            required=False,
-            metadata={"description": "Optional key id's to remove from did document."},
+            metadata={
+                "description": "Portable flag",
+                "example": False,
+            },
         )
         prerotation = fields.Bool(
             required=False,
             metadata={
                 "description": "Prerotation flag",
-                "example": False,
-            },
-        )
-        portable = fields.Bool(
-            required=False,
-            metadata={
-                "description": "Portable flag",
                 "example": False,
             },
         )
@@ -117,14 +109,9 @@ class WebvhUpdateSchema(OpenAPISchema):
                 "example": 1,
             },
         )
-
-    id = fields.Str(
-        required=True,
-        metadata={
-            "description": "The DID to update",
-        },
-    )
-    options = fields.Nested(UpdateOptionsSchema())
+        
+    # state = fields.Nested(UpdateStateSchema())
+    parameters = fields.Nested(UpdateParametersSchema())
 
 
 class WebvhCreateSchema(OpenAPISchema):
@@ -133,27 +120,11 @@ class WebvhCreateSchema(OpenAPISchema):
     class CreateOptionsSchema(OpenAPISchema):
         """Options for a Webvh DID request."""
 
-        prerotation = fields.Bool(
+        identifier = fields.Str(
             required=False,
             metadata={
-                "description": "Prerotation flag",
-                "example": False,
-            },
-            default=False,
-        )
-        portable = fields.Bool(
-            required=False,
-            metadata={
-                "description": "Portable flag",
-                "example": False,
-            },
-            default=False,
-        )
-        witnessTreshold = fields.Int(
-            required=False,
-            metadata={
-                "description": "The witness treshold",
-                "example": 1,
+                "description": "Identifier for the DID.",
+                "example": "1",
             },
         )
         watchers = fields.List(
@@ -171,12 +142,27 @@ class WebvhCreateSchema(OpenAPISchema):
                 "example": "prod",
             },
         )
-        identifier = fields.Str(
+        portable = fields.Bool(
             required=False,
             metadata={
-                "description": "Identifier for the DID. Must be unique within the "
-                "namespace. If not provided, a random one will be generated.",
-                "example": "1",
+                "description": "Enable DID portability.",
+                "example": False,
+            },
+            default=False,
+        )
+        prerotation = fields.Bool(
+            required=False,
+            metadata={
+                "description": "Enable key pre-rotation on DID updates.",
+                "example": False,
+            },
+            default=False,
+        )
+        witnessTreshold = fields.Int(
+            required=False,
+            metadata={
+                "description": "The witness treshold.",
+                "example": 1,
             },
         )
 

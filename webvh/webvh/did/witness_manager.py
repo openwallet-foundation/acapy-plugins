@@ -23,7 +23,7 @@ from acapy_agent.wallet.error import WalletNotFoundError
 from acapy_agent.wallet.keys.manager import MultikeyManager, MultikeyManagerError
 from aries_askar import AskarError
 
-from ..config.config import get_plugin_config, get_server_url, is_controller
+from ..config.config import get_plugin_config, get_server_url, is_controller, set_config
 from .exceptions import ConfigurationError, WitnessError
 from .messages.witness import WitnessRequest, WitnessResponse
 from .registration_state import RegistrationState
@@ -136,6 +136,21 @@ class WitnessManager:
                     connection_id=witness_connection.connection_id,
                 )
 
+    async def configure(self, server_url, auto_attest=False, multikey=None) -> None:
+        """Ensure witness key is setup."""
+        config = await get_plugin_config(self.profile)
+        config["role"] = "witness"
+        config["auto_attest"] = auto_attest
+        witness_key_info = await self.setup_witness_key(server_url, multikey)
+        witness_key = witness_key_info.get('multikey')
+
+        if f"did:key:{witness_key}" not in config["witnesses"]:
+            config["witnesses"].append(f"did:key:{witness_key}")
+            
+        await set_config(self.profile, config)
+        
+        return witness_key_info
+
     async def setup_witness_key(self, server_url, key=None) -> None:
         """Ensure witness key is setup."""
 
@@ -150,49 +165,6 @@ class WitnessManager:
             "multikey": witness_key_info.get("multikey"),
             "kid": witness_key_info.get("kid"),
         }
-
-    async def auto_witness_setup(self) -> None:
-        """Automatically set up the witness the connection."""
-        server_url = await get_server_url(self.profile)
-        witness_alias = create_alias(
-            server_url_to_domain(server_url), "witnessConnection"
-        )
-
-        if not await is_controller(self.profile):
-            return
-
-        # Get the witness connection is already set up
-        if await self._get_active_witness_connection():
-            LOGGER.info("Connected to witness from previous connection.")
-            return
-
-        witness_invitation = (await get_plugin_config(self.profile)).get(
-            "witness_invitation"
-        )
-        if not witness_invitation:
-            LOGGER.info("No witness invitation, can't create connection automatically.")
-            return
-        oob_mgr = OutOfBandManager(self.profile)
-        try:
-            await oob_mgr.receive_invitation(
-                invitation=InvitationMessage.from_url(witness_invitation),
-                auto_accept=True,
-                alias=witness_alias,
-            )
-        except BaseModelError as err:
-            raise WitnessError(f"Error receiving witness invitation: {err}")
-
-        for _ in range(5):
-            if await self._get_active_witness_connection():
-                LOGGER.info("Connected to witness agent.")
-                return
-            await asyncio.sleep(1)
-
-        LOGGER.info(
-            "No immediate response when trying to connect to witness agent. You can "
-            f"try manually setting up a connection with alias {witness_alias} or "
-            "restart the agent when witness is available."
-        )
 
     async def save_did_request_doc_for_witnessing(
         self, log_entry: dict, connection_id: Optional[str] = None, parameters: dict = {}
