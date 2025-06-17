@@ -276,16 +276,16 @@ yaml = ["PyYAML (>=3.10)"]
 
 [[package]]
 name = "aries-askar"
-version = "0.4.3"
+version = "0.4.4"
 description = ""
 optional = false
 python-versions = ">=3.6.3"
 groups = ["main", "integration"]
 files = [
-    {file = "aries_askar-0.4.3-py3-none-macosx_10_9_universal2.whl", hash = "sha256:fd4073f4abc7bfe423f3a637cb0d2e5fb1b96cfd0e798ee69e26eb5b9528c3e4"},
-    {file = "aries_askar-0.4.3-py3-none-manylinux2014_aarch64.whl", hash = "sha256:a787fdbf343efcdb9f26ce75ed934c2d48378cef08ae5ce69e997cba7c3f1992"},
-    {file = "aries_askar-0.4.3-py3-none-manylinux2014_x86_64.whl", hash = "sha256:e21025d841c861c20dbae6201863cb1fe76b395c2eec231835bf8703356bb157"},
-    {file = "aries_askar-0.4.3-py3-none-win_amd64.whl", hash = "sha256:ea25cc6bed206a8df9c55b09ebead18edcb669740d1868d884ba88699dc95f67"},
+    {file = "aries_askar-0.4.4-py3-none-macosx_10_9_universal2.whl", hash = "sha256:465e7cd34e6f22555d5a147f6f540524dba33d4c701da00847399a45debe079f"},
+    {file = "aries_askar-0.4.4-py3-none-manylinux2014_aarch64.whl", hash = "sha256:982aec8a865f3600cb73c657c9fec2515464b812e7e8fe91d2a9d179c6f9bd5e"},
+    {file = "aries_askar-0.4.4-py3-none-manylinux2014_x86_64.whl", hash = "sha256:bf5793abdfa2cc417c64b4713ba5635a4e5a1c248699cbe405cf218d814c84d4"},
+    {file = "aries_askar-0.4.4-py3-none-win_amd64.whl", hash = "sha256:51f8b4f5e4c8fddef96b7b729ec430dcdcf31cc74e4183ea08fe70191d49246e"},
 ]
 
 [[package]]
