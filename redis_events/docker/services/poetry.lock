@@ -364,14 +364,14 @@ files = [
 
 [[package]]
 name = "fastapi-slim"
-version = "0.115.12"
+version = "0.115.13"
 description = "FastAPI framework, high performance, easy to learn, fast to code, ready for production"
 optional = false
 python-versions = ">=3.8"
 groups = ["main"]
 files = [
-    {file = "fastapi_slim-0.115.12-py3-none-any.whl", hash = "sha256:2ebe049cfcd1d8313c781b5405dc84f921f13523269b27692e9bfa08e219bbf8"},
-    {file = "fastapi_slim-0.115.12.tar.gz", hash = "sha256:e53b12240bf6492be4deea1d819c4891be75c810f8cdb044b962a0286cbfc5b4"},
+    {file = "fastapi_slim-0.115.13-py3-none-any.whl", hash = "sha256:f54d4aacd1928db5a171dc499be84f4f70fa55e297561718d7d162bfb85b4b27"},
+    {file = "fastapi_slim-0.115.13.tar.gz", hash = "sha256:b2b18fd04bd52b304ae8c0f58e2d3a65775612c9755c3d3ec7732b2e0eb7c262"},
 ]
 
 [package.dependencies]
@@ -1082,14 +1082,14 @@ windows-terminal = ["colorama (>=0.4.6)"]
 
 [[package]]
 name = "pytest"
-version = "8.4.0"
+version = "8.4.1"
 description = "pytest: simple powerful testing with Python"
 optional = false
 python-versions = ">=3.9"
 groups = ["dev"]
 files = [
-    {file = "pytest-8.4.0-py3-none-any.whl", hash = "sha256:f40f825768ad76c0977cbacdf1fd37c6f7a468e460ea6a0636078f8972d4517e"},
-    {file = "pytest-8.4.0.tar.gz", hash = "sha256:14d920b48472ea0dbf68e45b96cd1ffda4705f33307dcc86c676c1b5104838a6"},
+    {file = "pytest-8.4.1-py3-none-any.whl", hash = "sha256:539c70ba6fcead8e78eebbf1115e8b589e7565830d7d006a8723f19ac8a0afb7"},
+    {file = "pytest-8.4.1.tar.gz", hash = "sha256:7c67fd69174877359ed9371ec3af8a3d2b04741818c51e5e99cc1742251fa93c"},
 ]
 
 [package.dependencies]
