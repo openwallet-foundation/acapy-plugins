@@ -41,6 +41,11 @@ class WitnessManager:
     def __init__(self, profile: Profile):
         """Initialize the witness manager."""
         self.profile = profile
+        self.proof_options = {
+            'type': 'DataIntegrityProof',
+            'cryptosuite': 'eddsa-jcs-2022',
+            'proofPurpose': 'assertionMethod'
+        }
 
     async def _get_active_witness_connection(self) -> Optional[ConnRecord]:
         server_url = await get_server_url(self.profile)
@@ -82,11 +87,10 @@ class WitnessManager:
                 raise ConfigurationError("Provided key not found in wallet.")
         return key_info
 
-    async def witness_registration_document(
+    async def witness_log_entry(
         self,
-        registration_document: dict,
-        proof_options: dict,
-        parameter_options: dict,
+        scid: str,
+        log_entry: dict,
     ) -> Optional[dict]:
         """Witness the document with the given parameters."""
         config = await get_plugin_config(self.profile)
@@ -107,21 +111,22 @@ class WitnessManager:
                 witness_key_info = await MultikeyManager(session).from_kid(witness_alias)
                 witness_key = witness_key_info.get("multikey")
 
-                signed_doc = await DataIntegrityManager(session).add_proof(
-                    registration_document,
+                version_id = log_entry.get('versionId')
+                witness_signature = await DataIntegrityManager(session).add_proof(
+                    {'versionId': version_id},
                     DataIntegrityProofOptions.deserialize(
-                        proof_options
+                        self.proof_options
                         | {"verificationMethod": f"did:key:{witness_key}#{witness_key}"}
                     ),
                 )
 
-                if not config.get("auto_attest", True):
-                    await self.save_did_request_doc_for_witnessing(
-                        signed_doc, connection_id=None, parameters=parameter_options
+                if not config.get("auto_attest", False):
+                    await self.save_log_entry_for_witnessing(
+                        scid, witness_signature, connection_id=None
                     )
                     return
 
-                return signed_doc
+                return witness_signature
 
             # Need proof from witness agent
             else:
@@ -132,7 +137,7 @@ class WitnessManager:
                     raise WitnessError("No active witness connection found.")
 
                 await responder.send(
-                    message=WitnessRequest(registration_document, parameter_options),
+                    message=WitnessRequest(log_entry),
                     connection_id=witness_connection.connection_id,
                 )
 
@@ -166,19 +171,18 @@ class WitnessManager:
             "kid": witness_key_info.get("kid"),
         }
 
-    async def save_did_request_doc_for_witnessing(
-        self, log_entry: dict, connection_id: Optional[str] = None, parameters: dict = {}
+    async def save_log_entry_for_witnessing(
+        self, scid: str, log_entry: dict, connection_id: Optional[str] = ""
     ):
         """Save an did request doc to the wallet to be witnessed."""
         async with self.profile.session() as session:
             try:
                 await session.handle.insert(
                     PENDING_DOCUMENT_TABLE_NAME,
-                    log_entry["id"],
+                    scid,
                     value_json=log_entry,
                     tags={
-                        "connection_id": connection_id or "",
-                        "parameters": json.dumps(parameters),
+                        "connection_id": connection_id
                     },
                 )
             except AskarError as e:

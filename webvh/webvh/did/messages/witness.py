@@ -18,11 +18,10 @@ class WitnessRequest(AgentMessage):
         message_type = WITNESS_REQUEST
         schema_class = "WitnessRequestSchema"
 
-    def __init__(self, document: dict, parameters: dict, **kwargs):
+    def __init__(self, document: dict, **kwargs):
         """Initialize RequestWitness."""
         super().__init__(**kwargs)
         self.document = document
-        self.parameters = parameters
 
 
 class WitnessRequestSchema(AgentMessageSchema):
@@ -40,12 +39,6 @@ class WitnessRequestSchema(AgentMessageSchema):
         required=True,
         metadata={"description": "document to witness"},
     )
-    parameters = fields.Dict(
-        required=False,
-        metadata={
-            "description": "parameters for the initial did",
-        },
-    )
 
 
 class WitnessResponse(AgentMessage):
@@ -58,12 +51,11 @@ class WitnessResponse(AgentMessage):
         message_type = WITNESS_RESPONSE
         schema_class = "WitnessResponseSchema"
 
-    def __init__(self, state: str, document: dict, parameters: dict, **kwargs):
+    def __init__(self, state: str, document: dict, **kwargs):
         """Initialize ResponseWitness."""
         super().__init__(**kwargs)
         self.state = state
         self.document = document
-        self.parameters = parameters
 
 
 class WitnessResponseSchema(AgentMessageSchema):
@@ -88,11 +80,5 @@ class WitnessResponseSchema(AgentMessageSchema):
         required=False,
         metadata={
             "description": "document to witness",
-        },
-    )
-    parameters = fields.Dict(
-        required=False,
-        metadata={
-            "description": "parameters for the initial did",
         },
     )

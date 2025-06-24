@@ -61,13 +61,12 @@ async def configure(request: web.BaseRequest):
 
     config["scids"] = config.get("scids", {})
     config["witnesses"] = config.get("witnesses", [])
-    config["server_url"] = request_json.get(
-        "server_url", config.get("server_url")
-    ).rstrip("/")
-    config["notify_watchers"] = request_json.get("notify_watchers", False)
+    # config["server_url"] = request_json.get(
+    #     "server_url", config.get("server_url")
+    # ).rstrip("/")
 
-    if not config.get("server_url"):
-        raise ConfigurationError("No server url provided.")
+    # if not config.get("server_url"):
+    #     raise ConfigurationError("No server url provided.")
 
     try:
         if request_json.get("witness"):
@@ -119,7 +118,7 @@ async def create(request: web.BaseRequest):
     request_json = await request.json()
     try:
         return web.json_response(
-            await ControllerManager(context.profile).register(
+            await ControllerManager(context.profile).create(
                 options=request_json["options"]
             )
         )
@@ -272,15 +271,15 @@ async def update_whois(request: web.BaseRequest):
         return web.json_response({"status": "error", "message": str(err)})
 
 
-def register_events(event_bus: EventBus):
-    """Register to the acapy startup event."""
-    event_bus.subscribe(STARTUP_EVENT_PATTERN, on_startup_event)
+# def register_events(event_bus: EventBus):
+#     """Register to the acapy startup event."""
+#     event_bus.subscribe(STARTUP_EVENT_PATTERN, on_startup_event)
 
 
-async def on_startup_event(profile: Profile, event: Event):
-    """Handle the witness setup."""
-    if not profile.settings.get("multitenant.enabled"):
-        await WitnessManager(profile).auto_witness_setup()
+# async def on_startup_event(profile: Profile, event: Event):
+#     """Handle the witness setup."""
+#     if not profile.settings.get("multitenant.enabled"):
+#         await ControllerManager(profile).auto_witness_setup()
 
 
 async def register(app: web.Application):

@@ -55,41 +55,31 @@ class WebVHServerClient:
                 or response.status == http.HTTPStatus.CONFLICT
             ):
                 raise DidCreationError(response_json.get("detail"))
+            
+            parameters = response_json.get("parameters", {})
+            method = parameters.get("method", None)
+            
+            state = response_json.get("state", {})
+            placeholder_id = state.get('id', None)
+            
+            proof_options = parameters.get("proof", {})
 
-            did_document = response_json.get("didDocument", {})
-            did = did_document.get("id")
-
-            proof_options = response_json.get("proofOptions", {})
-            challenge = proof_options.get("challenge")
-            domain = proof_options.get("domain")
-            expiration = proof_options.get("expires")
-
-            if all_are_not_none(did, challenge, domain, expiration):
-                return did_document, proof_options
+            if all_are_not_none(parameters, state, placeholder_id, method, proof_options):
+                return response_json
             else:
                 raise DidCreationError(
                     "Invalid response from Webvh server requesting identifier"
                 )
 
-    async def register_did_doc(self, registration_document):
-        """Register a DID document and did with the WebVH server."""
-        async with ClientSession() as session:
-            # Register did document and did with the server
-            response = await session.post(
-                await get_server_url(self.profile),
-                json={"didDocument": registration_document},
-                ssl=(await use_strict_ssl(self.profile)),
-            )
-            response_json = await response.json()
-            if response.status == http.HTTPStatus.BAD_REQUEST:
-                raise DidCreationError(response_json.get("detail"))
-
-    async def submit_log_entry(self, log_entry, namespace, identifier):
+    async def submit_log_entry(self, log_entry, witness_signature, namespace, identifier):
         """Submit an initial log entry to the WebVH server."""
         async with ClientSession() as session:
             response = await session.post(
                 f"{await get_server_url(self.profile)}/{namespace}/{identifier}",
-                json={"logEntry": log_entry},
+                json={
+                    "logEntry": log_entry,
+                    "witnessSignature": witness_signature
+                },
                 ssl=(await use_strict_ssl(self.profile)),
             )
 

@@ -96,7 +96,9 @@ class DIDWebVHRegistry(BaseAnonCredsResolver, BaseAnonCredsRegistrar):
     def _derive_upload_endpoint(verification_method) -> str:
         """Derive service upload endpoint."""
         domain = verification_method.split(":")[3]
-        return f"https://{domain}/resources"
+        namespace = verification_method.split(":")[4]
+        identifier = verification_method.split(":")[5]
+        return f"https://{domain}/{namespace}/{identifier}/resources"
 
     @staticmethod
     def _derive_update_endpoint(resource_id) -> str:

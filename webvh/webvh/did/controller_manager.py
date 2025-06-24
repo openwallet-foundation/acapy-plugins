@@ -106,45 +106,119 @@ class ControllerManager:
 
         return None
 
-    async def _create_registration_document(self, did, proof_options):
+    async def _create_parameters_input(self, options, placeholder_id):
+        # Creating the input parameters
+        parameters = {
+            "method": WEBVH_METHOD,
+            "portable": options.get("portable", False)
+        }
+
+        # Witness
+        if options.get("witnessThreshold"):
+            parameters["witness"] = {
+                "threshold": options.get("witnessThreshold"),
+                "witnesses": [
+                    {"id": witness} for witness in await get_witnesses(self.profile)
+                ],
+            }
+
+        # Watchers
+        if options.get("watchers"):
+            parameters["watchers"] = options.get("watchers")
+
+        # Key provisioning
         async with self.profile.session() as session:
-            # We create an initial verification method
             key_manager = MultikeyManager(session)
-            signing_key_info = await key_manager.create(alg="ed25519")
-            signing_key = signing_key_info.get("multikey")
-            signing_key_id = f"{did}#{signing_key}"
-            await key_manager.update(kid=signing_key_id, multikey=signing_key)
+            
+            # Update Key
+            update_key = (
+                await key_manager.create(
+                    alg="ed25519", 
+                    kid=f"{placeholder_id}#updateKey"
+                )
+            ).get("multikey")
+            parameters["updateKeys"] = [update_key]
+            
+            # Next Key
+            if options.get("prerotation", None):
+                next_key = (
+                    await key_manager.create(
+                        alg="ed25519",
+                        kid=f"{placeholder_id}#nextKey"
+                    )
+                ).get("multikey")
+                parameters["nextKeyHashes"] = [key_hash(next_key)]
+                
+        return parameters
 
-            # Sign registration document with registration key
-            return await DataIntegrityManager(session).add_proof(
-                DIDDocument(
-                    context=[
-                        "https://www.w3.org/ns/did/v1",
-                        "https://www.w3.org/ns/cid/v1",
-                    ],
-                    id=did,
-                    key_agreement=[],
-                    authentication=[signing_key_id],
-                    assertion_method=[signing_key_id],
-                    verification_method=[
-                        {
-                            "type": "Multikey",
-                            "id": signing_key_id,
-                            "controller": did,
-                            "publicKeyMultibase": signing_key,
-                        }
-                    ],
-                    capability_invocation=[],
-                    capability_delegation=[],
-                    service=[],
-                ).serialize(),
-                DataIntegrityProofOptions.deserialize(proof_options),
+    async def _create_preliminary_doc(self, placeholder_id):
+        
+        # Create a signing key
+        async with self.profile.session() as session:
+            key_manager = MultikeyManager(session)
+            
+            signing_key = (await key_manager.create(alg="ed25519")).get("multikey")
+            signing_key_id = f"{placeholder_id}#{signing_key}"
+            
+            # Bind parralel DID
+            web_did = placeholder_id.replace(r'did:webvh:{SCID}:', 'did:web:')
+            await key_manager.update(kid=f"{web_did}#{signing_key}", multikey=signing_key)
+        
+        return {
+            '@context': [
+                "https://www.w3.org/ns/did/v1",
+                "https://www.w3.org/ns/cid/v1",
+            ],
+            'id': placeholder_id,
+            'authentication': [signing_key_id],
+            'assertionMethod': [signing_key_id],
+            'verificationMethod': [
+                {
+                    "type": "Multikey",
+                    "id": signing_key_id,
+                    "controller": placeholder_id,
+                    "publicKeyMultibase": signing_key,
+                }
+            ]
+        }
+
+    async def _create_initial_log_entry(self, parameters, preliminary_doc):
+        placeholder_id = preliminary_doc.get('id')
+        doc_state = DocumentState.initial(
+            parameters,
+            preliminary_doc,
+        )
+        update_key = doc_state.update_keys[0]
+        signing_key = doc_state.document['verificationMethod'][0]['publicKeyMultibase']
+        async with self.profile.session() as session:
+            
+            di_manager = DataIntegrityManager(session)
+            initial_log_entry = await di_manager.add_proof(
+                doc_state.history_line(),
+                DataIntegrityProofOptions(
+                    type="DataIntegrityProof",
+                    cryptosuite="eddsa-jcs-2022",
+                    proof_purpose="assertionMethod",
+                    verification_method=f"did:key:{update_key}#{update_key}",
+                ),
             )
+            did = initial_log_entry.get('state').get('id')
+            
+            key_manager = MultikeyManager(session)
+            
+            if parameters.get('nextKeyHashes'):
+                next_key = await key_manager.from_kid(kid=f"{placeholder_id}#nextKey")
+                await key_manager.update(kid=f"{did}#nextKey", multikey=next_key)
+                
+            await key_manager.update(kid=f"{did}#updateKey", multikey=update_key)
+            await key_manager.update(kid=f"{did}#{signing_key}", multikey=signing_key)
 
-    async def _wait_for_witness(self, did: str):
+        return initial_log_entry
+
+    async def _wait_for_witness(self, scid: str):
         event_bus = self.profile.inject(EventBus)
         with event_bus.wait_for_event(
-            self.profile, re.compile(rf"^{WITNESS_EVENT}{did}$")
+            self.profile, re.compile(rf"^{WITNESS_EVENT}{scid}$")
         ) as await_event:
             event = await await_event
             if (
@@ -153,11 +227,10 @@ class ControllerManager:
             ):
                 return PENDING_MESSAGE
             else:
-                await PendingRegistrations().remove_pending_did(self.profile, did)
-                return await self.finish_registration(
+                await PendingRegistrations().remove_pending_scid(self.profile, scid)
+                return await self.finish_create(
                     event.payload.get("document"),
                     state=RegistrationState.FINISHED.value,
-                    parameters=event.payload.get("metadata", {}).get("parameters"),
                 )
 
 
@@ -222,205 +295,127 @@ class ControllerManager:
             f"try manually setting up a connection with alias {alias} or "
             "restart the agent when witness is available."
         )
-    
-    async def register(self, options: dict):
-        """Register identities."""
+        
+
+    async def create(self, options: dict):
+        """Create DID and first log entry."""
 
         # Set default namespace and random identifier if none provided
         namespace = options.get("namespace", "default")
         identifier = options.get("identifier", str(uuid4()))
 
         # Contact the server to request the identifier
-        did_doc, proof_options = await self.server_client.request_identifier(
+        input_doc = await self.server_client.request_identifier(
             namespace, identifier
         )
-        did = did_doc.get("id")
-
-        # Create local update key
-        update_key = (await self._get_or_create_key(f"{did}#updateKey")).get("multikey")
-
-        # Create controller proof
-        registration_document = await self._create_registration_document(
-            did,
-            copy.deepcopy(proof_options)
-            | {"verificationMethod": f"did:key:{update_key}#{update_key}"},
+        
+        placeholder_id = input_doc.get("state").get("id")
+            
+        parameters_input = await self._create_parameters_input(options, placeholder_id)
+        preliminary_doc = await self._create_preliminary_doc(placeholder_id)
+        initial_log_entry = await self._create_initial_log_entry(
+            parameters_input, 
+            preliminary_doc
         )
-
-        # Set webvh parameters options
-        parameter_options = {
-            "watchers": options.get("watchers", None),
-            "portable": options.get("portable", False),
-            "prerotation": options.get("prerotation", False),
-            "witnessThreshold": options.get("witnessThreshold", None),
-        }
-
-        result = await WitnessManager(self.profile).witness_registration_document(
-            registration_document, copy.deepcopy(proof_options), parameter_options
-        )
-
-        if isinstance(result, dict):
-            return await self.finish_registration(
-                result,
-                parameters=parameter_options,
-                state=RegistrationState.SUCCESS.value,
+        
+        scid = initial_log_entry.get('parameters').get('scid')
+        witness_signature = None
+        if initial_log_entry.get('parameters').get('witness', None):
+            witness_signature = await WitnessManager(self.profile).witness_log_entry(
+                scid,
+                initial_log_entry
             )
 
-        if (await get_plugin_config(self.profile)).get("role") == "witness":
-            return PENDING_MESSAGE
+            if not isinstance(witness_signature, dict):
+            
+                if (await get_plugin_config(self.profile)).get("role") == "witness":
+                    return PENDING_MESSAGE
 
-        try:
-            await PendingRegistrations().set_pending_did(self.profile, did)
-            return await asyncio.wait_for(
-                self._wait_for_witness(did),
-                WITNESS_WAIT_TIMEOUT_SECONDS,
-            )
-        except asyncio.TimeoutError:
-            return {
-                "status": "unknown",
-                "message": "No immediate response from witness agent.",
-            }
+                try:
+                    await PendingRegistrations().set_pending_log_entry(self.profile, scid)
+                    return await asyncio.wait_for(
+                        self._wait_for_witness(scid),
+                        WITNESS_WAIT_TIMEOUT_SECONDS,
+                    )
+                except asyncio.TimeoutError:
+                    return {
+                        "status": "unknown",
+                        "message": "No immediate response from witness agent.",
+                    }
 
-    async def _create_initial_log_entry(
-        self, registration_document: str, param_options: dict
-    ):
-        registration_document.pop("proof")
-        web_did = registration_document.get("id")
-
-        preliminary_doc = json.loads(
-            (json.dumps(registration_document).replace("did:web:", r"did:webvh:{SCID}:"))
+        return await self.finish_create(
+            initial_log_entry,
+            witness_signature,
+            state=RegistrationState.SUCCESS.value,
         )
 
-        # Transform create options into webvh parameters
-        update_key = (await self._get_or_create_key(f"{web_did}#updateKey")).get(
-            "multikey"
-        )
-        parameters = {
-            "method": WEBVH_METHOD,
-            "portable": param_options.get("portable", False),
-            "updateKeys": [update_key],
-        }
-
-        if param_options.get("watchers", None):
-            parameters["watchers"] = param_options.get("watchers")
-
-        if param_options.get("prerotation", None):
-            # If prerotation is enabled, we create the next update key and hash it
-            next_key_info = await self._get_or_create_key(f"{web_did}#nextKey")
-            parameters["nextKeyHashes"] = [key_hash(next_key_info.get("multikey"))]
-
-        if param_options.get("witnessThreshold"):
-            # If witnessing is enabled, we add the list of our active witnesses
-            witnesses = await get_witnesses(self.profile)
-            parameters["witness"] = {
-                "threshold": param_options.get("witnessThreshold"),
-                "witnesses": [],
-            }
-            for witness in witnesses:
-                parameters["witness"]["witnesses"].append({"id": witness})
-
-        doc_state = DocumentState.initial(
-            parameters,
-            preliminary_doc,
-        )
-
-        # Add controller authorized proof to the log entry
-        async with self.profile.session() as session:
-            signed_entry = await DataIntegrityManager(session).add_proof(
-                doc_state.history_line(),
-                DataIntegrityProofOptions(
-                    type="DataIntegrityProof",
-                    cryptosuite="eddsa-jcs-2022",
-                    proof_purpose="assertionMethod",
-                    verification_method=f"did:key:{update_key}#{update_key}",
-                ),
-            )
-
-        return signed_entry
-
-    async def finish_registration(
+        
+    async def finish_create(
         self,
-        registration_document: dict,
-        parameters: dict,
+        initial_log_entry: dict,
+        witness_signature: dict = None,
         state: str = RegistrationState.SUCCESS.value,
     ):
         """Finish the registration of the DID."""
-        did = registration_document["id"]
+        did_state = initial_log_entry["state"]
+        did = did_state["id"]
+        scid = did.split(":")[2]
+        namespace = did.split(":")[4]
+        identifier = did.split(":")[5]
+        
         if state == RegistrationState.ATTESTED.value:
             event_bus = self.profile.inject(EventBus)
             await event_bus.notify(
                 self.profile,
                 Event(
-                    f"{WITNESS_EVENT}{did}",
+                    f"{WITNESS_EVENT}{scid}",
                     {
-                        "document": registration_document,
+                        "document": initial_log_entry,
                         "metadata": {
-                            "state": RegistrationState.ATTESTED.value,
-                            "parameters": parameters,
+                            "state": RegistrationState.ATTESTED.value
                         },
                     },
                 ),
             )
             await asyncio.sleep(WITNESS_WAIT_TIMEOUT_SECONDS)
-            if did not in await PendingRegistrations().get_pending_dids(self.profile):
+            if scid not in await PendingRegistrations().get_pending_scids(self.profile):
                 return
-            await PendingRegistrations().remove_pending_did(self.profile, did)
+            await PendingRegistrations().remove_pending_scid(self.profile, scid)
 
         if state == RegistrationState.PENDING.value:
             event_bus = self.profile.inject(EventBus)
             await event_bus.notify(
                 self.profile,
                 Event(
-                    f"{WITNESS_EVENT}{did}",
+                    f"{WITNESS_EVENT}{scid}",
                     {
-                        "document": registration_document,
+                        "document": initial_log_entry,
                         "metadata": {
                             "state": RegistrationState.PENDING.value,
-                            "parameters": parameters,
                         },
                     },
                 ),
             )
             return
 
-        await self.server_client.register_did_doc(registration_document)
-
-        return await self.create(registration_document, parameters)
-
-    async def create(self, registration_document: dict, parameters: dict):
-        """Create DID and first log entry."""
-        web_did = registration_document.get("id")
-        # Create initial log entry
-        namespace = web_did.split(":")[-2]
-        identifier = web_did.split(":")[-1]
-        # update_key = parameters.get("updateKeys")[0]
-        signing_key = registration_document["verificationMethod"][0].get(
-            "publicKeyMultibase"
-        )
-
-        initial_log_entry = await self._create_initial_log_entry(
-            registration_document,
-            parameters,
-        )
-
         response_json = await self.server_client.submit_log_entry(
             initial_log_entry,
+            witness_signature,
             namespace,
             identifier,
         )
-
-        webvh_did = response_json.get("state", {}).get("id")
-        if not webvh_did:
-            raise DidCreationError("No state returned")
-
-        scid = webvh_did.split(":")[2]
+        if did != response_json.get("state", {}).get("id"):
+            raise DidCreationError("Bad state returned")
+        
+        signing_key = did_state['verificationMethod'][0]['publicKeyMultibase']
 
         async with self.profile.session() as session:
             # Save the did in the wallet
             await session.handle.insert(
                 CATEGORY_DID,
-                webvh_did,
+                did,
                 value_json={
-                    "did": webvh_did,
+                    "did": did,
                     # We use the created signing as the default DID key
                     "verkey": multikey_to_verkey(signing_key),
                     "metadata": {
@@ -438,7 +433,7 @@ class ControllerManager:
             resolver = session.inject(DIDResolver)
 
             resolved_did_doc = (
-                await resolver.resolve_with_metadata(self.profile, webvh_did)
+                await resolver.resolve_with_metadata(self.profile, did)
             ).serialize()
 
             event_bus = self.profile.inject(EventBus)
@@ -448,40 +443,16 @@ class ControllerManager:
             await event_bus.notify(
                 self.profile,
                 Event(
-                    f"{WITNESS_EVENT}{web_did}",
+                    f"{WITNESS_EVENT}{scid}",
                     {"document": resolved_did_doc["did_document"], "metadata": metadata},
                 ),
             )
 
             # Save the active scid parameters in the wallet
-            await add_scid_mapping(self.profile, scid, webvh_did)
-            await session.handle.insert(
-                "scid",
-                scid,
-                value_json={
-                    "didDocument": response_json.get("state"),
-                    "parameters": initial_log_entry.get("parameters"),
-                },
-                tags={},
-            )
-
-            # Update the key id's with the webvh did
-            key_manager = MultikeyManager(session)
-            parameters = initial_log_entry.get("parameters")
-            update_key = parameters.get("updateKeys")[0]
-
-            await key_manager.update(multikey=update_key, kid=f"{webvh_did}#updateKey")
-            await key_manager.update(
-                multikey=signing_key, kid=f"{webvh_did}#{signing_key}"
-            )
-
-            if initial_log_entry.get("parameters").get("nextKeyHashes"):
-                next_key = (await key_manager.from_kid(f"{web_did}#nextKey")).get(
-                    "multikey"
-                )
-                await key_manager.update(multikey=next_key, kid=f"{webvh_did}#nextKey")
+            await add_scid_mapping(self.profile, scid, did)
 
         return response_json.get("state", {})
+
 
     async def update(self, scid: str, did_document: dict = None):
         """Update a Webvh DID."""
