@@ -43,9 +43,7 @@ LOGGER = logging.getLogger(__name__)
 @tenant_authentication
 async def get_config(request: web.BaseRequest):
     """Get webvh agent configuration."""
-    return web.json_response(
-        await get_plugin_config(request["context"].profile)
-    )
+    return web.json_response(await get_plugin_config(request["context"].profile))
 
 
 @docs(tags=["did-webvh"], summary="Configure a webvh agent")
@@ -67,7 +65,7 @@ async def configure(request: web.BaseRequest):
         "server_url", config.get("server_url")
     ).rstrip("/")
     config["endorsement"] = request_json.get("endorsement", False)
-    
+
     await set_config(profile, config)
 
     try:
@@ -75,7 +73,7 @@ async def configure(request: web.BaseRequest):
             return web.json_response(
                 await WitnessManager(profile).configure(
                     request_json.get("auto_attest", False),
-                    request_json.get("witness_key", None)
+                    request_json.get("witness_key", None),
                 )
             )
 
@@ -212,9 +210,7 @@ async def deactivate(request: web.BaseRequest):
 async def get_pending_log_entries(request: web.BaseRequest):
     """Get all pending log entries."""
     context: AdminRequestContext = request["context"]
-    pending_log_entries = await WitnessManager(
-        context.profile
-    ).get_pending_log_entries()
+    pending_log_entries = await WitnessManager(context.profile).get_pending_log_entries()
     return web.json_response({"results": pending_log_entries})
 
 
@@ -228,7 +224,8 @@ async def approve_pending_log_entry(request: web.BaseRequest):
     try:
         return web.json_response(
             await WitnessManager(context.profile).approve_log_entry(
-                request.query.get("scid"))
+                request.query.get("scid")
+            )
         )
     except WitnessError as err:
         return web.json_response({"status": "error", "message": str(err)})
@@ -244,7 +241,8 @@ async def reject_pending_log_entry(request: web.BaseRequest):
     try:
         return web.json_response(
             await WitnessManager(context.profile).reject_log_entry(
-                request.query.get("scid"))
+                request.query.get("scid")
+            )
         )
     except WitnessError as err:
         return web.json_response({"status": "error", "message": str(err)})
@@ -271,7 +269,8 @@ async def approve_pending_attested_resource(request: web.BaseRequest):
     try:
         return web.json_response(
             await WitnessManager(context.profile).approve_attested_resource(
-                request.query.get("scid"))
+                request.query.get("scid")
+            )
         )
     except WitnessError as err:
         return web.json_response({"status": "error", "message": str(err)})
@@ -287,7 +286,8 @@ async def reject_pending_attested_resource(request: web.BaseRequest):
     try:
         return web.json_response(
             await WitnessManager(context.profile).reject_attested_resource(
-                request.query.get("scid"))
+                request.query.get("scid")
+            )
         )
     except WitnessError as err:
         return web.json_response({"status": "error", "message": str(err)})
@@ -327,29 +327,43 @@ async def update_whois(request: web.BaseRequest):
 
 async def register(app: web.Application):
     """Register routes for DID Webvh."""
-    app.add_routes([
-        web.post("/did/webvh/configuration", configure),
-        web.get("/did/webvh/configuration", get_config, allow_head=False),
-        web.post("/did/webvh/controller/create", create),
-        web.post("/did/webvh/controller/update", update),
-        web.post("/did/webvh/controller/deactivate", deactivate),
-        web.post("/did/webvh/controller/verification-methods", 
-                 add_verification_method_request),
-        web.delete("/did/webvh/controller/verification-methods/{key_id}",
-                delete_verification_method_request),
-        web.post("/did/webvh/controller/whois", update_whois),
-        web.post("/did/webvh/witness/invitations", witness_create_invite),
-        web.get("/did/webvh/witness/log-entries", 
-                get_pending_log_entries, allow_head=False),
-        web.post("/did/webvh/witness/log-entries", approve_pending_log_entry),
-        web.delete("/did/webvh/witness/log-entries", reject_pending_log_entry),
-        web.get("/did/webvh/witness/attested-resources", 
-                get_pending_attested_resources, allow_head=False),
-        web.post("/did/webvh/witness/attested-resources", 
-                 approve_pending_attested_resource),
-        web.delete("/did/webvh/witness/attested-resources", 
-                   reject_pending_attested_resource)
-    ])
+    app.add_routes(
+        [
+            web.post("/did/webvh/configuration", configure),
+            web.get("/did/webvh/configuration", get_config, allow_head=False),
+            web.post("/did/webvh/controller/create", create),
+            web.post("/did/webvh/controller/update", update),
+            web.post("/did/webvh/controller/deactivate", deactivate),
+            web.post(
+                "/did/webvh/controller/verification-methods",
+                add_verification_method_request,
+            ),
+            web.delete(
+                "/did/webvh/controller/verification-methods/{key_id}",
+                delete_verification_method_request,
+            ),
+            web.post("/did/webvh/controller/whois", update_whois),
+            web.post("/did/webvh/witness/invitations", witness_create_invite),
+            web.get(
+                "/did/webvh/witness/log-entries",
+                get_pending_log_entries,
+                allow_head=False,
+            ),
+            web.post("/did/webvh/witness/log-entries", approve_pending_log_entry),
+            web.delete("/did/webvh/witness/log-entries", reject_pending_log_entry),
+            web.get(
+                "/did/webvh/witness/attested-resources",
+                get_pending_attested_resources,
+                allow_head=False,
+            ),
+            web.post(
+                "/did/webvh/witness/attested-resources", approve_pending_attested_resource
+            ),
+            web.delete(
+                "/did/webvh/witness/attested-resources", reject_pending_attested_resource
+            ),
+        ]
+    )
 
 
 def post_process_routes(app: web.Application):

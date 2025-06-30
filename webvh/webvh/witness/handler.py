@@ -6,11 +6,7 @@ from acapy_agent.messaging.base_handler import BaseHandler
 from acapy_agent.messaging.request_context import RequestContext
 from acapy_agent.messaging.responder import BaseResponder
 
-from ..did.utils import (
-    url_to_domain,
-    find_key,
-    add_proof
-)
+from ..did.utils import url_to_domain, find_key, add_proof
 from ..did.manager import ControllerManager
 from ..did.constants import ALIASES
 from .manager import WitnessManager
@@ -51,8 +47,7 @@ class WitnessRequestHandler(BaseHandler):
         # If the key is found, perform witness
         # Note: The witness key is used as the verification method
         witnessed_document = await add_proof(
-            document,
-            f"did:key:{witness_key}#{witness_key}"
+            document, f"did:key:{witness_key}#{witness_key}"
         )
         # If the witness is successful, return a success message
         await responder.send(

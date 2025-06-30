@@ -55,13 +55,13 @@ class WebVHServerClient:
                 or response.status == http.HTTPStatus.CONFLICT
             ):
                 raise DidCreationError(response_json.get("detail"))
-            
+
             parameters = response_json.get("parameters", {})
             method = parameters.get("method", None)
-            
+
             state = response_json.get("state", {})
-            placeholder_id = state.get('id', None)
-            
+            placeholder_id = state.get("id", None)
+
             proof_options = parameters.get("proof", {})
 
             if all_are_not_none(parameters, state, placeholder_id, method, proof_options):
@@ -76,10 +76,7 @@ class WebVHServerClient:
         async with ClientSession() as session:
             response = await session.post(
                 f"{await get_server_url(self.profile)}/{namespace}/{identifier}",
-                json={
-                    "logEntry": log_entry,
-                    "witnessSignature": witness_signature
-                },
+                json={"logEntry": log_entry, "witnessSignature": witness_signature},
                 ssl=(await use_strict_ssl(self.profile)),
             )
 
@@ -151,13 +148,13 @@ class WebVHServerClient:
             return await response.json()
 
     async def upload_attested_resource(
-        self, 
-        namespace: str, 
-        identifier: str, 
+        self,
+        namespace: str,
+        identifier: str,
         resource: dict,
         witness_signature: dict = None,
-        options: dict = None
-        ):
+        options: dict = None,
+    ):
         """Submit a whois Verifiable Presentation for a given identifier."""
         server_url = await get_server_url(self.profile)
         async with ClientSession() as http_session:

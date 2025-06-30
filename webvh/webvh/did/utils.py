@@ -78,14 +78,11 @@ def get_namespace_and_identifier_from_did(did: str):
     return parts[4], parts[5]
 
 
-
 async def create_key(profile, kid=None) -> str:
     async with profile.session() as session:
-        key = await MultikeyManager(session).create(
-            alg="ed25519", 
-            kid=kid
-        )
+        key = await MultikeyManager(session).create(alg="ed25519", kid=kid)
     return key.get("multikey")
+
 
 async def find_key(profile, kid) -> str:
     try:
@@ -97,12 +94,12 @@ async def find_key(profile, kid) -> str:
     except AttributeError:
         return None
 
+
 async def find_multikey(profile, multikey) -> str:
     async with profile.session() as session:
-        key = await MultikeyManager(session).from_multikey(
-            multikey
-        )
+        key = await MultikeyManager(session).from_multikey(multikey)
     return key.get("multikey")
+
 
 async def bind_key(profile, multikey, kid) -> str:
     async with profile.session() as session:
@@ -112,12 +109,14 @@ async def bind_key(profile, multikey, kid) -> str:
         )
     return key.get("multikey")
 
+
 async def unbind_key(profile, multikey, kid) -> str:
     async with profile.session() as session:
         await MultikeyManager(session).unbind_key_id(
             kid=kid,
             multikey=multikey,
         )
+
 
 async def add_proof(profile, document, verification_method) -> str:
     async with profile.session() as session:
@@ -131,6 +130,7 @@ async def add_proof(profile, document, verification_method) -> str:
             ),
         )
     return signed_document
+
 
 async def verify_proof(profile, document) -> bool:
     async with profile.session() as session:

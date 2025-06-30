@@ -58,7 +58,7 @@ from .utils import (
     bind_key,
     unbind_key,
     add_proof,
-    verify_proof
+    verify_proof,
 )
 
 LOGGER = logging.getLogger(__name__)
@@ -85,9 +85,7 @@ class ControllerManager:
 
     async def _get_active_witness_connection(self) -> Optional[ConnRecord]:
         server_url = await get_server_url(self.profile)
-        witness_alias = create_alias(
-            url_to_domain(server_url), "witnessConnection"
-        )
+        witness_alias = create_alias(url_to_domain(server_url), "witnessConnection")
         async with self.profile.session() as session:
             connection_records = await ConnRecord.retrieve_by_alias(
                 session, witness_alias
@@ -103,11 +101,10 @@ class ControllerManager:
         return None
 
     async def _set_parameters_input(self, placeholder_id, options):
-        
         # Method
         # https://identity.foundation/didwebvh/next/#didwebvh-did-method-parameters
         parameters = {"method": WEBVH_METHOD}
-        
+
         # Portability
         # https://identity.foundation/didwebvh/next/#did-portability
         if options.get("portable", False):
@@ -120,7 +117,7 @@ class ControllerManager:
                 "threshold": options.get("witness_threshold"),
                 "witnesses": [
                     {"id": witness} for witness in await get_witnesses(self.profile)
-                ]
+                ],
             }
 
         # Watchers
@@ -132,73 +129,70 @@ class ControllerManager:
         # https://identity.foundation/didwebvh/next/#authorized-keys
         update_key = await create_key(self.profile, f"{placeholder_id}#updateKey")
         parameters["updateKeys"] = [update_key]
-        
+
         # Provision Rotation Key
         # https://identity.foundation/didwebvh/next/#pre-rotation-key-hash-generation-and-verification
         if options.get("prerotation", False):
             next_key = await create_key(self.profile, f"{placeholder_id}#nextKey")
             parameters["nextKeyHashes"] = [key_hash(next_key)]
-                
+
         return parameters
 
     async def _create_preliminary_doc(self, placeholder_id):
-        
         # Create a signing key
         signing_key = await create_key(self.profile)
         signing_key_id = f"{placeholder_id}#{signing_key}"
         await bind_key(self.profile, kid=signing_key_id, multikey=signing_key)
-        
+
         # Bind parallel DID
         # https://identity.foundation/didwebvh/next/#publishing-a-parallel-didweb-did
-        web_did = placeholder_id.replace(r'did:webvh:{SCID}:', 'did:web:')
+        web_did = placeholder_id.replace(r"did:webvh:{SCID}:", "did:web:")
         await bind_key(self.profile, kid=f"{web_did}#{signing_key}", multikey=signing_key)
-        
+
         return {
-            '@context': [
+            "@context": [
                 "https://www.w3.org/ns/did/v1",
                 "https://www.w3.org/ns/cid/v1",
             ],
-            'id': placeholder_id,
-            'authentication': [signing_key_id],
-            'assertionMethod': [signing_key_id],
-            'verificationMethod': [
+            "id": placeholder_id,
+            "authentication": [signing_key_id],
+            "assertionMethod": [signing_key_id],
+            "verificationMethod": [
                 {
                     "type": "Multikey",
                     "id": signing_key_id,
                     "controller": placeholder_id,
                     "publicKeyMultibase": signing_key,
                 }
-            ]
+            ],
         }
 
     async def _create_initial_log_entry(self, preliminary_doc, parameters_input):
-        placeholder_id = preliminary_doc.get('id')
+        placeholder_id = preliminary_doc.get("id")
         doc_state = DocumentState.initial(
             parameters_input,
             preliminary_doc,
         )
         update_key = await find_key(self.profile, f"{placeholder_id}#updateKey")
         initial_log_entry = await add_proof(
-            self.profile, 
-            doc_state.history_line(),
-            f"did:key:{update_key}#{update_key}"
+            self.profile, doc_state.history_line(), f"did:key:{update_key}#{update_key}"
         )
-        document = initial_log_entry.get('state')
-        
-        did = document.get('id')
-                
+        document = initial_log_entry.get("state")
+
+        did = document.get("id")
+
         await bind_key(self.profile, update_key, f"{did}#updateKey")
         await bind_key(
-            self.profile, 
-            multikey=document['verificationMethod'][0]['publicKeyMultibase'], 
-            kid=document['verificationMethod'][0]['id']
+            self.profile,
+            multikey=document["verificationMethod"][0]["publicKeyMultibase"],
+            kid=document["verificationMethod"][0]["id"],
         )
-            
-        if parameters_input.get('nextKeyHashes'):
+
+        if parameters_input.get("nextKeyHashes"):
             await bind_key(
-                self.profile, 
-                multikey=await find_key(self.profile, f"{placeholder_id}#nextKey"), 
-                kid=f"{did}#nextKey"
+                self.profile,
+                multikey=await find_key(self.profile, f"{placeholder_id}#nextKey"),
+                kid=f"{did}#nextKey",
             )
 
         return initial_log_entry
@@ -220,37 +214,39 @@ class ControllerManager:
                     event.payload.get("document"),
                     state=WitnessingState.FINISHED.value,
                 )
-        
 
     def _did_is_valid(self, did: str, domain: str, namespace: str, identifier: str):
-        return True if (
-            did.split(':')[3] == domain
-            and did.split(':')[4] == namespace
-            and did.split(':')[5] == identifier
-            ) else False
-        
+        return (
+            True
+            if (
+                did.split(":")[3] == domain
+                and did.split(":")[4] == namespace
+                and did.split(":")[5] == identifier
+            )
+            else False
+        )
 
     async def _apply_policy(self, parameters: dict, options: dict):
         """Apply server policy to did creation options.
-        
+
         parameters: The parameters object returned by the server,
         based on the configured policies.
-        
+
         options: The user provided did creation options.
-        
+
         """
-        if parameters.get('witness', {}).get('threshold', 0):
-            options['witness_threshold'] = parameters.get('witness').get('threshold')
-            
-        if parameters.get('watchers', None):
-            options['watchers'] = parameters.get('watchers')
-            
-        if parameters.get('portability', False):
-            options['portability'] = parameters.get('portability')
-            
-        if parameters.get('nextKeyHashes', None) == []:
-            options['prerotation'] = True
-        
+        if parameters.get("witness", {}).get("threshold", 0):
+            options["witness_threshold"] = parameters.get("witness").get("threshold")
+
+        if parameters.get("watchers", None):
+            options["watchers"] = parameters.get("watchers")
+
+        if parameters.get("portability", False):
+            options["portability"] = parameters.get("portability")
+
+        if parameters.get("nextKeyHashes", None) == []:
+            options["prerotation"] = True
+
         return options
 
     # async def _request_witness_signature(self, scid: str, document: dict):
@@ -260,7 +256,7 @@ class ControllerManager:
     #     )
 
     #     if not isinstance(witness_signature, dict):
-        
+
     #         if (await get_plugin_config(self.profile)).get("role") == "witness":
     #             return PENDING_MESSAGE
 
@@ -276,15 +272,14 @@ class ControllerManager:
     #                 "message": "No immediate response from witness agent.",
     #             }
 
-
     async def configure(self, server_url, witness_invitation) -> None:
         """Configure controller."""
         config = await get_plugin_config(self.profile)
         config["role"] = "controller"
-        
+
         if not witness_invitation:
             raise OperationError("No witness invitation provided.")
-        
+
         try:
             decoded_invitation = decode_invitation(witness_invitation)
         except UnicodeDecodeError:
@@ -296,28 +291,24 @@ class ControllerManager:
             and not decoded_invitation.get("goal-code") == "witness-service"
         ):
             raise OperationError("Missing invitation goal-code and witness did.")
-        
-        witness_alias = create_alias(
-            url_to_domain(server_url), "witnessConnection"
-        )
+
+        witness_alias = create_alias(url_to_domain(server_url), "witnessConnection")
         await self.connect_to_witness(witness_alias, witness_invitation)
 
         if witness_id not in config["witnesses"]:
             config["witnesses"].append(witness_id)
-            
+
         await set_config(self.profile, config)
         return {"status": "success"}
-            
-
 
     async def connect_to_witness(self, alias, invitation) -> None:
         """Process witness invitation and connect."""
-        
+
         # Get the witness connection is already set up
         if await self._get_active_witness_connection():
             LOGGER.info("Connected to witness from previous connection.")
             return
-        
+
         try:
             await OutOfBandManager(self.profile).receive_invitation(
                 invitation=InvitationMessage.from_url(invitation),
@@ -338,7 +329,6 @@ class ControllerManager:
             f"try manually setting up a connection with alias {alias} or "
             "restart the agent when witness is available."
         )
-        
 
     async def create(self, options: dict):
         """Create DID and first log entry."""
@@ -352,47 +342,38 @@ class ControllerManager:
         requested_identifier = await self.server_client.request_identifier(
             namespace, identifier
         )
-        
+
         # Validate if the returned identifier matches the provided options
-        placeholder_id = requested_identifier.get('state', {}).get('id', None)
+        placeholder_id = requested_identifier.get("state", {}).get("id", None)
         if not self._did_is_valid(placeholder_id, domain, namespace, identifier):
             raise DidCreationError(f"Server returned invalid did: {placeholder_id}")
-        
+
         # Apply provided options & policies to the requested identifier
-        if options.get('apply_policy', True):
+        if options.get("apply_policy", True):
             options = await self._apply_policy(
-                requested_identifier.get('parameters'),
-                options
+                requested_identifier.get("parameters"), options
             )
-        
+
         # Add a verification method to the initial state document & create preliminary doc
-        preliminary_doc = await self._create_preliminary_doc(
-            placeholder_id
-        )
-        
+        preliminary_doc = await self._create_preliminary_doc(placeholder_id)
+
         # Create update keys and set parameters
-        parameters_input = await self._set_parameters_input(
-            placeholder_id,
-            options
-        )
+        parameters_input = await self._set_parameters_input(placeholder_id, options)
 
         # Create and sign initial log entry
         initial_log_entry = await self._create_initial_log_entry(
-            preliminary_doc,
-            parameters_input
+            preliminary_doc, parameters_input
         )
-        
-        scid = initial_log_entry.get('parameters').get('scid')
+
+        scid = initial_log_entry.get("parameters").get("scid")
 
         witness_signature = None
-        if initial_log_entry.get('parameters').get('witness', None):
+        if initial_log_entry.get("parameters").get("witness", None):
             witness_signature = await self.witness.witness_log_entry(
-                scid,
-                initial_log_entry
+                scid, initial_log_entry
             )
 
             if not isinstance(witness_signature, dict):
-            
                 if await is_witness(self.profile):
                     return PENDING_MESSAGE
 
@@ -414,7 +395,6 @@ class ControllerManager:
             state=WitnessingState.SUCCESS.value,
         )
 
-        
     async def finish_create(
         self,
         initial_log_entry: dict,
@@ -427,7 +407,7 @@ class ControllerManager:
         scid = did.split(":")[2]
         namespace = did.split(":")[4]
         identifier = did.split(":")[5]
-        
+
         if state == WitnessingState.ATTESTED.value:
             event_bus = self.profile.inject(EventBus)
             await event_bus.notify(
@@ -436,9 +416,7 @@ class ControllerManager:
                     f"{WITNESS_EVENT}{scid}",
                     {
                         "document": initial_log_entry,
-                        "metadata": {
-                            "state": WitnessingState.ATTESTED.value
-                        },
+                        "metadata": {"state": WitnessingState.ATTESTED.value},
                     },
                 ),
             )
@@ -471,8 +449,8 @@ class ControllerManager:
         )
         if did != response_json.get("state", {}).get("id"):
             raise DidCreationError("Bad state returned")
-        
-        signing_key = did_state['verificationMethod'][0]['publicKeyMultibase']
+
+        signing_key = did_state["verificationMethod"][0]["publicKeyMultibase"]
 
         async with self.profile.session() as session:
             # Save the did in the wallet
@@ -518,7 +496,6 @@ class ControllerManager:
 
         return response_json
 
-
     async def update(self, scid: str, did_document: dict = None):
         """Update a Webvh DID."""
         did = await did_from_scid(self.profile, scid)
@@ -538,15 +515,15 @@ class ControllerManager:
         new_log_entry = document_state.create_next(
             document=did_document, params_update=params_update
         )
-        
+
         update_key = await find_key(self.profile, f"{did}#updateKey")
-        
+
         signed_log_entry = await add_proof(
-            self.profile, 
+            self.profile,
             new_log_entry.history_line(),
-            f"did:key:{update_key}#{update_key}"
+            f"did:key:{update_key}#{update_key}",
         )
-        
+
         return await self.finish_update_did(signed_log_entry, document_state.params)
 
     async def deactivate(self, options: dict):
@@ -579,19 +556,16 @@ class ControllerManager:
             datetime.now(timezone.utc).replace(microsecond=0),
         )
 
-        
         did = document_state.document["id"]
-        update_key = await find_key(self.profile, f'{did}#updateKey')
+        update_key = await find_key(self.profile, f"{did}#updateKey")
 
         signed_log_entry = await add_proof(
-            self.profile, 
+            self.profile,
             document_state.history_line(),
-            f"did:key:{update_key}#{update_key}"
+            f"did:key:{update_key}#{update_key}",
         )
-        await self.server_client.deactivate_did(
-            namespace, identifier, signed_log_entry
-        )
-        
+        await self.server_client.deactivate_did(namespace, identifier, signed_log_entry)
+
         async with self.profile.session() as session:
             resolver = session.inject(DIDResolver)
             return (
@@ -654,22 +628,22 @@ class ControllerManager:
         """Pre rotation."""
         next_key_id = f"{did}#nextKey"
         update_key_id = f"{did}#updateKey"
-        
+
         previous_next_key = await find_key(self.profile, next_key_id)
         previous_update_key = await find_key(self.profile, update_key_id)
-        
+
         # Unbind previous update key
         await unbind_key(self.profile, previous_update_key, update_key_id)
-        
+
         # Bind previous next key to new update key
         await bind_key(self.profile, previous_next_key, update_key_id)
-        
+
         # Unbind previous next key
         await unbind_key(self.profile, previous_next_key, next_key_id)
-        
+
         # Create and bind new next key
         next_key = await create_key(self.profile, next_key_id)
-        
+
         # Find new update key
         update_key = await find_key(self.profile, update_key_id)
 
@@ -711,7 +685,7 @@ class ControllerManager:
 
         async with self.profile.session() as session:
             scid_info = await session.handle.fetch("scid", scid)
-            
+
         holder_id = json.loads(scid_info.value).get("didDocument").get("id")
 
         # NOTE, if presentation has holder, ensure it's the same as the provided SCID
@@ -738,15 +712,13 @@ class ControllerManager:
         async with self.profile.session() as session:
             # NOTE, we get the default signing key from the DID record
             did_info = await session.handle.fetch(CATEGORY_DID, holder_id)
-            
+
         signing_multikey = verkey_to_multikey(
             json.loads(did_info.value).get("verkey"), "ed25519"
         )
 
         vp = await add_proof(
-            self.profile, 
-            presentation,
-            f"{holder_id}#{signing_multikey}"
+            self.profile, presentation, f"{holder_id}#{signing_multikey}"
         )
 
         namespace, identifier = get_namespace_and_identifier_from_did(holder_id)

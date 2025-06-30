@@ -18,18 +18,13 @@ from acapy_agent.protocols.out_of_band.v1_0.messages.invitation import (
 
 from aries_askar import AskarError
 
-from ..config.config import (get_plugin_config, get_server_domain, set_config)
+from ..config.config import get_plugin_config, get_server_domain, set_config
 
 from .exceptions import WitnessSetupError, WitnessError
 from .messages import WitnessRequest, WitnessResponse
 from .states import WitnessingState
 from ..did.server_client import WebVHServerClient
-from ..did.utils import (
-    create_key,
-    find_key,
-    bind_key,
-    add_proof
-)
+from ..did.utils import create_key, find_key, bind_key, add_proof
 
 LOGGER = logging.getLogger(__name__)
 
@@ -37,27 +32,29 @@ LOGGER = logging.getLogger(__name__)
 PENDING_LOG_ENTRY_TABLE_NAME = "did_webvh_pending_log_entry"
 PENDING_ATTESTED_RESOURCE_TABLE_NAME = "did_webvh_pending_attested_resource"
 
+
 class WitnessManager:
     """Class to manage witnesses for a DID."""
 
     def __init__(self, profile: Profile):
         """Initialize the witness manager."""
         self.profile = profile
-        self.role = 'witness'
+        self.role = "witness"
         self.server_client = WebVHServerClient(profile)
         # self.controller = ControllerManager(self.profile)
         self.proof_options = {
-            'type': 'DataIntegrityProof',
-            'cryptosuite': 'eddsa-jcs-2022',
-            'proofPurpose': 'assertionMethod'
+            "type": "DataIntegrityProof",
+            "cryptosuite": "eddsa-jcs-2022",
+            "proofPurpose": "assertionMethod",
         }
+
     async def key_alias(self):
         domain = await get_server_domain(self.profile)
-        return f'{domain}@witnessKey'
+        return f"{domain}@witnessKey"
 
     async def connection_alias(self):
         domain = await get_server_domain(self.profile)
-        return f'{domain}@witness'
+        return f"{domain}@witness"
 
     async def _get_active_witness_connection(self) -> Optional[ConnRecord]:
         witness_alias = self.witness_connection_alias()
@@ -81,12 +78,12 @@ class WitnessManager:
         witness_key = await find_key(self.profile, witness_alias)
         if not witness_key:
             raise WitnessError(f"Witness key [{witness_alias}] not found.")
-        
+
         return witness_key
 
     async def configure(self, auto_attest=False, multikey=None) -> dict:
         """Ensure witness key is setup."""
-        
+
         config = await get_plugin_config(self.profile)
         config["role"] = self.role
         config["auto_attest"] = auto_attest
@@ -99,14 +96,14 @@ class WitnessManager:
         )
         if not witness_key:
             raise WitnessError("Error create witness key.")
-            
-        witness_id = f'did:key:{witness_key}'
+
+        witness_id = f"did:key:{witness_key}"
         if witness_id not in config["witnesses"]:
             config["witnesses"].append(witness_id)
-            
+
         await set_config(self.profile, config)
-        
-        return {'id': witness_id}
+
+        return {"id": witness_id}
 
     async def witness_log_entry(
         self,
@@ -115,7 +112,7 @@ class WitnessManager:
     ) -> Optional[dict]:
         """Witness the document with the given parameters."""
         config = await get_plugin_config(self.profile)
-        
+
         # Self witness
         if config.get("role") == "witness":
             if not config.get("auto_attest", False):
@@ -123,12 +120,12 @@ class WitnessManager:
                     scid, log_entry, connection_id=""
                 )
                 return
-            
+
             witness_key = await self.get_witness_key()
             witness_signature = await add_proof(
-                self.profile, 
-                {'versionId': log_entry.get('versionId')}, 
-                f"did:key:{witness_key}#{witness_key}"
+                self.profile,
+                {"versionId": log_entry.get("versionId")},
+                f"did:key:{witness_key}#{witness_key}",
             )
             return witness_signature
 
@@ -155,9 +152,7 @@ class WitnessManager:
                     PENDING_LOG_ENTRY_TABLE_NAME,
                     scid,
                     value_json=log_entry,
-                    tags={
-                        "connection_id": connection_id
-                    },
+                    tags={"connection_id": connection_id},
                 )
             except AskarError as e:
                 raise WitnessError(f"Error adding pending document: {e}")
@@ -185,16 +180,16 @@ class WitnessManager:
         witness_key = await self.get_witness_key()
         witness_signature = await add_proof(
             self.profile,
-            {'versionId': log_entry.get('versionId')},
-            f"did:key:{witness_key}#{witness_key}"
+            {"versionId": log_entry.get("versionId")},
+            f"did:key:{witness_key}#{witness_key}",
         )
 
         if not connection_id:
             # NOTE: will have to review this behavior when witness threshold is > 1
             # is supported
             from ..did.manager import ControllerManager
-            
-            if witness_signature.get('versionId')[0] == '1':
+
+            if witness_signature.get("versionId")[0] == "1":
                 await ControllerManager(self.profile).finish_create(
                     log_entry, witness_signature
                 )
@@ -229,9 +224,7 @@ class WitnessManager:
                     PENDING_ATTESTED_RESOURCE_TABLE_NAME,
                     scid,
                     value_json=attested_resource,
-                    tags={
-                        "connection_id": connection_id
-                    },
+                    tags={"connection_id": connection_id},
                 )
             except AskarError as e:
                 raise WitnessError(f"Error adding pending document: {e}")
@@ -245,7 +238,9 @@ class WitnessManager:
     async def approve_attested_resource(self, entry_id: str) -> dict[str, str]:
         """Approve an attested resource."""
         async with self.profile.session() as session:
-            entry = await session.handle.fetch(PENDING_ATTESTED_RESOURCE_TABLE_NAME, entry_id)
+            entry = await session.handle.fetch(
+                PENDING_ATTESTED_RESOURCE_TABLE_NAME, entry_id
+            )
 
         if entry is None:
             raise WitnessError("Failed to find pending document.")
@@ -258,15 +253,13 @@ class WitnessManager:
 
         witness_key = await self.get_witness_key()
         attested_resource = await add_proof(
-            self.profile,
-            attested_resource,
-            f"did:key:{witness_key}#{witness_key}"
+            self.profile, attested_resource, f"did:key:{witness_key}#{witness_key}"
         )
 
         if not connection_id:
             # Upload resource to server
-            namespace = attested_resource.get('id').split('/')[0].split(':')[4]
-            identifier = attested_resource.get('id').split('/')[0].split(':')[5]
+            namespace = attested_resource.get("id").split("/")[0].split(":")[4]
+            identifier = attested_resource.get("id").split("/")[0].split(":")[5]
             await self.server_client.upload_attested_resource(
                 namespace, identifier, attested_resource
             )
@@ -307,7 +300,7 @@ class WitnessManager:
                 # attachments=[{"type": "Witness", "id": f"did:key:{witness_key}"}],
                 goal_code="witness-service",
                 goal=f"did:key:{witness_key}",
-                multi_use=multi_use
+                multi_use=multi_use,
             )
             return invi_rec.serialize()
         except OutOfBandManagerError as e:

@@ -21,6 +21,7 @@ MESSAGE_TYPES = DIDCommPrefix.qualify_all(
     }
 )
 
+
 class WitnessRequest(AgentMessage):
     """Request witness of a log entry."""
 

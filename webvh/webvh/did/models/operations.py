@@ -104,7 +104,8 @@ class WebvhUpdateSchema(OpenAPISchema):
     #     "Webvh DID state update schema."""
 
     class UpdateParametersSchema(OpenAPISchema):
-        "Webvh DID parameters update schema."""
+        "Webvh DID parameters update schema."
+
         portable = fields.Bool(
             required=False,
             metadata={
@@ -126,7 +127,7 @@ class WebvhUpdateSchema(OpenAPISchema):
                 "example": 1,
             },
         )
-        
+
     # state = fields.Nested(UpdateStateSchema())
     parameters = fields.Nested(UpdateParametersSchema())
 
