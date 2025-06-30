@@ -49,6 +49,14 @@ class ConfigureWebvhSchema(OpenAPISchema):
         },
         default=False,
     )
+    endorsement = fields.Bool(
+        required=False,
+        metadata={
+            "description": "Require witness approval for creating attested resources.",
+            "example": False,
+        },
+        default=False,
+    )
     witness_invitation = fields.Str(
         required=False,
         metadata={
@@ -77,6 +85,15 @@ class WebvhCreateWitnessInvitationSchema(OpenAPISchema):
             "example": "Witnessing Service",
         },
         default=None,
+    )
+
+    multi = fields.Bool(
+        required=False,
+        metadata={
+            "description": "Create a multi use witness invitation.",
+            "example": "Witnessing Service",
+        },
+        default=False,
     )
 
 
@@ -120,6 +137,22 @@ class WebvhCreateSchema(OpenAPISchema):
     class CreateOptionsSchema(OpenAPISchema):
         """Options for a Webvh DID request."""
 
+        server_url = fields.Str(
+            required=False,
+            metadata={
+                "description": "Optional DID WebVH server url.",
+                "example": "https://id.test-suite.app",
+            },
+            default=None,
+        )
+        namespace = fields.Str(
+            required=False,
+            metadata={
+                "description": "Namespace for the DID",
+                "example": "default",
+            },
+            default="default",
+        )
         identifier = fields.Str(
             required=False,
             metadata={
@@ -133,13 +166,6 @@ class WebvhCreateSchema(OpenAPISchema):
             metadata={
                 "description": "List of watchers for this DID.",
                 "example": ["https://watcher.webvh.test-suite.app"],
-            },
-        )
-        namespace = fields.Str(
-            required=True,
-            metadata={
-                "description": "Namespace for the DID",
-                "example": "prod",
             },
         )
         portable = fields.Bool(
@@ -158,12 +184,20 @@ class WebvhCreateSchema(OpenAPISchema):
             },
             default=False,
         )
-        witnessTreshold = fields.Int(
+        witness_threshold = fields.Int(
             required=False,
             metadata={
                 "description": "The witness treshold.",
                 "example": 1,
             },
+        )
+        apply_policy = fields.Bool(
+            required=False,
+            metadata={
+                "description": "Apply policies from server.",
+                "example": True,
+            },
+            default=True,
         )
 
     options = fields.Nested(CreateOptionsSchema())

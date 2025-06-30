@@ -1,12 +1,25 @@
 """Witness messages."""
 
+from acapy_agent.protocols.didcomm_prefix import DIDCommPrefix
 from acapy_agent.messaging.agent_message import AgentMessage, AgentMessageSchema
 from marshmallow import EXCLUDE, fields
 
-from ..message_types import WITNESS_REQUEST, WITNESS_RESPONSE
+HANDLER_MODULE = "webvh.witness.handler"
 
-HANDLER_MODULE = "webvh.did.handlers.handler"
+PROTOCOL = "did-webvh-witness/1.0"
+PROTOCOL_PACKAGE = "webvh.did"
 
+# Message types
+WITNESS_REQUEST = f"{PROTOCOL}/witness_request"
+WITNESS_RESPONSE = f"{PROTOCOL}/witness_response"
+
+
+MESSAGE_TYPES = DIDCommPrefix.qualify_all(
+    {
+        WITNESS_REQUEST: f"{PROTOCOL_PACKAGE}.messages.witness.WitnessRequest",  # noqa: E501
+        WITNESS_RESPONSE: f"{PROTOCOL_PACKAGE}.messages.witness.WitnessResponse",  # noqa: E501
+    }
+)
 
 class WitnessRequest(AgentMessage):
     """Request witness of a log entry."""

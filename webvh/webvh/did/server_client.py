@@ -149,3 +149,24 @@ class WebVHServerClient:
                 raise OperationError(f"Failed to connect to Webvh server: {err}")
 
             return await response.json()
+
+    async def upload_attested_resource(
+        self, 
+        namespace: str, 
+        identifier: str, 
+        resource: dict,
+        witness_signature: dict = None,
+        options: dict = None
+        ):
+        """Submit a whois Verifiable Presentation for a given identifier."""
+        server_url = await get_server_url(self.profile)
+        async with ClientSession() as http_session:
+            try:
+                response = await http_session.post(
+                    f"{server_url}/{namespace}/{identifier}/resources",
+                    json={"attestedResource": resource},
+                )
+            except ClientConnectionError as err:
+                raise OperationError(f"Failed to connect to Webvh server: {err}")
+
+            return await response.json()

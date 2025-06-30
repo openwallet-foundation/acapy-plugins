@@ -50,11 +50,17 @@ from multiformats import multibase, multihash
 
 from ..resolver.resolver import DIDWebVHResolver
 from ..validation import WebVHDID
+from ..config.config import get_plugin_config
+from ..did.server_client import WebVHServerClient, WebVHWatcherClient
+from ..witness.manager import WitnessManager
+from ..did.utils import add_proof
 
 # from ..models.resources import AttestedResource
 
 LOGGER = logging.getLogger(__name__)
 
+# NOTE, temporary context location
+ATTESTED_RESOURCE_CTX = "https://opsecid.github.io/attested-resource/v1"
 
 class DIDWebVHRegistry(BaseAnonCredsResolver, BaseAnonCredsRegistrar):
     """DIDWebvhRegistry."""
@@ -86,11 +92,13 @@ class DIDWebVHRegistry(BaseAnonCredsResolver, BaseAnonCredsRegistrar):
     @staticmethod
     def _digest_multibase(resource_content) -> str:
         """Calculate digest."""
-        digest_multihash = multihash.digest(
-            jcs.canonicalize(resource_content), "sha2-256"
+        return multibase.encode(
+            multihash.digest(
+                jcs.canonicalize(resource_content), 
+                "sha2-256"
+            ), 
+            "base58btc"
         )
-        digest_multibase = multibase.encode(digest_multihash, "base58btc")
-        return digest_multibase
 
     @staticmethod
     def _derive_upload_endpoint(verification_method) -> str:
@@ -532,32 +540,30 @@ class DIDWebVHRegistry(BaseAnonCredsResolver, BaseAnonCredsRegistrar):
         secured_resource = await self._sign(profile, resource)
         await self._update(secured_resource)
 
+    async def _get_default_verification_method(self, profile, did):
+        try:
+            async with profile.session() as session:
+                did_info = await session.handle.fetch(CATEGORY_DID, did)
+            signing_key = verkey_to_multikey(
+                did_info.value_json.get("verkey"),
+                alg=did_info.value_json.get("key_type"),
+            )
+            return f"{did}#{signing_key}"
+        except (WalletNotFoundError, WalletError):
+            raise AnonCredsRegistrationError(
+                f"Error deriving signing key for {did}."
+            )
+
     async def _create_and_publish_resource(
-        self, profile, issuer, content, metadata, options, links=None
+        self, profile, issuer, content, metadata, options={}, links=None
     ) -> dict:  # AttestedResource:
         """Derive attested resource object from content and publish."""
-        options = options or {}
         # If no verification method set, fetch default signing key from did
-        if not options.get("verificationMethod"):
-            try:
-                async with profile.session() as session:
-                    did_info = await session.handle.fetch(CATEGORY_DID, issuer)
-                signing_key = verkey_to_multikey(
-                    did_info.value_json.get("verkey"),
-                    alg=did_info.value_json.get("key_type"),
-                )
-                options["verificationMethod"] = f"{issuer}#{signing_key}"
-            except (WalletNotFoundError, WalletError):
-                raise AnonCredsRegistrationError(
-                    f"Error deriving signing key for {issuer}."
-                )
-
-        options["serviceEndpoint"] = self._derive_upload_endpoint(
-            options.get("verificationMethod")
+        verification_method = (
+            options.get("verificationMethod") 
+            or await self._get_default_verification_method(profile, issuer)
         )
-
-        self._ensure_options(options)
-
+    
         # Ensure content digest is accurate
         if metadata.get("resource_id") != self._digest_multibase(content):
             raise AnonCredsRegistrationError("Digest mismatch")
@@ -566,7 +572,10 @@ class DIDWebVHRegistry(BaseAnonCredsResolver, BaseAnonCredsRegistrar):
 
         # Create resource object
         resource = {
-            "@context": ["https://w3id.org/security/data-integrity/v2"],
+            "@context": [
+                ATTESTED_RESOURCE_CTX,
+                "https://w3id.org/security/data-integrity/v2"
+            ],
             "type": ["AttestedResource"],
             "id": f"{issuer}/resources/{content_digest}",
             "content": content,
@@ -580,9 +589,22 @@ class DIDWebVHRegistry(BaseAnonCredsResolver, BaseAnonCredsRegistrar):
             resource["links"] = links
 
         # Secure resource with a Data Integrity proof
-        secured_resource = await self._sign(profile, resource)
-
-        # Upload resource to server
-        await self._upload(secured_resource)
+        secured_resource = await add_proof(profile, resource, verification_method)
+        
+        config = await get_plugin_config(profile)
+        scid = issuer.split(':')[2]
+        namespace = issuer.split(':')[4]
+        identifier = issuer.split(':')[5]
+        if config.get('endorsement', False):
+            # Request witness approval
+            await WitnessManager(profile).save_attested_resource_witnessing(
+                scid, secured_resource
+            )
+        
+        else:
+            # Upload resource to server
+            await WebVHServerClient(profile).upload_attested_resource(
+                namespace, identifier, secured_resource
+            )
 
         return secured_resource

@@ -5,17 +5,19 @@ import logging
 from acapy_agent.messaging.base_handler import BaseHandler
 from acapy_agent.messaging.request_context import RequestContext
 from acapy_agent.messaging.responder import BaseResponder
-from acapy_agent.vc.data_integrity.manager import DataIntegrityManager
-from acapy_agent.vc.data_integrity.models.options import DataIntegrityProofOptions
-from acapy_agent.wallet.keys.manager import MultikeyManager
 
-from ...config.config import get_plugin_config
-from ..constants import ALIASES
-from ..messages.witness import WitnessRequest, WitnessResponse
-from ..controller_manager import ControllerManager
-from ..registration_state import RegistrationState
-from ..utils import get_url_decoded_domain
-from ..witness_manager import WitnessManager
+from ..did.utils import (
+    url_to_domain,
+    find_key,
+    add_proof
+)
+from ..did.manager import ControllerManager
+from ..did.constants import ALIASES
+from .manager import WitnessManager
+
+from ..config.config import get_plugin_config
+from .messages import WitnessRequest, WitnessResponse
+from .states import WitnessingState
 
 LOGGER = logging.getLogger(__name__)
 
@@ -33,42 +35,29 @@ class WitnessRequestHandler(BaseHandler):
     ):
         """Handle automatic witness."""
         domain = proof.get("domain")
-        url_decoded_domain = get_url_decoded_domain(domain)
+        url_decoded_domain = url_to_domain(domain)
         witness_kid = f"webvh:{url_decoded_domain}{ALIASES['witnessKey']}"
-
-        async with context.profile.session() as session:
-            # Attempt to get the witness key for the domain
-            key_manager = MultikeyManager(session)
-            di_manager = DataIntegrityManager(session)
-            if not await key_manager.kid_exists(witness_kid):
-                # If the key is not found, return an error
-                LOGGER.error(
-                    f"Witness key not found for domain: {witness_kid}. The "
-                    "administrator must add the key to the wallet that matches the key on"
-                    " the server."
-                )
-                return
-
-            # If the key is found, perform witness
-            witness_key_info = await key_manager.from_kid(witness_kid)
-            witness_key = witness_key_info.get("multikey")
-            # Note: The witness key is used as the verification method
-            witnessed_document = await di_manager.add_proof(
-                document,
-                DataIntegrityProofOptions(
-                    type="DataIntegrityProof",
-                    cryptosuite="eddsa-jcs-2022",
-                    proof_purpose="assertionMethod",
-                    verification_method=f"did:key:{witness_key}#{witness_key}",
-                    expires=proof.get("expires"),
-                    domain=domain,
-                    challenge=proof.get("challenge"),
-                ),
+        # Attempt to get the witness key for the domain
+        witness_key = await find_key(context.profile, witness_kid)
+        if not await witness_key:
+            # If the key is not found, return an error
+            LOGGER.error(
+                f"Witness key not found for domain: {witness_kid}. The "
+                "administrator must add the key to the wallet that matches the key on"
+                " the server."
             )
+            return
+
+        # If the key is found, perform witness
+        # Note: The witness key is used as the verification method
+        witnessed_document = await add_proof(
+            document,
+            f"did:key:{witness_key}#{witness_key}"
+        )
         # If the witness is successful, return a success message
         await responder.send(
             message=WitnessResponse(
-                state=RegistrationState.ATTESTED.value,
+                state=WitnessingState.ATTESTED.value,
                 document=witnessed_document,
                 parameters=parameters,
             ),
@@ -105,7 +94,7 @@ class WitnessRequestHandler(BaseHandler):
             )
             await responder.send(
                 message=WitnessResponse(
-                    state=RegistrationState.PENDING.value,
+                    state=WitnessingState.PENDING.value,
                     document=document,
                     parameters=context.message.parameters,
                 ),
