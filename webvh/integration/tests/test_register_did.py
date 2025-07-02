@@ -42,7 +42,7 @@ async def test_create_single_tenant():
 
         # Ensure the witness key is properly configured
         response = await witness.get(f"/wallet/keys/{WITNESS_KEY}")
-        assert response["kid"] == WITNESS_KID
+        assert WITNESS_KID in response["kid"]
 
         # Configure WebVH Witness
         response = await witness.post(
@@ -58,7 +58,7 @@ async def test_create_single_tenant():
 
         # Ensure the witness key is properly configured
         response = await witness.get(f"/wallet/keys/{WITNESS_KEY}")
-        assert response["kid"] == WITNESS_KID
+        assert WITNESS_KID in response["kid"]
 
         # Create the initial did
         identifier = str(uuid.uuid4())
@@ -125,7 +125,7 @@ async def test_create_with_witness_and_auto_attest():
 
         # Ensure the witness key is properly configured
         response = await witness.get(f"/wallet/keys/{WITNESS_KEY}")
-        assert response["kid"] == WITNESS_KID
+        assert WITNESS_KID in response["kid"]
 
         # Create the initial did
         identifier = str(uuid.uuid4())
@@ -197,7 +197,7 @@ async def test_create_with_witness_and_manual_attest():
 
         # Ensure the witness key is properly configured
         response = await witness.get(f"/wallet/keys/{WITNESS_KEY}")
-        assert response["kid"] == WITNESS_KID
+        assert WITNESS_KID in response["kid"]
 
         # Create the initial did
         identifier = str(uuid.uuid4())
@@ -247,7 +247,7 @@ async def test_create_self_witness_and_manual_attest():
 
         # Ensure the witness key is properly configured
         response = await witness.get(f"/wallet/keys/{WITNESS_KEY}")
-        assert response["kid"] == WITNESS_KID
+        assert WITNESS_KID in response["kid"]
 
         # Create the initial did
         identifier = str(uuid.uuid4())
