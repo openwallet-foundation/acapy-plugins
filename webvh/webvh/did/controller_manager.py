@@ -2,7 +2,6 @@
 
 import asyncio
 import copy
-import http
 import json
 import logging
 import re
@@ -19,22 +18,25 @@ from acapy_agent.wallet.keys.manager import (
     MultikeyManager,
     MultikeyManagerError,
     multikey_to_verkey,
+    verkey_to_multikey,
 )
-from aiohttp import ClientConnectionError, ClientResponseError, ClientSession
+from aiohttp import ClientResponseError
 from did_webvh.core.state import DocumentState
 from pydid import DIDDocument
 
 from ..config.config import (
     add_scid_mapping,
     did_from_scid,
-    get_server_url,
+    get_plugin_config,
     get_witnesses,
-    use_strict_ssl,
+    notify_watchers,
 )
-from .exceptions import DidCreationError
+from .exceptions import DidCreationError, OperationError
 from .registration_state import RegistrationState
+from .server_client import WebVHServerClient, WebVHWatcherClient
 from .utils import (
-    fetch_document_state,
+    all_are_not_none,
+    get_namespace_and_identifier_from_did,
     key_hash,
     multikey_to_jwk,
 )
@@ -43,9 +45,13 @@ from .witness_queue import PendingRegistrations
 
 LOGGER = logging.getLogger(__name__)
 
-WEBVH_METHOD = "did:webvh:0.5"
+WEBVH_METHOD = "did:webvh:1.0"
 WITNESS_WAIT_TIMEOUT_SECONDS = 2
 WITNESS_EVENT = "witness_response::"
+PENDING_MESSAGE = {
+    "status": RegistrationState.PENDING.value,
+    "message": "The witness is pending.",
+}
 
 
 class ControllerManager:
@@ -54,46 +60,8 @@ class ControllerManager:
     def __init__(self, profile: Profile) -> None:
         """Initialize the DID Webvh Manager."""
         self.profile = profile
-
-    def _all_are_not_none(*args):
-        return all(v is not None for v in args)
-
-    async def _request_identifier(self, server_url, namespace, identifier) -> tuple:
-        """Contact the trust did web server to request an identifier."""
-        async with ClientSession() as session:
-            try:
-                response = await session.get(
-                    server_url,
-                    params={
-                        "namespace": namespace,
-                        "identifier": identifier,
-                    },
-                    ssl=(await use_strict_ssl(self.profile)),
-                )
-            except ClientConnectionError as err:
-                raise DidCreationError(f"Failed to connect to Webvh server: {err}")
-
-            response_json = await response.json()
-            if (
-                response.status == http.HTTPStatus.BAD_REQUEST
-                or response.status == http.HTTPStatus.CONFLICT
-            ):
-                raise DidCreationError(response_json.get("detail"))
-
-            did_document = response_json.get("didDocument", {})
-            did = did_document.get("id")
-
-            proof_options = response_json.get("proofOptions", {})
-            challenge = proof_options.get("challenge")
-            domain = proof_options.get("domain")
-            expiration = proof_options.get("expires")
-
-            if self._all_are_not_none(did, challenge, domain, expiration):
-                return did_document, proof_options
-            else:
-                raise DidCreationError(
-                    "Invalid response from Webvh server requesting identifier"
-                )
+        self.server_client = WebVHServerClient(profile)
+        self.watcher_client = WebVHWatcherClient(profile)
 
     async def _get_or_create_key(self, key_alias):
         async with self.profile.session() as session:
@@ -150,10 +118,7 @@ class ControllerManager:
                 event.payload.get("metadata", {}).get("state")
                 == RegistrationState.PENDING.value
             ):
-                return {
-                    "status": RegistrationState.PENDING.value,
-                    "message": "The witness is pending.",
-                }
+                return PENDING_MESSAGE
             else:
                 await PendingRegistrations().remove_pending_did(self.profile, did)
                 return await self.finish_registration(
@@ -165,15 +130,13 @@ class ControllerManager:
     async def register(self, options: dict):
         """Register identities."""
 
-        server_url = await get_server_url(self.profile)
-
         # Set default namespace and random identifier if none provided
         namespace = options.get("namespace", "default")
         identifier = options.get("identifier", str(uuid4()))
 
         # Contact the server to request the identifier
-        did_doc, proof_options = await self._request_identifier(
-            server_url, namespace, identifier
+        did_doc, proof_options = await self.server_client.request_identifier(
+            namespace, identifier
         )
         did = did_doc.get("id")
 
@@ -189,6 +152,7 @@ class ControllerManager:
 
         # Set webvh parameters options
         parameter_options = {
+            "watchers": options.get("watchers", None),
             "portable": options.get("portable", False),
             "prerotation": options.get("prerotation", False),
             "witnessThreshold": options.get("witnessThreshold", None),
@@ -204,6 +168,9 @@ class ControllerManager:
                 parameters=parameter_options,
                 state=RegistrationState.SUCCESS.value,
             )
+
+        if (await get_plugin_config(self.profile)).get("role") == "witness":
+            return PENDING_MESSAGE
 
         try:
             await PendingRegistrations().set_pending_did(self.profile, did)
@@ -236,6 +203,9 @@ class ControllerManager:
             "portable": param_options.get("portable", False),
             "updateKeys": [update_key],
         }
+
+        if param_options.get("watchers", None):
+            parameters["watchers"] = param_options.get("watchers")
 
         if param_options.get("prerotation", None):
             # If prerotation is enabled, we create the next update key and hash it
@@ -316,60 +286,37 @@ class ControllerManager:
             )
             return
 
-        async with ClientSession() as session:
-            # Register did document and did with the server
-            server_url = await get_server_url(self.profile)
-            response = await session.post(
-                server_url,
-                json={"didDocument": registration_document},
-                ssl=(await use_strict_ssl(self.profile)),
-            )
-            response_json = await response.json()
-            if response.status == http.HTTPStatus.BAD_REQUEST:
-                raise DidCreationError(response_json.get("detail"))
+        await self.server_client.register_did_doc(registration_document)
 
         return await self.create(registration_document, parameters)
 
     async def create(self, registration_document: dict, parameters: dict):
         """Create DID and first log entry."""
         web_did = registration_document.get("id")
-        async with ClientSession() as http_session:
-            # Create initial log entry
-            namespace = web_did.split(":")[-2]
-            identifier = web_did.split(":")[-1]
-            # update_key = parameters.get("updateKeys")[0]
-            signing_key = registration_document["verificationMethod"][0].get(
-                "publicKeyMultibase"
-            )
+        # Create initial log entry
+        namespace = web_did.split(":")[-2]
+        identifier = web_did.split(":")[-1]
+        # update_key = parameters.get("updateKeys")[0]
+        signing_key = registration_document["verificationMethod"][0].get(
+            "publicKeyMultibase"
+        )
 
-            initial_log_entry = await self._create_initial_log_entry(
-                registration_document,
-                parameters,
-            )
-            payload = {"logEntry": initial_log_entry}
-            # TODO, handle witness signatures
-            # payload['witnessSignatures'] = {}
+        initial_log_entry = await self._create_initial_log_entry(
+            registration_document,
+            parameters,
+        )
 
-            # Submit the initial log entry
-            server_url = await get_server_url(self.profile)
-            response = await http_session.post(
-                f"{server_url}/{namespace}/{identifier}",
-                json=payload,
-                ssl=(await use_strict_ssl(self.profile)),
-            )
+        response_json = await self.server_client.submit_log_entry(
+            initial_log_entry,
+            namespace,
+            identifier,
+        )
 
-            if response.status == http.HTTPStatus.INTERNAL_SERVER_ERROR:
-                raise DidCreationError("Server had a problem creating log entry.")
+        webvh_did = response_json.get("state", {}).get("id")
+        if not webvh_did:
+            raise DidCreationError("No state returned")
 
-            response_json = await response.json()
-            if response.status == http.HTTPStatus.BAD_REQUEST:
-                raise DidCreationError(response_json.get("detail"))
-
-            webvh_did = response_json.get("state", {}).get("id")
-            if not webvh_did:
-                raise DidCreationError("No state returned")
-
-            scid = webvh_did.split(":")[2]
+        scid = webvh_did.split(":")[2]
 
         async with self.profile.session() as session:
             # Save the did in the wallet
@@ -443,11 +390,8 @@ class ControllerManager:
     async def update(self, scid: str, did_document: dict = None):
         """Update a Webvh DID."""
         did = await did_from_scid(self.profile, scid)
-        server_url = await get_server_url(self.profile)
-        namespace = did.split(":")[4]
-        identifier = did.split(":")[5]
-        document_state = await fetch_document_state(
-            f"{server_url}/{namespace}/{identifier}/did.jsonl"
+        document_state = await self.server_client.fetch_document_state(
+            get_namespace_and_identifier_from_did(did)
         )
         parameters = document_state.params
 
@@ -482,24 +426,21 @@ class ControllerManager:
                     }
                 ),
             )
-        return await self.finish_update_did(signed_log_entry)
+        return await self.finish_update_did(signed_log_entry, document_state.params)
 
     async def deactivate(self, options: dict):
         """Create a Webvh DID."""
-        server_url = await get_server_url(self.profile)
 
         namespace = options.get("namespace")
         identifier = options.get("identifier")
 
-        if not self._all_are_not_none(namespace, identifier):
+        if not all_are_not_none(namespace, identifier):
             raise DidCreationError("Namespace and identifier are required.")
 
         # Get the document state from the server
         document_state = None
         try:
-            async for line in self.fetch_jsonl(
-                f"{server_url}/{namespace}/{identifier}/did.jsonl"
-            ):
+            async for line in self.server_client.fetch_jsonl(namespace, identifier):
                 document_state = DocumentState.load_history_line(line, document_state)
         except ClientResponseError:
             raise DidCreationError("Failed to fetch the jsonl file from the server.")
@@ -526,7 +467,7 @@ class ControllerManager:
             datetime.now(timezone.utc).replace(microsecond=0),
         )
 
-        async with ClientSession() as http_session, self.profile.session() as session:
+        async with self.profile.session() as session:
             # Submit the log entry
             # NOTE: The authorized key is used as the verification method.
             log_entry = document_state.history_line()
@@ -540,24 +481,17 @@ class ControllerManager:
                 ),
             )
 
-            response = await http_session.delete(
-                f"{server_url}/{namespace}/{identifier}",
-                json={"logEntry": signed_log_entry},
-                ssl=(await use_strict_ssl(self.profile)),
+            await self.server_client.deactivate_did(
+                namespace, identifier, signed_log_entry
             )
-
-            response_json = await response.json()
-
-            if response_json.get("detail") == "Key unauthorized.":
-                raise DidCreationError("Problem creating log entry: Key unauthorized.")
 
             resolver = session.inject(DIDResolver)
 
-        return (
-            await resolver.resolve_with_metadata(
-                self.profile, document_state.document["id"]
-            )
-        ).serialize()
+            return (
+                await resolver.resolve_with_metadata(
+                    self.profile, document_state.document["id"]
+                )
+            ).serialize()
 
     async def add_verification_method(
         self,
@@ -646,7 +580,7 @@ class ControllerManager:
             new_next_key_info.get("multikey")
         )
 
-    async def finish_update_did(self, signed_log_entry):
+    async def finish_update_did(self, signed_log_entry, params={}):
         """Finish updating an existing did."""
         did_document = signed_log_entry.get("state")
         did = did_document.get("id")
@@ -655,16 +589,13 @@ class ControllerManager:
             # TODO fetch queued witness signatures
             payload["witnessSignature"] = {}
 
-        server_url = await get_server_url(self.profile)
-        namespace = did.split(":")[4]
-        identifier = did.split(":")[5]
-        async with ClientSession() as http_session, self.profile.session() as session:
-            try:
-                response = await http_session.post(
-                    f"{server_url}/{namespace}/{identifier}", json=payload
-                )
-            except ClientConnectionError as err:
-                raise DidCreationError(f"Failed to connect to Webvh server: {err}")
+        namespace, identifier = get_namespace_and_identifier_from_did(did)
+        async with self.profile.session() as session:
+            response = await self.server_client.submit_log_entry(
+                payload,
+                namespace,
+                identifier,
+            )
             await session.handle.replace(
                 "scid",
                 did.split(":")[2],
@@ -674,4 +605,64 @@ class ControllerManager:
                 },
                 tags={},
             )
+
+        if notify_watchers(self.profile):
+            await self.watcher_client.notify_watchers(did, params.get("watchers", []))
+
         return await response.json()
+
+    async def update_whois(self, scid: str, presentation: dict, options: dict = {}):
+        """Update WHOIS linked VP."""
+
+        async with self.profile.session() as session:
+            scid_info = await session.handle.fetch(
+                "scid",
+                scid,
+            )
+            holder_id = json.loads(scid_info.value).get("didDocument").get("id")
+
+            # NOTE, if presentation has holder, ensure it's the same as the provided SCID
+            if presentation.get("holder"):
+                pres_holder = presentation.get("holder")
+                pres_holder_id = (
+                    pres_holder if isinstance(pres_holder, str) else pres_holder["id"]
+                )
+
+                if holder_id != pres_holder_id:
+                    raise OperationError("Holder ID mismatch.")
+
+            di_manager = DataIntegrityManager(session)
+
+            for credential in presentation.get("verifiableCredential"):
+                # Check if holder is the credential subject
+                if credential.get("credentialSubject").get("id") != holder_id:
+                    # TODO, should we enforce this?
+                    pass
+
+                if not (await di_manager.verify_proof(credential)).verified:
+                    LOGGER.info("Credential verification failed.")
+                    LOGGER.info(json.dumps(credential))
+                    raise OperationError("Credential verification failed.")
+
+            # NOTE, we get the default signing key from the DID record
+            did_info = await session.handle.fetch(CATEGORY_DID, holder_id)
+            signing_multikey = verkey_to_multikey(
+                json.loads(did_info.value).get("verkey"), "ed25519"
+            )
+
+            vp = await di_manager.add_proof(
+                presentation,
+                DataIntegrityProofOptions(
+                    type="DataIntegrityProof",
+                    cryptosuite="eddsa-jcs-2022",
+                    proof_purpose="authentication",
+                    verification_method=f"{holder_id}#{signing_multikey}",
+                ),
+            )
+
+        namespace, identifier = get_namespace_and_identifier_from_did(holder_id)
+        return await self.server_client.submit_whois(
+            namespace,
+            identifier,
+            vp,
+        )

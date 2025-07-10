@@ -1,6 +1,7 @@
 """Module to manage witnesses for a DID."""
 
 import asyncio
+import json
 import logging
 from typing import Optional
 
@@ -18,11 +19,12 @@ from acapy_agent.protocols.out_of_band.v1_0.messages.invitation import (
 )
 from acapy_agent.vc.data_integrity.manager import DataIntegrityManager
 from acapy_agent.vc.data_integrity.models.options import DataIntegrityProofOptions
+from acapy_agent.wallet.error import WalletNotFoundError
 from acapy_agent.wallet.keys.manager import MultikeyManager, MultikeyManagerError
 from aries_askar import AskarError
 
 from ..config.config import get_plugin_config, get_server_url, is_controller
-from .exceptions import WitnessError
+from .exceptions import ConfigurationError, WitnessError
 from .messages.witness import WitnessRequest, WitnessResponse
 from .registration_state import RegistrationState
 from .utils import create_alias, server_url_to_domain
@@ -69,7 +71,6 @@ class WitnessManager:
                         kid=key_alias,
                         multikey=key,
                     )
-
                 else:
                     key_info = await manager.create(
                         kid=key_alias,
@@ -77,6 +78,8 @@ class WitnessManager:
                     )
             except MultikeyManagerError:
                 key_info = await manager.from_kid(key_alias)
+            except WalletNotFoundError:
+                raise ConfigurationError("Provided key not found in wallet.")
         return key_info
 
     async def witness_registration_document(
@@ -86,7 +89,8 @@ class WitnessManager:
         parameter_options: dict,
     ) -> Optional[dict]:
         """Witness the document with the given parameters."""
-        role = (await get_plugin_config(self.profile)).get("role")
+        config = await get_plugin_config(self.profile)
+        role = config.get("role")
         async with self.profile.session() as session:
             # Self witness
             if not role or role == "witness":
@@ -103,13 +107,21 @@ class WitnessManager:
                 witness_key_info = await MultikeyManager(session).from_kid(witness_alias)
                 witness_key = witness_key_info.get("multikey")
 
-                return await DataIntegrityManager(session).add_proof(
+                signed_doc = await DataIntegrityManager(session).add_proof(
                     registration_document,
                     DataIntegrityProofOptions.deserialize(
                         proof_options
                         | {"verificationMethod": f"did:key:{witness_key}#{witness_key}"}
                     ),
                 )
+
+                if not config.get("auto_attest", True):
+                    await self.save_did_request_doc_for_witnessing(
+                        signed_doc, connection_id=None, parameters=parameter_options
+                    )
+                    return
+
+                return signed_doc
 
             # Need proof from witness agent
             else:
@@ -183,7 +195,7 @@ class WitnessManager:
         )
 
     async def save_did_request_doc_for_witnessing(
-        self, log_entry: dict, connection_id: str = None
+        self, log_entry: dict, connection_id: Optional[str] = None, parameters: dict = {}
     ):
         """Save an did request doc to the wallet to be witnessed."""
         async with self.profile.session() as session:
@@ -193,11 +205,12 @@ class WitnessManager:
                     log_entry["id"],
                     value_json=log_entry,
                     tags={
-                        "connection_id": connection_id,
+                        "connection_id": connection_id or "",
+                        "parameters": json.dumps(parameters),
                     },
                 )
-            except AskarError:
-                raise WitnessError("log entry already pending a witness.")
+            except AskarError as e:
+                raise WitnessError(f"Error adding pending document: {e}")
 
     async def get_pending_did_request_docs(self) -> list:
         """Get did request docs that are pending a witness."""
@@ -213,6 +226,7 @@ class WitnessManager:
             if entry is None:
                 raise WitnessError("Failed to find pending document.")
 
+            connection_id = entry.tags.get("connection_id")
             document_json = entry.value_json
 
             proof = document_json.get("proof")
@@ -249,15 +263,26 @@ class WitnessManager:
                     challenge=proof.get("challenge"),
                 ),
             )
-            responder = self.profile.inject(BaseResponder)
-            await responder.send(
-                message=WitnessResponse(
-                    state=RegistrationState.ATTESTED.value,
-                    document=witnessed_document,
-                    parameters={},
-                ),
-                connection_id=entry.tags.get("connection_id"),
-            )
+
+            if not connection_id:
+                # Becomes the controller / Avoid circular import
+                # NOTE: will have to review this behavior when witness threshold is > 1
+                # is supported
+                from .controller_manager import ControllerManager
+
+                await ControllerManager(self.profile).finish_registration(
+                    entry.value_json, json.loads(entry.tags.get("parameters", "{}"))
+                )
+            else:
+                responder = self.profile.inject(BaseResponder)
+                await responder.send(
+                    message=WitnessResponse(
+                        state=RegistrationState.ATTESTED.value,
+                        document=witnessed_document,
+                        parameters={},
+                    ),
+                    connection_id=connection_id,
+                )
 
             await session.handle.remove(PENDING_DOCUMENT_TABLE_NAME, entry_id)
 

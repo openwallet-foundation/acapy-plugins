@@ -42,6 +42,11 @@ async def is_controller(profile: Profile):
     return (await get_plugin_config(profile)).get("role") == "controller"
 
 
+async def notify_watchers(profile: Profile):
+    """Check if we should notify watchers."""
+    return (await get_plugin_config(profile)).get("notify_watchers", False)
+
+
 async def get_server_url(profile: Profile):
     """Get the server info."""
     server_url = (await get_plugin_config(profile)).get("server_url")

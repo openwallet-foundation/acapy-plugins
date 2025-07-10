@@ -1,14 +1,11 @@
 """Utilities for shared functions."""
 
 import base64
-import jcs
-import json
 import hashlib
+import json
+
+import jcs
 from multiformats import multibase, multihash
-
-from aiohttp import ClientResponseError, ClientSession
-
-from did_webvh.core.state import DocumentState
 
 WITNESS_CONNECTION_ALIAS_SUFFIX = "@witness"
 ALIAS_PURPOSES = {
@@ -68,28 +65,17 @@ def multikey_to_jwk(multikey):
     return jwk, thumbprint
 
 
-async def fetch_jsonl(url):
-    """Fetch a JSONL file from the given URL."""
-    async with ClientSession() as session:
-        async with session.get(url) as response:
-            # Check if the response is OK
-            response.raise_for_status()
-
-            # Read the response line by line
-            async for line in response.content:
-                # Decode each line and parse as JSON
-                decoded_line = line.decode("utf-8").strip()
-                if decoded_line:  # Ignore empty lines
-                    yield json.loads(decoded_line)
+def all_are_not_none(*args):
+    """Check if all arguments are not None."""
+    return all(v is not None for v in args)
 
 
-async def fetch_document_state(url):
-    """Fetch a JSONL file from the given URL."""
-    # Get the document state from the server
-    document_state = None
-    try:
-        async for line in fetch_jsonl(url):
-            document_state = DocumentState.load_history_line(line, document_state)
-    except ClientResponseError:
-        pass
-    return document_state
+def get_namespace_and_identifier_from_did(did: str):
+    """Extract namespace and identifier from a DID."""
+    parts = did.split(":")
+    if len(parts) < 5:
+        raise ValueError(
+            "Invalid DID format. Expected 'did:webvh:<url>:<namespace>:<identifier>'"
+        )
+
+    return parts[4], parts[5]

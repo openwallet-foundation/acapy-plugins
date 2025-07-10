@@ -199,6 +199,16 @@ class TestWitnessManager(IsolatedAsyncioTestCase):
             await WitnessManager(self.profile).attest_did_request_doc("test-id")
 
     async def test_attest_did_request_doc(self):
+        self.profile.settings.set_value(
+            "plugin_config",
+            {
+                "did-webvh": {
+                    "role": "controller",
+                    "server_url": "https://id.test-suite.app",
+                }
+            },
+        )
+
         async with self.profile.session() as session:
             await MultikeyManager(session).create(
                 alg="ed25519",
@@ -208,6 +218,7 @@ class TestWitnessManager(IsolatedAsyncioTestCase):
                 PENDING_DOCUMENT_TABLE_NAME,
                 "test-id",
                 value_json=mock_did_doc,
+                tags={"connection_id": "test-conn-id"},
             )
 
         result = await WitnessManager(self.profile).attest_did_request_doc("test-id")
