@@ -27,9 +27,8 @@ class Config:
 
     list_size: int
     shard_size: int
-    base_url: str
-    base_dir: str
-    path_template: str
+    public_uri: str
+    file_path: str
 
     @classmethod
     def from_settings(cls, settings: BaseSettings) -> "Config":
@@ -43,20 +42,15 @@ class Config:
         shard_size = int(
             plugin_settings.get("shard_size") or getenv("STATUS_LIST_SHARD_SIZE") or "0"
         )
-        base_url = plugin_settings.get("base_url") or getenv("STATUS_LIST_BASE_URL")
-        base_dir = plugin_settings.get("base_dir") or getenv("STATUS_LIST_BASE_DIR")
-        path_template = plugin_settings.get("path_template") or getenv(
-            "STATUS_LIST_PATH_TEMPLATE"
-        )
+        public_uri = plugin_settings.get("public_uri") or getenv("STATUS_LIST_PUBLIC_URI")
+        file_path = plugin_settings.get("file_path") or getenv("STATUS_LIST_FILE_PATH")
         if not list_size:
             raise ConfigError("list_size", "STATUS_LIST_SIZE")
         if not shard_size:
             raise ConfigError("shard_size", "STATUS_LIST_SHARD_SIZE")
-        if not base_url:
-            raise ConfigError("base_url", "STATUS_LIST_BASE_URL")
-        if not base_dir:
-            raise ConfigError("base_dir", "STATUS_LIST_BASE_DIR")
-        if not path_template:
-            raise ConfigError("path_template", "STATUS_LIST_PATH_TEMPLATE")
+        if not public_uri:
+            raise ConfigError("public_uri", "STATUS_LIST_PUBLIC_URI")
+        if not file_path:
+            raise ConfigError("file_path", "STATUS_LIST_FILE_PATH")
 
-        return cls(list_size, shard_size, base_url, base_dir, path_template)
+        return cls(list_size, shard_size, public_uri, file_path)

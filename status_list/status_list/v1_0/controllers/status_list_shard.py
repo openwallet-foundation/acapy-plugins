@@ -91,11 +91,6 @@ class MatchStatusListRequest(OpenAPISchema):
 class QueryStatusListRequest(OpenAPISchema):
     """Request schema for querying status list."""
 
-    status_type = fields.Str(
-        required=False,
-        validate=OneOf(["w3c", "ietf"]),
-        metadata={"description": "Status list format.", "example": "w3c"},
-    )
     issuer_did = fields.Str(
         required=False,
         metadata={
@@ -166,8 +161,6 @@ async def get_status_list(request: web.BaseRequest):
 
     definition_id = request.match_info["def_id"]
     list_number = request.match_info["list_num"]
-    status_type = request.query.get("status_type")
-    issuer_did = request.query.get("issuer_did", "did:web:issuer")
 
     try:
         context: AdminRequestContext = request["context"]
@@ -175,9 +168,7 @@ async def get_status_list(request: web.BaseRequest):
         async with context.profile.session() as session:
             definition = await StatusListDef.retrieve_by_id(session, definition_id)
 
-        result = await status_handler.get_status_list(
-            context, definition, list_number, status_type, issuer_did
-        )
+        result = await status_handler.get_status_list(context, definition, list_number)
 
         return web.json_response(result)
 

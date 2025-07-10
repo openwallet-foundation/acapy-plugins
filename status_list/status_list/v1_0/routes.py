@@ -13,6 +13,7 @@ from .controllers.status_list_def import (
     create_status_list_def,
     get_status_list_defs,
     get_status_list_def,
+    update_status_list_def,
     delete_status_list_def,
 )
 from .controllers.status_list_shard import get_status_list, assign_status_list_entry
@@ -55,6 +56,10 @@ async def register(app: web.Application):
                 "/status-list/defs/{def_id}",
                 get_status_list_def,
                 allow_head=False,
+            ),
+            web.patch(
+                "/status-list/defs/{def_id}",
+                update_status_list_def,
             ),
             web.delete(
                 "/status-list/defs/{def_id}",

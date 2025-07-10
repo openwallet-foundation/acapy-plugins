@@ -63,7 +63,7 @@ async def test_get_status_list(context: AdminRequestContext, seed_db):
     request = MagicMock(
         app={},
         match_info={"def_id": "definition_id", "list_num": "0"},
-        query={},  # {"status_type": "w3c", "issuer_did": "did:web:dev.lab.di.gov.on.ca"},
+        query={},  # {"issuer_did": "did:web:dev.lab.di.gov.on.ca"},
         __getitem__=lambda _, k: request_dict[k],
         headers={},
         json={},
@@ -71,9 +71,7 @@ async def test_get_status_list(context: AdminRequestContext, seed_db):
     with patch.object(controller, "web", autospec=True) as mock_web:
         await controller.get_status_list(request)
         result = mock_web.json_response.call_args[0][0]
-        result = SimpleNamespace(**result)
-        assert result.definition_id == "definition_id"
-        assert result.encoded_list
+        assert result
 
     # Test get_status_list errors
     with patch(

@@ -75,6 +75,13 @@ class CreateStatusListDefRequest(OpenAPISchema):
             "example": 131072,
         },
     )
+    list_type = fields.Str(
+        required=False,
+        metadata={
+            "description": "Status list type: 'w3c', 'ietf' or none",
+            "example": "ietf",
+        },
+    )
 
 
 class CreateStatusListDefResponse(OpenAPISchema):
@@ -269,6 +276,76 @@ class DeleteStatusListDefRequest(OpenAPISchema):
             "example": False,
         },
     )
+
+
+class UpdateStatusListDefRequest(OpenAPISchema):
+    """Request schema for updating status list definition."""
+
+    list_type = fields.Str(
+        required=False,
+        metadata={
+            "description": "Status list type: 'w3c', 'ietf' or none",
+            "example": "ietf",
+        },
+    )
+    issuer_did = fields.Str(
+        required=False,
+        metadata={
+            "description": "Issuer DID for the status list",
+            "example": "did:web:dev.lab.di.gov.on.ca",
+        },
+    )
+    verification_method = fields.Str(
+        required=False,
+        metadata={
+            "description": "Issuer DID for the status list",
+            "example": (
+                "did:web:dev.lab.di.gov.on.ca#"
+                "z6Mkgg342Ycpuk263R9d8Aq6MUaxPn1DDeHyGo38EefXmgDL"
+            ),
+        },
+    )
+
+
+@docs(
+    tags=["status-list"],
+    summary="Update status list definition by identifier",
+)
+@match_info_schema(MatchStatusListDefRequest())
+@request_schema(UpdateStatusListDefRequest())
+@response_schema(StatusListDefSchema(), 200, description="")
+@tenant_authentication
+async def update_status_list_def(request: web.BaseRequest):
+    """Request handler for update status list definition by identifier."""
+
+    definition_id = request.match_info["def_id"]
+    body: Dict[str, Any] = await request.json()
+
+    try:
+        context: AdminRequestContext = request["context"]
+        async with context.profile.transaction() as txn:
+            definition = await StatusListDef.retrieve_by_id(
+                txn, definition_id, for_update=True
+            )
+            definition.list_type = body.get("list_type", None)
+            definition.issuer_did = body.get("issuer_did", None)
+            definition.verification_method = body.get("verification_method", None)
+
+            # Save updated status list definition
+            await definition.save(txn, reason="Update status list definition.")
+
+            # Commit all changes
+            await txn.commit()
+
+            LOGGER.debug(f"Updated status list definition: {definition}.")
+
+    except StorageNotFoundError as err:
+        raise web.HTTPNotFound(reason=err.roll_up) from err
+
+    except (StorageError, BaseModelError, BaseError) as err:
+        raise web.HTTPInternalServerError(reason=err.roll_up) from err
+
+    return web.json_response(definition.serialize())
 
 
 class DeleteStatusListDefResponse(OpenAPISchema):
