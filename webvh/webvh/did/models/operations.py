@@ -4,6 +4,7 @@ import enum
 from collections import Counter
 
 from acapy_agent.messaging.models.openapi import OpenAPISchema
+from acapy_agent.vc.vc_ld.models.presentation import PresentationSchema
 from marshmallow import fields, validates, validate, ValidationError
 
 
@@ -16,6 +17,14 @@ class ConfigureWebvhSchema(OpenAPISchema):
             "description": "URL of the webvh server",
             "example": "http://localhost:8000",
         },
+    )
+    notify_watchers = fields.Boolean(
+        required=False,
+        metadata={
+            "description": "Notify watchers on DID updates",
+            "example": "false",
+        },
+        default=False,
     )
     witness = fields.Boolean(
         required=False,
@@ -147,6 +156,14 @@ class WebvhCreateSchema(OpenAPISchema):
                 "example": 1,
             },
         )
+        watchers = fields.List(
+            fields.Str(),
+            required=False,
+            metadata={
+                "description": "List of watchers for this DID.",
+                "example": ["https://watcher.webvh.test-suite.app"],
+            },
+        )
         namespace = fields.Str(
             required=True,
             metadata={
@@ -257,3 +274,9 @@ class IdRequestParamSchema(OpenAPISchema):
             "example": "did:web:server.localhost%3A8000:prod:1",
         },
     )
+
+
+class WebvhUpdateWhoisSchema(OpenAPISchema):
+    """Request model for updating a whois VP."""
+
+    presentation = fields.Nested(PresentationSchema, required=True)

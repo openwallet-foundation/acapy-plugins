@@ -14,3 +14,5 @@ PROOF_OPTIONS = {
 }
 
 SUPPORTED_KEY_TYPES = ["Multikey", "JsonWebKey"]
+
+WEBVH_METHOD = "did:webvh:1.0"

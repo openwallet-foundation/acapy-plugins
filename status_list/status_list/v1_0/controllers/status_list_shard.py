@@ -161,7 +161,6 @@ async def get_status_list(request: web.BaseRequest):
 
     definition_id = request.match_info["def_id"]
     list_number = request.match_info["list_num"]
-    issuer_did = request.query.get("issuer_did", "did:web:issuer")
 
     try:
         context: AdminRequestContext = request["context"]

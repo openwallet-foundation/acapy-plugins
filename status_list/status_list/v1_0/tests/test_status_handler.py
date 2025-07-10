@@ -1,6 +1,5 @@
 import pytest
 import os
-from types import SimpleNamespace
 from bitarray import util as bitutil
 from unittest.mock import MagicMock, Mock, patch
 from filelock import Timeout

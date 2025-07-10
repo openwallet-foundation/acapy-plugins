@@ -28,6 +28,8 @@ LOGGER = logging.getLogger(__name__)
 
 
 def with_retries(max_attempts=3, delay=2):
+    """Decorator to retry a function."""
+
     def decorator(func):
         @wraps(func)
         def wrapper(*args, **kwargs):
@@ -476,7 +478,7 @@ async def get_status_list_token(
     list_number: str,
     definition: Optional[StatusListDef] = None,
 ):
-    """publish status list."""
+    """Publish status list."""
 
     if definition is None:
         async with context.profile.session() as session:
