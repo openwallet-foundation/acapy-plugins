@@ -157,7 +157,9 @@ class StatusListDefSchema(BaseRecordSchema):
         required=False,
         default="revocation",
         metadata={
-            "description": "Status purpose: 'refresh', 'revocation', 'suspension' or 'message'",
+            "description": (
+                "Status purpose: 'refresh', 'revocation', 'suspension' or 'message'"
+            ),
             "example": "revocation",
         },
     )
@@ -197,8 +199,9 @@ class StatusListDefSchema(BaseRecordSchema):
     list_size = fields.Int(
         required=False,
         metadata={
-            "description": "Number of entries in the list, must be power of two, "
-            "minimum 131072",
+            "description": (
+                "Number of entries in the list, must be power of two, minimum 131072"
+            ),
             "example": 131072,
         },
     )
@@ -237,7 +240,10 @@ class StatusListDefSchema(BaseRecordSchema):
         required=False,
         metadata={
             "description": "Issuer DID for the status list",
-            "example": "did:web:dev.lab.di.gov.on.ca#z6Mkgg342Ycpuk263R9d8Aq6MUaxPn1DDeHyGo38EefXmgDL",
+            "example": (
+                "did:web:dev.lab.di.gov.on.ca#"
+                "z6Mkgg342Ycpuk263R9d8Aq6MUaxPn1DDeHyGo38EefXmgDL"
+            ),
         },
     )
 

@@ -42,9 +42,7 @@ class Config:
         shard_size = int(
             plugin_settings.get("shard_size") or getenv("STATUS_LIST_SHARD_SIZE") or "0"
         )
-        public_uri = plugin_settings.get("public_uri") or getenv(
-            "STATUS_LIST_PUBLIC_URI"
-        )
+        public_uri = plugin_settings.get("public_uri") or getenv("STATUS_LIST_PUBLIC_URI")
         file_path = plugin_settings.get("file_path") or getenv("STATUS_LIST_FILE_PATH")
         if not list_size:
             raise ConfigError("list_size", "STATUS_LIST_SIZE")
