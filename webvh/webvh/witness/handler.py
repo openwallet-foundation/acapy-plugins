@@ -6,12 +6,12 @@ from acapy_agent.messaging.base_handler import BaseHandler
 from acapy_agent.messaging.request_context import RequestContext
 from acapy_agent.messaging.responder import BaseResponder
 
-from ..did.utils import url_to_domain, find_key, add_proof
+from ..did.utils import url_to_domain, find_key, add_proof, is_log_entry, is_attested_resource
 from ..did.manager import ControllerManager
 from ..did.constants import ALIASES
 from .manager import WitnessManager
 
-from ..config.config import get_plugin_config
+from ..config.config import get_plugin_config, get_server_domain
 from .messages import WitnessRequest, WitnessResponse
 from .states import WitnessingState
 
@@ -25,36 +25,19 @@ class WitnessRequestHandler(BaseHandler):
         self,
         context: RequestContext,
         responder: BaseResponder,
-        proof: dict,
         document: dict,
-        parameters: dict,
     ):
         """Handle automatic witness."""
-        domain = proof.get("domain")
-        url_decoded_domain = url_to_domain(domain)
-        witness_kid = f"webvh:{url_decoded_domain}{ALIASES['witnessKey']}"
-        # Attempt to get the witness key for the domain
-        witness_key = await find_key(context.profile, witness_kid)
-        if not await witness_key:
-            # If the key is not found, return an error
-            LOGGER.error(
-                f"Witness key not found for domain: {witness_kid}. The "
-                "administrator must add the key to the wallet that matches the key on"
-                " the server."
-            )
-            return
-
-        # If the key is found, perform witness
-        # Note: The witness key is used as the verification method
-        witnessed_document = await add_proof(
-            document, f"did:key:{witness_key}#{witness_key}"
+        
+        witness_signature = await WitnessManager(context.profile).sign_log_version(
+            document.get("versionId")
         )
-        # If the witness is successful, return a success message
+        # If the witness call is successful, return a success message
         await responder.send(
             message=WitnessResponse(
                 state=WitnessingState.ATTESTED.value,
-                document=witnessed_document,
-                parameters=parameters,
+                document=document,
+                witness_proof=witness_signature.get('proof')[0],
             ),
             connection_id=context.connection_record.connection_id,
         )
@@ -68,32 +51,40 @@ class WitnessRequestHandler(BaseHandler):
         )
 
         document = context.message.document
-        proof = document.get("proof")
-        if not proof:
-            LOGGER.error("No proof found in log entry")
+        if not document.get("proof", None):
+            LOGGER.error("No proof found in document")
             return
-        proof = proof[0]
 
-        if (await get_plugin_config(context.profile)).get("auto_attest", False):
-            await self._handle_auto_witness(
-                context, responder, proof, document, context.message.parameters
-            )
+        config = await get_plugin_config(context.profile)
+        if config.get("auto_attest", False):
+            await self._handle_auto_witness(context, responder, document)
+
         else:
             LOGGER.info(
                 "Auto attest is not enabled. The administrator must manually "
                 "attest the did request document."
             )
-            # Save the did request document to the wallet for manual witness
-            await WitnessManager(context.profile).save_did_request_doc_for_witnessing(
-                document, connection_id=context.connection_record.connection_id
-            )
+        
+            # We define if the request is for a log entry or an attested resource
+            # Save the document to the wallet for manual witness
+            witness = WitnessManager(context.profile)
+            connection_id = context.connection_record.connection_id
+            if is_log_entry(document):
+                await witness.save_log_entry(document, connection_id)
+            
+            elif is_attested_resource(document):
+                await witness.save_attested_resource(document, connection_id)
+            
+            else:
+                LOGGER.error("Unknown document type")
+                return
+            
             await responder.send(
-                message=WitnessResponse(
+                WitnessResponse(
                     state=WitnessingState.PENDING.value,
-                    document=document,
-                    parameters=context.message.parameters,
+                    document=document
                 ),
-                connection_id=context.connection_record.connection_id,
+                connection_id
             )
 
 
@@ -107,9 +98,36 @@ class WitnessResponseHandler(BaseHandler):
             context.message.state,
         )
         assert isinstance(context.message, WitnessResponse)
+        
+        document = context.message.document
+        controller = ControllerManager(context.profile)
+        
+        # For a log entry, we create a witness file with the version ID and the proof
+        if is_log_entry(document):
+            
+            witness_signature = {
+                'versionId': document.get('versionId'),
+                'proof': [context.message.witness_proof]
+            }
+            # Call finish_create for first entry
+            if document.get('versionId')[0] == '1':
+                await controller.finish_create(
+                    initial_log_entry=document,
+                    witness_signature=witness_signature,
+                    state=context.message.state,
+                )
+            # Call finish_update for subsequent entry
+            else:
+                await controller.finish_update(
+                    initial_log_entry=document,
+                    witness_signature=witness_signature,
+                    state=context.message.state,
+                )
+        
+        # For an attested resource, we append the proof 
+        elif is_attested_resource(document):
+            # For an attested resource, we append the proof
+            document['proof'].append(context.message.proof)
+            await controller.upload_resource(document)
 
-        await ControllerManager(context.profile).finish_registration(
-            registration_document=context.message.document,
-            parameters=context.message.parameters,
-            state=context.message.state,
-        )
+

@@ -91,7 +91,7 @@ class WebvhCreateWitnessInvitationSchema(OpenAPISchema):
         required=False,
         metadata={
             "description": "Create a multi use witness invitation.",
-            "example": "Witnessing Service",
+            "example": True,
         },
         default=False,
     )
@@ -104,7 +104,7 @@ class WebvhUpdateSchema(OpenAPISchema):
     #     "Webvh DID state update schema."""
 
     class UpdateParametersSchema(OpenAPISchema):
-        "Webvh DID parameters update schema."
+        """Webvh DID parameters update schema."""
 
         portable = fields.Bool(
             required=False,

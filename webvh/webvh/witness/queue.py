@@ -1,7 +1,11 @@
 """Module for handling pending webvh dids."""
 
+import logging
+
 from acapy_agent.core.profile import Profile
 from aries_askar import AskarError
+
+LOGGER = logging.getLogger(__name__)
 
 
 class WitnessQueue:
@@ -43,7 +47,7 @@ class WitnessQueue:
                 self.RECORD_TYPE, self.RECORD_TYPE, value_json=list(self.scids)
             )
 
-    async def new_request(self, profile: Profile, scid: str):
+    async def set_pending_scid(self, profile: Profile, scid: str):
         """Set a new witnessing requests."""
         await self._check_and_initialize(profile)
         self.scids.add(scid)

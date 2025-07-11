@@ -78,6 +78,7 @@ class ControllerManager:
     def __init__(self, profile: Profile) -> None:
         """Initialize the DID Webvh Manager."""
         self.profile = profile
+        self.role = "controller"
         self.witness = WitnessManager(self.profile)
         self.witness_queue = WitnessQueue()
         self.server_client = WebVHServerClient(self.profile)
@@ -212,6 +213,7 @@ class ControllerManager:
                 await self.witness_queue.remove_pending_scid(self.profile, scid)
                 return await self.finish_create(
                     event.payload.get("document"),
+                    event.payload.get("witness_signature", None),
                     state=WitnessingState.FINISHED.value,
                 )
 
@@ -272,10 +274,10 @@ class ControllerManager:
     #                 "message": "No immediate response from witness agent.",
     #             }
 
-    async def configure(self, server_url, witness_invitation) -> None:
+    async def configure(self, witness_invitation) -> None:
         """Configure controller."""
         config = await get_plugin_config(self.profile)
-        config["role"] = "controller"
+        config["role"] = self.role
 
         if not witness_invitation:
             raise OperationError("No witness invitation provided.")
@@ -292,8 +294,7 @@ class ControllerManager:
         ):
             raise OperationError("Missing invitation goal-code and witness did.")
 
-        witness_alias = create_alias(url_to_domain(server_url), "witnessConnection")
-        await self.connect_to_witness(witness_alias, witness_invitation)
+        await self.connect_to_witness(witness_invitation)
 
         if witness_id not in config["witnesses"]:
             config["witnesses"].append(witness_id)
@@ -301,7 +302,7 @@ class ControllerManager:
         await set_config(self.profile, config)
         return {"status": "success"}
 
-    async def connect_to_witness(self, alias, invitation) -> None:
+    async def connect_to_witness(self, invitation) -> None:
         """Process witness invitation and connect."""
 
         # Get the witness connection is already set up
@@ -310,6 +311,9 @@ class ControllerManager:
             return
 
         try:
+            server_domain = await get_server_domain(self.profile)
+            # alias = create_alias(server_domain, "witnessConnection")
+            alias = f"webvh:{server_domain}@witness"
             await OutOfBandManager(self.profile).receive_invitation(
                 invitation=InvitationMessage.from_url(invitation),
                 auto_accept=True,
@@ -378,7 +382,7 @@ class ControllerManager:
                     return PENDING_MESSAGE
 
                 try:
-                    await self.witness_queue.new_request(self.profile, scid)
+                    await self.witness_queue.set_pending_scid(self.profile, scid)
                     return await asyncio.wait_for(
                         self._wait_for_witness(scid),
                         WITNESS_WAIT_TIMEOUT_SECONDS,
@@ -416,6 +420,7 @@ class ControllerManager:
                     f"{WITNESS_EVENT}{scid}",
                     {
                         "document": initial_log_entry,
+                        "witness_signature": witness_signature,
                         "metadata": {"state": WitnessingState.ATTESTED.value},
                     },
                 ),
@@ -524,7 +529,7 @@ class ControllerManager:
             f"did:key:{update_key}#{update_key}",
         )
 
-        return await self.finish_update_did(signed_log_entry, document_state.params)
+        return await self.finish_update(signed_log_entry, document_state.params)
 
     async def deactivate(self, options: dict):
         """Create a Webvh DID."""
@@ -649,7 +654,7 @@ class ControllerManager:
 
         return update_key, key_hash(next_key)
 
-    async def finish_update_did(self, signed_log_entry, params={}):
+    async def finish_update(self, signed_log_entry, params={}):
         """Finish updating an existing did."""
         did_document = signed_log_entry.get("state")
         did = did_document.get("id")
@@ -727,3 +732,7 @@ class ControllerManager:
             identifier,
             vp,
         )
+
+
+    async def upload_resource(self, attested_resource):
+        return

@@ -7,7 +7,7 @@ from marshmallow import EXCLUDE, fields
 HANDLER_MODULE = "webvh.witness.handler"
 
 PROTOCOL = "did-webvh-witness/1.0"
-PROTOCOL_PACKAGE = "webvh.did"
+PROTOCOL_PACKAGE = "webvh.witness"
 
 # Message types
 WITNESS_REQUEST = f"{PROTOCOL}/witness_request"
@@ -16,8 +16,8 @@ WITNESS_RESPONSE = f"{PROTOCOL}/witness_response"
 
 MESSAGE_TYPES = DIDCommPrefix.qualify_all(
     {
-        WITNESS_REQUEST: f"{PROTOCOL_PACKAGE}.messages.witness.WitnessRequest",  # noqa: E501
-        WITNESS_RESPONSE: f"{PROTOCOL_PACKAGE}.messages.witness.WitnessResponse",  # noqa: E501
+        WITNESS_REQUEST: f"{PROTOCOL_PACKAGE}.messages.WitnessRequest",  # noqa: E501
+        WITNESS_RESPONSE: f"{PROTOCOL_PACKAGE}.messages.WitnessResponse",  # noqa: E501
     }
 )
 
@@ -65,11 +65,12 @@ class WitnessResponse(AgentMessage):
         message_type = WITNESS_RESPONSE
         schema_class = "WitnessResponseSchema"
 
-    def __init__(self, state: str, document: dict, **kwargs):
+    def __init__(self, state: str, document: dict, witness_proof: dict, **kwargs):
         """Initialize ResponseWitness."""
         super().__init__(**kwargs)
         self.state = state
         self.document = document
+        self.witness_proof = witness_proof
 
 
 class WitnessResponseSchema(AgentMessageSchema):
@@ -94,5 +95,11 @@ class WitnessResponseSchema(AgentMessageSchema):
         required=False,
         metadata={
             "description": "document to witness",
+        },
+    )
+    witness_proof = fields.Dict(
+        required=False,
+        metadata={
+            "description": "witness proof",
         },
     )

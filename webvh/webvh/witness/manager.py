@@ -50,14 +50,14 @@ class WitnessManager:
 
     async def key_alias(self):
         domain = await get_server_domain(self.profile)
-        return f"{domain}@witnessKey"
+        return f"webvh:{domain}@witnessKey"
 
     async def connection_alias(self):
         domain = await get_server_domain(self.profile)
-        return f"{domain}@witness"
+        return f"webvh:{domain}@witness"
 
     async def _get_active_witness_connection(self) -> Optional[ConnRecord]:
-        witness_alias = self.witness_connection_alias()
+        witness_alias = await self.connection_alias()
         async with self.profile.session() as session:
             connection_records = await ConnRecord.retrieve_by_alias(
                 session, witness_alias
@@ -115,19 +115,12 @@ class WitnessManager:
 
         # Self witness
         if config.get("role") == "witness":
-            if not config.get("auto_attest", False):
-                await self.save_log_entry_for_witnessing(
-                    scid, log_entry, connection_id=""
-                )
-                return
-
-            witness_key = await self.get_witness_key()
-            witness_signature = await add_proof(
-                self.profile,
-                {"versionId": log_entry.get("versionId")},
-                f"did:key:{witness_key}#{witness_key}",
-            )
-            return witness_signature
+            if config.get("auto_attest", False):
+                return await self.sign_log_version(log_entry.get("versionId"))
+            
+            await self.save_log_entry(scid, log_entry, connection_id="")
+            return
+            
 
         # Need proof from witness agent
         else:
@@ -138,11 +131,20 @@ class WitnessManager:
                 raise WitnessError("No active witness connection found.")
 
             await responder.send(
-                message=WitnessRequest(log_entry),
+                message=WitnessRequest(document=log_entry),
                 connection_id=witness_connection.connection_id,
             )
 
-    async def save_log_entry_for_witnessing(
+    async def sign_log_version(self, version_id):
+        witness_key = await self.get_witness_key()
+        witness_signature = await add_proof(
+            self.profile,
+            {"versionId": version_id},
+            f"did:key:{witness_key}#{witness_key}",
+        )
+        return witness_signature
+
+    async def save_log_entry(
         self, scid: str, log_entry: dict, connection_id: Optional[str] = ""
     ):
         """Save a log entry to the wallet to be witnessed."""
@@ -214,7 +216,7 @@ class WitnessManager:
 
         return {"status": "success", "message": "Removed registration."}
 
-    async def save_attested_resource_witnessing(
+    async def save_attested_resource(
         self, scid: str, attested_resource: dict, connection_id: Optional[str] = ""
     ):
         """Save an attested resource to the wallet to be witnessed."""

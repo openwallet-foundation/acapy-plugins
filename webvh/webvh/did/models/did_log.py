@@ -16,7 +16,7 @@ class WitnessSchema(OpenAPISchema):
 class WitnessParameterSchema(OpenAPISchema):
     """Parameters for the witness feature."""
 
-    treshold = fields.Int(
+    threshold = fields.Int(
         required=True,
         metadata={
             "description": "Witness treshold",
@@ -32,12 +32,12 @@ class InitialParametersSchema(OpenAPISchema):
     """Parameters for a initial Webvh DID request."""
 
     method = fields.Str(
-        required=False,
+        required=True,
         metadata={
             "description": "The didwebvh method version",
-            "example": "did:webvh:0.5",
+            "example": "did:webvh:0.1",
         },
-        default="did:webvh:0.5",
+        default="did:webvh:0.1",
     )
 
     scid = fields.Str(
@@ -70,6 +70,14 @@ class InitialParametersSchema(OpenAPISchema):
         required=False,
         metadata={
             "description": "A list of the key hashes authorized for pre-rotation",
+        },
+    )
+
+    watchers = fields.List(
+        fields.Str(),
+        required=False,
+        metadata={
+            "description": "Watchers list.",
         },
     )
 
