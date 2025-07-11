@@ -5,7 +5,7 @@ from acapy_agent.config.injection_context import InjectionContext
 from acapy_agent.config.provider import ClassProvider
 from acapy_agent.core.protocol_registry import ProtocolRegistry
 
-from .did.message_types import MESSAGE_TYPES
+from .witness.messages import MESSAGE_TYPES
 
 LOGGER = logging.getLogger(__name__)
 
