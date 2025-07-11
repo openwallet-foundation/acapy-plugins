@@ -152,8 +152,8 @@ def is_log_entry(document):
 def is_attested_resource(document):
     """Check if document is an attested resource."""
     return True if (
-        ("AttestedResource" in document.get("type") 
-        or "AttestedResource" == document.get("type"))
+        ("AttestedResource" in document.get("type", []) 
+        or "AttestedResource" == document.get("type", None))
         and isinstance(document.get("id", None), str)
         and isinstance(document.get("content", None), dict)
     ) else False

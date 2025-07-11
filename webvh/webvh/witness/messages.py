@@ -65,7 +65,7 @@ class WitnessResponse(AgentMessage):
         message_type = WITNESS_RESPONSE
         schema_class = "WitnessResponseSchema"
 
-    def __init__(self, state: str, document: dict, witness_proof: dict, **kwargs):
+    def __init__(self, state: str, document: dict, witness_proof: dict = None, **kwargs):
         """Initialize ResponseWitness."""
         super().__init__(**kwargs)
         self.state = state

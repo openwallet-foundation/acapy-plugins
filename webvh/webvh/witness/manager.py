@@ -165,10 +165,10 @@ class WitnessManager:
             entries = await session.handle.fetch_all(PENDING_LOG_ENTRY_TABLE_NAME)
             return [entry.value_json for entry in entries]
 
-    async def approve_log_entry(self, entry_id: str) -> dict[str, str]:
+    async def approve_log_entry(self, scid: str) -> dict[str, str]:
         """Attest a did request doc."""
         async with self.profile.session() as session:
-            entry = await session.handle.fetch(PENDING_LOG_ENTRY_TABLE_NAME, entry_id)
+            entry = await session.handle.fetch(PENDING_LOG_ENTRY_TABLE_NAME, scid)
 
         if entry is None:
             raise WitnessError("Failed to find pending document.")
@@ -199,13 +199,14 @@ class WitnessManager:
             await self.profile.inject(BaseResponder).send(
                 message=WitnessResponse(
                     state=WitnessingState.ATTESTED.value,
-                    document=witness_signature,
+                    document=log_entry,
+                    witness_proof=witness_signature.get('proof')[0],
                 ),
                 connection_id=connection_id,
             )
 
         async with self.profile.session() as session:
-            await session.handle.remove(PENDING_LOG_ENTRY_TABLE_NAME, entry_id)
+            await session.handle.remove(PENDING_LOG_ENTRY_TABLE_NAME, scid)
 
         return {"status": "success", "message": "Witness successful."}
 

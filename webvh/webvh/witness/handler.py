@@ -6,12 +6,11 @@ from acapy_agent.messaging.base_handler import BaseHandler
 from acapy_agent.messaging.request_context import RequestContext
 from acapy_agent.messaging.responder import BaseResponder
 
-from ..did.utils import url_to_domain, find_key, add_proof, is_log_entry, is_attested_resource
+from ..did.utils import is_log_entry, is_attested_resource
 from ..did.manager import ControllerManager
-from ..did.constants import ALIASES
 from .manager import WitnessManager
 
-from ..config.config import get_plugin_config, get_server_domain
+from ..config.config import get_plugin_config
 from .messages import WitnessRequest, WitnessResponse
 from .states import WitnessingState
 
@@ -70,21 +69,19 @@ class WitnessRequestHandler(BaseHandler):
             witness = WitnessManager(context.profile)
             connection_id = context.connection_record.connection_id
             if is_log_entry(document):
-                await witness.save_log_entry(document, connection_id)
+                scid = document.get('state').get('id').split(':')[2]
+                await witness.save_log_entry(scid, document, connection_id)
             
             elif is_attested_resource(document):
-                await witness.save_attested_resource(document, connection_id)
-            
-            else:
-                LOGGER.error("Unknown document type")
-                return
+                scid = document.get('id').split(':')[2]
+                await witness.save_attested_resource(scid, document, connection_id)
             
             await responder.send(
-                WitnessResponse(
+                message=WitnessResponse(
                     state=WitnessingState.PENDING.value,
                     document=document
                 ),
-                connection_id
+                connection_id=connection_id
             )
 
 
