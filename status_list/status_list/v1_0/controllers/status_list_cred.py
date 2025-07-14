@@ -143,16 +143,6 @@ class MatchBindStatusListCredRequest(OpenAPISchema):
     )
 
 
-class BindStatusListCredRequest(OpenAPISchema):
-    """Request schema for updating status list entry."""
-
-    status_type = fields.Str(
-        required=False,
-        default="w3c",
-        metadata={"description": "Status bitstring", "example": "ietf"},
-    )
-
-
 # In cases where credential status binding is NOT automated, we need a way to
 # bind a credential to the credential status. This adds additional burden to
 # the controller and should be avoided where possible. In cases where it's not
@@ -165,7 +155,6 @@ class BindStatusListCredRequest(OpenAPISchema):
     ),
 )
 @match_info_schema(MatchBindStatusListCredRequest())
-@request_schema(BindStatusListCredRequest())
 @response_schema(StatusListCredSchema(), 200, description="")
 @tenant_authentication
 async def bind_status_list_cred(request: web.BaseRequest):
@@ -173,16 +162,12 @@ async def bind_status_list_cred(request: web.BaseRequest):
 
     supported_cred_id = request.match_info["supported_cred_id"]
     cred_id = request.match_info["cred_id"]
-
-    body: Dict[str, Any] = await request.json()
-    status_type = body.get("status_type", "w3c")
-
     result: Dict[str, Any] = {}
 
     try:
         context: AdminRequestContext = request["context"]
         credential_status = await status_handler.assign_status_entries(
-            context, supported_cred_id, cred_id, status_type
+            context, supported_cred_id, cred_id
         )
         if credential_status:
             result["credentialStatus"] = credential_status

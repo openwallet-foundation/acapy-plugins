@@ -37,12 +37,15 @@ class StatusListDef(BaseRecord):
         status_message: Optional[list] = None,
         status_size: Optional[int] = -1,
         shard_size: Optional[int] = -1,
+        list_type: Optional[str] = None,
         list_size: Optional[int] = -1,
         list_seed: Optional[str] = None,
         list_index: Optional[int] = -1,
         list_number: Optional[str] = None,
         next_list_number: Optional[str] = None,
         list_numbers: Optional[List[str]] = None,
+        issuer_did: Optional[str] = None,
+        verification_method: Optional[str] = None,
         **kwargs,
     ) -> None:
         """Initialize a new status list definition instance."""
@@ -54,12 +57,15 @@ class StatusListDef(BaseRecord):
         self.status_message = status_message
         self.status_size = status_size
         self.shard_size = shard_size
+        self.list_type = list_type
         self.list_size = list_size
         self.list_seed = list_seed
         self.list_index = list_index
         self.list_number = list_number
         self.next_list_number = next_list_number
         self.list_numbers = list_numbers
+        self.issuer_did = issuer_did
+        self.verification_method = verification_method
 
         if not self.list_seed:
             self.seed_list()
@@ -92,13 +98,16 @@ class StatusListDef(BaseRecord):
                 "status_purpose",
                 "status_message",
                 "status_size",
-                "list_size",
                 "shard_size",
+                "list_type",
+                "list_size",
                 "list_seed",
                 "list_index",
                 "list_number",
                 "next_list_number",
                 "list_numbers",
+                "issuer_did",
+                "verification_method",
             )
         }
 
@@ -148,7 +157,9 @@ class StatusListDefSchema(BaseRecordSchema):
         required=False,
         default="revocation",
         metadata={
-            "description": "Status purpose: refresh, revocation, suspension or message",
+            "description": (
+                "Status purpose: 'refresh', 'revocation', 'suspension' or 'message'"
+            ),
             "example": "revocation",
         },
     )
@@ -178,11 +189,19 @@ class StatusListDefSchema(BaseRecordSchema):
             "example": 1024,
         },
     )
+    list_type = fields.Str(
+        required=False,
+        metadata={
+            "description": "Status list type: 'w3c', 'ietf' or none",
+            "example": "ietf",
+        },
+    )
     list_size = fields.Int(
         required=False,
         metadata={
-            "description": "Number of entries in the list, must be power of two, "
-            "minimum 131072",
+            "description": (
+                "Number of entries in the list, must be power of two, minimum 131072"
+            ),
             "example": 131072,
         },
     )
@@ -209,6 +228,23 @@ class StatusListDefSchema(BaseRecordSchema):
         fields.Str(),
         required=False,
         metadata={"description": "Status list numbers", "example": [1, 2, 3]},
+    )
+    issuer_did = fields.Str(
+        required=False,
+        metadata={
+            "description": "Issuer DID for the status list",
+            "example": "did:web:dev.lab.di.gov.on.ca",
+        },
+    )
+    verification_method = fields.Str(
+        required=False,
+        metadata={
+            "description": "Issuer DID for the status list",
+            "example": (
+                "did:web:dev.lab.di.gov.on.ca#"
+                "z6Mkgg342Ycpuk263R9d8Aq6MUaxPn1DDeHyGo38EefXmgDL"
+            ),
+        },
     )
 
 
