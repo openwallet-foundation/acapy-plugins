@@ -1,5 +1,6 @@
 """DID Webvh Registry."""
 
+import asyncio
 import logging
 import time
 from typing import Optional, Pattern, Sequence
@@ -50,9 +51,12 @@ from multiformats import multibase, multihash
 
 from ..resolver.resolver import DIDWebVHResolver
 from ..validation import WebVHDID
-from ..config.config import get_plugin_config
+from ..config.config import get_plugin_config, is_witness
 from ..did.server_client import WebVHServerClient, WebVHWatcherClient
+from ..witness.queue import WitnessQueue
 from ..witness.manager import WitnessManager
+from ..witness.states import WitnessingState
+from ..did.manager import ControllerManager
 from ..did.utils import add_proof
 
 # from ..models.resources import AttestedResource
@@ -61,6 +65,12 @@ LOGGER = logging.getLogger(__name__)
 
 # NOTE, temporary context location
 ATTESTED_RESOURCE_CTX = "https://opsecid.github.io/attested-resource/v1"
+
+PENDING_MESSAGE = {
+    "status": WitnessingState.PENDING.value,
+    "message": "The witness is pending.",
+}
+WITNESS_WAIT_TIMEOUT_SECONDS = 2
 
 
 class DIDWebVHRegistry(BaseAnonCredsResolver, BaseAnonCredsRegistrar):
@@ -591,10 +601,24 @@ class DIDWebVHRegistry(BaseAnonCredsResolver, BaseAnonCredsRegistrar):
         identifier = issuer.split(":")[5]
         if config.get("endorsement", False):
             # Request witness approval
-            await WitnessManager(profile).save_attested_resource_witnessing(
+            witness = WitnessManager(profile)
+            controller = ControllerManager(profile)
+            witness_signature = await witness.witness_attested_resource(
                 scid, secured_resource
             )
 
+            if not isinstance(witness_signature, dict):
+                if await is_witness(profile):
+                    pass
+
+                try:
+                    await WitnessQueue().set_pending_scid(profile, scid)
+                    await asyncio.wait_for(
+                        controller._wait_for_witness(scid),
+                        WITNESS_WAIT_TIMEOUT_SECONDS,
+                    )
+                except asyncio.TimeoutError:
+                    pass
         else:
             # Upload resource to server
             await WebVHServerClient(profile).upload_attested_resource(

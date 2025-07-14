@@ -2,6 +2,7 @@
 
 import http
 import json
+import logging
 
 from acapy_agent.core.profile import Profile
 from aiohttp import ClientConnectionError, ClientResponseError, ClientSession
@@ -10,6 +11,8 @@ from did_webvh.core.state import DocumentState
 from ..config.config import get_server_url, use_strict_ssl
 from .exceptions import DidCreationError, OperationError
 from .utils import all_are_not_none
+
+LOGGER = logging.getLogger(__name__)
 
 
 class WebVHWatcherClient:
@@ -152,8 +155,6 @@ class WebVHServerClient:
         namespace: str,
         identifier: str,
         resource: dict,
-        witness_signature: dict = None,
-        options: dict = None,
     ):
         """Submit a whois Verifiable Presentation for a given identifier."""
         server_url = await get_server_url(self.profile)

@@ -2,6 +2,7 @@
 
 import asyncio
 import json
+import copy
 import logging
 from typing import Optional
 
@@ -117,10 +118,9 @@ class WitnessManager:
         if config.get("role") == "witness":
             if config.get("auto_attest", False):
                 return await self.sign_log_version(log_entry.get("versionId"))
-            
+
             await self.save_log_entry(scid, log_entry, connection_id="")
             return
-            
 
         # Need proof from witness agent
         else:
@@ -132,6 +132,40 @@ class WitnessManager:
 
             await responder.send(
                 message=WitnessRequest(document=log_entry),
+                connection_id=witness_connection.connection_id,
+            )
+
+    async def witness_attested_resource(
+        self,
+        scid: str,
+        attested_resource: dict,
+    ) -> Optional[dict]:
+        """Witness the document with the given parameters."""
+        config = await get_plugin_config(self.profile)
+
+        # Self witness
+        if config.get("role") == "witness":
+            if config.get("auto_attest", False):
+                witness_key = await self.get_witness_key()
+                return await add_proof(
+                    self.profile,
+                    attested_resource,
+                    f"did:key:{witness_key}#{witness_key}",
+                )
+
+            await self.save_attested_resource(scid, attested_resource, connection_id="")
+            return
+
+        # Need proof from witness agent
+        else:
+            responder = self.profile.inject(BaseResponder)
+
+            witness_connection = await self._get_active_witness_connection()
+            if not witness_connection:
+                raise WitnessError("No active witness connection found.")
+
+            await responder.send(
+                message=WitnessRequest(document=attested_resource),
                 connection_id=witness_connection.connection_id,
             )
 
@@ -200,7 +234,7 @@ class WitnessManager:
                 message=WitnessResponse(
                     state=WitnessingState.ATTESTED.value,
                     document=log_entry,
-                    witness_proof=witness_signature.get('proof')[0],
+                    witness_proof=witness_signature.get("proof")[0],
                 ),
                 connection_id=connection_id,
             )
@@ -238,12 +272,10 @@ class WitnessManager:
             entries = await session.handle.fetch_all(PENDING_ATTESTED_RESOURCE_TABLE_NAME)
             return [entry.value_json for entry in entries]
 
-    async def approve_attested_resource(self, entry_id: str) -> dict[str, str]:
+    async def approve_attested_resource(self, scid: str) -> dict[str, str]:
         """Approve an attested resource."""
         async with self.profile.session() as session:
-            entry = await session.handle.fetch(
-                PENDING_ATTESTED_RESOURCE_TABLE_NAME, entry_id
-            )
+            entry = await session.handle.fetch(PENDING_ATTESTED_RESOURCE_TABLE_NAME, scid)
 
         if entry is None:
             raise WitnessError("Failed to find pending document.")
@@ -255,16 +287,19 @@ class WitnessManager:
             raise WitnessError("No proof found in log entry. Cannot witness.")
 
         witness_key = await self.get_witness_key()
-        attested_resource = await add_proof(
-            self.profile, attested_resource, f"did:key:{witness_key}#{witness_key}"
+        witnessed_resource = await add_proof(
+            self.profile,
+            copy.deepcopy(attested_resource),
+            f"did:key:{witness_key}#{witness_key}",
         )
 
         if not connection_id:
             # Upload resource to server
-            namespace = attested_resource.get("id").split("/")[0].split(":")[4]
-            identifier = attested_resource.get("id").split("/")[0].split(":")[5]
+            author_id = attested_resource.get("id").split("/")[0]
+            namespace = author_id.split(":")[4]
+            identifier = author_id.split(":")[5]
             await self.server_client.upload_attested_resource(
-                namespace, identifier, attested_resource
+                namespace, identifier, witnessed_resource
             )
             return attested_resource
         else:
@@ -272,12 +307,13 @@ class WitnessManager:
                 message=WitnessResponse(
                     state=WitnessingState.ATTESTED.value,
                     document=attested_resource,
+                    witness_proof=witnessed_resource.get("proof")[-1],
                 ),
                 connection_id=connection_id,
             )
 
         async with self.profile.session() as session:
-            await session.handle.remove(PENDING_LOG_ENTRY_TABLE_NAME, entry_id)
+            await session.handle.remove(PENDING_ATTESTED_RESOURCE_TABLE_NAME, scid)
 
         return {"status": "success", "message": "Witness successful."}
 

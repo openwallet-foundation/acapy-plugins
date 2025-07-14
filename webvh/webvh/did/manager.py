@@ -53,6 +53,8 @@ from .utils import (
     create_alias,
     url_to_domain,
     create_key,
+    is_log_entry,
+    is_attested_resource,
     find_key,
     find_multikey,
     bind_key,
@@ -211,11 +213,18 @@ class ControllerManager:
                 return PENDING_MESSAGE
             else:
                 await self.witness_queue.remove_pending_scid(self.profile, scid)
-                return await self.finish_create(
-                    event.payload.get("document"),
-                    event.payload.get("witness_signature", None),
-                    state=WitnessingState.FINISHED.value,
-                )
+                document = event.payload.get("document")
+                if is_log_entry(document):
+                    return await self.finish_create(
+                        document,
+                        event.payload.get("witness_signature", None),
+                        state=WitnessingState.FINISHED.value,
+                    )
+                elif is_attested_resource(document):
+                    await self.upload_resource(
+                        document,
+                        state=WitnessingState.FINISHED.value,
+                    )
 
     def _did_is_valid(self, did: str, domain: str, namespace: str, identifier: str):
         return (
@@ -733,6 +742,44 @@ class ControllerManager:
             vp,
         )
 
+    async def upload_resource(self, attested_resource, state):
+        scid = attested_resource.get("id").split(":")[2]
+        namespace = attested_resource.get("id").split(":")[4]
+        identifier = attested_resource.get("id").split(":")[5].split("/")[0]
 
-    async def upload_resource(self, attested_resource):
-        return
+        if state == WitnessingState.ATTESTED.value:
+            event_bus = self.profile.inject(EventBus)
+            await event_bus.notify(
+                self.profile,
+                Event(
+                    f"{WITNESS_EVENT}{scid}",
+                    {
+                        "document": attested_resource,
+                        "metadata": {"state": WitnessingState.ATTESTED.value},
+                    },
+                ),
+            )
+            await asyncio.sleep(WITNESS_WAIT_TIMEOUT_SECONDS)
+            if scid not in await self.witness_queue.get_pending_scids(self.profile):
+                return
+            await self.witness_queue.remove_pending_scid(self.profile, scid)
+
+        if state == WitnessingState.PENDING.value:
+            event_bus = self.profile.inject(EventBus)
+            await event_bus.notify(
+                self.profile,
+                Event(
+                    f"{WITNESS_EVENT}{scid}",
+                    {
+                        "document": attested_resource,
+                        "metadata": {
+                            "state": WitnessingState.PENDING.value,
+                        },
+                    },
+                ),
+            )
+            return
+
+        await self.server_client.upload_attested_resource(
+            namespace, identifier, attested_resource
+        )
