@@ -53,9 +53,9 @@ from ..resolver.resolver import DIDWebVHResolver
 from ..validation import WebVHDID
 from ..config.config import get_plugin_config, is_witness
 from ..did.server_client import WebVHServerClient, WebVHWatcherClient
-from ..witness.queue import WitnessQueue
-from ..witness.manager import WitnessManager
-from ..witness.states import WitnessingState
+from ..protocols.endorse_attested_resource.record import PendingAttestedResourceRecord
+from ..protocols.states import WitnessingState
+from ..did.witness import WitnessManager
 from ..did.manager import ControllerManager
 from ..did.utils import add_proof
 
@@ -612,9 +612,9 @@ class DIDWebVHRegistry(BaseAnonCredsResolver, BaseAnonCredsRegistrar):
                     pass
 
                 try:
-                    await WitnessQueue().set_pending_scid(profile, scid)
+                    await PendingAttestedResourceRecord().set_pending_scid(profile, scid)
                     await asyncio.wait_for(
-                        controller._wait_for_witness(scid),
+                        controller._wait_for_resource(scid),
                         WITNESS_WAIT_TIMEOUT_SECONDS,
                     )
                 except asyncio.TimeoutError:

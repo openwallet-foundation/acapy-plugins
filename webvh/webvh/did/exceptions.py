@@ -23,3 +23,9 @@ class OperationError(Exception):
     """Exception for did operation errors."""
 
     pass
+
+
+class WitnessError(Exception):
+    """Exception for witness errors."""
+
+    pass

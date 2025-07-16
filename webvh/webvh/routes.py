@@ -14,13 +14,14 @@ from aiohttp import web
 from aiohttp_apispec import docs, querystring_schema, request_schema, response_schema
 from marshmallow.exceptions import ValidationError
 
-from .config.config import get_plugin_config, set_config
+from .config.config import get_plugin_config
 from .did.manager import ControllerManager
 from .did.exceptions import (
     ConfigurationError,
     DidCreationError,
     DidUpdateError,
     OperationError,
+    WitnessError
 )
 from .did.models.operations import (
     ConfigureWebvhSchema,
@@ -28,13 +29,20 @@ from .did.models.operations import (
     WebvhCreateSchema,
     WebvhCreateWitnessInvitationSchema,
     WebvhDeactivateSchema,
-    WebvhDIDQueryStringSchema,
     WebvhSCIDQueryStringSchema,
     WebvhUpdateWhoisSchema,
 )
-from .did.utils import decode_invitation
-from .witness.manager import WitnessManager
-from .witness.exceptions import WitnessError
+from .did.witness import WitnessManager
+from .protocols.witness_log_entry.routes import (
+    get_pending_log_entries,
+    approve_pending_log_entry,
+    reject_pending_log_entry
+)
+from .protocols.endorse_attested_resource.routes import (
+    get_pending_attested_resources,
+    approve_pending_attested_resource,
+    reject_pending_attested_resource
+)
 
 LOGGER = logging.getLogger(__name__)
 
@@ -54,35 +62,10 @@ async def configure(request: web.BaseRequest):
     profile = request["context"].profile
     request_json = await request.json()
 
-    # Build the config object
-    config = await get_plugin_config(profile)
-    if not config.get("server_url"):
-        raise ConfigurationError("No server url configured.")
-
-    config["scids"] = config.get("scids", {})
-    config["witnesses"] = config.get("witnesses", [])
-    config["server_url"] = request_json.get(
-        "server_url", config.get("server_url")
-    ).rstrip("/")
-    config["endorsement"] = request_json.get("endorsement", False)
-
-    await set_config(profile, config)
-
     try:
-        if request_json.get("witness"):
-            return web.json_response(
-                await WitnessManager(profile).configure(
-                    request_json.get("auto_attest", False),
-                    request_json.get("witness_key", None),
-                )
-            )
-
-        elif not request_json.get("witness"):
-            return web.json_response(
-                await ControllerManager(profile).configure(
-                    witness_invitation=request_json.get("witness_invitation", None)
-                )
-            )
+        return web.json_response(
+            await ControllerManager(profile).configure(request_json)
+        )
 
     except (ConfigurationError, OperationError) as err:
         return web.json_response({"status": "error", "message": str(err)})
@@ -94,12 +77,13 @@ async def configure(request: web.BaseRequest):
 async def witness_create_invite(request: web.BaseRequest):
     """Create a witness invitation."""
     context: AdminRequestContext = request["context"]
-    body = await request.json() if request.body_exists else {}
-    profile = context.profile
+    request_json = await request.json()
     try:
         return web.json_response(
-            await WitnessManager(profile).create_invitation(
-                body.get("alias"), body.get("label"), body.get("multi")
+            await WitnessManager(context.profile).create_invitation(
+                request_json.get("alias"), 
+                request_json.get("label"), 
+                request_json.get("multi")
             )
         )
     except (StorageNotFoundError, ValidationError, WitnessError) as e:
@@ -205,94 +189,6 @@ async def deactivate(request: web.BaseRequest):
         return web.json_response({"status": "error", "message": str(err)})
 
 
-@docs(tags=["did-webvh"], summary="Get all pending log entries")
-@tenant_authentication
-async def get_pending_log_entries(request: web.BaseRequest):
-    """Get all pending log entries."""
-    context: AdminRequestContext = request["context"]
-    pending_log_entries = await WitnessManager(context.profile).get_pending_log_entries()
-    return web.json_response({"results": pending_log_entries})
-
-
-@docs(tags=["did-webvh"], summary="Approve a pending log entry")
-@querystring_schema(WebvhSCIDQueryStringSchema())
-@tenant_authentication
-async def approve_pending_log_entry(request: web.BaseRequest):
-    """Approve a pending log entry."""
-    context: AdminRequestContext = request["context"]
-
-    try:
-        return web.json_response(
-            await WitnessManager(context.profile).approve_log_entry(
-                request.query.get("scid")
-            )
-        )
-    except WitnessError as err:
-        return web.json_response({"status": "error", "message": str(err)})
-
-
-@docs(tags=["did-webvh"], summary="Reject a pending log entry")
-@querystring_schema(WebvhSCIDQueryStringSchema())
-@tenant_authentication
-async def reject_pending_log_entry(request: web.BaseRequest):
-    """Reject a pending log entry."""
-    context: AdminRequestContext = request["context"]
-
-    try:
-        return web.json_response(
-            await WitnessManager(context.profile).reject_log_entry(
-                request.query.get("scid")
-            )
-        )
-    except WitnessError as err:
-        return web.json_response({"status": "error", "message": str(err)})
-
-
-@docs(tags=["did-webvh"], summary="Get all pending attested resources")
-@tenant_authentication
-async def get_pending_attested_resources(request: web.BaseRequest):
-    """Get all pending attested resources."""
-    context: AdminRequestContext = request["context"]
-    pending_log_entries = await WitnessManager(
-        context.profile
-    ).get_pending_attested_resources()
-    return web.json_response({"results": pending_log_entries})
-
-
-@docs(tags=["did-webvh"], summary="Approve a pending attested resource")
-@querystring_schema(WebvhSCIDQueryStringSchema())
-@tenant_authentication
-async def approve_pending_attested_resource(request: web.BaseRequest):
-    """Approve a pending attested resource."""
-    context: AdminRequestContext = request["context"]
-
-    try:
-        return web.json_response(
-            await WitnessManager(context.profile).approve_attested_resource(
-                request.query.get("scid")
-            )
-        )
-    except WitnessError as err:
-        return web.json_response({"status": "error", "message": str(err)})
-
-
-@docs(tags=["did-webvh"], summary="Reject a pending attested resource")
-@querystring_schema(WebvhSCIDQueryStringSchema())
-@tenant_authentication
-async def reject_pending_attested_resource(request: web.BaseRequest):
-    """Reject a pending attested resource."""
-    context: AdminRequestContext = request["context"]
-
-    try:
-        return web.json_response(
-            await WitnessManager(context.profile).reject_attested_resource(
-                request.query.get("scid")
-            )
-        )
-    except WitnessError as err:
-        return web.json_response({"status": "error", "message": str(err)})
-
-
 @docs(tags=["did-webvh"], summary="Update WHOIS linked VP")
 @querystring_schema(WebvhSCIDQueryStringSchema())
 @request_schema(WebvhUpdateWhoisSchema())
@@ -331,19 +227,19 @@ async def register(app: web.Application):
         [
             web.post("/did/webvh/configuration", configure),
             web.get("/did/webvh/configuration", get_config, allow_head=False),
-            web.post("/did/webvh/controller/create", create),
-            web.post("/did/webvh/controller/update", update),
-            web.post("/did/webvh/controller/deactivate", deactivate),
+            web.post("/did/webvh/create", create),
+            web.post("/did/webvh/update", update),
+            web.post("/did/webvh/deactivate", deactivate),
             web.post(
-                "/did/webvh/controller/verification-methods",
+                "/did/webvh/verification-methods",
                 add_verification_method_request,
             ),
             web.delete(
-                "/did/webvh/controller/verification-methods/{key_id}",
+                "/did/webvh/verification-methods/{key_id}",
                 delete_verification_method_request,
             ),
-            web.post("/did/webvh/controller/whois", update_whois),
-            web.post("/did/webvh/witness/invitations", witness_create_invite),
+            web.post("/did/webvh/whois", update_whois),
+            web.post("/did/webvh/witness-invitation", witness_create_invite),
             web.get(
                 "/did/webvh/witness/log-entries",
                 get_pending_log_entries,

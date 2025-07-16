@@ -137,32 +137,13 @@ async def verify_proof(profile, document) -> bool:
         verified = await DataIntegrityManager(session).verify_proof(document)
     return verified
 
-
-def is_log_entry(document):
-    """Check if document is a log entry."""
+def validate_did(did: str, domain: str, namespace: str, identifier: str):
     return (
         True
         if (
-            isinstance(document.get("versionId", None), str)
-            and isinstance(document.get("versionTime", None), str)
-            and isinstance(document.get("parameters", None), dict)
-            and isinstance(document.get("state", None), dict)
-        )
-        else False
-    )
-
-
-def is_attested_resource(document):
-    """Check if document is an attested resource."""
-    return (
-        True
-        if (
-            (
-                "AttestedResource" in document.get("type", [])
-                or "AttestedResource" == document.get("type", None)
-            )
-            and isinstance(document.get("id", None), str)
-            and isinstance(document.get("content", None), dict)
+            did.split(":")[3] == domain
+            and did.split(":")[4] == namespace
+            and did.split(":")[5] == identifier
         )
         else False
     )

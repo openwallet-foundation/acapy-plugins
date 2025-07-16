@@ -31,4 +31,3 @@ auto-respond-messages: true
 # Plugin
 plugin-config-value:
   - did-webvh.server_url=https://id.test-suite.app
-  - did-webvh.role=controller

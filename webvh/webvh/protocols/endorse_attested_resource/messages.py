@@ -4,10 +4,10 @@ from acapy_agent.protocols.didcomm_prefix import DIDCommPrefix
 from acapy_agent.messaging.agent_message import AgentMessage, AgentMessageSchema
 from marshmallow import EXCLUDE, fields
 
-HANDLER_MODULE = "webvh.witness.handler"
+HANDLER_MODULE = "webvh.protocols.endorse_attested_resource.handlers"
 
 PROTOCOL = "did-webvh-witness/1.0"
-PROTOCOL_PACKAGE = "webvh.witness"
+PROTOCOL_PACKAGE = "webvh.protocols.endorse_attested_resource"
 
 # Message types
 WITNESS_REQUEST = f"{PROTOCOL}/witness_request"

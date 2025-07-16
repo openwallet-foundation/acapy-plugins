@@ -8,10 +8,10 @@ from aries_askar import AskarError
 LOGGER = logging.getLogger(__name__)
 
 
-class WitnessQueue:
-    """Class to manage pending webvh witnessing requests."""
+class BasePendingRecord:
+    """Base class to manage pending witness requests."""
 
-    RECORD_TYPE = "pending_requests"
+    RECORD_TYPE = "generic_record"
     instance = None
     scids = None
 
@@ -63,3 +63,34 @@ class WitnessQueue:
         """Get all pending scids."""
         await self._check_and_initialize(profile)
         return self.scids
+
+    async def get_pending_records(self, profile: Profile) -> set:
+        """Get all pending records."""
+        async with profile.session() as session:
+            entries = await session.handle.fetch_all(self.RECORD_TYPE)
+        return [entry.value_json for entry in entries]
+
+    async def get_pending_record(self, profile: Profile, scid: str) -> set:
+        """Get a pending record given a scid."""
+        async with profile.session() as session:
+            entry = await session.handle.fetch(self.RECORD_TYPE, scid)
+        return entry.value_json, entry.tags.get("connection_id")
+
+    async def remove_pending_record(self, profile: Profile, scid: str) -> set:
+        """Remove a pending record given a scid."""
+        async with profile.session() as session:
+            await session.handle.remove(self.RECORD_TYPE, scid)
+
+        return {"status": "success", "message": f"Removed {self.RECORD_TYPE}."}
+
+    async def save_pending_record(
+        self, profile: Profile, scid: str, record: dict, connection_id: str = ""
+        ) -> set:
+        """Save a pending record given a scid."""
+        async with profile.session() as session:
+            await session.handle.insert(
+                self.RECORD_TYPE,
+                scid,
+                value_json=record,
+                tags={"connection_id": connection_id},
+            )

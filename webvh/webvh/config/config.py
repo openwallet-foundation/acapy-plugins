@@ -39,12 +39,12 @@ async def get_plugin_config(profile: Profile):
 
 async def is_controller(profile: Profile):
     """Check if the current agent is a controller."""
-    return (await get_plugin_config(profile)).get("role") == "controller"
+    return False if (await get_plugin_config(profile)).get("witness") else True
 
 
 async def is_witness(profile: Profile):
     """Check if the current agent is a witness."""
-    return (await get_plugin_config(profile)).get("role") == "witness"
+    return True if (await get_plugin_config(profile)).get("witness") else False
 
 
 async def notify_watchers(profile: Profile):

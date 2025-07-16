@@ -1,7 +1,6 @@
-"""Enum for the registration state of a DID."""
+"""States for witness protocols."""
 
 from enum import Enum
-
 
 class WitnessingState(Enum):
     """Enum for the attestation state of a DID."""

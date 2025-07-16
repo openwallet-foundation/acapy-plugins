@@ -17,15 +17,26 @@ from acapy_agent.protocols.out_of_band.v1_0.messages.invitation import (
     HSProto,
 )
 
-from aries_askar import AskarError
+from ..config.config import get_plugin_config, get_server_domain
 
-from ..config.config import get_plugin_config, get_server_domain, set_config
-
-from .exceptions import WitnessSetupError, WitnessError
-from .messages import WitnessRequest, WitnessResponse
-from .states import WitnessingState
+from .exceptions import WitnessError
+from ..protocols.endorse_attested_resource.record import (
+    PendingAttestedResourceRecord
+)
+from ..protocols.endorse_attested_resource.messages import (
+    WitnessRequest as AttestedResourceWitnessRequest,
+    WitnessResponse as AttestedResrouceWitnessResponse,
+)
+from ..protocols.witness_log_entry.record import (
+    PendingLogEntryRecord
+)
+from ..protocols.witness_log_entry.messages import (
+    WitnessRequest as LogEntryWitnessRequest,
+    WitnessResponse as LogEntryWitnessResponse,
+)
+from ..protocols.states import WitnessingState
 from ..did.server_client import WebVHServerClient
-from ..did.utils import create_key, find_key, bind_key, add_proof
+from ..did.utils import find_key, add_proof
 
 LOGGER = logging.getLogger(__name__)
 
@@ -40,9 +51,7 @@ class WitnessManager:
     def __init__(self, profile: Profile):
         """Initialize the witness manager."""
         self.profile = profile
-        self.role = "witness"
         self.server_client = WebVHServerClient(profile)
-        # self.controller = ControllerManager(self.profile)
         self.proof_options = {
             "type": "DataIntegrityProof",
             "cryptosuite": "eddsa-jcs-2022",
@@ -82,30 +91,6 @@ class WitnessManager:
 
         return witness_key
 
-    async def configure(self, auto_attest=False, multikey=None) -> dict:
-        """Ensure witness key is setup."""
-
-        config = await get_plugin_config(self.profile)
-        config["role"] = self.role
-        config["auto_attest"] = auto_attest
-
-        key_alias = await self.key_alias()
-        witness_key = (
-            await find_key(self.profile, key_alias)
-            or await bind_key(self.profile, multikey, key_alias)
-            or await create_key(self.profile, key_alias)
-        )
-        if not witness_key:
-            raise WitnessError("Error create witness key.")
-
-        witness_id = f"did:key:{witness_key}"
-        if witness_id not in config["witnesses"]:
-            config["witnesses"].append(witness_id)
-
-        await set_config(self.profile, config)
-
-        return {"id": witness_id}
-
     async def witness_log_entry(
         self,
         scid: str,
@@ -115,11 +100,13 @@ class WitnessManager:
         config = await get_plugin_config(self.profile)
 
         # Self witness
-        if config.get("role") == "witness":
+        if config.get("witness", False):
             if config.get("auto_attest", False):
                 return await self.sign_log_version(log_entry.get("versionId"))
 
-            await self.save_log_entry(scid, log_entry, connection_id="")
+            await PendingLogEntryRecord().save_pending_record(
+                self.profile, scid, log_entry
+            )
             return
 
         # Need proof from witness agent
@@ -131,7 +118,7 @@ class WitnessManager:
                 raise WitnessError("No active witness connection found.")
 
             await responder.send(
-                message=WitnessRequest(document=log_entry),
+                message=LogEntryWitnessRequest(document=log_entry),
                 connection_id=witness_connection.connection_id,
             )
 
@@ -144,7 +131,7 @@ class WitnessManager:
         config = await get_plugin_config(self.profile)
 
         # Self witness
-        if config.get("role") == "witness":
+        if config.get("witness", False):
             if config.get("auto_attest", False):
                 witness_key = await self.get_witness_key()
                 return await add_proof(
@@ -153,21 +140,21 @@ class WitnessManager:
                     f"did:key:{witness_key}#{witness_key}",
                 )
 
-            await self.save_attested_resource(scid, attested_resource, connection_id="")
-            return
-
-        # Need proof from witness agent
-        else:
-            responder = self.profile.inject(BaseResponder)
-
-            witness_connection = await self._get_active_witness_connection()
-            if not witness_connection:
-                raise WitnessError("No active witness connection found.")
-
-            await responder.send(
-                message=WitnessRequest(document=attested_resource),
-                connection_id=witness_connection.connection_id,
+            await PendingAttestedResourceRecord().save_pending_record(
+                self.profile, scid, attested_resource
             )
+            return
+        
+        responder = self.profile.inject(BaseResponder)
+
+        witness_connection = await self._get_active_witness_connection()
+        if not witness_connection:
+            raise WitnessError("No active witness connection found.")
+
+        await responder.send(
+            message=AttestedResourceWitnessRequest(document=attested_resource),
+            connection_id=witness_connection.connection_id,
+        )
 
     async def sign_log_version(self, version_id):
         witness_key = await self.get_witness_key()
@@ -178,37 +165,8 @@ class WitnessManager:
         )
         return witness_signature
 
-    async def save_log_entry(
-        self, scid: str, log_entry: dict, connection_id: Optional[str] = ""
-    ):
-        """Save a log entry to the wallet to be witnessed."""
-        async with self.profile.session() as session:
-            try:
-                await session.handle.insert(
-                    PENDING_LOG_ENTRY_TABLE_NAME,
-                    scid,
-                    value_json=log_entry,
-                    tags={"connection_id": connection_id},
-                )
-            except AskarError as e:
-                raise WitnessError(f"Error adding pending document: {e}")
-
-    async def get_pending_log_entries(self) -> list:
-        """Get did request docs that are pending a witness."""
-        async with self.profile.session() as session:
-            entries = await session.handle.fetch_all(PENDING_LOG_ENTRY_TABLE_NAME)
-            return [entry.value_json for entry in entries]
-
-    async def approve_log_entry(self, scid: str) -> dict[str, str]:
+    async def approve_log_entry(self, log_entry: dict, connection_id: str) -> dict[str, str]:
         """Attest a did request doc."""
-        async with self.profile.session() as session:
-            entry = await session.handle.fetch(PENDING_LOG_ENTRY_TABLE_NAME, scid)
-
-        if entry is None:
-            raise WitnessError("Failed to find pending document.")
-
-        connection_id = entry.tags.get("connection_id")
-        log_entry = entry.value_json
 
         if not log_entry.get("proof", None):
             raise WitnessError("No proof found in log entry. Cannot witness.")
@@ -231,7 +189,7 @@ class WitnessManager:
                 )
         else:
             await self.profile.inject(BaseResponder).send(
-                message=WitnessResponse(
+                message=LogEntryWitnessResponse(
                     state=WitnessingState.ATTESTED.value,
                     document=log_entry,
                     witness_proof=witness_signature.get("proof")[0],
@@ -239,49 +197,10 @@ class WitnessManager:
                 connection_id=connection_id,
             )
 
-        async with self.profile.session() as session:
-            await session.handle.remove(PENDING_LOG_ENTRY_TABLE_NAME, scid)
-
         return {"status": "success", "message": "Witness successful."}
 
-    async def reject_log_entry(self, entry_id: str) -> dict[str, str]:
-        """Reject a did request doc."""
-        async with self.profile.session() as session:
-            await session.handle.remove(PENDING_LOG_ENTRY_TABLE_NAME, entry_id)
-
-        return {"status": "success", "message": "Removed registration."}
-
-    async def save_attested_resource(
-        self, scid: str, attested_resource: dict, connection_id: Optional[str] = ""
-    ):
-        """Save an attested resource to the wallet to be witnessed."""
-        async with self.profile.session() as session:
-            try:
-                await session.handle.insert(
-                    PENDING_ATTESTED_RESOURCE_TABLE_NAME,
-                    scid,
-                    value_json=attested_resource,
-                    tags={"connection_id": connection_id},
-                )
-            except AskarError as e:
-                raise WitnessError(f"Error adding pending document: {e}")
-
-    async def get_pending_attested_resources(self) -> list:
-        """Get attested_resources that are pending a witness."""
-        async with self.profile.session() as session:
-            entries = await session.handle.fetch_all(PENDING_ATTESTED_RESOURCE_TABLE_NAME)
-            return [entry.value_json for entry in entries]
-
-    async def approve_attested_resource(self, scid: str) -> dict[str, str]:
+    async def approve_attested_resource(self, attested_resource: dict, connection_id: str = None) -> dict[str, str]:
         """Approve an attested resource."""
-        async with self.profile.session() as session:
-            entry = await session.handle.fetch(PENDING_ATTESTED_RESOURCE_TABLE_NAME, scid)
-
-        if entry is None:
-            raise WitnessError("Failed to find pending document.")
-
-        connection_id = entry.tags.get("connection_id")
-        attested_resource = entry.value_json
 
         if not attested_resource.get("proof", None):
             raise WitnessError("No proof found in log entry. Cannot witness.")
@@ -304,7 +223,7 @@ class WitnessManager:
             return attested_resource
         else:
             await self.profile.inject(BaseResponder).send(
-                message=WitnessResponse(
+                message=AttestedResrouceWitnessResponse(
                     state=WitnessingState.ATTESTED.value,
                     document=attested_resource,
                     witness_proof=witnessed_resource.get("proof")[-1],
@@ -312,17 +231,7 @@ class WitnessManager:
                 connection_id=connection_id,
             )
 
-        async with self.profile.session() as session:
-            await session.handle.remove(PENDING_ATTESTED_RESOURCE_TABLE_NAME, scid)
-
         return {"status": "success", "message": "Witness successful."}
-
-    async def reject_attested_resource(self, entry_id: str) -> dict[str, str]:
-        """Reject an attested resource."""
-        async with self.profile.session() as session:
-            await session.handle.remove(PENDING_ATTESTED_RESOURCE_TABLE_NAME, entry_id)
-
-        return {"status": "success", "message": "Removed registration."}
 
     async def create_invitation(self, alias=None, label=None, multi_use=False) -> str:
         """Create a witness invitation."""
@@ -335,8 +244,6 @@ class WitnessManager:
                 ],
                 alias=alias,
                 my_label=label,
-                # TODO, register attachment?
-                # attachments=[{"type": "Witness", "id": f"did:key:{witness_key}"}],
                 goal_code="witness-service",
                 goal=f"did:key:{witness_key}",
                 multi_use=multi_use,

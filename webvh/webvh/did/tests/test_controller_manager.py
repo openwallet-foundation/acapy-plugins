@@ -22,9 +22,9 @@ log_entry_response = {
         "versionId": "1-QmSV77yftroggmtFuUrTDQaHaxpKwDwPvKwkhLqkS1hucT",
         "versionTime": "2024-12-18T21:15:58",
         "parameters": {
-            "updateKeys": ["z6MktZNLyY8wGFu9bKX3428Uzsocotpm9LWvVY4R3vkeHKxP"],
-            "method": "did:webvh:0.5",
             "scid": "QmVSevWDZeaFYcTx2FaVaU91G9ABtyEW5vG3wzKTxN7cuS",
+            "method": "did:webvh:0.1",
+            "updateKeys": ["z6MktZNLyY8wGFu9bKX3428Uzsocotpm9LWvVY4R3vkeHKxP"],
         },
         "state": {
             "@context": ["..."],

@@ -26,7 +26,6 @@ from acapy_agent.wallet.keys.manager import (
 )
 from aiohttp import ClientResponseError
 from did_webvh.core.state import DocumentState
-from pydid import DIDDocument
 
 from ..config.config import (
     add_scid_mapping,
@@ -39,9 +38,10 @@ from ..config.config import (
     notify_watchers,
     set_config,
 )
-from ..witness.states import WitnessingState
-from ..witness.queue import WitnessQueue
-from ..witness.manager import WitnessManager
+from ..protocols.endorse_attested_resource.record import PendingAttestedResourceRecord
+from ..protocols.witness_log_entry.record import PendingLogEntryRecord
+from ..protocols.states import WitnessingState
+from .witness import WitnessManager
 from .exceptions import DidCreationError, OperationError
 from .server_client import WebVHServerClient, WebVHWatcherClient
 from .utils import (
@@ -53,14 +53,13 @@ from .utils import (
     create_alias,
     url_to_domain,
     create_key,
-    is_log_entry,
-    is_attested_resource,
     find_key,
     find_multikey,
     bind_key,
     unbind_key,
     add_proof,
     verify_proof,
+    validate_did,
 )
 
 LOGGER = logging.getLogger(__name__)
@@ -80,9 +79,9 @@ class ControllerManager:
     def __init__(self, profile: Profile) -> None:
         """Initialize the DID Webvh Manager."""
         self.profile = profile
-        self.role = "controller"
         self.witness = WitnessManager(self.profile)
-        self.witness_queue = WitnessQueue()
+        self.pending_log_entries = PendingLogEntryRecord()
+        self.pending_attested_resource = PendingAttestedResourceRecord()
         self.server_client = WebVHServerClient(self.profile)
         self.watcher_client = WebVHWatcherClient(self.profile)
 
@@ -200,7 +199,7 @@ class ControllerManager:
 
         return initial_log_entry
 
-    async def _wait_for_witness(self, scid: str):
+    async def _wait_for_log_entry(self, scid: str):
         event_bus = self.profile.inject(EventBus)
         with event_bus.wait_for_event(
             self.profile, re.compile(rf"^{WITNESS_EVENT}{scid}$")
@@ -212,30 +211,32 @@ class ControllerManager:
             ):
                 return PENDING_MESSAGE
             else:
-                await self.witness_queue.remove_pending_scid(self.profile, scid)
+                await self.pending_log_entries.remove_pending_scid(self.profile, scid)
                 document = event.payload.get("document")
-                if is_log_entry(document):
-                    return await self.finish_create(
-                        document,
-                        event.payload.get("witness_signature", None),
-                        state=WitnessingState.FINISHED.value,
-                    )
-                elif is_attested_resource(document):
-                    await self.upload_resource(
-                        document,
-                        state=WitnessingState.FINISHED.value,
-                    )
+                return await self.finish_create(
+                    document,
+                    event.payload.get("witness_signature", None),
+                    state=WitnessingState.FINISHED.value,
+                )
 
-    def _did_is_valid(self, did: str, domain: str, namespace: str, identifier: str):
-        return (
-            True
+    async def _wait_for_resource(self, scid: str):
+        event_bus = self.profile.inject(EventBus)
+        with event_bus.wait_for_event(
+            self.profile, re.compile(rf"^{WITNESS_EVENT}{scid}$")
+        ) as await_event:
+            event = await await_event
             if (
-                did.split(":")[3] == domain
-                and did.split(":")[4] == namespace
-                and did.split(":")[5] == identifier
-            )
-            else False
-        )
+                event.payload.get("metadata", {}).get("state")
+                == WitnessingState.PENDING.value
+            ):
+                return PENDING_MESSAGE
+            else:
+                await self.pending_log_entries.remove_pending_scid(self.profile, scid)
+                document = event.payload.get("document")
+                await self.upload_resource(
+                    document,
+                    state=WitnessingState.FINISHED.value,
+                )
 
     async def _apply_policy(self, parameters: dict, options: dict):
         """Apply server policy to did creation options.
@@ -260,34 +261,52 @@ class ControllerManager:
 
         return options
 
-    # async def _request_witness_signature(self, scid: str, document: dict):
-    #     witness_signature = await self.witness.witness_log_entry(
-    #         scid,
-    #         initial_log_entry
-    #     )
-
-    #     if not isinstance(witness_signature, dict):
-
-    #         if (await get_plugin_config(self.profile)).get("role") == "witness":
-    #             return PENDING_MESSAGE
-
-    #         try:
-    #             await self.witness_queue.set_pending_log_entry(self.profile, scid)
-    #             return await asyncio.wait_for(
-    #                 self._wait_for_witness(scid),
-    #                 WITNESS_WAIT_TIMEOUT_SECONDS,
-    #             )
-    #         except asyncio.TimeoutError:
-    #             return {
-    #                 "status": "unknown",
-    #                 "message": "No immediate response from witness agent.",
-    #             }
-
-    async def configure(self, witness_invitation) -> None:
-        """Configure controller."""
+    async def configure(self, options: dict) -> dict:
+        """Configure did controller and/or witness."""
+        
         config = await get_plugin_config(self.profile)
-        config["role"] = self.role
+        config["scids"] = config.get("scids", {})
+        config["witnesses"] = config.get("witnesses", [])
+        config["witness"] = options.get("witness", False)
+        config["endorsement"] = options.get("endorsement", False)
+        config["auto_attest"] = options.get("auto_attest", False)
+        config["server_url"] = options.get(
+            "server_url", config.get("server_url")
+        ).rstrip("/")
+    
+        if not config.get("server_url"):
+            raise OperationError("No server url configured.")
+        
+        if config.get('witness', False):
+            # Create a local witness key to setup self witnessing
+            domain = await get_server_domain(self.profile)
+            key_alias = f"webvh:{domain}@witnessKey"
+            witness_key = (
+                await find_key(self.profile, key_alias)
+                or await bind_key(self.profile, options.get('witness_key'), key_alias)
+                or await create_key(self.profile, key_alias)
+            )
+            if not witness_key:
+                raise OperationError("Error creating witness key.")
 
+            witness_id = f"did:key:{witness_key}"
+            
+        else:
+            # Connect to witness service
+            witness_id = await self.connect_to_witness(
+                options.get('witness_invitation')
+            )
+            
+        if witness_id not in config["witnesses"]:
+            config["witnesses"].append(witness_id)
+            
+        LOGGER.warning(config)
+        await set_config(self.profile, config)
+        
+        return config
+
+    async def connect_to_witness(self, witness_invitation) -> None:
+        """Process witness invitation and connect."""
         if not witness_invitation:
             raise OperationError("No witness invitation provided.")
 
@@ -296,35 +315,23 @@ class ControllerManager:
         except UnicodeDecodeError:
             raise OperationError("Invalid witness invitation.")
 
-        witness_id = decoded_invitation.get("goal")
         if (
-            not witness_id.startswith("did:key:")
+            not decoded_invitation.get("goal").startswith("did:key:")
             and not decoded_invitation.get("goal-code") == "witness-service"
         ):
             raise OperationError("Missing invitation goal-code and witness did.")
 
-        await self.connect_to_witness(witness_invitation)
-
-        if witness_id not in config["witnesses"]:
-            config["witnesses"].append(witness_id)
-
-        await set_config(self.profile, config)
-        return {"status": "success"}
-
-    async def connect_to_witness(self, invitation) -> None:
-        """Process witness invitation and connect."""
-
         # Get the witness connection is already set up
         if await self._get_active_witness_connection():
             LOGGER.info("Connected to witness from previous connection.")
-            return
+            return decoded_invitation.get("goal")
 
         try:
             server_domain = await get_server_domain(self.profile)
             # alias = create_alias(server_domain, "witnessConnection")
             alias = f"webvh:{server_domain}@witness"
             await OutOfBandManager(self.profile).receive_invitation(
-                invitation=InvitationMessage.from_url(invitation),
+                invitation=InvitationMessage.from_url(witness_invitation),
                 auto_accept=True,
                 alias=alias,
             )
@@ -334,7 +341,7 @@ class ControllerManager:
         for _ in range(5):
             if await self._get_active_witness_connection():
                 LOGGER.info("Connected to witness agent.")
-                return
+                return decoded_invitation.get("goal")
             await asyncio.sleep(1)
 
         LOGGER.info(
@@ -342,6 +349,7 @@ class ControllerManager:
             f"try manually setting up a connection with alias {alias} or "
             "restart the agent when witness is available."
         )
+        return decoded_invitation.get("goal")
 
     async def create(self, options: dict):
         """Create DID and first log entry."""
@@ -358,7 +366,7 @@ class ControllerManager:
 
         # Validate if the returned identifier matches the provided options
         placeholder_id = requested_identifier.get("state", {}).get("id", None)
-        if not self._did_is_valid(placeholder_id, domain, namespace, identifier):
+        if not validate_did(placeholder_id, domain, namespace, identifier):
             raise DidCreationError(f"Server returned invalid did: {placeholder_id}")
 
         # Apply provided options & policies to the requested identifier
@@ -391,9 +399,9 @@ class ControllerManager:
                     return PENDING_MESSAGE
 
                 try:
-                    await self.witness_queue.set_pending_scid(self.profile, scid)
+                    await self.pending_log_entries.set_pending_scid(self.profile, scid)
                     return await asyncio.wait_for(
-                        self._wait_for_witness(scid),
+                        self._wait_for_log_entry(scid),
                         WITNESS_WAIT_TIMEOUT_SECONDS,
                     )
                 except asyncio.TimeoutError:
@@ -435,9 +443,9 @@ class ControllerManager:
                 ),
             )
             await asyncio.sleep(WITNESS_WAIT_TIMEOUT_SECONDS)
-            if scid not in await self.witness_queue.get_pending_scids(self.profile):
+            if scid not in await self.pending_log_entries.get_pending_scids(self.profile):
                 return
-            await self.witness_queue.remove_pending_scid(self.profile, scid)
+            await self.pending_log_entries.remove_pending_scid(self.profile, scid)
 
         if state == WitnessingState.PENDING.value:
             event_bus = self.profile.inject(EventBus)
@@ -760,9 +768,9 @@ class ControllerManager:
                 ),
             )
             await asyncio.sleep(WITNESS_WAIT_TIMEOUT_SECONDS)
-            if scid not in await self.witness_queue.get_pending_scids(self.profile):
+            if scid not in await self.pending_log_entries.get_pending_scids(self.profile):
                 return
-            await self.witness_queue.remove_pending_scid(self.profile, scid)
+            await self.pending_log_entries.remove_pending_scid(self.profile, scid)
 
         if state == WitnessingState.PENDING.value:
             event_bus = self.profile.inject(EventBus)
