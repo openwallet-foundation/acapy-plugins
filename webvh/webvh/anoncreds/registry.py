@@ -603,11 +603,11 @@ class DIDWebVHRegistry(BaseAnonCredsResolver, BaseAnonCredsRegistrar):
             # Request witness approval
             witness = WitnessManager(profile)
             controller = ControllerManager(profile)
-            witness_signature = await witness.witness_attested_resource(
+            endorsed_resource = await witness.witness_attested_resource(
                 scid, secured_resource
             )
 
-            if not isinstance(witness_signature, dict):
+            if not isinstance(endorsed_resource, dict):
                 if await is_witness(profile):
                     pass
 
@@ -619,6 +619,11 @@ class DIDWebVHRegistry(BaseAnonCredsResolver, BaseAnonCredsRegistrar):
                     )
                 except asyncio.TimeoutError:
                     pass
+            else:
+                # Upload resource to server
+                await WebVHServerClient(profile).upload_attested_resource(
+                    namespace, identifier, endorsed_resource
+                )
         else:
             # Upload resource to server
             await WebVHServerClient(profile).upload_attested_resource(

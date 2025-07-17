@@ -6,7 +6,7 @@ from marshmallow import EXCLUDE, fields
 
 HANDLER_MODULE = "webvh.protocols.witness_log_entry.handlers"
 
-PROTOCOL = "did-webvh-witness/1.0"
+PROTOCOL = "did-webvh-witness-log-entry/1.0"
 PROTOCOL_PACKAGE = "webvh.protocols.witness_log_entry"
 
 # Message types

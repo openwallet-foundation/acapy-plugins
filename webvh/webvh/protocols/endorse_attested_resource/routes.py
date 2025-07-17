@@ -9,8 +9,11 @@ from aiohttp_apispec import docs, querystring_schema
 from ...did.models.operations import (
     WebvhSCIDQueryStringSchema
 )
+from .record import PendingAttestedResourceRecord
 from ...did.witness import WitnessManager
 from ...did.exceptions import WitnessError
+
+PENDING_RECORDS = PendingAttestedResourceRecord()
 
 
 @docs(tags=["did-webvh"], summary="Get all pending attested resources")
@@ -18,9 +21,9 @@ from ...did.exceptions import WitnessError
 async def get_pending_attested_resources(request: web.BaseRequest):
     """Get all pending attested resources."""
     context: AdminRequestContext = request["context"]
-    pending_log_entries = await WitnessManager(
+    pending_log_entries = await PENDING_RECORDS.get_pending_records(
         context.profile
-    ).get_pending_attested_resources()
+    )
     return web.json_response({"results": pending_log_entries})
 
 
@@ -32,11 +35,24 @@ async def approve_pending_attested_resource(request: web.BaseRequest):
     context: AdminRequestContext = request["context"]
 
     try:
-        return web.json_response(
-            await WitnessManager(context.profile).approve_attested_resource(
-                request.query.get("scid")
-            )
+        attested_resource, connection_id = await PENDING_RECORDS.get_pending_record(
+            context.profile, request.query.get("scid")
         )
+        if attested_resource is None:
+            raise WitnessError("Failed to find pending document.")
+        
+        await WitnessManager(context.profile).approve_attested_resource(
+            attested_resource, connection_id
+        )
+        
+        await PENDING_RECORDS.remove_pending_record(
+            context.profile, request.query.get("scid")
+        )
+        
+        return web.json_response(
+            {"status": "success", "message": "Witness successful."}
+        )
+        
     except WitnessError as err:
         return web.json_response({"status": "error", "message": str(err)})
 
@@ -50,8 +66,8 @@ async def reject_pending_attested_resource(request: web.BaseRequest):
 
     try:
         return web.json_response(
-            await WitnessManager(context.profile).reject_attested_resource(
-                request.query.get("scid")
+            await PENDING_RECORDS.remove_pending_record(
+                context.profile, request.query.get("scid")
             )
         )
     except WitnessError as err:

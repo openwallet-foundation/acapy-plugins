@@ -145,16 +145,18 @@ class WitnessManager:
             )
             return
         
-        responder = self.profile.inject(BaseResponder)
+        # Need proof from witness agent
+        else:
+            responder = self.profile.inject(BaseResponder)
 
-        witness_connection = await self._get_active_witness_connection()
-        if not witness_connection:
-            raise WitnessError("No active witness connection found.")
+            witness_connection = await self._get_active_witness_connection()
+            if not witness_connection:
+                raise WitnessError("No active witness connection found.")
 
-        await responder.send(
-            message=AttestedResourceWitnessRequest(document=attested_resource),
-            connection_id=witness_connection.connection_id,
-        )
+            await responder.send(
+                message=AttestedResourceWitnessRequest(document=attested_resource),
+                connection_id=witness_connection.connection_id,
+            )
 
     async def sign_log_version(self, version_id):
         witness_key = await self.get_witness_key()
