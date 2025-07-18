@@ -30,6 +30,7 @@ from oid4vc.models.exchange import OID4VCIExchangeRecord
 from oid4vc.models.presentation import OID4VPPresentation
 from oid4vc.models.supported_cred import SupportedCredential
 from oid4vc.pop_result import PopResult
+from oid4vc.status_handler import StatusHandler
 
 LOGGER = logging.getLogger(__name__)
 # Certain claims, if present, are never to be included in the selective disclosures list.
@@ -98,6 +99,11 @@ class SdJwtCredIssueProcessor(Issuer, CredVerifier, PresVerifier):
         else:
             raise ValueError("Unsupported pop holder value")
 
+        headers = {
+            "kid": ex_record.verification_method,
+            "typ": "vc+sd-jwt",
+        }
+
         claims = {
             **claims,
             "vct": supported.format_data["vct"],
@@ -105,10 +111,14 @@ class SdJwtCredIssueProcessor(Issuer, CredVerifier, PresVerifier):
             "iat": current_time,
         }
 
-        headers = {
-            "kid": ex_record.verification_method,
-            "typ": "vc+sd-jwt",
-        }
+        status_handler = context.inject_or(StatusHandler)
+        if status_handler and (
+            credential_status := await status_handler.assign_status_entries(
+                context, supported.supported_cred_id, ex_record.exchange_id
+            )
+        ):
+            claims["status"] = credential_status
+            LOGGER.debug("credential with status: %s", claims)
 
         profile = context.profile
         did = ex_record.issuer_id

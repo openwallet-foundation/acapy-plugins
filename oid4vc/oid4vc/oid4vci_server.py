@@ -128,7 +128,7 @@ class Oid4vciServer(BaseAdminServer):
             ]
         )
 
-        await public_routes_register(app, self.multitenant_manager)
+        await public_routes_register(app, self.multitenant_manager, self.context)
 
         cors = aiohttp_cors.setup(
             app,

@@ -25,6 +25,7 @@ class Config:
     host: str
     port: int
     endpoint: str
+    status_handler: str
 
     @classmethod
     def from_settings(cls, settings: BaseSettings) -> "Config":
@@ -34,6 +35,9 @@ class Config:
         host = plugin_settings.get("host") or getenv("OID4VCI_HOST")
         port = int(plugin_settings.get("port") or getenv("OID4VCI_PORT", "0"))
         endpoint = plugin_settings.get("endpoint") or getenv("OID4VCI_ENDPOINT")
+        status_handler = plugin_settings.get("status_handler") or getenv(
+            "OID4VCI_STATUS_HANDLER"
+        )
 
         if not host:
             raise ConfigError("host", "OID4VCI_HOST")
@@ -42,4 +46,4 @@ class Config:
         if not endpoint:
             raise ConfigError("endpoint", "OID4VCI_ENDPOINT")
 
-        return cls(host, port, endpoint)
+        return cls(host, port, endpoint, status_handler)
