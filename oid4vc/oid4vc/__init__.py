@@ -12,6 +12,7 @@ from acapy_agent.wallet.key_type import KeyTypes
 
 from jwt_vc_json.cred_processor import JwtVcJsonCredProcessor
 from oid4vc.cred_processor import CredProcessors
+from .status_handler import StatusHandler
 
 from .config import Config
 from .jwk import DID_JWK, P256
@@ -47,6 +48,9 @@ async def setup(context: InjectionContext):
     processors.register_pres_verifier("jwt_vp", jwt_vc_json)
 
     context.injector.bind_instance(CredProcessors, processors)
+
+    status_handler = StatusHandler(context)
+    context.injector.bind_instance(StatusHandler, status_handler)
 
 
 async def startup(profile: Profile, event: Event):
