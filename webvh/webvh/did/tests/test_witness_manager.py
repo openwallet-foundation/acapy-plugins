@@ -12,7 +12,7 @@ from acapy_agent.wallet.key_type import KeyTypes
 from acapy_agent.wallet.keys.manager import MultikeyManager
 
 from ..exceptions import ConfigurationError, WitnessError
-from ..witness_manager import PENDING_DOCUMENT_TABLE_NAME, WitnessManager
+from ..manager import PENDING_DOCUMENT_TABLE_NAME, WitnessManager
 
 mock_did_doc = {
     "@context": ["https://www.w3.org/ns/did/v1", "https://w3id.org/security/multikey/v1"],
@@ -60,7 +60,7 @@ class TestWitnessManager(IsolatedAsyncioTestCase):
     ):
         self.profile.settings.set_value(
             "plugin_config",
-            {"did-webvh": {"role": "witness", "server_url": "https://id.test-suite.app"}},
+            {"did-webvh": {"witness": True, "server_url": "https://id.test-suite.app"}},
         )
         await WitnessManager(self.profile).auto_witness_setup()
         assert not mock_get_active_witness_connection.called
@@ -68,7 +68,7 @@ class TestWitnessManager(IsolatedAsyncioTestCase):
     async def test_auto_witness_setup_as_controller_no_server_url(self):
         self.profile.settings.set_value(
             "plugin_config",
-            {"did-webvh": {"role": "controller"}},
+            {"did-webvh": {"witness": False}},
         )
         with self.assertRaises(ConfigurationError):
             await WitnessManager(self.profile).auto_witness_setup()
@@ -78,7 +78,7 @@ class TestWitnessManager(IsolatedAsyncioTestCase):
             "plugin_config",
             {
                 "did-webvh": {
-                    "role": "controller",
+                    "witness": False,
                     "server_url": "https://id.test-suite.app",
                 }
             },
@@ -96,7 +96,7 @@ class TestWitnessManager(IsolatedAsyncioTestCase):
             "plugin_config",
             {
                 "did-webvh": {
-                    "role": "controller",
+                    "witness": False,
                     "server_url": "https://id.test-suite.app",
                 }
             },
@@ -107,12 +107,12 @@ class TestWitnessManager(IsolatedAsyncioTestCase):
     async def test_auto_witness_setup_as_controller_bad_invitation(
         self, mock_receive_invitation
     ):
-        self.profile.settings.set_value("plugin_config.did-webvh.role", "controller")
+        self.profile.settings.set_value("plugin_config.did-webvh.witness", False)
         self.profile.settings.set_value(
             "plugin_config",
             {
                 "did-webvh": {
-                    "role": "controller",
+                    "witness": "controller",
                     "server_url": "https://id.test-suite.app",
                     "witness_invitation": "http://witness:9050?oob=eyJAdHlwZSI6ICJodHRwczovL2RpZGNvbW0ub3JnL291dC1vZi1iYW5kLzEuMS9pbnZpdGF0aW9uIiwgIkBpZCI6ICIwZDkwMGVjMC0wYzE3LTRmMTYtOTg1ZC1mYzU5MzVlYThjYTkiLCAibGFiZWwiOiAidGR3LWVuZG9yc2VyIiwgImhhbmRzaGFrZV9wcm90b2NvbHMiOiBbImh0dHBzOi8vZGlkY29tbS5vcmcvZGlkZXhjaGFuZ2UvMS4wIl0sICJzZXJ2aWNlcyI6IFt7ImlkIjogIiNpbmxpbmUiLCAidHlwZSI6ICJkaWQtY29tbXVuaWNhdGlvbiIsICJyZWNpcGllbnRLZXlzIjogWyJkaWQ6a2V5Ono2TWt0bXJUQURBWWRlc2Ftb3F1ZVV4NHNWM0g1Mms5b2ZoQXZRZVFaUG9vdTE3ZSN6Nk1rdG1yVEFEQVlkZXNhbW9xdWVVeDRzVjNINTJrOW9maEF2UWVRWlBvb3UxN2UiXSwgInNlcnZpY2VFbmRwb2ludCI6ICJodHRwOi8vbG9jYWxob3N0OjkwNTAifV19",
                 }
@@ -128,12 +128,12 @@ class TestWitnessManager(IsolatedAsyncioTestCase):
     @mock.patch.object(OutOfBandManager, "receive_invitation")
     @mock.patch.object(asyncio, "sleep")
     async def test_auto_witness_setup_as_controller_no_active_connection(self, *_):
-        self.profile.settings.set_value("plugin_config.did-webvh.role", "controller")
+        self.profile.settings.set_value("plugin_config.did-webvh.witness", False)
         self.profile.settings.set_value(
             "plugin_config",
             {
                 "did-webvh": {
-                    "role": "controller",
+                    "witness": False,
                     "server_url": "https://id.test-suite.app",
                     "witness_invitation": "http://witness:9050?oob=eyJAdHlwZSI6ICJodHRwczovL2RpZGNvbW0ub3JnL291dC1vZi1iYW5kLzEuMS9pbnZpdGF0aW9uIiwgIkBpZCI6ICIwZDkwMGVjMC0wYzE3LTRmMTYtOTg1ZC1mYzU5MzVlYThjYTkiLCAibGFiZWwiOiAidGR3LWVuZG9yc2VyIiwgImhhbmRzaGFrZV9wcm90b2NvbHMiOiBbImh0dHBzOi8vZGlkY29tbS5vcmcvZGlkZXhjaGFuZ2UvMS4wIl0sICJzZXJ2aWNlcyI6IFt7ImlkIjogIiNpbmxpbmUiLCAidHlwZSI6ICJkaWQtY29tbXVuaWNhdGlvbiIsICJyZWNpcGllbnRLZXlzIjogWyJkaWQ6a2V5Ono2TWt0bXJUQURBWWRlc2Ftb3F1ZVV4NHNWM0g1Mms5b2ZoQXZRZVFaUG9vdTE3ZSN6Nk1rdG1yVEFEQVlkZXNhbW9xdWVVeDRzVjNINTJrOW9maEF2UWVRWlBvb3UxN2UiXSwgInNlcnZpY2VFbmRwb2ludCI6ICJodHRwOi8vbG9jYWxob3N0OjkwNTAifV19",
                 }
@@ -146,12 +146,12 @@ class TestWitnessManager(IsolatedAsyncioTestCase):
 
     @mock.patch.object(OutOfBandManager, "receive_invitation")
     async def test_auto_witness_setup_as_controller_conn_becomes_active(self, *_):
-        self.profile.settings.set_value("plugin_config.did-webvh.role", "controller")
+        self.profile.settings.set_value("plugin_config.did-webvh.witness", False)
         self.profile.settings.set_value(
             "plugin_config",
             {
                 "did-webvh": {
-                    "role": "controller",
+                    "witness": False,
                     "server_url": "https://id.test-suite.app",
                     "witness_invitation": "http://witness:9050?oob=eyJAdHlwZSI6ICJodHRwczovL2RpZGNvbW0ub3JnL291dC1vZi1iYW5kLzEuMS9pbnZpdGF0aW9uIiwgIkBpZCI6ICIwZDkwMGVjMC0wYzE3LTRmMTYtOTg1ZC1mYzU5MzVlYThjYTkiLCAibGFiZWwiOiAidGR3LWVuZG9yc2VyIiwgImhhbmRzaGFrZV9wcm90b2NvbHMiOiBbImh0dHBzOi8vZGlkY29tbS5vcmcvZGlkZXhjaGFuZ2UvMS4wIl0sICJzZXJ2aWNlcyI6IFt7ImlkIjogIiNpbmxpbmUiLCAidHlwZSI6ICJkaWQtY29tbXVuaWNhdGlvbiIsICJyZWNpcGllbnRLZXlzIjogWyJkaWQ6a2V5Ono2TWt0bXJUQURBWWRlc2Ftb3F1ZVV4NHNWM0g1Mms5b2ZoQXZRZVFaUG9vdTE3ZSN6Nk1rdG1yVEFEQVlkZXNhbW9xdWVVeDRzVjNINTJrOW9maEF2UWVRWlBvb3UxN2UiXSwgInNlcnZpY2VFbmRwb2ludCI6ICJodHRwOi8vbG9jYWxob3N0OjkwNTAifV19",
                 }
@@ -203,7 +203,7 @@ class TestWitnessManager(IsolatedAsyncioTestCase):
             "plugin_config",
             {
                 "did-webvh": {
-                    "role": "controller",
+                    "witness": False,
                     "server_url": "https://id.test-suite.app",
                 }
             },

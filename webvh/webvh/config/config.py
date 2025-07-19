@@ -38,8 +38,13 @@ async def get_plugin_config(profile: Profile):
 
 
 async def is_controller(profile: Profile):
-    """Check if the current agent is the controller."""
-    return (await get_plugin_config(profile)).get("role") == "controller"
+    """Check if the current agent is a controller."""
+    return False if (await get_plugin_config(profile)).get("witness") else True
+
+
+async def is_witness(profile: Profile):
+    """Check if the current agent is a witness."""
+    return True if (await get_plugin_config(profile)).get("witness") else False
 
 
 async def notify_watchers(profile: Profile):
@@ -55,6 +60,16 @@ async def get_server_url(profile: Profile):
         raise ConfigurationError("Invalid configuration. Check server url is set.")
 
     return server_url
+
+
+async def get_server_domain(profile: Profile):
+    """Get the server domain."""
+    server_url = await get_server_url(profile)
+    """Replace %3A with : if domain is URL encoded."""
+    domain = server_url.split("://")[-1]
+    if "%3A" in domain:
+        domain = domain.replace("%3A", ":")
+    return domain
 
 
 async def get_witnesses(profile: Profile):
