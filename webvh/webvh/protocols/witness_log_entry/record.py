@@ -1,0 +1,11 @@
+"""Module for handling pending webvh dids."""
+
+from ..base_record import BasePendingRecord
+
+
+class PendingLogEntryRecord(BasePendingRecord):
+    """Class to manage pending webvh log entry witness requests."""
+
+    RECORD_TYPE = "pending_log_entry"
+    instance = None
+    scids = None

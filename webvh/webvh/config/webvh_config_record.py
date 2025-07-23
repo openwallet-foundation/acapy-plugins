@@ -23,19 +23,33 @@ class WebvhConfigSchema(BaseRecordSchema):
         model_class = WebvhConfig
         unkown = EXCLUDE
 
-    role = fields.Str(
-        required=True,
-        description="Role",
-    )
-
     server_url = fields.Str(
         required=True,
         description="WebVH Server",
     )
 
+    auto_attest = fields.Bool(
+        required=False,
+        description="Auto attest requests",
+        default=False
+    )
+
     notify_watchers = fields.Bool(
-        required=True,
+        required=False,
         description="Notify watchers",
+        default=False
+    )
+
+    endorsement = fields.Bool(
+        required=False,
+        description="Request witness signature on attested resource",
+        default=False
+    )
+
+    witness = fields.Bool(
+        required=False,
+        description="Enable self witnessing.",
+        default=False
     )
 
     witnesses = fields.List(
@@ -86,5 +100,5 @@ class WebvhConfigRecordSchema(BaseRecordSchema):
     config = fields.Dict(
         required=True,
         description="Webvh configuration",
-        example={"server_url": "http://localhost:8080", "role": "controller"},
+        example={"server_url": "http://localhost:8080"},
     )

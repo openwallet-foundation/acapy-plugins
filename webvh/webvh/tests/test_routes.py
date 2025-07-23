@@ -7,12 +7,24 @@ from acapy_agent.utils.testing import create_test_profile
 from aiohttp.web_response import Response
 
 from webvh.routes import (
-    approve_pending_registration,
+    get_config,
     configure,
+    witness_create_invite,
     create,
-    get_pending_registrations,
+    update,
+    add_verification_method_request,
+    delete_verification_method_request,
+    deactivate,
+    get_pending_log_entries,
+    approve_pending_log_entry,
+    reject_pending_log_entry,
+    get_pending_attested_resources,
+    approve_pending_attested_resource,
+    reject_pending_attested_resource,
+    update_whois
 )
 
+TEST_SCID = "QmVddMkhoVshB1yzHCqNLUi9UBf9vqBsDvepZ778WZcTuk"
 TEST_WITNESS_INVITATION = {
     "@type": "https://didcomm.org/out-of-band/1.1/invitation",
     "@id": "fe469f3d-b288-4e3f-99ba-b631af98248b",
@@ -50,6 +62,16 @@ class TestWebvhRoutes(IsolatedAsyncioTestCase):
             "context": self.context,
         }
 
+    async def test_get_config(self):
+        self.request = mock.MagicMock(
+            app={},
+            match_info={},
+            query={},
+            __getitem__=lambda _, k: self.request_dict[k],
+            headers={"x-api-key": "secret-key"},
+        )
+        await get_config(self.request)
+
     async def test_create(self):
         self.request = mock.MagicMock(
             app={},
@@ -57,12 +79,7 @@ class TestWebvhRoutes(IsolatedAsyncioTestCase):
             query={},
             json=mock.AsyncMock(
                 return_value={
-                    "options": {
-                        "namespace": "test",
-                        "identifier": "1234",
-                        "prerotation": False,
-                        "portable": False,
-                    },
+                    "options": {},
                 }
             ),
             __getitem__=lambda _, k: self.request_dict[k],
@@ -90,7 +107,7 @@ class TestWebvhRoutes(IsolatedAsyncioTestCase):
         result = await configure(self.request)
         assert isinstance(result, Response)
 
-    async def test_get_pending(self):
+    async def test_get_pending_log_entries(self):
         self.request = mock.MagicMock(
             app={},
             match_info={},
@@ -99,21 +116,21 @@ class TestWebvhRoutes(IsolatedAsyncioTestCase):
             headers={"x-api-key": "secret-key"},
         )
 
-        result = await get_pending_registrations(self.request)
+        result = await get_pending_log_entries(self.request)
         assert isinstance(result, Response)
 
-    async def test_attest(self):
+    async def test_approve_pending_log_entry(self):
         self.request = mock.MagicMock(
             app={},
             match_info={},
             query={
-                "did": "did:web:id.test-suite.app:test:1234",
+                "scid": TEST_SCID,
             },
             __getitem__=lambda _, k: self.request_dict[k],
             headers={"x-api-key": "secret-key"},
         )
 
-        result = await approve_pending_registration(self.request)
+        result = await approve_pending_log_entry(self.request)
         assert isinstance(result, Response)
 
     @mock.patch.object(OutOfBandManager, "receive_invitation")
