@@ -1,6 +1,5 @@
 from unittest import IsolatedAsyncioTestCase
 
-from acapy_agent.connections.models.conn_record import ConnRecord
 from acapy_agent.core.event_bus import EventBus
 from acapy_agent.messaging.responder import BaseResponder
 from acapy_agent.resolver.base import ResolutionMetadata, ResolutionResult, ResolverType
@@ -9,12 +8,11 @@ from acapy_agent.tests import mock
 from acapy_agent.utils.testing import create_test_profile
 from acapy_agent.wallet.key_type import KeyTypes
 from acapy_agent.wallet.keys.manager import MultikeyManager
-from aiohttp import ClientConnectionError
 
 from ...config.config import set_config
 from ..manager import ControllerManager
 from ..witness import WitnessManager
-from ..exceptions import ConfigurationError, DidCreationError, WitnessError
+from ..exceptions import ConfigurationError
 from ...protocols.states import WitnessingState
 from ...protocols.witness_log_entry.record import PendingLogEntryRecord
 

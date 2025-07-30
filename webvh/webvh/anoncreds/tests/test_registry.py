@@ -1,7 +1,6 @@
-from unittest import IsolatedAsyncioTestCase, mock
+from unittest import IsolatedAsyncioTestCase
 
 import pytest
-import uuid
 from acapy_agent.anoncreds.models.credential_definition import (
     CredDef,
     CredDefResult,
@@ -34,84 +33,24 @@ from ...tests.fixtures import (
     TEST_NAMESPACE,
     TEST_SERVER_URL,
     TEST_WITNESS_SEED,
-    TEST_WITNESS_KEY,
     TEST_RESOLVER,
 )
 from ...did.manager import ControllerManager
-from ...resolver.resolver import DIDWebVHResolver
 from ..registry import DIDWebVHRegistry
 
-test_scid = "Q"
 test_domain = "id.test-suite.app"
 test_server = "https://id.test-suite.app"
-test_issuer_id = f"did:webvh:{test_scid}:{test_domain}:issuer:01"
 test_schema = AnonCredsSchema(
-    issuer_id=test_issuer_id,
+    issuer_id=f"did:webvh:Q:{test_domain}:issuer:01",
     attr_names=["name", "age", "vmax"],
     name="test_schema",
     version="1.0",
 )
-test_schema_digest = "zQmPV3LTGZNCkzM2XA5p1EYkqDXB7FEHXfhJWHm2ARvv7Ev"
-TEST_WITNESS_SEED = "00000000000000000000000000000000"
-test_schema_id = f"{test_issuer_id}/resources/{test_schema_digest}"
-test_cred_tag = ""
-test_cred_def = {}
-test_cred_def_digest = "zQ"
-test_cred_def_id = f"{test_issuer_id}/{test_cred_def_digest}"
-test_rev_reg_tag = ""
 test_rev_reg_def = {}
-test_rev_reg_def_digest = "zQ"
-test_rev_reg_id = f"{test_issuer_id}/{test_rev_reg_def_digest}"
 test_rev_list = [0, 0, 0, 0, 0, 0, 0, 0]
 test_revoked_list_indexes = [1, 3, 6]
-test_rev_list_entry = {}
-test_rev_list_entry_digest = "zQ"
-test_rev_list_entry_timestamp = 123
-test_rev_list_entry_id = f"{test_issuer_id}/{test_rev_list_entry_digest}"
 test_rev_list_update = {}
-test_rev_list_update_digest = "zQ"
-test_rev_list_update_timestamp = 456
-test_rev_list_update_id = f"{test_issuer_id}/{test_rev_list_update_digest}"
-test_rev_list_index = [
-    {"id": test_rev_list_entry_id, "timestamp": test_rev_list_entry_timestamp},
-    {"id": test_rev_list_update_id, "timestamp": test_rev_list_update_timestamp},
-]
 
-request_resource = mock.AsyncMock(
-    return_value=mock.MagicMock(json=mock.AsyncMock(return_value={}), status=201)
-)
-
-resolve_resource = mock.AsyncMock(
-    return_value=mock.MagicMock(
-        json=mock.AsyncMock(
-            return_value={
-                "@context": ["https://w3id.org/security/data-integrity/v2"],
-                "id": f"{test_issuer_id}/resources/zQma3tUVYzMn9UfrFCEvxYv4RjaWgs4vV8MZnhR9utAffLh",
-                "type": ["AttestedResource"],
-                "content": {
-                    "issuerId": test_issuer_id,
-                    "attrNames": ["score"],
-                    "name": "Example schema",
-                    "version": "1.0",
-                },
-                "metadata": {
-                    "resourceId": "zQma3tUVYzMn9UfrFCEvxYv4RjaWgs4vV8MZnhR9utAffLh"
-                },
-                "proof": {
-                    "type": "Ed25519Signature2018",
-                    "created": "2022-01-26T18:40:00Z",
-                    "verificationMethod": f"{test_issuer_id}#key-01",
-                    "proofPurpose": "assertionMethod",
-                },
-            }
-        ),
-        status=200,
-    )
-)
-
-upload_resource = mock.AsyncMock(
-    return_value=mock.MagicMock(json=mock.AsyncMock(return_value={}), status=200)
-)
 
 
 class TestAnonCredsRegistry(IsolatedAsyncioTestCase):

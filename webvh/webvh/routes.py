@@ -208,15 +208,15 @@ async def update_whois(request: web.BaseRequest):
         return web.json_response({"status": "error", "message": str(err)})
 
 
-# def register_events(event_bus: EventBus):
-#     """Register to the acapy startup event."""
-#     event_bus.subscribe(STARTUP_EVENT_PATTERN, on_startup_event)
+def register_events(event_bus: EventBus):
+    """Register to the acapy startup event."""
+    event_bus.subscribe(STARTUP_EVENT_PATTERN, on_startup_event)
 
 
-# async def on_startup_event(profile: Profile, event: Event):
-#     """Handle the witness setup."""
-#     if not profile.settings.get("multitenant.enabled"):
-#         await ControllerManager(profile).auto_witness_setup()
+async def on_startup_event(profile: Profile, event: Event):
+    """Handle the witness setup."""
+    if not profile.settings.get("multitenant.enabled"):
+        await ControllerManager(profile).auto_witness_setup()
 
 
 async def register(app: web.Application):

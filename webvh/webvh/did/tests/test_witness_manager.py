@@ -2,7 +2,6 @@ import asyncio
 from unittest import IsolatedAsyncioTestCase
 
 from acapy_agent.connections.models.conn_record import ConnRecord
-from acapy_agent.messaging.models.base import BaseModelError
 from acapy_agent.messaging.responder import BaseResponder
 from acapy_agent.protocols.coordinate_mediation.v1_0.route_manager import RouteManager
 from acapy_agent.protocols.out_of_band.v1_0.manager import OutOfBandManager
@@ -11,42 +10,12 @@ from acapy_agent.utils.testing import create_test_profile
 from acapy_agent.wallet.key_type import KeyTypes
 from acapy_agent.wallet.keys.manager import MultikeyManager
 
-from ..exceptions import ConfigurationError, OperationError
+from ..exceptions import ConfigurationError
 from ..manager import ControllerManager
 from ..witness import WitnessManager
 from ...protocols.witness_log_entry.record import PendingLogEntryRecord
 
 PENDING_DOCUMENT_TABLE_NAME = PendingLogEntryRecord().RECORD_TYPE
-mock_did_doc = {
-    "@context": ["https://www.w3.org/ns/did/v1", "https://w3id.org/security/multikey/v1"],
-    "id": "did:web:id.test-suite.app:prod:38c35877-6b40-4ef2-b5dd-1b9154911604",
-    "verificationMethod": [
-        {
-            "id": "did:web:id.test-suite.app:prod:38c35877-6b40-4ef2-b5dd-1b9154911604#key-01",
-            "type": "Multikey",
-            "controller": "did:web:id.test-suite.app:prod:38c35877-6b40-4ef2-b5dd-1b9154911604",
-            "publicKeyMultibase": "z6MkrkHx84xReNNx2oK9Hefr7CtnQeVEEKrcpSCtoNhBVGJV",
-        }
-    ],
-    "authentication": [
-        "did:web:id.test-suite.app:prod:38c35877-6b40-4ef2-b5dd-1b9154911604#key-01"
-    ],
-    "assertionMethod": [
-        "did:web:id.test-suite.app:prod:38c35877-6b40-4ef2-b5dd-1b9154911604#key-01"
-    ],
-    "proof": [
-        {
-            "type": "DataIntegrityProof",
-            "proofPurpose": "assertionMethod",
-            "verificationMethod": "did:key:z6MkqY5kWa85eTgHsN6uRSRWxgAoxi5CHz1onvqrPNTqgvwe#z6MkqY5kWa85eTgHsN6uRSRWxgAoxi5CHz1onvqrPNTqgvwe",
-            "cryptosuite": "eddsa-jcs-2022",
-            "expires": "2025-02-22T00:56:48+00:00",
-            "domain": "id.test-suite.app",
-            "challenge": "7f005295-a8e7-5eee-b43d-c2a6167d2d6b",
-            "proofValue": "z2bmbwqbziW3BYLt6vJQ5A5qmcuBqn8HGhPua4CFzsbAPKHTrG8yHRd75mJtmDN1iXFLRBUp1Zsf8GLPjpwP2xuhz",
-        }
-    ],
-}
 
 
 class TestWitnessManager(IsolatedAsyncioTestCase):
