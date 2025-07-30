@@ -79,12 +79,14 @@ def get_namespace_and_identifier_from_did(did: str):
 
 
 async def create_key(profile, kid=None) -> str:
+    """Create key shortcut."""
     async with profile.session() as session:
         key = await MultikeyManager(session).create(alg="ed25519", kid=kid)
     return key.get("multikey")
 
 
 async def find_key(profile, kid) -> str:
+    """Find key given a key id shortcut."""
     try:
         async with profile.session() as session:
             key = await MultikeyManager(session).from_kid(
@@ -96,12 +98,14 @@ async def find_key(profile, kid) -> str:
 
 
 async def find_multikey(profile, multikey) -> str:
+    """Find multikey shortcut."""
     async with profile.session() as session:
         key = await MultikeyManager(session).from_multikey(multikey)
     return key.get("multikey")
 
 
 async def bind_key(profile, multikey, kid) -> str:
+    """Bind key to a given key id shortcut."""
     async with profile.session() as session:
         key = await MultikeyManager(session).update(
             kid=kid,
@@ -111,6 +115,7 @@ async def bind_key(profile, multikey, kid) -> str:
 
 
 async def unbind_key(profile, multikey, kid) -> str:
+    """Unbind key id from key shortcut."""
     async with profile.session() as session:
         await MultikeyManager(session).unbind_key_id(
             kid=kid,
@@ -119,6 +124,7 @@ async def unbind_key(profile, multikey, kid) -> str:
 
 
 async def add_proof(profile, document, verification_method) -> str:
+    """Add data integrity proof to document shortcut."""
     async with profile.session() as session:
         signed_document = await DataIntegrityManager(session).add_proof(
             document,
@@ -133,12 +139,14 @@ async def add_proof(profile, document, verification_method) -> str:
 
 
 async def verify_proof(profile, document) -> bool:
+    """Verify data integrity proof shortcut."""
     async with profile.session() as session:
         verified = await DataIntegrityManager(session).verify_proof(document)
     return verified
 
 
 def validate_did(did: str, domain: str, namespace: str, identifier: str):
+    """Validate a did aginst the components."""
     return (
         True
         if (

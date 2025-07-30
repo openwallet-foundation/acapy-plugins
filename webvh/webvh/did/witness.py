@@ -1,7 +1,5 @@
 """Module to manage witnesses for a DID."""
 
-import asyncio
-import json
 import copy
 import logging
 from typing import Optional
@@ -37,10 +35,6 @@ from ..did.utils import find_key, add_proof
 LOGGER = logging.getLogger(__name__)
 
 
-PENDING_LOG_ENTRY_TABLE_NAME = "did_webvh_pending_log_entry"
-PENDING_ATTESTED_RESOURCE_TABLE_NAME = "did_webvh_pending_attested_resource"
-
-
 class WitnessManager:
     """Class to manage witnesses for a DID."""
 
@@ -55,14 +49,17 @@ class WitnessManager:
         }
 
     async def key_alias(self):
+        """Derive witness key alias."""
         domain = await get_server_domain(self.profile)
         return f"webvh:{domain}@witnessKey"
 
     async def connection_alias(self):
+        """Derive witness connection alias."""
         domain = await get_server_domain(self.profile)
         return f"webvh:{domain}@witness"
 
     async def _get_active_witness_connection(self) -> Optional[ConnRecord]:
+        """Find active witness connection."""
         witness_alias = await self.connection_alias()
         async with self.profile.session() as session:
             connection_records = await ConnRecord.retrieve_by_alias(
@@ -155,6 +152,7 @@ class WitnessManager:
             )
 
     async def sign_log_version(self, version_id):
+        """Sign a given log versionId with a DataIntegrityProof."""
         witness_key = await self.get_witness_key()
         witness_signature = await add_proof(
             self.profile,

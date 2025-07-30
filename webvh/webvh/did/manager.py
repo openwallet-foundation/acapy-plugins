@@ -34,6 +34,7 @@ from ..config.config import (
     get_server_url,
     get_server_domain,
     get_witnesses,
+    is_controller,
     is_witness,
     notify_watchers,
     set_config,
@@ -302,11 +303,14 @@ class ControllerManager:
             # Create a local witness key to setup self witnessing
             domain = await get_server_domain(self.profile)
             key_alias = f"webvh:{domain}@witnessKey"
-            witness_key = (
-                await find_key(self.profile, key_alias)
-                or await bind_key(self.profile, options.get("witness_key"), key_alias)
-                or await create_key(self.profile, key_alias)
-            )
+            if options.get("witness_key", None):
+                witness_key = await bind_key(
+                    self.profile, options.get("witness_key"), key_alias
+                )
+            else:
+                witness_key = await find_key(self.profile, key_alias) or await create_key(
+                    self.profile, key_alias
+                )
             if not witness_key:
                 raise OperationError("Error creating witness key.")
 
@@ -776,6 +780,7 @@ class ControllerManager:
         )
 
     async def upload_resource(self, attested_resource, state):
+        """Upload an attested resource to the server."""
         scid = attested_resource.get("id").split(":")[2]
         namespace = attested_resource.get("id").split(":")[4]
         identifier = attested_resource.get("id").split(":")[5].split("/")[0]
@@ -815,4 +820,45 @@ class ControllerManager:
 
         await self.server_client.upload_attested_resource(
             namespace, identifier, attested_resource
+        )
+
+    async def auto_witness_setup(self) -> None:
+        """Automatically set up the witness the connection."""
+        domain = await get_server_domain(self.profile)
+        witness_alias = create_alias(domain, "witnessConnection")
+
+        if not await is_controller(self.profile):
+            return
+
+        # Get the witness connection is already set up
+        if await self._get_active_witness_connection():
+            LOGGER.info("Connected to witness from previous connection.")
+            return
+
+        witness_invitation = (await get_plugin_config(self.profile)).get(
+            "witness_invitation"
+        )
+        if not witness_invitation:
+            LOGGER.info("No witness invitation, can't create connection automatically.")
+            return
+        oob_mgr = OutOfBandManager(self.profile)
+        try:
+            await oob_mgr.receive_invitation(
+                invitation=InvitationMessage.from_url(witness_invitation),
+                auto_accept=True,
+                alias=witness_alias,
+            )
+        except BaseModelError as err:
+            raise OperationError(f"Error receiving witness invitation: {err}")
+
+        for _ in range(5):
+            if await self._get_active_witness_connection():
+                LOGGER.info("Connected to witness agent.")
+                return
+            await asyncio.sleep(1)
+
+        LOGGER.info(
+            "No immediate response when trying to connect to witness agent. You can "
+            f"try manually setting up a connection with alias {witness_alias} or "
+            "restart the agent when witness is available."
         )
