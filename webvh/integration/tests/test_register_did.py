@@ -98,7 +98,7 @@ async def test_create_with_witness_and_auto_attest():
                 "auto_attest": True,
             },
         )
-        assert response["witnesses"][0] == f'did:key:{WITNESS_KEY}'
+        assert response["witnesses"][0] == f"did:key:{WITNESS_KEY}"
 
         invitation_url = (
             await witness.post(
@@ -170,7 +170,7 @@ async def test_create_with_witness_and_manual_attest():
                 "auto_attest": False,
             },
         )
-        assert response["witnesses"][0] == f'did:key:{WITNESS_KEY}'
+        assert response["witnesses"][0] == f"did:key:{WITNESS_KEY}"
 
         invitation_url = (
             await witness.post(
@@ -215,7 +215,7 @@ async def test_create_with_witness_and_manual_attest():
 
         await witness.post(
             "/did/webvh/witness/log-entries",
-            params=params(scid=entry.get('parameters').get('scid')),
+            params=params(scid=entry.get("parameters").get("scid")),
         )
         await asyncio.sleep(3)
 
@@ -265,7 +265,7 @@ async def test_create_self_witness_and_manual_attest():
 
         await witness.post(
             "/did/webvh/witness/log-entries",
-            params=params(scid=entry.get('parameters').get('scid')),
+            params=params(scid=entry.get("parameters").get("scid")),
         )
         await asyncio.sleep(3)
 

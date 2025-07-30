@@ -5,8 +5,12 @@ from acapy_agent.config.injection_context import InjectionContext
 from acapy_agent.config.provider import ClassProvider
 from acapy_agent.core.protocol_registry import ProtocolRegistry
 
-from .protocols.endorse_attested_resource.messages import MESSAGE_TYPES as endorse_attested_resource_message_types
-from .protocols.witness_log_entry.messages import MESSAGE_TYPES as witness_log_entry_message_types
+from .protocols.endorse_attested_resource.messages import (
+    MESSAGE_TYPES as endorse_attested_resource_message_types,
+)
+from .protocols.witness_log_entry.messages import (
+    MESSAGE_TYPES as witness_log_entry_message_types,
+)
 
 LOGGER = logging.getLogger(__name__)
 

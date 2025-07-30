@@ -6,9 +6,7 @@ from acapy_agent.admin.decorators.auth import tenant_authentication
 from acapy_agent.admin.request_context import AdminRequestContext
 from aiohttp import web
 from aiohttp_apispec import docs, querystring_schema
-from ...did.models.operations import (
-    WebvhSCIDQueryStringSchema
-)
+from ...did.models.operations import WebvhSCIDQueryStringSchema
 from .record import PendingAttestedResourceRecord
 from ...did.witness import WitnessManager
 from ...did.exceptions import WitnessError
@@ -21,9 +19,7 @@ PENDING_RECORDS = PendingAttestedResourceRecord()
 async def get_pending_attested_resources(request: web.BaseRequest):
     """Get all pending attested resources."""
     context: AdminRequestContext = request["context"]
-    pending_log_entries = await PENDING_RECORDS.get_pending_records(
-        context.profile
-    )
+    pending_log_entries = await PENDING_RECORDS.get_pending_records(context.profile)
     return web.json_response({"results": pending_log_entries})
 
 
@@ -40,19 +36,17 @@ async def approve_pending_attested_resource(request: web.BaseRequest):
         )
         if attested_resource is None:
             raise WitnessError("Failed to find pending document.")
-        
+
         await WitnessManager(context.profile).approve_attested_resource(
             attested_resource, connection_id
         )
-        
+
         await PENDING_RECORDS.remove_pending_record(
             context.profile, request.query.get("scid")
         )
-        
-        return web.json_response(
-            {"status": "success", "message": "Witness successful."}
-        )
-        
+
+        return web.json_response({"status": "success", "message": "Witness successful."})
+
     except WitnessError as err:
         return web.json_response({"status": "error", "message": str(err)})
 

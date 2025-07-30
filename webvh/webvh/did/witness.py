@@ -20,16 +20,12 @@ from acapy_agent.protocols.out_of_band.v1_0.messages.invitation import (
 from ..config.config import get_plugin_config, get_server_domain
 
 from .exceptions import WitnessError
-from ..protocols.endorse_attested_resource.record import (
-    PendingAttestedResourceRecord
-)
+from ..protocols.endorse_attested_resource.record import PendingAttestedResourceRecord
 from ..protocols.endorse_attested_resource.messages import (
     WitnessRequest as AttestedResourceWitnessRequest,
     WitnessResponse as AttestedResrouceWitnessResponse,
 )
-from ..protocols.witness_log_entry.record import (
-    PendingLogEntryRecord
-)
+from ..protocols.witness_log_entry.record import PendingLogEntryRecord
 from ..protocols.witness_log_entry.messages import (
     WitnessRequest as LogEntryWitnessRequest,
     WitnessResponse as LogEntryWitnessResponse,
@@ -144,7 +140,7 @@ class WitnessManager:
                 self.profile, scid, attested_resource
             )
             return
-        
+
         # Need proof from witness agent
         else:
             responder = self.profile.inject(BaseResponder)
@@ -167,7 +163,9 @@ class WitnessManager:
         )
         return witness_signature
 
-    async def approve_log_entry(self, log_entry: dict, connection_id: str) -> dict[str, str]:
+    async def approve_log_entry(
+        self, log_entry: dict, connection_id: str
+    ) -> dict[str, str]:
         """Attest a did request doc."""
 
         if not log_entry.get("proof", None):
@@ -201,7 +199,9 @@ class WitnessManager:
 
         return {"status": "success", "message": "Witness successful."}
 
-    async def approve_attested_resource(self, attested_resource: dict, connection_id: str = None) -> dict[str, str]:
+    async def approve_attested_resource(
+        self, attested_resource: dict, connection_id: str = None
+    ) -> dict[str, str]:
         """Approve an attested resource."""
 
         if not attested_resource.get("proof", None):

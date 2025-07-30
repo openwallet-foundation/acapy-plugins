@@ -12,8 +12,11 @@ from acapy_agent.wallet.key_type import KeyTypes
 from acapy_agent.wallet.keys.manager import MultikeyManager
 
 from ..exceptions import ConfigurationError, WitnessError
-from ..manager import PENDING_DOCUMENT_TABLE_NAME, WitnessManager
+from ..manager import ControllerManager
+from ..witness import WitnessManager
+from ...protocols.witness_log_entry.record import PendingLogEntryRecord
 
+PENDING_DOCUMENT_TABLE_NAME = PendingLogEntryRecord().RECORD_TYPE
 mock_did_doc = {
     "@context": ["https://www.w3.org/ns/did/v1", "https://w3id.org/security/multikey/v1"],
     "id": "did:web:id.test-suite.app:prod:38c35877-6b40-4ef2-b5dd-1b9154911604",
@@ -53,6 +56,11 @@ class TestWitnessManager(IsolatedAsyncioTestCase):
         self.profile.context.injector.bind_instance(
             BaseResponder, mock.MagicMock(BaseResponder, autospec=True)
         )
+
+    async def test_create_witness_invitation(self):
+        await ControllerManager(self.profile).configure(options={"witness": True})
+        invitation = await WitnessManager(self.profile).create_invitation()
+        assert invitation.get("invitation_url", None)
 
     @mock.patch.object(WitnessManager, "_get_active_witness_connection")
     async def test_auto_witness_setup_as_witness(

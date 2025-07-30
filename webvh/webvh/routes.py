@@ -21,7 +21,7 @@ from .did.exceptions import (
     DidCreationError,
     DidUpdateError,
     OperationError,
-    WitnessError
+    WitnessError,
 )
 from .did.models.operations import (
     ConfigureWebvhSchema,
@@ -36,12 +36,12 @@ from .did.witness import WitnessManager
 from .protocols.witness_log_entry.routes import (
     get_pending_log_entries,
     approve_pending_log_entry,
-    reject_pending_log_entry
+    reject_pending_log_entry,
 )
 from .protocols.endorse_attested_resource.routes import (
     get_pending_attested_resources,
     approve_pending_attested_resource,
-    reject_pending_attested_resource
+    reject_pending_attested_resource,
 )
 
 LOGGER = logging.getLogger(__name__)
@@ -63,9 +63,7 @@ async def configure(request: web.BaseRequest):
     request_json = await request.json()
 
     try:
-        return web.json_response(
-            await ControllerManager(profile).configure(request_json)
-        )
+        return web.json_response(await ControllerManager(profile).configure(request_json))
 
     except (ConfigurationError, OperationError) as err:
         return web.json_response({"status": "error", "message": str(err)})
@@ -81,9 +79,9 @@ async def witness_create_invite(request: web.BaseRequest):
     try:
         return web.json_response(
             await WitnessManager(context.profile).create_invitation(
-                request_json.get("alias"), 
-                request_json.get("label"), 
-                request_json.get("multi")
+                request_json.get("alias"),
+                request_json.get("label"),
+                request_json.get("multi"),
             )
         )
     except (StorageNotFoundError, ValidationError, WitnessError) as e:

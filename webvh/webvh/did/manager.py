@@ -169,11 +169,12 @@ class ControllerManager:
             ],
         }
 
-    async def _create_initial_log_entry(self, preliminary_doc, parameters_input):
+    async def _create_initial_log_entry(
+        self, preliminary_doc, parameters_input, timestamp: str = None
+    ):
         placeholder_id = preliminary_doc.get("id")
         doc_state = DocumentState.initial(
-            parameters_input,
-            preliminary_doc,
+            parameters_input, preliminary_doc, timestamp=timestamp
         )
         update_key = await find_key(self.profile, f"{placeholder_id}#updateKey")
         initial_log_entry = await add_proof(
@@ -238,6 +239,25 @@ class ControllerManager:
                     state=WitnessingState.FINISHED.value,
                 )
 
+    async def _apply_config_defaults(self, options: dict, defaults: dict):
+        """Apply default parameter options if not overwritten by request.
+
+        options: The user provided did creation options.
+        defaults: The default configured options.
+
+        """
+        options["portability"] = options.get(
+            "portability", defaults.get("portability", None)
+        )
+        options["prerotation"] = options.get(
+            "prerotation", defaults.get("prerotation", None)
+        )
+        options["witness_threshold"] = options.get(
+            "witness_threshold", defaults.get("witness_threshold", 0)
+        )
+        options["watchers"] = options.get("watchers", defaults.get("watchers", None))
+        return options
+
     async def _apply_policy(self, parameters: dict, options: dict):
         """Apply server policy to did creation options.
 
@@ -263,46 +283,45 @@ class ControllerManager:
 
     async def configure(self, options: dict) -> dict:
         """Configure did controller and/or witness."""
-        
+
         config = await get_plugin_config(self.profile)
         config["scids"] = config.get("scids", {})
         config["witnesses"] = config.get("witnesses", [])
         config["witness"] = options.get("witness", False)
         config["endorsement"] = options.get("endorsement", False)
         config["auto_attest"] = options.get("auto_attest", False)
-        config["server_url"] = options.get(
-            "server_url", config.get("server_url")
-        ).rstrip("/")
-    
+        config["server_url"] = options.get("server_url", config.get("server_url")).rstrip(
+            "/"
+        )
+        config["parameter_options"] = options.get("parameter_options", {})
+
         if not config.get("server_url"):
             raise OperationError("No server url configured.")
-        
-        if config.get('witness', False):
+
+        if config.get("witness", False):
             # Create a local witness key to setup self witnessing
             domain = await get_server_domain(self.profile)
             key_alias = f"webvh:{domain}@witnessKey"
             witness_key = (
                 await find_key(self.profile, key_alias)
-                or await bind_key(self.profile, options.get('witness_key'), key_alias)
+                or await bind_key(self.profile, options.get("witness_key"), key_alias)
                 or await create_key(self.profile, key_alias)
             )
             if not witness_key:
                 raise OperationError("Error creating witness key.")
 
             witness_id = f"did:key:{witness_key}"
-            
+
         else:
             # Connect to witness service
-            witness_id = await self.connect_to_witness(
-                options.get('witness_invitation')
-            )
-            
+            witness_id = await self.connect_to_witness(options.get("witness_invitation"))
+
         if witness_id not in config["witnesses"]:
             config["witnesses"].append(witness_id)
-            
+
         LOGGER.warning(config)
         await set_config(self.profile, config)
-        
+
         return config
 
     async def connect_to_witness(self, witness_invitation) -> None:
@@ -369,6 +388,12 @@ class ControllerManager:
         if not validate_did(placeholder_id, domain, namespace, identifier):
             raise DidCreationError(f"Server returned invalid did: {placeholder_id}")
 
+        config = await get_plugin_config(self.profile)
+
+        options = await self._apply_config_defaults(
+            options, config.get("parameter_options", {})
+        )
+
         # Apply provided options & policies to the requested identifier
         if options.get("apply_policy", True):
             options = await self._apply_policy(
@@ -383,7 +408,7 @@ class ControllerManager:
 
         # Create and sign initial log entry
         initial_log_entry = await self._create_initial_log_entry(
-            preliminary_doc, parameters_input
+            preliminary_doc, parameters_input, options.get('version_time', None)
         )
 
         scid = initial_log_entry.get("parameters").get("scid")
@@ -422,7 +447,7 @@ class ControllerManager:
         witness_signature: dict = None,
         state: str = WitnessingState.SUCCESS.value,
     ):
-        """Finish the registration of the DID."""
+        """Finish the creation of the DID."""
         did_state = initial_log_entry["state"]
         did = did_state["id"]
         scid = did.split(":")[2]

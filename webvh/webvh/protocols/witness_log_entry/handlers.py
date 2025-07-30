@@ -35,7 +35,7 @@ class WitnessRequestHandler(BaseHandler):
             return
 
         witness = WitnessManager(context.profile)
-        
+
         config = await get_plugin_config(context.profile)
         if config.get("auto_attest", False):
             witness_signature = await witness.sign_log_version(log_entry.get("versionId"))
@@ -81,12 +81,12 @@ class WitnessResponseHandler(BaseHandler):
 
         log_entry = context.message.document
         controller = ControllerManager(context.profile)
-        
+
         witness_signature = {
             "versionId": log_entry.get("versionId"),
             "proof": [context.message.witness_proof],
         }
-        
+
         # Call finish_create for first entry
         if log_entry.get("versionId")[0] == "1":
             await controller.finish_create(

@@ -2,6 +2,7 @@
 
 from enum import Enum
 
+
 class WitnessingState(Enum):
     """Enum for the attestation state of a DID."""
 

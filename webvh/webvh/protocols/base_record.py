@@ -85,7 +85,7 @@ class BasePendingRecord:
 
     async def save_pending_record(
         self, profile: Profile, scid: str, record: dict, connection_id: str = ""
-        ) -> set:
+    ) -> set:
         """Save a pending record given a scid."""
         async with profile.session() as session:
             await session.handle.insert(

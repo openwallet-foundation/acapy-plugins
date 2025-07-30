@@ -137,6 +137,7 @@ async def verify_proof(profile, document) -> bool:
         verified = await DataIntegrityManager(session).verify_proof(document)
     return verified
 
+
 def validate_did(did: str, domain: str, namespace: str, identifier: str):
     return (
         True

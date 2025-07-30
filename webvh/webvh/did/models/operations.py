@@ -161,6 +161,14 @@ class WebvhCreateSchema(OpenAPISchema):
                 "example": "1",
             },
         )
+        version_time = fields.Str(
+            required=False,
+            metadata={
+                "description": "Optional timestamp for the initial versionTime.",
+                "example": "2025-07-28T21:47:32Z",
+            },
+            default=None,
+        )
         watchers = fields.List(
             fields.Str(),
             required=False,

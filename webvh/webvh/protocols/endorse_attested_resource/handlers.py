@@ -20,6 +20,7 @@ LOGGER = logging.getLogger(__name__)
 
 PENDING_RECORDS = PendingAttestedResourceRecord()
 
+
 class WitnessRequestHandler(BaseHandler):
     """Message handler class for witness requests."""
 
@@ -35,7 +36,7 @@ class WitnessRequestHandler(BaseHandler):
         if not attested_resource.get("proof", None):
             LOGGER.error("No proof found in attested resource")
             return
-        
+
         witness = WitnessManager(context.profile)
 
         config = await get_plugin_config(context.profile)
@@ -90,7 +91,7 @@ class WitnessResponseHandler(BaseHandler):
 
         attested_resource = context.message.document
         controller = ControllerManager(context.profile)
-        
+
         # For an attested resource, we append the proof
         attested_resource["proof"].append(context.message.witness_proof)
         await controller.upload_resource(attested_resource, context.message.state)
