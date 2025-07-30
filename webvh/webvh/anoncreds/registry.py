@@ -52,7 +52,7 @@ from multiformats import multibase, multihash
 from ..resolver.resolver import DIDWebVHResolver
 from ..validation import WebVHDID
 from ..config.config import get_plugin_config, is_witness
-from ..did.server_client import WebVHServerClient, WebVHWatcherClient
+from ..did.server_client import WebVHServerClient
 from ..protocols.endorse_attested_resource.record import PendingAttestedResourceRecord
 from ..protocols.states import WitnessingState
 from ..did.witness import WitnessManager

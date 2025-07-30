@@ -52,7 +52,6 @@ test_revoked_list_indexes = [1, 3, 6]
 test_rev_list_update = {}
 
 
-
 class TestAnonCredsRegistry(IsolatedAsyncioTestCase):
     async def asyncSetUp(self):
         self.profile = await create_test_profile({"wallet.type": "askar-anoncreds"})

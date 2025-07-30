@@ -1,7 +1,5 @@
 """DID Webvh protocol routes module."""
 
-import logging
-
 from acapy_agent.admin.decorators.auth import tenant_authentication
 from acapy_agent.admin.request_context import AdminRequestContext
 from aiohttp import web
