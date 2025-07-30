@@ -35,7 +35,7 @@ from ...tests.fixtures import (
     TEST_SERVER_URL,
     TEST_WITNESS_SEED,
     TEST_WITNESS_KEY,
-    TEST_RESOLVER
+    TEST_RESOLVER,
 )
 from ...did.manager import ControllerManager
 from ...resolver.resolver import DIDWebVHResolver
@@ -94,7 +94,9 @@ resolve_resource = mock.AsyncMock(
                     "name": "Example schema",
                     "version": "1.0",
                 },
-                "metadata": {"resourceId": "zQma3tUVYzMn9UfrFCEvxYv4RjaWgs4vV8MZnhR9utAffLh"},
+                "metadata": {
+                    "resourceId": "zQma3tUVYzMn9UfrFCEvxYv4RjaWgs4vV8MZnhR9utAffLh"
+                },
                 "proof": {
                     "type": "Ed25519Signature2018",
                     "created": "2022-01-26T18:40:00Z",
@@ -122,7 +124,7 @@ class TestAnonCredsRegistry(IsolatedAsyncioTestCase):
             "plugin_config", {"did-webvh": {"server_url": TEST_SERVER_URL}}
         )
         self.registry = DIDWebVHRegistry()
-        
+
         self.controller = ControllerManager(self.profile)
         async with self.profile.session() as session:
             await MultikeyManager(session).create(
@@ -130,25 +132,19 @@ class TestAnonCredsRegistry(IsolatedAsyncioTestCase):
                 kid=f"webvh:{TEST_DOMAIN}@witnessKey",
                 seed=TEST_WITNESS_SEED,
             )
-            
+
         # Configure witness key
         await self.controller.configure(options={"auto_attest": True, "witness": True})
 
         # Create DID
-        log_entry = await self.controller.create(
-            options={
-                "namespace": TEST_NAMESPACE
-            }
-        )
-        self.issuer_id = log_entry.get('state').get('id')
+        log_entry = await self.controller.create(options={"namespace": TEST_NAMESPACE})
+        self.issuer_id = log_entry.get("state").get("id")
         self.test_schema = test_schema
         self.test_schema.issuer_id = self.issuer_id
 
     async def _create_schema(self):
         return await self.registry.register_schema(
-            self.profile,
-            self.test_schema,
-            options={}
+            self.profile, self.test_schema, options={}
         )
 
     async def _create_cred_def(self, schema_id):
@@ -165,9 +161,7 @@ class TestAnonCredsRegistry(IsolatedAsyncioTestCase):
                 schema_id=schema_id,
                 tag="default",
                 type="CL",
-                value=CredDefValue(
-                    primary=CredDefValuePrimary("1", "1", {}, "1", "1")
-                ),
+                value=CredDefValue(primary=CredDefValuePrimary("1", "1", {}, "1", "1")),
             ),
             options={},
         )
@@ -219,16 +213,15 @@ class TestAnonCredsRegistry(IsolatedAsyncioTestCase):
             options={},
         )
 
-
     async def test_digest_multibase(self):
-        result = self.registry._digest_multibase({'hello': 'world'})
-        assert result == 'zQmYGx7Wzqe5prvEsTSzYBQN8xViYUM9qsWJSF5EENLcNmM'
+        result = self.registry._digest_multibase({"hello": "world"})
+        assert result == "zQmYGx7Wzqe5prvEsTSzYBQN8xViYUM9qsWJSF5EENLcNmM"
 
     async def test_resource_uri(self):
-        mock_issuer = 'did:webvh:{SCID}:example.com'
-        resource_digest = self.registry._digest_multibase({'hello': 'world'})
+        mock_issuer = "did:webvh:{SCID}:example.com"
+        resource_digest = self.registry._digest_multibase({"hello": "world"})
         result = self.registry._create_resource_uri(mock_issuer, resource_digest)
-        assert result == f'{mock_issuer}/resources/{resource_digest}'
+        assert result == f"{mock_issuer}/resources/{resource_digest}"
 
     async def test_register_schema(self):
         result = await self._create_schema()
@@ -253,10 +246,10 @@ class TestAnonCredsRegistry(IsolatedAsyncioTestCase):
 
     async def test_get_credential_definition(self, *_):
         schema_id = (await self._create_schema()).schema_state.schema_id
-        cred_def_id = (await self._create_cred_def(schema_id)).credential_definition_state.credential_definition_id
-        result = await self.registry.get_credential_definition(
-            self.profile, cred_def_id
-        )
+        cred_def_id = (
+            await self._create_cred_def(schema_id)
+        ).credential_definition_state.credential_definition_id
+        result = await self.registry.get_credential_definition(self.profile, cred_def_id)
         assert isinstance(result, GetCredDefResult)
         assert result.credential_definition_id == cred_def_id
         assert result.credential_definition.issuer_id == self.issuer_id
@@ -267,15 +260,21 @@ class TestAnonCredsRegistry(IsolatedAsyncioTestCase):
 
     async def test_register_revocation_registry_definition(self):
         schema_id = (await self._create_schema()).schema_state.schema_id
-        cred_def_id = (await self._create_cred_def(schema_id)).credential_definition_state.credential_definition_id
+        cred_def_id = (
+            await self._create_cred_def(schema_id)
+        ).credential_definition_state.credential_definition_id
         result = await self._create_rev_reg_def(cred_def_id)
         assert isinstance(result, RevRegDefResult)
         assert result.revocation_registry_definition_state.state == "finished"
-        
+
     async def test_get_revocation_registry_definition(self, *_):
         schema_id = (await self._create_schema()).schema_state.schema_id
-        cred_def_id = (await self._create_cred_def(schema_id)).credential_definition_state.credential_definition_id
-        rev_reg_def_id = (await self._create_rev_reg_def(cred_def_id)).revocation_registry_definition_state.revocation_registry_definition_id
+        cred_def_id = (
+            await self._create_cred_def(schema_id)
+        ).credential_definition_state.credential_definition_id
+        rev_reg_def_id = (
+            await self._create_rev_reg_def(cred_def_id)
+        ).revocation_registry_definition_state.revocation_registry_definition_id
         result = await self.registry.get_revocation_registry_definition(
             self.profile, rev_reg_def_id
         )
@@ -289,19 +288,32 @@ class TestAnonCredsRegistry(IsolatedAsyncioTestCase):
 
     async def test_register_revocation_list(self):
         schema_id = (await self._create_schema()).schema_state.schema_id
-        cred_def_id = (await self._create_cred_def(schema_id)).credential_definition_state.credential_definition_id
-        rev_reg_def_id = (await self._create_rev_reg_def(cred_def_id)).revocation_registry_definition_state.revocation_registry_definition_id
+        cred_def_id = (
+            await self._create_cred_def(schema_id)
+        ).credential_definition_state.credential_definition_id
+        rev_reg_def_id = (
+            await self._create_rev_reg_def(cred_def_id)
+        ).revocation_registry_definition_state.revocation_registry_definition_id
         result = await self._create_rev_reg_list(cred_def_id, rev_reg_def_id)
         assert isinstance(result, RevListResult)
         assert result.revocation_list_state.state == "finished"
 
     async def test_get_revocation_list(self):
         schema_id = (await self._create_schema()).schema_state.schema_id
-        cred_def_id = (await self._create_cred_def(schema_id)).credential_definition_state.credential_definition_id
-        rev_reg_def_id = (await self._create_rev_reg_def(cred_def_id)).revocation_registry_definition_state.revocation_registry_definition_id
-        rev_reg_list_timestamp = (await self._create_rev_reg_list(cred_def_id, rev_reg_def_id)).revocation_list_state.revocation_list.timestamp
+        cred_def_id = (
+            await self._create_cred_def(schema_id)
+        ).credential_definition_state.credential_definition_id
+        rev_reg_def_id = (
+            await self._create_rev_reg_def(cred_def_id)
+        ).revocation_registry_definition_state.revocation_registry_definition_id
+        rev_reg_list_timestamp = (
+            await self._create_rev_reg_list(cred_def_id, rev_reg_def_id)
+        ).revocation_list_state.revocation_list.timestamp
         result = await self.registry.get_revocation_list(
-            self.profile, rev_reg_def_id, rev_reg_list_timestamp-1, rev_reg_list_timestamp+1
+            self.profile,
+            rev_reg_def_id,
+            rev_reg_list_timestamp - 1,
+            rev_reg_list_timestamp + 1,
         )
         assert isinstance(result, GetRevListResult)
         assert result.revocation_list.issuer_id == self.issuer_id

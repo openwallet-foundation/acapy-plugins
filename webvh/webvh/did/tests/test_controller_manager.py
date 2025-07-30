@@ -159,11 +159,7 @@ class TestOperationsManager(IsolatedAsyncioTestCase):
         await self.controller.configure(options={"auto_attest": True, "witness": True})
 
         # Create DID
-        await self.controller.create(
-            options={
-                "namespace": TEST_NAMESPACE
-            }
-        )
+        await self.controller.create(options={"namespace": TEST_NAMESPACE})
 
     @mock.patch("asyncio.sleep", mock.AsyncMock())
     @mock.patch(

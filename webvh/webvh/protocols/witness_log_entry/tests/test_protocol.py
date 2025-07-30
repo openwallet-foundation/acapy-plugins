@@ -11,7 +11,11 @@ from acapy_agent.wallet.key_type import KeyTypes
 from ..handlers import WitnessRequestHandler, WitnessResponseHandler
 from ..record import PendingLogEntryRecord
 from ..messages import WitnessRequest, WitnessResponse
-from ..routes import get_pending_log_entries, approve_pending_log_entry, reject_pending_log_entry
+from ..routes import (
+    get_pending_log_entries,
+    approve_pending_log_entry,
+    reject_pending_log_entry,
+)
 from ...states import WitnessingState
 
 record = PendingLogEntryRecord()
@@ -20,16 +24,11 @@ TEST_DOMAIN = "example.com"
 TEST_SCID = "123"
 TEST_RECORD = {
     "versionId": "1-Q",
-    "parameters": {
-        "scid": TEST_SCID
-    },
-    "state": {
-        "id": f"did:webvh:{TEST_SCID}:{TEST_DOMAIN}"
-    },
-    "proof": {
-        "type": "DataIntegrityProof"
-    }
+    "parameters": {"scid": TEST_SCID},
+    "state": {"id": f"did:webvh:{TEST_SCID}:{TEST_DOMAIN}"},
+    "proof": {"type": "DataIntegrityProof"},
 }
+
 
 class TestLogEntryProtocol(IsolatedAsyncioTestCase):
     async def asyncSetUp(self):
@@ -48,29 +47,26 @@ class TestLogEntryProtocol(IsolatedAsyncioTestCase):
                 kid=f"webvh:{TEST_DOMAIN}@witnessKey",
                 # seed=TEST_WITNESS_SEED,
             )
-        
-        
+
     async def test_record(self):
         await record.set_pending_scid(self.profile, TEST_SCID)
         await record.get_pending_scids(self.profile)
         await record.remove_pending_scid(self.profile, TEST_SCID)
         await record.get_pending_scids(self.profile)
-        
+
         await record.save_pending_record(self.profile, TEST_SCID, TEST_RECORD)
         await record.get_pending_records(self.profile)
         await record.get_pending_record(self.profile, TEST_SCID)
         await record.remove_pending_record(self.profile, TEST_SCID)
-        
+
         with self.assertRaises(AttributeError):
             await record.get_pending_records(self.profile)
             await record.get_pending_record(self.profile, TEST_SCID)
 
     async def test_handler(self):
         self.profile.settings.set_value(
-            "plugin_config", {"did-webvh": {
-                "server_url": "https://example.com",
-                "auto_attest": False
-            }}
+            "plugin_config",
+            {"did-webvh": {"server_url": "https://example.com", "auto_attest": False}},
         )
         context = RequestContext(self.profile)
         context.message = WitnessRequest(document=TEST_RECORD)
@@ -80,7 +76,7 @@ class TestLogEntryProtocol(IsolatedAsyncioTestCase):
             connection_id="123",
         )
         # await WitnessRequestHandler().handle(context, BaseResponder)
-        
+
         # witness_proof = {
         #     "type": "DataIntegrityProof"
         # }

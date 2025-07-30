@@ -10,8 +10,9 @@ from ..record import PendingAttestedResourceRecord
 from ..routes import (
     get_pending_attested_resources,
     approve_pending_attested_resource,
-    reject_pending_attested_resource
+    reject_pending_attested_resource,
 )
+
 
 class TestAttestedResourcesRoutes(IsolatedAsyncioTestCase):
     async def asyncSetUp(self):
@@ -29,7 +30,7 @@ class TestAttestedResourcesRoutes(IsolatedAsyncioTestCase):
             "context": self.context,
         }
         self.record = PendingAttestedResourceRecord()
-        
+
     async def test_get_pending_attested_resources(self):
         await self.record.save_pending_record(self.profile, TEST_SCID, TEST_RECORD)
         self.request = mock.MagicMock(
@@ -41,7 +42,7 @@ class TestAttestedResourcesRoutes(IsolatedAsyncioTestCase):
 
         response = await get_pending_attested_resources(self.request)
         assert isinstance(response, Response)
-        
+
     async def test_approve_pending_attested_resource(self):
         await self.record.save_pending_record(self.profile, TEST_SCID, TEST_RECORD)
         self.request = mock.MagicMock(
@@ -52,7 +53,7 @@ class TestAttestedResourcesRoutes(IsolatedAsyncioTestCase):
         )
         response = await approve_pending_attested_resource(self.request)
         assert isinstance(response, Response)
-        
+
     async def test_reject_pending_attested_resource(self):
         await self.record.save_pending_record(self.profile, TEST_SCID, TEST_RECORD)
         self.request = mock.MagicMock(

@@ -10,8 +10,9 @@ from ..record import PendingLogEntryRecord
 from ..routes import (
     get_pending_log_entries,
     approve_pending_log_entry,
-    reject_pending_log_entry
+    reject_pending_log_entry,
 )
+
 
 class TestLogEntryRoutes(IsolatedAsyncioTestCase):
     async def asyncSetUp(self):
@@ -29,7 +30,7 @@ class TestLogEntryRoutes(IsolatedAsyncioTestCase):
             "context": self.context,
         }
         self.record = PendingLogEntryRecord()
-        
+
     async def test_get_pending_log_entries(self):
         await self.record.save_pending_record(self.profile, TEST_SCID, TEST_RECORD)
         self.request = mock.MagicMock(
@@ -41,7 +42,7 @@ class TestLogEntryRoutes(IsolatedAsyncioTestCase):
 
         response = await get_pending_log_entries(self.request)
         assert isinstance(response, Response)
-        
+
     async def test_approve_pending_log_entry(self):
         await self.record.save_pending_record(self.profile, TEST_SCID, TEST_RECORD)
         self.request = mock.MagicMock(
@@ -52,7 +53,7 @@ class TestLogEntryRoutes(IsolatedAsyncioTestCase):
         )
         response = await approve_pending_log_entry(self.request)
         assert isinstance(response, Response)
-        
+
     async def test_reject_pending_log_entry(self):
         await self.record.save_pending_record(self.profile, TEST_SCID, TEST_RECORD)
         self.request = mock.MagicMock(

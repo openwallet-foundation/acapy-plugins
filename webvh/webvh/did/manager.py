@@ -408,7 +408,7 @@ class ControllerManager:
 
         # Create and sign initial log entry
         initial_log_entry = await self._create_initial_log_entry(
-            preliminary_doc, parameters_input, options.get('version_time', None)
+            preliminary_doc, parameters_input, options.get("version_time", None)
         )
 
         scid = initial_log_entry.get("parameters").get("scid")

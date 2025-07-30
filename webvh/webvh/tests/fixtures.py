@@ -1,4 +1,3 @@
-
 from acapy_agent.resolver.base import ResolutionMetadata, ResolutionResult, ResolverType
 from acapy_agent.resolver.did_resolver import DIDResolver
 from acapy_agent.tests import mock
