@@ -117,9 +117,9 @@ class DIDCheqdRegistry(BaseAnonCredsResolver, BaseAnonCredsRegistrar):
 
     @staticmethod
     def _get_resource_name(name: str) -> str:
-        """Get resource name, hashing if it exceeds 31 characters."""
-        if len(name) > 31:
-            return hashlib.sha256(name.encode()).hexdigest()[:31]
+        """Get resource name, hashing if it exceeds the limit of 64 characters."""
+        if len(name) > 64:
+            return hashlib.sha256(name.encode()).hexdigest()  # Always 64 characters
         return name
 
     async def setup(self, _context: InjectionContext, registrar_url, resolver_url):
