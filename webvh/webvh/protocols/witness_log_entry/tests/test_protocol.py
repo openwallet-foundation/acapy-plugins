@@ -94,7 +94,7 @@ class TestLogEntryProtocol(IsolatedAsyncioTestCase):
             state="active",
             connection_id="123",
         )
-        await WitnessRequestHandler().handle(
+        assert await WitnessRequestHandler().handle(
             context, mock.AsyncMock(BaseResponder, autospec=True)
         )
 
@@ -105,6 +105,6 @@ class TestLogEntryProtocol(IsolatedAsyncioTestCase):
             document=TEST_RECORD,
             witness_proof=witness_proof,
         )
-        await WitnessResponseHandler().handle(
+        assert await WitnessResponseHandler().handle(
             context, mock.AsyncMock(BaseResponder, autospec=True)
         )

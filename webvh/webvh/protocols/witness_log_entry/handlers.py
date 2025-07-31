@@ -67,6 +67,8 @@ class WitnessRequestHandler(BaseHandler):
                 connection_id=connection_id,
             )
 
+        return {"status": "ok"}
+
 
 class WitnessResponseHandler(BaseHandler):
     """Message handler class for witness responses."""
@@ -102,3 +104,5 @@ class WitnessResponseHandler(BaseHandler):
                 witness_signature=witness_signature,
                 state=context.message.state,
             )
+
+        return {"status": "ok"}

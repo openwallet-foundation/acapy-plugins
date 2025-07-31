@@ -48,12 +48,12 @@ class WitnessManager:
             "proofPurpose": "assertionMethod",
         }
 
-    async def key_alias(self):
+    async def key_alias(self) -> str:
         """Derive witness key alias."""
         domain = await get_server_domain(self.profile)
         return f"webvh:{domain}@witnessKey"
 
-    async def connection_alias(self):
+    async def connection_alias(self) -> str:
         """Derive witness connection alias."""
         domain = await get_server_domain(self.profile)
         return f"webvh:{domain}@witness"
@@ -151,7 +151,7 @@ class WitnessManager:
                 connection_id=witness_connection.connection_id,
             )
 
-    async def sign_log_version(self, version_id):
+    async def sign_log_version(self, version_id) -> dict:
         """Sign a given log versionId with a DataIntegrityProof."""
         witness_key = await self.get_witness_key()
         witness_signature = await add_proof(

@@ -77,6 +77,8 @@ class WitnessRequestHandler(BaseHandler):
                 connection_id=connection_id,
             )
 
+        return {"status": "ok"}
+
 
 class WitnessResponseHandler(BaseHandler):
     """Message handler class for witness responses."""
@@ -95,3 +97,5 @@ class WitnessResponseHandler(BaseHandler):
         # For an attested resource, we append the proof
         attested_resource["proof"].append(context.message.witness_proof)
         await controller.upload_resource(attested_resource, context.message.state)
+
+        return {"status": "ok"}

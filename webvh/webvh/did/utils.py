@@ -85,7 +85,7 @@ async def create_key(profile, kid=None) -> str:
     return key.get("multikey")
 
 
-async def find_key(profile, kid) -> str:
+async def find_key(profile, kid) -> str | None:
     """Find key given a key id shortcut."""
     try:
         async with profile.session() as session:
@@ -114,7 +114,7 @@ async def bind_key(profile, multikey, kid) -> str:
     return key.get("multikey")
 
 
-async def unbind_key(profile, multikey, kid) -> str:
+async def unbind_key(profile, multikey, kid):
     """Unbind key id from key shortcut."""
     async with profile.session() as session:
         await MultikeyManager(session).unbind_key_id(
@@ -123,7 +123,7 @@ async def unbind_key(profile, multikey, kid) -> str:
         )
 
 
-async def add_proof(profile, document, verification_method) -> str:
+async def add_proof(profile, document, verification_method) -> dict:
     """Add data integrity proof to document shortcut."""
     async with profile.session() as session:
         signed_document = await DataIntegrityManager(session).add_proof(
@@ -145,7 +145,7 @@ async def verify_proof(profile, document) -> bool:
     return verified
 
 
-def validate_did(did: str, domain: str, namespace: str, identifier: str):
+def validate_did(did: str, domain: str, namespace: str, identifier: str) -> bool:
     """Validate a did aginst the components."""
     return (
         True

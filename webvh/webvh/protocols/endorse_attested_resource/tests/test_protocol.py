@@ -25,7 +25,7 @@ TEST_RESOURCE_ID = f"{TEST_DID}/resources/123"
 TEST_RECORD = {
     "id": TEST_RESOURCE_ID,
     "content": {"schema_name": "Test Schema"},
-    "proof": [],
+    "proof": [{"type": "DataIntegrityProof"}],
 }
 
 
@@ -97,7 +97,7 @@ class TestAttestedResourceProtocol(IsolatedAsyncioTestCase):
             state="active",
             connection_id="123",
         )
-        await WitnessRequestHandler().handle(
+        assert await WitnessRequestHandler().handle(
             context, mock.AsyncMock(BaseResponder, autospec=True)
         )
 
@@ -108,6 +108,6 @@ class TestAttestedResourceProtocol(IsolatedAsyncioTestCase):
             document=TEST_RECORD,
             witness_proof=witness_proof,
         )
-        await WitnessResponseHandler().handle(
+        assert await WitnessResponseHandler().handle(
             context, mock.AsyncMock(BaseResponder, autospec=True)
         )

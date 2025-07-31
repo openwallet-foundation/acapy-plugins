@@ -323,7 +323,6 @@ class ControllerManager:
         if witness_id not in config["witnesses"]:
             config["witnesses"].append(witness_id)
 
-        LOGGER.warning(config)
         await set_config(self.profile, config)
 
         return config
@@ -351,7 +350,6 @@ class ControllerManager:
 
         try:
             server_domain = await get_server_domain(self.profile)
-            # alias = create_alias(server_domain, "witnessConnection")
             alias = f"webvh:{server_domain}@witness"
             await OutOfBandManager(self.profile).receive_invitation(
                 invitation=InvitationMessage.from_url(witness_invitation),
