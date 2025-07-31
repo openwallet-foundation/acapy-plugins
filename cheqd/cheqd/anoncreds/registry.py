@@ -172,7 +172,7 @@ class DIDCheqdRegistry(BaseAnonCredsResolver, BaseAnonCredsRegistrar):
         """Register a schema on the registry."""
         resource_type = CheqdAnonCredsResourceType.schema.value
 
-        # Get resource name and hash if it exceeds 31 characters
+        # Get resource name and hash if it exceeds 64 characters
         resource_name = self._get_resource_name(schema.name)
         resource_version = schema.version
 
@@ -297,7 +297,7 @@ class DIDCheqdRegistry(BaseAnonCredsResolver, BaseAnonCredsRegistrar):
         """Register a credential definition on the registry."""
         resource_type = CheqdAnonCredsResourceType.credentialDefinition.value
 
-        # Generate resource name and hash if it exceeds 31 characters
+        # Generate resource name and hash if it exceeds 64 characters
         resource_name = self._get_resource_name(
             f"{schema.schema_value.name}-{credential_definition.tag}"
         )
@@ -384,7 +384,7 @@ class DIDCheqdRegistry(BaseAnonCredsResolver, BaseAnonCredsRegistrar):
         )
         cred_def_res = cred_def_result.credential_definition_metadata.get("resourceName")
 
-        # Generate resource name and hash if it exceeds 31 characters
+        # Generate resource name and hash if it exceeds 64 characters
         resource_name = self._get_resource_name(
             f"{cred_def_res}-{revocation_registry_definition.tag}"
         )
