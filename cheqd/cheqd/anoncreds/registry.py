@@ -1,5 +1,6 @@
 """DID Cheqd AnonCreds Registry."""
 
+import hashlib
 import logging
 import time
 from datetime import datetime, timezone
@@ -114,6 +115,13 @@ class DIDCheqdRegistry(BaseAnonCredsResolver, BaseAnonCredsRegistrar):
         ids = schema_id.split("/")
         return ids[0], ids[2]
 
+    @staticmethod
+    def _get_resource_name(name: str) -> str:
+        """Get resource name, hashing if it exceeds the limit of 64 characters."""
+        if len(name) > 64:
+            return hashlib.sha256(name.encode()).hexdigest()  # Always 64 characters
+        return name
+
     async def setup(self, _context: InjectionContext, registrar_url, resolver_url):
         """Setup."""
         self.registrar = DIDRegistrar("cheqd", registrar_url)
@@ -163,7 +171,9 @@ class DIDCheqdRegistry(BaseAnonCredsResolver, BaseAnonCredsRegistrar):
     ) -> SchemaResult:
         """Register a schema on the registry."""
         resource_type = CheqdAnonCredsResourceType.schema.value
-        resource_name = f"{schema.name}"
+
+        # Get resource name and hash if it exceeds 64 characters
+        resource_name = self._get_resource_name(schema.name)
         resource_version = schema.version
 
         try:
@@ -286,8 +296,11 @@ class DIDCheqdRegistry(BaseAnonCredsResolver, BaseAnonCredsRegistrar):
     ) -> CredDefResult:
         """Register a credential definition on the registry."""
         resource_type = CheqdAnonCredsResourceType.credentialDefinition.value
-        # TODO: max chars are 31 for resource, on exceeding this should be hashed
-        resource_name = f"{schema.schema_value.name}-{credential_definition.tag}"
+
+        # Generate resource name and hash if it exceeds 64 characters
+        resource_name = self._get_resource_name(
+            f"{schema.schema_value.name}-{credential_definition.tag}"
+        )
 
         cred_def = ResourceCreateRequestOptions(
             options=Options(
@@ -364,14 +377,17 @@ class DIDCheqdRegistry(BaseAnonCredsResolver, BaseAnonCredsRegistrar):
         _options: Optional[dict] = None,
     ) -> RevRegDefResult:
         """Register a revocation registry definition on the registry."""
+        resource_type = CheqdAnonCredsResourceType.revocationRegistryDefinition.value
 
         cred_def_result = await self.get_credential_definition(
             profile, revocation_registry_definition.cred_def_id
         )
         cred_def_res = cred_def_result.credential_definition_metadata.get("resourceName")
-        # TODO: max chars are 31 for resource name, on exceeding this should be hashed
-        resource_name = f"{cred_def_res}-{revocation_registry_definition.tag}"
-        resource_type = CheqdAnonCredsResourceType.revocationRegistryDefinition.value
+
+        # Generate resource name and hash if it exceeds 64 characters
+        resource_name = self._get_resource_name(
+            f"{cred_def_res}-{revocation_registry_definition.tag}"
+        )
 
         rev_reg_def = ResourceCreateRequestOptions(
             options=Options(
