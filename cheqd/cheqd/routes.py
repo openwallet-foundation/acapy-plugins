@@ -6,6 +6,7 @@ from acapy_agent.admin.decorators.auth import tenant_authentication
 from acapy_agent.admin.request_context import AdminRequestContext
 from acapy_agent.messaging.models.openapi import OpenAPISchema
 from acapy_agent.wallet.error import WalletError
+from acapy_agent.wallet.routes import DIDSchema
 from aiohttp import web
 from aiohttp_apispec import docs, request_schema, response_schema
 from marshmallow import Schema, fields
@@ -270,6 +271,41 @@ class UpdateCheqdDIDResponseSchema(OpenAPISchema):
     )
 
 
+class DIDImportSchema(OpenAPISchema):
+    """Request schema for importing a DID."""
+
+    did_document = fields.Raw(
+        required=True,
+        metadata={
+            "description": "The DID document to import",
+            "example": {
+                "id": "did:example:123456789",
+                "verificationMethod": [
+                    {
+                        "id": "did:example:123456789#key-1",
+                        "type": "Ed25519VerificationKey2018",
+                        "controller": "did:example:123456789",
+                        "publicKeyBase58": "H3C2AVvLMv6gmMNam3uVAjZpfkcJCwDwnZn6z3wXmqPV",
+                    }
+                ],
+            },
+        },
+    )
+
+    metadata = fields.Dict(
+        required=False,
+        metadata={
+            "description": "Additional metadata to associate with the imported DID"
+        },
+    )
+
+
+class DIDImportResponseSchema(OpenAPISchema):
+    """Response schema for DID import."""
+
+    result = fields.Nested(DIDSchema())
+
+
 @docs(tags=["did"], summary="Create a did:cheqd")
 @request_schema(CreateCheqdDIDRequestSchema())
 @response_schema(CreateCheqdDIDResponseSchema, HTTPStatus.OK)
@@ -363,6 +399,50 @@ async def deactivate_cheqd_did(request: web.BaseRequest):
         raise web.HTTPBadRequest(reason=err.roll_up)
 
 
+@docs(
+    tags=["did"],
+    summary="Import an existing DID into the wallet",
+)
+@request_schema(DIDImportSchema)
+@response_schema(DIDImportResponseSchema(), description="")
+@tenant_authentication
+async def import_did(request: web.BaseRequest):
+    """Request handler for importing a DID into the wallet.
+
+    Args:
+        request: aiohttp request object
+
+    Returns:
+        The imported DID information
+
+    """
+    context: AdminRequestContext = request["context"]
+    config = context.settings.get("plugin_config")
+    resolver_url = None
+    registrar_url = None
+    if config:
+        registrar_url = config.get("registrar_url")
+        resolver_url = config.get("resolver_url")
+    try:
+        body = await request.json()
+    except Exception:
+        body = {}
+
+    try:
+        result = await CheqdDIDManager(
+            context.profile, registrar_url, resolver_url
+        ).import_did(
+            body.get("did_document"),
+            body.get("metadata"),
+        )
+    except CheqdDIDManagerError as err:
+        raise web.HTTPInternalServerError(reason=err.roll_up)
+    except WalletError as err:
+        raise web.HTTPBadRequest(reason=err.roll_up)
+
+    return web.json_response(result)
+
+
 async def register(app: web.Application):
     """Register routes."""
     app.add_routes(
@@ -370,6 +450,7 @@ async def register(app: web.Application):
             web.post("/did/cheqd/create", create_cheqd_did),
             web.post("/did/cheqd/update", update_cheqd_did),
             web.post("/did/cheqd/deactivate", deactivate_cheqd_did),
+            web.post("/did/import", import_did),
         ]
     )
 

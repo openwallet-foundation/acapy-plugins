@@ -4,7 +4,7 @@
 #    ./bin/aca-py start --arg-file ./docker/default.yml
 label: cheqd
 
-log-level: info
+log-level: debug
 auto-provision: true
 
 # Admin

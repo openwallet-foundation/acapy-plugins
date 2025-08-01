@@ -18,6 +18,7 @@ aiohttp = "^3.12.13"
 [tool.poetry.group.dev.dependencies]
 
 [tool.pytest.ini_options]
+asyncio_mode = "auto"
 
 [build-system]
 requires = ["poetry-core>=2.1"]
