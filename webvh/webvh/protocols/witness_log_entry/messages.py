@@ -1,11 +1,25 @@
 """Witness messages."""
 
+from acapy_agent.protocols.didcomm_prefix import DIDCommPrefix
 from acapy_agent.messaging.agent_message import AgentMessage, AgentMessageSchema
 from marshmallow import EXCLUDE, fields
 
-from ..message_types import WITNESS_REQUEST, WITNESS_RESPONSE
+HANDLER_MODULE = "webvh.protocols.witness_log_entry.handlers"
 
-HANDLER_MODULE = "webvh.did.handlers.handler"
+PROTOCOL = "did-webvh-witness-log-entry/1.0"
+PROTOCOL_PACKAGE = "webvh.protocols.witness_log_entry"
+
+# Message types
+WITNESS_REQUEST = f"{PROTOCOL}/witness_request"
+WITNESS_RESPONSE = f"{PROTOCOL}/witness_response"
+
+
+MESSAGE_TYPES = DIDCommPrefix.qualify_all(
+    {
+        WITNESS_REQUEST: f"{PROTOCOL_PACKAGE}.messages.WitnessRequest",  # noqa: E501
+        WITNESS_RESPONSE: f"{PROTOCOL_PACKAGE}.messages.WitnessResponse",  # noqa: E501
+    }
+)
 
 
 class WitnessRequest(AgentMessage):
@@ -18,11 +32,10 @@ class WitnessRequest(AgentMessage):
         message_type = WITNESS_REQUEST
         schema_class = "WitnessRequestSchema"
 
-    def __init__(self, document: dict, parameters: dict, **kwargs):
+    def __init__(self, document: dict, **kwargs):
         """Initialize RequestWitness."""
         super().__init__(**kwargs)
         self.document = document
-        self.parameters = parameters
 
 
 class WitnessRequestSchema(AgentMessageSchema):
@@ -40,12 +53,6 @@ class WitnessRequestSchema(AgentMessageSchema):
         required=True,
         metadata={"description": "document to witness"},
     )
-    parameters = fields.Dict(
-        required=False,
-        metadata={
-            "description": "parameters for the initial did",
-        },
-    )
 
 
 class WitnessResponse(AgentMessage):
@@ -58,12 +65,12 @@ class WitnessResponse(AgentMessage):
         message_type = WITNESS_RESPONSE
         schema_class = "WitnessResponseSchema"
 
-    def __init__(self, state: str, document: dict, parameters: dict, **kwargs):
+    def __init__(self, state: str, document: dict, witness_proof: dict = None, **kwargs):
         """Initialize ResponseWitness."""
         super().__init__(**kwargs)
         self.state = state
         self.document = document
-        self.parameters = parameters
+        self.witness_proof = witness_proof
 
 
 class WitnessResponseSchema(AgentMessageSchema):
@@ -90,9 +97,9 @@ class WitnessResponseSchema(AgentMessageSchema):
             "description": "document to witness",
         },
     )
-    parameters = fields.Dict(
+    witness_proof = fields.Dict(
         required=False,
         metadata={
-            "description": "parameters for the initial did",
+            "description": "witness proof",
         },
     )
