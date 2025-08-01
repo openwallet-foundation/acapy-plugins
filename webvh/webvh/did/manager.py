@@ -115,9 +115,9 @@ class ControllerManager:
 
         # Witness
         # https://identity.foundation/didwebvh/next/#did-witnesses
-        if options.get("witness_threshold", 0):
+        if options.get("witnessThreshold", 0):
             parameters["witness"] = {
-                "threshold": options.get("witness_threshold"),
+                "threshold": options.get("witnessThreshold"),
                 "witnesses": [
                     {"id": witness} for witness in await get_witnesses(self.profile)
                 ],
@@ -248,10 +248,10 @@ class ControllerManager:
 
         """
         options["portability"] = options.get(
-            "portability", defaults.get("portability", None)
+            "portability", defaults.get("portability", False)
         )
         options["prerotation"] = options.get(
-            "prerotation", defaults.get("prerotation", None)
+            "prerotation", defaults.get("prerotation", False)
         )
         options["witness_threshold"] = options.get(
             "witness_threshold", defaults.get("witness_threshold", 0)
@@ -391,13 +391,12 @@ class ControllerManager:
             raise DidCreationError(f"Server returned invalid did: {placeholder_id}")
 
         config = await get_plugin_config(self.profile)
-
         options = await self._apply_config_defaults(
             options, config.get("parameter_options", {})
         )
 
         # Apply provided options & policies to the requested identifier
-        if options.get("apply_policy", True):
+        if options.get("apply_policy", False):
             options = await self._apply_policy(
                 requested_identifier.get("parameters"), options
             )
