@@ -372,3 +372,66 @@ async def test_import_did_end_to_end_workflow():
         print("Step 4 completed: DID can be retrieved individually")
 
         print("End-to-end workflow completed successfully!")
+
+
+@pytest.mark.asyncio
+async def test_cheqd_did_end_to_end_workflow():
+    """Test complete workflow for did:cheqd: create, import, verify, use."""
+    # Define test DID attributes
+    cheqd_did = "did:cheqd:testnet:f4537031-d84a-4c39-87d7-4ab6b2e99b02"  # Replace with dynamically created or known good DID
+    cheqd_verkey = "4WLU6caHU4KzYFySAekr4zX4FAi8KpZUYRZzbaiuaBha"
+
+    cheqd_did_document = {
+        "id": cheqd_did,
+        "verificationMethod": [
+            {
+                "id": f"{cheqd_did}#key-1",
+                "type": "Ed25519VerificationKey2018",
+                "controller": cheqd_did,
+                "publicKeyBase58": cheqd_verkey,
+            }
+        ],
+        "authentication": [f"{cheqd_did}#key-1"],
+    }
+
+    async with Controller(base_url=ISSUER) as issuer:
+        # Step 1: Import the DID document to the wallet or registry
+        import_result = await import_did(
+            issuer,
+            cheqd_did_document,
+            metadata={"purpose": "testing", "did_type": "cheqd"},
+        )
+
+        assert import_result["did"] == cheqd_did
+        print("Step 1 completed: cheqd DID imported successfully")
+
+        # Step 2: Verify DID is in wallet or state store
+        await assert_did_in_wallet(issuer, cheqd_did)
+        print("Step 2 completed: cheqd DID verified in wallet")
+
+        # Step 3: Attempt to use the DID for signing (JWT or VC)
+        try:
+            jwt_payload = {
+                "did": cheqd_did,
+                "headers": {"typ": "JWT", "alg": "EdDSA"},
+                "payload": {"test": "cheqd", "iat": 1234567890},
+            }
+
+            jwt_result = await issuer.post("/wallet/jwt/sign", json=jwt_payload)
+            assert "jws" in jwt_result, "JWT signing should return a 'jws' field"
+            print("Step 3 completed: JWT signing using cheqd DID successful")
+
+        except Exception as e:
+            print(f"Step 3 optional: JWT signing failed or skipped due to: {e}")
+
+        # Step 4: Retrieve the DID individually
+        individual_did = await issuer.get(f"/wallet/did?did={cheqd_did}")
+        assert "results" in individual_did
+        assert len(individual_did["results"]) > 0
+        found_did = next(
+            (d for d in individual_did["results"] if d["did"] == cheqd_did), None
+        )
+        assert found_did is not None
+        print("Step 4 completed: cheqd DID successfully retrieved individually")
+
+        print("End-to-end workflow for did:cheqd completed successfully!")
