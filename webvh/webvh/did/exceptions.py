@@ -13,18 +13,6 @@ class DidUpdateError(Exception):
     pass
 
 
-class WitnessSetupError(Exception):
-    """Exception for witness setup errors."""
-
-    pass
-
-
-class WitnessError(Exception):
-    """Exception for witness errors."""
-
-    pass
-
-
 class ConfigurationError(Exception):
     """Exception for server connection errors."""
 
@@ -33,5 +21,11 @@ class ConfigurationError(Exception):
 
 class OperationError(Exception):
     """Exception for did operation errors."""
+
+    pass
+
+
+class WitnessError(Exception):
+    """Exception for witness errors."""
 
     pass

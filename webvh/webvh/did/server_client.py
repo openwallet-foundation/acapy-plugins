@@ -2,6 +2,7 @@
 
 import http
 import json
+import logging
 
 from acapy_agent.core.profile import Profile
 from aiohttp import ClientConnectionError, ClientResponseError, ClientSession
@@ -10,6 +11,8 @@ from did_webvh.core.state import DocumentState
 from ..config.config import get_server_url, use_strict_ssl
 from .exceptions import DidCreationError, OperationError
 from .utils import all_are_not_none
+
+LOGGER = logging.getLogger(__name__)
 
 
 class WebVHWatcherClient:
@@ -56,40 +59,27 @@ class WebVHServerClient:
             ):
                 raise DidCreationError(response_json.get("detail"))
 
-            did_document = response_json.get("didDocument", {})
-            did = did_document.get("id")
+            parameters = response_json.get("parameters", {})
+            method = parameters.get("method", None)
 
-            proof_options = response_json.get("proofOptions", {})
-            challenge = proof_options.get("challenge")
-            domain = proof_options.get("domain")
-            expiration = proof_options.get("expires")
+            state = response_json.get("state", {})
+            placeholder_id = state.get("id", None)
 
-            if all_are_not_none(did, challenge, domain, expiration):
-                return did_document, proof_options
+            proof_options = parameters.get("proof", {})
+
+            if all_are_not_none(parameters, state, placeholder_id, method, proof_options):
+                return response_json
             else:
                 raise DidCreationError(
                     "Invalid response from Webvh server requesting identifier"
                 )
 
-    async def register_did_doc(self, registration_document):
-        """Register a DID document and did with the WebVH server."""
-        async with ClientSession() as session:
-            # Register did document and did with the server
-            response = await session.post(
-                await get_server_url(self.profile),
-                json={"didDocument": registration_document},
-                ssl=(await use_strict_ssl(self.profile)),
-            )
-            response_json = await response.json()
-            if response.status == http.HTTPStatus.BAD_REQUEST:
-                raise DidCreationError(response_json.get("detail"))
-
-    async def submit_log_entry(self, log_entry, namespace, identifier):
+    async def submit_log_entry(self, log_entry, witness_signature, namespace, identifier):
         """Submit an initial log entry to the WebVH server."""
         async with ClientSession() as session:
             response = await session.post(
                 f"{await get_server_url(self.profile)}/{namespace}/{identifier}",
-                json={"logEntry": log_entry},
+                json={"logEntry": log_entry, "witnessSignature": witness_signature},
                 ssl=(await use_strict_ssl(self.profile)),
             )
 
@@ -154,6 +144,25 @@ class WebVHServerClient:
                     {await get_server_url(self.profile)}/{namespace}/{identifier}/whois
                     """,
                     json={"verifiablePresentation": vp},
+                )
+            except ClientConnectionError as err:
+                raise OperationError(f"Failed to connect to Webvh server: {err}")
+
+            return await response.json()
+
+    async def upload_attested_resource(
+        self,
+        namespace: str,
+        identifier: str,
+        resource: dict,
+    ):
+        """Submit a whois Verifiable Presentation for a given identifier."""
+        server_url = await get_server_url(self.profile)
+        async with ClientSession() as http_session:
+            try:
+                response = await http_session.post(
+                    f"{server_url}/{namespace}/{identifier}/resources",
+                    json={"attestedResource": resource},
                 )
             except ClientConnectionError as err:
                 raise OperationError(f"Failed to connect to Webvh server: {err}")

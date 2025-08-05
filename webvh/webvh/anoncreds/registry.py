@@ -1,5 +1,6 @@
 """DID Webvh Registry."""
 
+import asyncio
 import logging
 import time
 from typing import Optional, Pattern, Sequence
@@ -50,10 +51,26 @@ from multiformats import multibase, multihash
 
 from ..resolver.resolver import DIDWebVHResolver
 from ..validation import WebVHDID
+from ..config.config import get_plugin_config, is_witness
+from ..did.server_client import WebVHServerClient
+from ..protocols.endorse_attested_resource.record import PendingAttestedResourceRecord
+from ..protocols.states import WitnessingState
+from ..did.witness import WitnessManager
+from ..did.manager import ControllerManager
+from ..did.utils import add_proof
 
 # from ..models.resources import AttestedResource
 
 LOGGER = logging.getLogger(__name__)
+
+# NOTE, temporary context location
+ATTESTED_RESOURCE_CTX = "https://opsecid.github.io/attested-resource/v1"
+
+PENDING_MESSAGE = {
+    "status": WitnessingState.PENDING.value,
+    "message": "The witness is pending.",
+}
+WITNESS_WAIT_TIMEOUT_SECONDS = 2
 
 
 class DIDWebVHRegistry(BaseAnonCredsResolver, BaseAnonCredsRegistrar):
@@ -86,17 +103,17 @@ class DIDWebVHRegistry(BaseAnonCredsResolver, BaseAnonCredsRegistrar):
     @staticmethod
     def _digest_multibase(resource_content) -> str:
         """Calculate digest."""
-        digest_multihash = multihash.digest(
-            jcs.canonicalize(resource_content), "sha2-256"
+        return multibase.encode(
+            multihash.digest(jcs.canonicalize(resource_content), "sha2-256"), "base58btc"
         )
-        digest_multibase = multibase.encode(digest_multihash, "base58btc")
-        return digest_multibase
 
     @staticmethod
     def _derive_upload_endpoint(verification_method) -> str:
         """Derive service upload endpoint."""
         domain = verification_method.split(":")[3]
-        return f"https://{domain}/resources"
+        namespace = verification_method.split(":")[4]
+        identifier = verification_method.split(":")[5]
+        return f"https://{domain}/{namespace}/{identifier}/resources"
 
     @staticmethod
     def _derive_update_endpoint(resource_id) -> str:
@@ -530,31 +547,26 @@ class DIDWebVHRegistry(BaseAnonCredsResolver, BaseAnonCredsRegistrar):
         secured_resource = await self._sign(profile, resource)
         await self._update(secured_resource)
 
+    async def _get_default_verification_method(self, profile, did):
+        try:
+            async with profile.session() as session:
+                did_info = await session.handle.fetch(CATEGORY_DID, did)
+            signing_key = verkey_to_multikey(
+                did_info.value_json.get("verkey"),
+                alg=did_info.value_json.get("key_type"),
+            )
+            return f"{did}#{signing_key}"
+        except (WalletNotFoundError, WalletError):
+            raise AnonCredsRegistrationError(f"Error deriving signing key for {did}.")
+
     async def _create_and_publish_resource(
-        self, profile, issuer, content, metadata, options, links=None
+        self, profile, issuer, content, metadata, options={}, links=None
     ) -> dict:  # AttestedResource:
         """Derive attested resource object from content and publish."""
-        options = options or {}
         # If no verification method set, fetch default signing key from did
-        if not options.get("verificationMethod"):
-            try:
-                async with profile.session() as session:
-                    did_info = await session.handle.fetch(CATEGORY_DID, issuer)
-                signing_key = verkey_to_multikey(
-                    did_info.value_json.get("verkey"),
-                    alg=did_info.value_json.get("key_type"),
-                )
-                options["verificationMethod"] = f"{issuer}#{signing_key}"
-            except (WalletNotFoundError, WalletError):
-                raise AnonCredsRegistrationError(
-                    f"Error deriving signing key for {issuer}."
-                )
-
-        options["serviceEndpoint"] = self._derive_upload_endpoint(
-            options.get("verificationMethod")
-        )
-
-        self._ensure_options(options)
+        verification_method = options.get(
+            "verificationMethod"
+        ) or await self._get_default_verification_method(profile, issuer)
 
         # Ensure content digest is accurate
         if metadata.get("resource_id") != self._digest_multibase(content):
@@ -564,7 +576,10 @@ class DIDWebVHRegistry(BaseAnonCredsResolver, BaseAnonCredsRegistrar):
 
         # Create resource object
         resource = {
-            "@context": ["https://w3id.org/security/data-integrity/v2"],
+            "@context": [
+                ATTESTED_RESOURCE_CTX,
+                "https://w3id.org/security/data-integrity/v2",
+            ],
             "type": ["AttestedResource"],
             "id": f"{issuer}/resources/{content_digest}",
             "content": content,
@@ -578,9 +593,41 @@ class DIDWebVHRegistry(BaseAnonCredsResolver, BaseAnonCredsRegistrar):
             resource["links"] = links
 
         # Secure resource with a Data Integrity proof
-        secured_resource = await self._sign(profile, resource)
+        secured_resource = await add_proof(profile, resource, verification_method)
 
-        # Upload resource to server
-        await self._upload(secured_resource)
+        config = await get_plugin_config(profile)
+        scid = issuer.split(":")[2]
+        namespace = issuer.split(":")[4]
+        identifier = issuer.split(":")[5]
+        if config.get("endorsement", False):
+            # Request witness approval
+            witness = WitnessManager(profile)
+            controller = ControllerManager(profile)
+            endorsed_resource = await witness.witness_attested_resource(
+                scid, secured_resource
+            )
+
+            if not isinstance(endorsed_resource, dict):
+                if await is_witness(profile):
+                    pass
+
+                try:
+                    await PendingAttestedResourceRecord().set_pending_scid(profile, scid)
+                    await asyncio.wait_for(
+                        controller._wait_for_resource(scid),
+                        WITNESS_WAIT_TIMEOUT_SECONDS,
+                    )
+                except asyncio.TimeoutError:
+                    pass
+            else:
+                # Upload resource to server
+                await WebVHServerClient(profile).upload_attested_resource(
+                    namespace, identifier, endorsed_resource
+                )
+        else:
+            # Upload resource to server
+            await WebVHServerClient(profile).upload_attested_resource(
+                namespace, identifier, secured_resource
+            )
 
         return secured_resource

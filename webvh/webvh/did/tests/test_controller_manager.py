@@ -1,6 +1,5 @@
 from unittest import IsolatedAsyncioTestCase
 
-from acapy_agent.connections.models.conn_record import ConnRecord
 from acapy_agent.core.event_bus import EventBus
 from acapy_agent.messaging.responder import BaseResponder
 from acapy_agent.resolver.base import ResolutionMetadata, ResolutionResult, ResolverType
@@ -9,57 +8,100 @@ from acapy_agent.tests import mock
 from acapy_agent.utils.testing import create_test_profile
 from acapy_agent.wallet.key_type import KeyTypes
 from acapy_agent.wallet.keys.manager import MultikeyManager
-from aiohttp import ClientConnectionError
 
 from ...config.config import set_config
-from ..controller_manager import ControllerManager
-from ..exceptions import ConfigurationError, DidCreationError, WitnessError
-from ..registration_state import RegistrationState
-from ..witness_queue import PendingRegistrations
+from ..manager import ControllerManager
+from ..witness import WitnessManager
+from ..exceptions import ConfigurationError
+from ...protocols.states import WitnessingState
+from ...protocols.witness_log_entry.record import PendingLogEntryRecord
 
-log_entry_response = {
-    "logEntry": {
-        "versionId": "1-QmSV77yftroggmtFuUrTDQaHaxpKwDwPvKwkhLqkS1hucT",
-        "versionTime": "2024-12-18T21:15:58",
-        "parameters": {
-            "updateKeys": ["z6MktZNLyY8wGFu9bKX3428Uzsocotpm9LWvVY4R3vkeHKxP"],
-            "method": "did:webvh:0.5",
-            "scid": "QmVSevWDZeaFYcTx2FaVaU91G9ABtyEW5vG3wzKTxN7cuS",
-        },
-        "state": {
-            "@context": ["..."],
-            "id": "did:webvh:QmVSevWDZeaFYcTx2FaVaU91G9ABtyEW5vG3wzKTxN7cuS:id.test-suite.app:prod:3",
-            "verificationMethod": ["..."],
-            "authentication": ["..."],
-            "assertionMethod": ["..."],
-        },
-    }
-}
+SCID_PLACEHOLDER = "{SCID}"
+TEST_DOMAIN = "id.test-suite.app"
+TEST_NAMESPACE = "test"
+TEST_IDENTIFIER = "123"
+TEST_VERSION_TIME = "2025-07-28T21:47:32Z"
+TEST_SCID = "QmSFKAR8VfvU2NF1FpCFbUFakvJ6fDvLWcm4hQNwn8ZxEr"
+TEST_DID = f"did:webvh:{TEST_SCID}:{TEST_DOMAIN}:{TEST_NAMESPACE}:{TEST_IDENTIFIER}"
+TEST_VERSION_ID = "1-QmbnyKhBPuV93yvZn4N3RQrgiY11aSt86X4Hvuq98j5uLk"
+TEST_WITNESS_KEY = "z6MkgKA7yrw5kYSiDuQFcye4bMaJpcfHFry3Bx45pdWh3s8i"
+TEST_WITNESS_SEED = "00000000000000000000000000000000"
+TEST_UPDATE_KEY = "z6Mkp2j8Zgm8CXMe4kvzWVsVnPzTQbBn2845CRpLLJChohyk"
+TEST_SIGNING_KEY = "z6MkuH74MNE5CUVPTCb4ZJWpLyEE4RxVqKJeRP8E8BigksRa"
+TEST_RESOLVER = mock.MagicMock(DIDResolver, autospec=True)
+TEST_RESOLVER.resolve_with_metadata = mock.AsyncMock(
+    return_value=ResolutionResult(
+        did_document={},
+        metadata=ResolutionMetadata(
+            resolver_type=ResolverType.NATIVE,
+            resolver="resolver",
+            retrieved_time="retrieved_time",
+            duration=0,
+        ),
+    )
+)
 
-initial_create_response = {
+TEST_NS_REQUEST_RESPONSE = {
+    "versionId": SCID_PLACEHOLDER,
+    "versionTime": TEST_VERSION_TIME,
+    "parameters": {
+        "scid": SCID_PLACEHOLDER,
+        "method": "did:webvh:1.0",
+        "updateKeys": [],
+        "witness": {
+            "threshold": 1,
+            "witnesses": [{"id": f"did:key:{TEST_WITNESS_KEY}"}],
+        },
+    },
     "state": {
-        "id": "did:webvh:QmVSevWDZeaFYcTx2FaVaU91G9ABtyEW5vG3wzKTxN7cuS:id.test-suite.app:prod:3",
-    }
+        "@context": ["https://www.w3.org/ns/did/v1"],
+        "id": f"did:webvh:{SCID_PLACEHOLDER}:{TEST_DOMAIN}:{TEST_NAMESPACE}:{TEST_IDENTIFIER}",
+    },
+    "proof": {
+        "type": "DataIntegrityProof",
+        "cryptosuite": "eddsa-jcs-2022",
+        "proofPurpose": "assertionMethod",
+    },
 }
 
-request_namespace = mock.AsyncMock(
-    return_value=mock.MagicMock(
-        json=mock.AsyncMock(
-            return_value={
-                "didDocument": {
-                    "@context": ["https://www.w3.org/ns/did/v1"],
-                    "id": "did:web:id.test-suite.app:prod:1",
-                },
-                "proofOptions": {
-                    "type": "DataIntegrityProof",
-                    "cryptosuite": "eddsa-jcs-2022",
-                    "proofPurpose": "assertionMethod",
-                    "expires": "2024-12-18T20:46:01+00:00",
-                    "domain": "id.test-suite.app",
-                    "challenge": "fa0b6142-cd83-576b-a7a7-5cc4eb10e0ea",
-                },
+TEST_LOG_ENTRY = {
+    "versionId": TEST_VERSION_ID,
+    "versionTime": TEST_VERSION_TIME,
+    "parameters": {
+        "scid": TEST_SCID,
+        "method": "did:webvh:1.0",
+        "updateKeys": [TEST_UPDATE_KEY],
+        "witness": {
+            "threshold": 1,
+            "witnesses": [{"id": f"did:key:{TEST_WITNESS_KEY}"}],
+        },
+    },
+    "state": {
+        "@context": ["https://www.w3.org/ns/did/v1", "https://www.w3.org/ns/cid/v1"],
+        "id": TEST_DID,
+        "verificationMethod": [
+            {
+                "id": f"{TEST_DID}#{TEST_SIGNING_KEY}",
+                "type": "Multikey",
+                "controller": TEST_DID,
+                "publicKeyMultibase": TEST_SIGNING_KEY,
             }
-        )
+        ],
+        "authentication": [f"{TEST_DID}#{TEST_SIGNING_KEY}"],
+        "assertionMethod": [f"{TEST_DID}#{TEST_SIGNING_KEY}"],
+    },
+    "proof": {
+        "type": "DataIntegrityProof",
+        "cryptosuite": "eddsa-jcs-2022",
+        "proofPurpose": "assertionMethod",
+        "proofValue": "z4B4Mk5jmEPWPotkMU1XWh7acd6HjPLNotshHKZE8g2sjRsVPoCmh48WqpCU5vwQLw6qnvpyWxKJVSzyRK7rkNNzR",
+        "verificationMethod": f"did:key:{TEST_UPDATE_KEY}#{TEST_UPDATE_KEY}",
+    },
+}
+
+ns_request_response = mock.AsyncMock(
+    return_value=mock.MagicMock(
+        json=mock.AsyncMock(return_value=TEST_NS_REQUEST_RESPONSE)
     )
 )
 
@@ -77,234 +119,45 @@ request_namespace_fail = mock.AsyncMock(
     )
 )
 
-registration_options = {"namespace": "test"}
+create_options = {"namespace": "test"}
 
 
 class TestOperationsManager(IsolatedAsyncioTestCase):
     async def asyncSetUp(self):
         self.profile = await create_test_profile({"wallet.type": "askar-anoncreds"})
-        async with self.profile.session() as session:
-            await MultikeyManager(session).create(
-                alg="ed25519",
-                kid="webvh:id.test-suite.app@witnessKey",
-            )
-
-    async def test_create_invalid(self):
-        self.profile.settings.set_value(
-            "plugin_config", {"did-webvh": {"role": "controller"}}
-        )
-        # No server url
-        with self.assertRaises(ConfigurationError):
-            await ControllerManager(self.profile).register(options={})
-
-    @mock.patch(
-        "aiohttp.ClientSession.get",
-        request_namespace,
-    )
-    @mock.patch(
-        "aiohttp.ClientSession.post",
-        mock.AsyncMock(
-            return_value=mock.MagicMock(
-                json=mock.AsyncMock(
-                    side_effect=[log_entry_response, initial_create_response]
-                )
-            )
-        ),
-    )
-    async def test_create_self_witness(self):
-        resolver = mock.MagicMock(DIDResolver, autospec=True)
-        resolver.resolve_with_metadata = mock.AsyncMock(
-            return_value=ResolutionResult(
-                did_document={},
-                metadata=ResolutionMetadata(
-                    resolver_type=ResolverType.NATIVE,
-                    resolver="resolver",
-                    retrieved_time="retrieved_time",
-                    duration=0,
-                ),
-            )
-        )
-        self.profile.context.injector.bind_instance(DIDResolver, resolver)
-        self.profile.context.injector.bind_instance(EventBus, EventBus())
-        self.profile.context.injector.bind_instance(KeyTypes, KeyTypes())
-
-        await set_config(self.profile, {"server_url": "https://id.test-suite.app"})
-        await ControllerManager(self.profile).register(options=registration_options)
-
-    @mock.patch(
-        "aiohttp.ClientSession.get",
-        request_namespace,
-    )
-    @mock.patch(
-        "aiohttp.ClientSession.post",
-        mock.AsyncMock(
-            return_value=mock.MagicMock(
-                json=mock.AsyncMock(
-                    side_effect=[
-                        log_entry_response,
-                        initial_create_response,
-                        {
-                            "logEntry": {
-                                "versionId": "1-QmSV77yftroggmtFuUrTDQaHaxpKwDwPvKwkhLqkS1hucT",
-                                "versionTime": "2024-12-18T21:15:58",
-                                "parameters": {
-                                    "updateKeys": [
-                                        "z6MktZNLyY8wGFu9bKX3428Uzsocotpm9LWvVY4R3vkeHKxP"
-                                    ],
-                                    "method": "did:webvh:0.5",
-                                    "scid": "QmVSevWDZeaFYcTx2FaVaU91G9ABtyEW5vG3wzKTxN7cuZ",
-                                },
-                                "state": {
-                                    "@context": ["..."],
-                                    "id": "did:webvh:QmVSevWDZeaFYcTx2FaVaU91G9ABtyEW5vG3wzKTxN7cuZ:id.test-suite.app:prod:3",
-                                    "verificationMethod": ["..."],
-                                    "authentication": ["..."],
-                                    "assertionMethod": ["..."],
-                                },
-                            }
-                        },
-                        {
-                            "state": {
-                                "id": "did:webvh:QmVSevWDZeaFYcTx2FaVaU91G9ABtyEW5vG3wzKTxN7cuZ:id.test-suite.app:prod:4",
-                            }
-                        },
-                    ]
-                )
-            )
-        ),
-    )
-    async def test_create_self_witness_as_witness(self):
-        resolver = mock.MagicMock(DIDResolver, autospec=True)
-        resolver.resolve_with_metadata = mock.AsyncMock(
-            return_value=ResolutionResult(
-                did_document={},
-                metadata=ResolutionMetadata(
-                    resolver_type=ResolverType.NATIVE,
-                    resolver="resolver",
-                    retrieved_time="retrieved_time",
-                    duration=0,
-                ),
-            )
-        )
-        self.profile.context.injector.bind_instance(DIDResolver, resolver)
-        self.profile.context.injector.bind_instance(EventBus, EventBus())
-        self.profile.context.injector.bind_instance(KeyTypes, KeyTypes())
-
-        await set_config(
-            self.profile, {"server_url": "https://id.test-suite.app", "role": "witness"}
-        )
-
-        await ControllerManager(self.profile).register(options=registration_options)
-
-        # Same thing with existing key now
-        await ControllerManager(self.profile).register(options=registration_options)
-
-    @mock.patch(
-        "aiohttp.ClientSession.get",
-        request_namespace,
-    )
-    async def test_create_as_controller(self):
-        self.profile.settings.set_value(
-            "plugin_config",
-            {
-                "did-webvh": {
-                    "server_url": "https://id.test-suite.app",
-                    "role": "controller",
-                }
-            },
-        )
         self.profile.context.injector.bind_instance(
             BaseResponder, mock.AsyncMock(BaseResponder, autospec=True)
         )
-        self.profile.context.injector.bind_instance(KeyTypes, KeyTypes())
+        self.profile.context.injector.bind_instance(DIDResolver, TEST_RESOLVER)
         self.profile.context.injector.bind_instance(EventBus, EventBus())
-
-        # No active connection
-        with self.assertRaises(WitnessError):
-            await ControllerManager(self.profile).register(options=registration_options)
-
-        # Has connection
+        self.profile.context.injector.bind_instance(KeyTypes, KeyTypes())
+        self.profile.settings.set_value(
+            "plugin_config", {"did-webvh": {"server_url": f"https://{TEST_DOMAIN}"}}
+        )
+        self.controller = ControllerManager(self.profile)
+        self.witness = WitnessManager(self.profile)
         async with self.profile.session() as session:
-            record = ConnRecord(
-                alias="webvh:id.test-suite.app@witness",
-                state="active",
+            # Create known witness key for test server
+            await MultikeyManager(session).create(
+                alg="ed25519",
+                kid=f"webvh:{TEST_DOMAIN}@witnessKey",
+                seed=TEST_WITNESS_SEED,
             )
-            await record.save(session)
 
-        await ControllerManager(self.profile).register(options=registration_options)
-        await ControllerManager(self.profile).finish_registration(
-            registration_document={"id": "did:web:id.test-suite.app:test:1"},
-            parameters={},
-            state=RegistrationState.PENDING.value,
-        )
+    async def test_create_invalid(self):
+        await set_config(self.profile, {"server_url": None})
+        # No server url
+        with self.assertRaises(ConfigurationError):
+            await self.controller.create(options={})
 
-    @mock.patch(
-        "aiohttp.ClientSession.get",
-        side_effect=[ClientConnectionError()],
-    )
-    async def test_create_connection_error_with_server(self, _):
-        self.profile.settings.set_value(
-            "plugin_config",
-            {
-                "did-webvh": {
-                    "server_url": "https://id.test-suite.app",
-                    "role": "controller",
-                }
-            },
-        )
-        with self.assertRaises(DidCreationError):
-            await ControllerManager(self.profile).register(options=registration_options)
+    async def test_create_self_witness(self):
+        await set_config(self.profile, {"server_url": f"https://{TEST_DOMAIN}"})
 
-    @mock.patch("aiohttp.ClientSession.get", request_namespace_fail)
-    async def test_create_bad_request(self):
-        self.profile.settings.set_value(
-            "plugin_config",
-            {
-                "did-webvh": {
-                    "server_url": "https://id.test-suite.app",
-                }
-            },
-        )
+        # Configure witness key
+        await self.controller.configure(options={"auto_attest": True, "witness": True})
 
-        with self.assertRaises(DidCreationError):
-            await ControllerManager(self.profile).register(options=registration_options)
-
-    @mock.patch(
-        "aiohttp.ClientSession.get",
-        mock.AsyncMock(
-            return_value=mock.MagicMock(
-                json=mock.AsyncMock(
-                    return_value={
-                        "didDocument": {
-                            "@context": ["https://www.w3.org/ns/did/v1"],
-                            "id": "did:web:id.test-suite.app:prod:1",
-                        },
-                        "proofOptions": {
-                            "type": "DataIntegrityProof",
-                            "cryptosuite": "eddsa-jcs-2022",
-                            "proofPurpose": "assertionMethod",
-                            "expires": "2024-12-18T20:46:01+00:00",
-                            # "domain": "id.test-suite.app",
-                            "challenge": "fa0b6142-cd83-576b-a7a7-5cc4eb10e0ea",
-                        },
-                    }
-                )
-            )
-        ),
-    )
-    async def test_create_response_is_missing_required_value(self):
-        self.profile.settings.set_value(
-            "plugin_config",
-            {
-                "did-webvh": {
-                    "server_url": "https://id.test-suite.app",
-                    "role": "witness",
-                }
-            },
-        )
-
-        with self.assertRaises(DidCreationError):
-            await ControllerManager(self.profile).register(options=registration_options)
+        # Create DID
+        await self.controller.create(options={"namespace": TEST_NAMESPACE})
 
     @mock.patch("asyncio.sleep", mock.AsyncMock())
     @mock.patch(
@@ -313,112 +166,34 @@ class TestOperationsManager(IsolatedAsyncioTestCase):
             return_value=mock.MagicMock(
                 json=mock.AsyncMock(
                     return_value={
-                        # For first response
-                        "didDocument": {
-                            "@context": ["https://www.w3.org/ns/did/v1"],
-                            "id": "did:webvh:QmVSevWDZeaFYcTx2FaVaU91G9ABtyEW5vG3wzKTxN7cuS:id.test-suite.app:prod:3",
-                        },
-                        # For second response
-                        "state": {
-                            "id": "did:webvh:QmVSevWDZeaFYcTx2FaVaU91G9ABtyEW5vG3wzKTxN7cuZ:id.test-suite.app:prod:3"
-                        },
+                        "state": {"id": TEST_DID},
                     }
                 )
             )
         ),
     )
-    async def test_finish_registration(self):
-        self.profile.context.injector.bind_instance(EventBus, EventBus())
-        self.profile.context.injector.bind_instance(KeyTypes, KeyTypes())
-        self.profile.context.injector.bind_instance(
-            DIDResolver,
-            mock.MagicMock(
-                DIDResolver,
-                autospec=True,
-                resolve_with_metadata=mock.AsyncMock(
-                    return_value=ResolutionResult(
-                        did_document={},
-                        metadata=ResolutionMetadata(
-                            resolver_type=ResolverType.NATIVE,
-                            resolver="resolver",
-                            retrieved_time="retrieved_time",
-                            duration=0,
-                        ),
-                    )
-                ),
-            ),
-        )
-        test_did = "did:webvh:{SCID}:id.test-suite.app:prod:3"
-
-        async with self.profile.session() as session:
-            signing_key = await MultikeyManager(session).create(
-                alg="ed25519",
-            )
-
-        # No pending dids - attested
-        await ControllerManager(self.profile).finish_registration(
-            registration_document={
-                "id": test_did,
-                "verificationMethod": [
-                    {
-                        "id": f"{test_did}#{signing_key['multikey']}",
-                        "publicKeyMultibase": signing_key["multikey"],
-                    }
-                ],
-            },
-            parameters={},
-            state=RegistrationState.ATTESTED.value,
-        )
-
-        # Pending state
-        await ControllerManager(self.profile).finish_registration(
-            registration_document={
-                "id": test_did,
-                "verificationMethod": [
-                    {
-                        "id": f"{test_did}#{signing_key['multikey']}",
-                        "publicKeyMultibase": signing_key["multikey"],
-                    }
-                ],
-            },
-            parameters={},
-            state=RegistrationState.PENDING.value,
-        )
+    async def test_finish_create(self):
+        await set_config(self.profile, {"server_url": f"https://{TEST_DOMAIN}"})
 
         # Has pending dids - attested
-        await PendingRegistrations().set_pending_did(
+        await PendingLogEntryRecord().save_pending_record(
             self.profile,
-            test_did,
+            TEST_SCID,
+            TEST_LOG_ENTRY,
         )
-
-        await set_config(
+        await PendingLogEntryRecord().set_pending_scid(
             self.profile,
-            {
-                "server_url": "https://id.test-suite.app",
-                "role": "controller",
-            },
+            TEST_SCID,
         )
 
-        async with self.profile.session() as session:
-            await MultikeyManager(session).create(
-                alg="ed25519",
-                kid=f"webvh:{test_did}@updateKey",
-            )
-
-        await ControllerManager(self.profile).finish_registration(
-            registration_document={
-                "id": test_did,
-                "verificationMethod": [
-                    {
-                        "id": f"{test_did}#{signing_key['multikey']}",
-                        "publicKeyMultibase": signing_key["multikey"],
-                    }
-                ],
-                "proof": [{"domain": "id.test-suite.app"}],
-            },
-            parameters={},
-            state=RegistrationState.ATTESTED.value,
+        witness_signature = await self.witness.sign_log_version(
+            TEST_LOG_ENTRY.get("versionId")
         )
-        assert test_did not in (
-            await PendingRegistrations().get_pending_dids(self.profile)
+        await self.controller.finish_create(
+            initial_log_entry=TEST_LOG_ENTRY,
+            witness_signature=witness_signature,
+            state=WitnessingState.ATTESTED.value,
+        )
+        assert TEST_SCID not in (
+            await PendingLogEntryRecord().get_pending_scids(self.profile)
         )

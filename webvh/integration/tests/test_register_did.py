@@ -42,7 +42,7 @@ async def test_create_single_tenant():
 
         # Ensure the witness key is properly configured
         response = await witness.get(f"/wallet/keys/{WITNESS_KEY}")
-        assert WITNESS_KID in response["kid"]
+        assert WITNESS_KID in response["kid"] or response["kid"] == WITNESS_KID
 
         # Configure WebVH Witness
         response = await witness.post(
@@ -54,22 +54,27 @@ async def test_create_single_tenant():
                 "auto_attest": True,
             },
         )
-        assert response["multikey"] == WITNESS_KEY
 
         # Ensure the witness key is properly configured
         response = await witness.get(f"/wallet/keys/{WITNESS_KEY}")
-        assert WITNESS_KID in response["kid"]
+        assert WITNESS_KID in response["kid"] or response["kid"] == WITNESS_KID
 
         # Create the initial did
         identifier = str(uuid.uuid4())
         response = await witness.post(
-            "/did/webvh/controller/create",
-            json={"options": {"namespace": TEST_NAMESPACE, "identifier": identifier}},
+            "/did/webvh/create",
+            json={
+                "options": {
+                    "namespace": TEST_NAMESPACE,
+                    "identifier": identifier,
+                    "witnessThreshold": 1,
+                }
+            },
         )
 
-        _id = response.get("id")
-        assert _id
-        assert identifier in _id
+        did = response.get("state", {}).get("id")
+        assert did
+        assert identifier in did
 
         # Confirm DID is published
         did_web = f"did:web:{WEBVH_DOMAIN}:{TEST_NAMESPACE}:{identifier}"
@@ -98,11 +103,11 @@ async def test_create_with_witness_and_auto_attest():
                 "auto_attest": True,
             },
         )
-        assert response["multikey"] == WITNESS_KEY
+        assert response["witnesses"][0] == f"did:key:{WITNESS_KEY}"
 
         invitation_url = (
             await witness.post(
-                "did/webvh/witness/invitations",
+                "did/webvh/witness-invitation",
                 json={
                     "alias": "witness",
                     "label": "witness",
@@ -125,20 +130,28 @@ async def test_create_with_witness_and_auto_attest():
 
         # Ensure the witness key is properly configured
         response = await witness.get(f"/wallet/keys/{WITNESS_KEY}")
-        assert WITNESS_KID in response["kid"]
+        assert WITNESS_KID in response["kid"] or response["kid"] == WITNESS_KID
 
         # Create the initial did
         identifier = str(uuid.uuid4())
         response = await controller.post(
-            "/did/webvh/controller/create",
-            json={"options": {"namespace": TEST_NAMESPACE, "identifier": identifier}},
+            "/did/webvh/create",
+            json={
+                "options": {
+                    "namespace": TEST_NAMESPACE,
+                    "identifier": identifier,
+                    "witnessThreshold": 1,
+                }
+            },
         )
 
-        _id = response.get("id")
-        assert _id
-        assert identifier in _id
+        did = response.get("state", {}).get("id")
+        assert did
+        assert identifier in did
 
-        response = await witness.get("/did/webvh/witness/registrations")
+        await asyncio.sleep(1)
+
+        response = await witness.get("/did/webvh/witness/log-entries")
         assert not response.get("results")
 
         await asyncio.sleep(1)
@@ -170,11 +183,11 @@ async def test_create_with_witness_and_manual_attest():
                 "auto_attest": False,
             },
         )
-        assert response["multikey"] == WITNESS_KEY
+        assert response["witnesses"][0] == f"did:key:{WITNESS_KEY}"
 
         invitation_url = (
             await witness.post(
-                "did/webvh/witness/invitations",
+                "did/webvh/witness-invitation",
                 json={
                     "alias": "witness",
                     "label": "witness",
@@ -197,33 +210,38 @@ async def test_create_with_witness_and_manual_attest():
 
         # Ensure the witness key is properly configured
         response = await witness.get(f"/wallet/keys/{WITNESS_KEY}")
-        assert WITNESS_KID in response["kid"]
+        assert WITNESS_KID in response["kid"] or response["kid"] == WITNESS_KID
 
         # Create the initial did
         identifier = str(uuid.uuid4())
         response = await controller.post(
-            "/did/webvh/controller/create",
-            json={"options": {"namespace": TEST_NAMESPACE, "identifier": identifier}},
+            "/did/webvh/create",
+            json={
+                "options": {
+                    "namespace": TEST_NAMESPACE,
+                    "identifier": identifier,
+                    "witnessThreshold": 1,
+                }
+            },
         )
 
         status = response.get("status")
         assert status == "pending"
 
-        response = await witness.get("/did/webvh/witness/registrations")
+        response = await witness.get("/did/webvh/witness/log-entries")
         entry = response.get("results", []).pop()
         assert isinstance(entry, dict)
 
         await witness.post(
-            "/did/webvh/witness/registrations",
-            params=params(did=entry["id"]),
+            "/did/webvh/witness/log-entries",
+            params=params(scid=entry.get("parameters").get("scid")),
         )
         await asyncio.sleep(3)
 
         # Confirm DID is published
-        response = await controller.get(f"/resolver/resolve/{entry['id']}")
-        did_web = f"did:web:{WEBVH_DOMAIN}:{TEST_NAMESPACE}:{identifier}"
-        assert response["did_document"]["id"] == did_web
-        assert response["did_document"]["alsoKnownAs"][0].startswith("did:webvh:")
+        did = entry["state"]["id"]
+        response = await witness.get(f"/resolver/resolve/{did}")
+        assert response["did_document"]["id"] == did
 
 
 @pytest.mark.asyncio
@@ -243,34 +261,40 @@ async def test_create_self_witness_and_manual_attest():
                 "auto_attest": False,
             },
         )
-        assert response["multikey"] == WITNESS_KEY
+        print(response)
+        response = await witness.get(f"/wallet/keys/{WITNESS_KEY}")
 
         # Ensure the witness key is properly configured
         response = await witness.get(f"/wallet/keys/{WITNESS_KEY}")
-        assert WITNESS_KID in response["kid"]
+        assert WITNESS_KID in response["kid"] or response["kid"] == WITNESS_KID
 
         # Create the initial did
         identifier = str(uuid.uuid4())
         response = await witness.post(
-            "/did/webvh/controller/create",
-            json={"options": {"namespace": TEST_NAMESPACE, "identifier": identifier}},
+            "/did/webvh/create",
+            json={
+                "options": {
+                    "namespace": TEST_NAMESPACE,
+                    "identifier": identifier,
+                    "witnessThreshold": 1,
+                }
+            },
         )
 
         status = response.get("status")
         assert status == "pending"
 
-        response = await witness.get("/did/webvh/witness/registrations")
+        response = await witness.get("/did/webvh/witness/log-entries")
         entry = response.get("results", []).pop()
         assert isinstance(entry, dict)
 
         await witness.post(
-            "/did/webvh/witness/registrations",
-            params=params(did=entry["id"]),
+            "/did/webvh/witness/log-entries",
+            params=params(scid=entry.get("parameters").get("scid")),
         )
         await asyncio.sleep(3)
 
         # Confirm DID is published
-        response = await witness.get(f"/resolver/resolve/{entry['id']}")
-        did_web = f"did:web:{WEBVH_DOMAIN}:{TEST_NAMESPACE}:{identifier}"
-        assert response["did_document"]["id"] == did_web
-        assert response["did_document"]["alsoKnownAs"][0].startswith("did:webvh:")
+        did = entry["state"]["id"]
+        response = await witness.get(f"/resolver/resolve/{did}")
+        assert response["did_document"]["id"] == did

@@ -7,12 +7,12 @@ from acapy_agent.utils.testing import create_test_profile
 from aiohttp.web_response import Response
 
 from webvh.routes import (
-    approve_pending_registration,
+    get_config,
     configure,
     create,
-    get_pending_registrations,
 )
 
+TEST_SERVER_URL = "https://id.test-suite.app"
 TEST_WITNESS_INVITATION = {
     "@type": "https://didcomm.org/out-of-band/1.1/invitation",
     "@id": "fe469f3d-b288-4e3f-99ba-b631af98248b",
@@ -42,7 +42,7 @@ class TestWebvhRoutes(IsolatedAsyncioTestCase):
         self.profile = await create_test_profile(
             settings={
                 "wallet.type": "askar-anoncreds",
-                "admin.admin_api_key": "secret-key",
+                "admin.admin_insecure_mode": True,
             }
         )
         self.context = AdminRequestContext.test_context({}, self.profile)
@@ -50,26 +50,14 @@ class TestWebvhRoutes(IsolatedAsyncioTestCase):
             "context": self.context,
         }
 
-    async def test_create(self):
+    async def test_get_config(self):
         self.request = mock.MagicMock(
             app={},
             match_info={},
             query={},
-            json=mock.AsyncMock(
-                return_value={
-                    "options": {
-                        "namespace": "test",
-                        "identifier": "1234",
-                        "prerotation": False,
-                        "portable": False,
-                    },
-                }
-            ),
             __getitem__=lambda _, k: self.request_dict[k],
-            headers={"x-api-key": "secret-key"},
         )
-
-        await create(self.request)
+        await get_config(self.request)
 
     async def test_configure_witness(self):
         self.request = mock.MagicMock(
@@ -78,42 +66,15 @@ class TestWebvhRoutes(IsolatedAsyncioTestCase):
             query={},
             json=mock.AsyncMock(
                 return_value={
-                    "server_url": "https://id.test-suite.app",
+                    "server_url": TEST_SERVER_URL,
                     "witness": True,
                     "auto_attest": True,
                 }
             ),
             __getitem__=lambda _, k: self.request_dict[k],
-            headers={"x-api-key": "secret-key"},
         )
 
         result = await configure(self.request)
-        assert isinstance(result, Response)
-
-    async def test_get_pending(self):
-        self.request = mock.MagicMock(
-            app={},
-            match_info={},
-            query={},
-            __getitem__=lambda _, k: self.request_dict[k],
-            headers={"x-api-key": "secret-key"},
-        )
-
-        result = await get_pending_registrations(self.request)
-        assert isinstance(result, Response)
-
-    async def test_attest(self):
-        self.request = mock.MagicMock(
-            app={},
-            match_info={},
-            query={
-                "did": "did:web:id.test-suite.app:test:1234",
-            },
-            __getitem__=lambda _, k: self.request_dict[k],
-            headers={"x-api-key": "secret-key"},
-        )
-
-        result = await approve_pending_registration(self.request)
         assert isinstance(result, Response)
 
     @mock.patch.object(OutOfBandManager, "receive_invitation")
@@ -127,14 +88,28 @@ class TestWebvhRoutes(IsolatedAsyncioTestCase):
             query={},
             json=mock.AsyncMock(
                 return_value={
-                    "server_url": "https://id.test-suite.app",
+                    "server_url": TEST_SERVER_URL,
                     "witness": False,
                     "witness_invitation": TEST_WITNESS_INVITATION_URL,
                 }
             ),
             __getitem__=lambda _, k: self.request_dict[k],
-            headers={"x-api-key": "secret-key"},
         )
 
         result = await configure(self.request)
         assert isinstance(result, Response)
+
+    async def test_create(self):
+        self.request = mock.MagicMock(
+            app={},
+            match_info={},
+            query={},
+            json=mock.AsyncMock(
+                return_value={
+                    "options": {},
+                }
+            ),
+            __getitem__=lambda _, k: self.request_dict[k],
+        )
+
+        await create(self.request)

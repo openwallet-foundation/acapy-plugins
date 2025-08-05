@@ -23,19 +23,27 @@ class WebvhConfigSchema(BaseRecordSchema):
         model_class = WebvhConfig
         unkown = EXCLUDE
 
-    role = fields.Str(
-        required=True,
-        description="Role",
-    )
-
     server_url = fields.Str(
         required=True,
         description="WebVH Server",
     )
 
+    auto_attest = fields.Bool(
+        required=False, description="Auto attest requests", default=False
+    )
+
     notify_watchers = fields.Bool(
-        required=True,
-        description="Notify watchers",
+        required=False, description="Notify watchers", default=False
+    )
+
+    endorsement = fields.Bool(
+        required=False,
+        description="Request witness signature on attested resource",
+        default=False,
+    )
+
+    witness = fields.Bool(
+        required=False, description="Enable self witnessing.", default=False
     )
 
     witnesses = fields.List(
@@ -47,6 +55,29 @@ class WebvhConfigSchema(BaseRecordSchema):
     scids = fields.Dict(
         required=False,
         description="Scid to DID mappings",
+    )
+
+    class ParameterOptions:
+        """Webvh default parameter options."""
+
+        watcher = fields.Str(required=False, description="Default watcher url to use")
+
+        portability = fields.Bool(
+            required=False, description="Portability flag", default=False
+        )
+
+        prerotation = fields.Bool(
+            required=False, description="Prerotation flag", default=False
+        )
+
+        witness_threshold = fields.Int(
+            required=False, description="Default witness threshold", default=0
+        )
+
+    parameter_options = fields.Nested(
+        ParameterOptions(),
+        required=False,
+        description="Default parameter options.",
     )
 
 
@@ -86,5 +117,5 @@ class WebvhConfigRecordSchema(BaseRecordSchema):
     config = fields.Dict(
         required=True,
         description="Webvh configuration",
-        example={"server_url": "http://localhost:8080", "role": "controller"},
+        example={"server_url": "http://localhost:8080"},
     )
