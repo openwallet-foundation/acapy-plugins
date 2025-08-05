@@ -10,7 +10,7 @@ package-mode = false
 [tool.poetry.dependencies]
 python = "^3.12"
 pytest = "^8.3.5"
-pytest-asyncio = "^1.0.0"
+pytest-asyncio = "^1.1.0"
 requests = "^2.32.0"
 aries-askar = "^0.3.0"
 did-peer-4 = "^0.1.4"
