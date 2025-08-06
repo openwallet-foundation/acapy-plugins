@@ -248,8 +248,8 @@ async def test_deactivate_did():
 async def test_import_did_key_method():
     """Test importing a did:key DID into the wallet."""
     # Test data - a valid did:key DID document
-    test_did = "did:key:z6MkukGVb3mRvTu1msArDKY9UwxeZFGjmwnCKtdQttr4Fk6i"
-    test_verkey = "4qXRZCbNX1orjhB2YuZryHTdPD6FaMZCPbd9ixJaTvnJ"
+    test_did = "did:key:z6MkhaXgBZDvotDkL5257faizNL939X6C56mZVQXgfYjeJKC"
+    test_verkey = "8HH5gYEeNc3z7PYXmd54d4x6qAfCNrqQqEB3nS7Zfu7K"
     test_metadata = {"imported": True, "source": "external_system"}
     did_document = {
         "id": test_did,
@@ -258,7 +258,7 @@ async def test_import_did_key_method():
                 "id": f"{test_did}#key-1",
                 "type": "Ed25519VerificationKey2018",
                 "controller": test_did,
-                "publicKeyMultibase": "z6MkiHnU9SqorZJKrC1jEUXhpP1dCnN6zEoZ5cY5ZEGbP9Zg",
+                "publicKeyBase58": test_verkey,
             }
         ],
         "authentication": [f"{test_did}#key-1"],

@@ -308,9 +308,22 @@ class CheqdDIDManager(BaseDIDManager):
                     )
                 # Get the first verification method's public key
                 first_vm = verification_methods[0]
-                public_key = first_vm.get("publicKeyBase58") or first_vm.get(
-                    "publicKeyMultibase"
-                )
+                # Handle both publicKeyBase58 and publicKeyMultibase formats
+                public_key_base58 = first_vm.get("publicKeyBase58")
+                public_key_multibase = first_vm.get("publicKeyMultibase")
+                if public_key_base58:
+                    # If we have publicKeyBase58, use it directly
+                    verkey = public_key_base58
+                elif public_key_multibase:
+                    # If we have publicKeyMultibase, convert it to verkey format
+                    verkey = multikey_to_verkey(public_key_multibase)
+                else:
+                    raise WalletError(
+                        reason=(
+                            "Verification method must contain either "
+                            "'publicKeyBase58' or 'publicKeyMultibase'"
+                        )
+                    )
                 # Determine key type from verification method
                 key_type = ED25519  # Default fallback
 
@@ -331,7 +344,7 @@ class CheqdDIDManager(BaseDIDManager):
                 # Create DIDInfo object
                 did_info = DIDInfo(
                     did=did,
-                    verkey=multikey_to_verkey(public_key),
+                    verkey=verkey,
                     metadata=metadata,
                     method=method,
                     key_type=key_type,
