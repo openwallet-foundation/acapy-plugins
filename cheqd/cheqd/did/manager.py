@@ -11,6 +11,7 @@ from acapy_agent.wallet.did_method import DIDMethods
 from acapy_agent.wallet.did_parameters_validation import DIDParametersValidation
 from acapy_agent.wallet.error import WalletError
 from acapy_agent.wallet.key_type import BLS12381G2, ED25519, P256
+from acapy_agent.wallet.keys.manager import multikey_to_verkey
 from acapy_agent.wallet.routes import format_did_info
 from acapy_agent.wallet.util import b58_to_bytes, bytes_to_b64
 from aiohttp import web
@@ -88,9 +89,11 @@ class CheqdDIDManager(BaseDIDManager):
                 verkey = key.verkey
                 verkey_bytes = b58_to_bytes(verkey)
                 public_key_b64 = bytes_to_b64(verkey_bytes)
-                verification_method = (
-                    options.get("verification_method") or VerificationMethods.Ed255192020
-                )
+                verification_method = VerificationMethods.Ed255192020
+                if options.get("verification_method"):
+                    verification_method = VerificationMethods(
+                        options.get("verification_method")
+                    )
 
                 if did_doc is None:
                     # generate payload
@@ -328,7 +331,7 @@ class CheqdDIDManager(BaseDIDManager):
                 # Create DIDInfo object
                 did_info = DIDInfo(
                     did=did,
-                    verkey=public_key,
+                    verkey=multikey_to_verkey(public_key),
                     metadata=metadata,
                     method=method,
                     key_type=key_type,

@@ -248,8 +248,8 @@ async def test_deactivate_did():
 async def test_import_did_key_method():
     """Test importing a did:key DID into the wallet."""
     # Test data - a valid did:key DID document
-    test_did = "did:key:z6MkhaXgBZDvotDkL5257faizNL939X6C56mZVQXgfYjeJKC"
-    test_verkey = "8HH5gYEeNc3z7PYXmd54d4x6qAfCNrqQqEB3nS7Zfu7K"
+    test_did = "did:key:z6MkukGVb3mRvTu1msArDKY9UwxeZFGjmwnCKtdQttr4Fk6i"
+    test_verkey = "4qXRZCbNX1orjhB2YuZryHTdPD6FaMZCPbd9ixJaTvnJ"
     test_metadata = {"imported": True, "source": "external_system"}
     did_document = {
         "id": test_did,
@@ -258,7 +258,7 @@ async def test_import_did_key_method():
                 "id": f"{test_did}#key-1",
                 "type": "Ed25519VerificationKey2018",
                 "controller": test_did,
-                "publicKeyBase58": test_verkey,
+                "publicKeyMultibase": "z6MkiHnU9SqorZJKrC1jEUXhpP1dCnN6zEoZ5cY5ZEGbP9Zg",
             }
         ],
         "authentication": [f"{test_did}#key-1"],
@@ -310,92 +310,38 @@ async def test_import_did_web_method():
 
 
 @pytest.mark.asyncio
-async def test_import_did_end_to_end_workflow():
-    """Test complete workflow: import DID, verify it's usable for other operations."""
-    test_did = "did:key:z6MkqY2oHBWpGFGPzc5N8K2nZ3kWQF2gLAFr6TY3Mn5Ej8Ka"
-    test_verkey = "7Z4PmBt7qR5HGkJkMkTz6vGgWxQJy8R4KnF2S3MpC5Lt8qR7"
-
-    did_document = {
-        "id": test_did,
-        "verificationMethod": [
-            {
-                "id": f"{test_did}#key-1",
-                "type": "Ed25519VerificationKey2018",
-                "controller": test_did,
-                "publicKeyBase58": test_verkey,
-            }
-        ],
-        "authentication": [f"{test_did}#key-1"],
-        "assertionMethod": [f"{test_did}#key-1"],
-    }
-
-    async with Controller(base_url=ISSUER) as issuer:
-        # Step 1: Import the DID
-        import_result = await import_did(
-            issuer,
-            did_document,
-            metadata={"purpose": "testing", "workflow": "e2e"},
-        )
-
-        assert import_result["did"] == test_did
-        print("Step 1 completed: DID imported successfully")
-
-        # Step 2: Verify DID is in wallet
-        await assert_did_in_wallet(issuer, test_did)
-        print("Step 2 completed: DID verified in wallet")
-
-        # Step 3: Try to use the DID (e.g., create a JWT)
-        try:
-            jwt_payload = {
-                "did": test_did,
-                "headers": {"typ": "JWT", "alg": "EdDSA"},
-                "payload": {"test": "data", "iat": 1234567890},
-            }
-
-            jwt_result = await issuer.post("/wallet/jwt/sign", json=jwt_payload)
-            assert "jws" in jwt_result, "JWT signing should return a 'jws' field"
-            print("Step 3 completed: DID successfully used for JWT signing")
-
-        except Exception as e:
-            # JWT signing might not be available or might require different format
-            # This is optional verification - the main test is the import
-            print(f"Step 3 optional: JWT signing test skipped due to: {e}")
-
-        # Step 4: Verify the DID can be retrieved individually
-        individual_did = await issuer.get(f"/wallet/did?did={test_did}")
-        assert "results" in individual_did
-        assert len(individual_did["results"]) > 0
-        found_did = next(
-            (d for d in individual_did["results"] if d["did"] == test_did), None
-        )
-        assert found_did is not None
-        print("Step 4 completed: DID can be retrieved individually")
-
-        print("End-to-end workflow completed successfully!")
-
-
-@pytest.mark.asyncio
 async def test_cheqd_did_end_to_end_workflow():
-    """Test complete workflow for did:cheqd: create, import, verify, use."""
+    """Test complete workflow for did:cheqd: import, verify, use."""
     # Define test DID attributes
-    cheqd_did = "did:cheqd:testnet:f4537031-d84a-4c39-87d7-4ab6b2e99b02"  # Replace with dynamically created or known good DID
-    cheqd_verkey = "4WLU6caHU4KzYFySAekr4zX4FAi8KpZUYRZzbaiuaBha"
-
-    cheqd_did_document = {
-        "id": cheqd_did,
-        "verificationMethod": [
-            {
-                "id": f"{cheqd_did}#key-1",
-                "type": "Ed25519VerificationKey2018",
-                "controller": cheqd_did,
-                "publicKeyBase58": cheqd_verkey,
-            }
-        ],
-        "authentication": [f"{cheqd_did}#key-1"],
-    }
+    cheqd_did = "did:cheqd:testnet:c8b04ae0-9bff-4e94-b401-f2997b9caa5e"
+    test_seed = "9fjK2pXE7qBVzRhWmtQAN1yUvLGe0cIL"
 
     async with Controller(base_url=ISSUER) as issuer:
-        # Step 1: Import the DID document to the wallet or registry
+        # Step 1: Create the key in wallet using the seed
+        key_response = await issuer.post(
+            "/wallet/keys",
+            json={
+                "seed": test_seed,
+                "kid": f"{cheqd_did}#key-1",
+                "alg": "ed25519",
+            },
+        )
+
+        cheqd_did_document = {
+            "id": cheqd_did,
+            "controller": [cheqd_did],
+            "verificationMethod": [
+                {
+                    "id": f"{cheqd_did}#key-1",
+                    "type": "Ed25519VerificationKey2018",
+                    "controller": cheqd_did,
+                    "publicKeyMultibase": key_response["multikey"],
+                }
+            ],
+            "authentication": [f"{cheqd_did}#key-1"],
+            "assertionMethod": [f"{cheqd_did}#key-1"],
+        }
+        # Step 2: Import the DID document to the wallet
         import_result = await import_did(
             issuer,
             cheqd_did_document,
@@ -405,26 +351,28 @@ async def test_cheqd_did_end_to_end_workflow():
         assert import_result["did"] == cheqd_did
         print("Step 1 completed: cheqd DID imported successfully")
 
-        # Step 2: Verify DID is in wallet or state store
+        # Step 3: Verify DID is in wallet or state store
         await assert_did_in_wallet(issuer, cheqd_did)
         print("Step 2 completed: cheqd DID verified in wallet")
 
-        # Step 3: Attempt to use the DID for signing (JWT or VC)
-        try:
-            jwt_payload = {
-                "did": cheqd_did,
-                "headers": {"typ": "JWT", "alg": "EdDSA"},
-                "payload": {"test": "cheqd", "iat": 1234567890},
-            }
+        # Step 4: Attempt to use the DID for signing (JWT or VC)
+        jwt_payload = {
+            "did": cheqd_did,
+            "headers": {"typ": "JWT", "alg": "EdDSA"},
+            "payload": {"test": "cheqd", "iat": 1234567890},
+        }
 
-            jwt_result = await issuer.post("/wallet/jwt/sign", json=jwt_payload)
-            assert "jws" in jwt_result, "JWT signing should return a 'jws' field"
-            print("Step 3 completed: JWT signing using cheqd DID successful")
+        jwt_result = await issuer.post("/wallet/jwt/sign", json=jwt_payload)
 
-        except Exception as e:
-            print(f"Step 3 optional: JWT signing failed or skipped due to: {e}")
+        payload = {"jwt": jwt_result}
+        jwt_verify = await issuer.post("/wallet/jwt/verify", json=payload)
+        assert "valid" in jwt_verify, "JWT verification should return 'valid' field"
+        assert jwt_verify["valid"] is True, "JWT should be valid"
+        assert jwt_verify["payload"]["test"] == "cheqd", "JWT payload should match"
+        assert jwt_verify["payload"]["iat"] == 1234567890, "JWT payload should match"
+        print("Step 3 completed: JWT signing using cheqd DID successful")
 
-        # Step 4: Retrieve the DID individually
+        # Step 5: Retrieve the DID individually
         individual_did = await issuer.get(f"/wallet/did?did={cheqd_did}")
         assert "results" in individual_did
         assert len(individual_did["results"]) > 0

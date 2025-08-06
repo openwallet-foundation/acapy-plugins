@@ -32,8 +32,9 @@ services:
       --wallet-type askar-anoncreds
       --wallet-name agency
       --wallet-key insecure
+      --wallet-allow-insecure-seed
       --auto-provision
-      --log-level info
+      --log-level debug
       --debug-webhooks
       --no-ledger
       --plugin cheqd
