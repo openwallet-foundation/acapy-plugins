@@ -51,6 +51,7 @@ services:
 
       # Interface and port to listen on in the container
       RESOLVER_LISTENER: "0.0.0.0:8080"
+
   tails:
     image: ghcr.io/bcgov/tails-server:latest
     platform: linux/amd64
@@ -61,6 +62,7 @@ services:
       --host 0.0.0.0
       --port 6543
       --storage-path /tmp/tails-files
-      --log-level info
+      --log-level INFO
+
 volumes:
   postgres_data:
