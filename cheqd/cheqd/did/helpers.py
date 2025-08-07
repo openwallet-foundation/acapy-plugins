@@ -5,8 +5,9 @@ from hashlib import sha256
 from typing import Dict, List, Union
 from uuid import uuid4
 
-from acapy_agent.wallet.util import b64_to_bytes, bytes_to_b58, bytes_to_b64
 from acapy_agent.utils.multiformats import multibase, multicodec
+from acapy_agent.wallet.util import b64_to_bytes, bytes_to_b58, bytes_to_b64
+from base58 import b58encode
 
 
 class CheqdNetwork(Enum):
@@ -119,12 +120,14 @@ def create_did_verification_method(
                 }
             )
         elif type_ == VerificationMethods.Ed255192018:
+            public_key_bytes = b64_to_bytes(key["publicKey"])
+            public_key_base58 = b58encode(public_key_bytes).decode()
             methods.append(
                 {
                     "id": key["keyId"],
                     "type": type_.value,
                     "controller": key["didUrl"],
-                    "publicKeyBase58": key["methodSpecificId"][1:],
+                    "publicKeyBase58": public_key_base58,
                 }
             )
         elif type_ == VerificationMethods.JWK:

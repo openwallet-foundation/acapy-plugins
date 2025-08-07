@@ -50,3 +50,4 @@ wallet-key: "cheq-1"
 wallet-storage-type: postgres_storage
 wallet-storage-creds: '{"account":"postgres","password":"postgres","admin_account":"postgres","admin_password":"postgres"}'
 wallet-storage-config: '{"url":"host.docker.internal:5432","max_connections":5}'
+wallet-allow-insecure-seed: true

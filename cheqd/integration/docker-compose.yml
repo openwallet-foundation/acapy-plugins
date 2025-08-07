@@ -32,6 +32,7 @@ services:
       --wallet-type askar-anoncreds
       --wallet-name agency
       --wallet-key insecure
+      --wallet-allow-insecure-seed
       --auto-provision
       --log-level info
       --debug-webhooks
@@ -96,6 +97,7 @@ services:
       - "9089:3000"
     restart: on-failure
     environment:
+      - NPM_CONFIG_LOGLEVEL=warn
       - FEE_PAYER_TESTNET_MNEMONIC=${FEE_PAYER_TESTNET_MNEMONIC}
       - FEE_PAYER_MAINNET_MNEMONIC=${FEE_PAYER_MAINNET_MNEMONIC}
 
