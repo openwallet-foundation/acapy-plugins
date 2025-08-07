@@ -91,7 +91,8 @@ services:
     depends_on:
       - driver-did-cheqd
     environment:
-      LOG_LEVEL: "warn"
+      LOGGING_LEVEL_ROOT: "WARN"
+      LOGGING_LEVEL_uniregistrar: "WARN"
 
   driver-did-cheqd:
     image: ghcr.io/cheqd/did-registrar:production-latest
