@@ -1,6 +1,6 @@
 # ACA-Py Plugins Documentation
 
-The documentation site for the ACA-Py plugins can be found at: [https://openwallet-foundation.github.io/acapy-plugins](https://openwallet-foundation.github.io/acapy-plugins).
+The documentation site for the ACA-Py plugins can be found at: [https://plugins.aca-py.org](https://plugins.aca-py.org).
 
 ## Managing the Documentation Site
 

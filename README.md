@@ -1,8 +1,8 @@
-# Aries Cloud Agent Python Plugins
+# ACA-Py Plugins
 
-This repository contains approved and tested plugins for [Aries Cloud Agent Python] (ACA-Py). This is to encourage collaboration and sharing of useful features not directly included in ACA-Py.
+This repository contains approved and tested plugins for [ACA-Py]. This is to encourage collaboration and sharing of useful features not directly included in ACA-Py.
 
-[A Cloud Agent Python]: https://github.com/openwallet-foundation/acapy
+[ACA-Py]: https://aca-py.org
 
 ## Developer Notes
 
