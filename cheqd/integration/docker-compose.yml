@@ -34,7 +34,7 @@ services:
       --wallet-key insecure
       --wallet-allow-insecure-seed
       --auto-provision
-      --log-level debug
+      --log-level info
       --debug-webhooks
       --no-ledger
       --plugin cheqd
@@ -97,6 +97,7 @@ services:
       - "9089:3000"
     restart: on-failure
     environment:
+      - NPM_CONFIG_LOGLEVEL=warn
       - FEE_PAYER_TESTNET_MNEMONIC=${FEE_PAYER_TESTNET_MNEMONIC}
       - FEE_PAYER_MAINNET_MNEMONIC=${FEE_PAYER_MAINNET_MNEMONIC}
 
