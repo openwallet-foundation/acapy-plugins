@@ -90,6 +90,8 @@ services:
       - "9080:9080"
     depends_on:
       - driver-did-cheqd
+    environment:
+      LOG_LEVEL: "warn"
 
   driver-did-cheqd:
     image: ghcr.io/cheqd/did-registrar:production-latest
