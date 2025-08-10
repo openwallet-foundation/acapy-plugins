@@ -3,9 +3,10 @@
 from ..base_record import BasePendingRecord
 
 
-class PendingLogEntryRecord(BasePendingRecord):
+class PendingAttestedResourceRecord(BasePendingRecord):
     """Class to manage pending webvh log entry witness requests."""
 
-    RECORD_TYPE = "pending_log_entry"
+    RECORD_TYPE = "pending_attested_resource"
+    RECORD_TOPIC = "attested_resource"
     instance = None
     scids = None

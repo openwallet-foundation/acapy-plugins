@@ -18,13 +18,13 @@ from acapy_agent.protocols.out_of_band.v1_0.messages.invitation import (
 from ..config.config import get_plugin_config, get_server_domain
 
 from .exceptions import WitnessError
-from ..protocols.endorse_attested_resource.record import PendingAttestedResourceRecord
-from ..protocols.endorse_attested_resource.messages import (
+from ..protocols.attested_resource.record import PendingAttestedResourceRecord
+from ..protocols.attested_resource.messages import (
     WitnessRequest as AttestedResourceWitnessRequest,
     WitnessResponse as AttestedResrouceWitnessResponse,
 )
-from ..protocols.witness_log_entry.record import PendingLogEntryRecord
-from ..protocols.witness_log_entry.messages import (
+from ..protocols.log_entry.record import PendingLogEntryRecord
+from ..protocols.log_entry.messages import (
     WitnessRequest as LogEntryWitnessRequest,
     WitnessResponse as LogEntryWitnessResponse,
 )
@@ -94,12 +94,19 @@ class WitnessManager:
 
         # Self witness
         if config.get("witness", False):
+            record = PendingLogEntryRecord()
             if config.get("auto_attest", False):
                 return await self.sign_log_version(log_entry.get("versionId"))
 
-            await PendingLogEntryRecord().save_pending_record(
-                self.profile, scid, log_entry
-            )
+            await record.save_pending_record(self.profile, scid, log_entry)
+            # await record.emit_event(
+            #     self.profile,
+            #     {
+            #         "state": WitnessingState.PENDING.value,
+            #         "scid": scid,
+            #         "log_entry": log_entry
+            #     }
+            # )
             return
 
         # Need proof from witness agent
@@ -132,10 +139,16 @@ class WitnessManager:
                     attested_resource,
                     f"did:key:{witness_key}#{witness_key}",
                 )
-
-            await PendingAttestedResourceRecord().save_pending_record(
-                self.profile, scid, attested_resource
-            )
+            record = PendingAttestedResourceRecord()
+            await record.save_pending_record(self.profile, scid, attested_resource)
+            # await record.emit_event(
+            #     self.profile,
+            #     {
+            #         "state": WitnessingState.PENDING.value,
+            #         "scid": scid,
+            #         "attested_resource": attested_resource
+            #     }
+            # )
             return
 
         # Need proof from witness agent

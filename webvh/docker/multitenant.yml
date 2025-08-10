@@ -3,20 +3,19 @@
 auto-provision: true
 label: multitenant-admin
 
-inbound-transport:
-   - [http, 0.0.0.0, 9050]
+admin: [0.0.0.0, 8020]
+admin-insecure-mode: true
 
-outbound-transport: http
+inbound-transport:
+  - [ws, 0.0.0.0, 8021]
+  - [http, 0.0.0.0, 8022]
+outbound-transport: [ws, http]
 
 wallet-type: askar-anoncreds
 wallet-storage-type: default
 wallet-name: multitenant-admin-wallet
 wallet-key: multitenant-admin-wallet-key
 wallet-allow-insecure-seed: true # For testing only
-
-admin-insecure-mode: true
-
-admin: [0.0.0.0, 9051]
 
 endpoint: http://localhost:9050
 

@@ -14,7 +14,7 @@ from ..manager import ControllerManager
 from ..witness import WitnessManager
 from ..exceptions import ConfigurationError
 from ...protocols.states import WitnessingState
-from ...protocols.witness_log_entry.record import PendingLogEntryRecord
+from ...protocols.log_entry.record import PendingLogEntryRecord
 
 SCID_PLACEHOLDER = "{SCID}"
 TEST_DOMAIN = "id.test-suite.app"
