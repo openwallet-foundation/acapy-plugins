@@ -99,14 +99,6 @@ class WitnessManager:
                 return await self.sign_log_version(log_entry.get("versionId"))
 
             await record.save_pending_record(self.profile, scid, log_entry)
-            # await record.emit_event(
-            #     self.profile,
-            #     {
-            #         "state": WitnessingState.PENDING.value,
-            #         "scid": scid,
-            #         "log_entry": log_entry
-            #     }
-            # )
             return
 
         # Need proof from witness agent
@@ -141,14 +133,6 @@ class WitnessManager:
                 )
             record = PendingAttestedResourceRecord()
             await record.save_pending_record(self.profile, scid, attested_resource)
-            # await record.emit_event(
-            #     self.profile,
-            #     {
-            #         "state": WitnessingState.PENDING.value,
-            #         "scid": scid,
-            #         "attested_resource": attested_resource
-            #     }
-            # )
             return
 
         # Need proof from witness agent
