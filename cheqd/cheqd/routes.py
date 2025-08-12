@@ -4,9 +4,14 @@ from http import HTTPStatus
 
 from acapy_agent.admin.decorators.auth import tenant_authentication
 from acapy_agent.admin.request_context import AdminRequestContext
+from acapy_agent.ledger.base import EndpointType
 from acapy_agent.messaging.models.openapi import OpenAPISchema
 from acapy_agent.wallet.error import WalletError
-from acapy_agent.wallet.routes import DIDSchema
+from acapy_agent.wallet.routes import (
+    DIDEndpointWithTypeSchema,
+    DIDSchema,
+    WalletModuleResponseSchema,
+)
 from aiohttp import web
 from aiohttp_apispec import docs, request_schema, response_schema
 from marshmallow import Schema, fields
@@ -17,6 +22,16 @@ from .validation import (
     CHEQD_DID_VALIDATE,
     CHEQD_DIDSTATE_EXAMPLE,
 )
+
+
+class CustomDIDEndpointWithTypeSchema(DIDEndpointWithTypeSchema):
+    """Schema for setting Cheqd DID endpoint with type."""
+
+    did = fields.Str(
+        required=True,
+        validate=CHEQD_DID_VALIDATE,
+        metadata={"description": "DID of interest", "example": CHEQD_DID_EXAMPLE},
+    )
 
 
 class VerificationMethodSchema(Schema):
@@ -71,10 +86,30 @@ class ServiceSchema(Schema):
         required=True,
         metadata={"description": "Service Type", "example": "MessagingService"},
     )
-    serviceEndpoint = fields.List(
-        fields.Str(metadata={"description": "Service endpoint URL"}),
+    serviceEndpoint = fields.Str(
+        required=True, metadata={"description": "Service endpoint URL"}
+    )
+    recipientKeys = fields.List(
+        fields.Str(metadata={"description": "Did key reference"}),
         required=True,
-        metadata={"description": "Array of Service endpoints"},
+        metadata={
+            "description": "Array of did key references to denote the default recipients"
+        },
+    )
+    priority = fields.Integer(
+        required=False, metadata={"description": "Priority of the service endpoint"}
+    )
+    routingKeys = fields.List(
+        fields.Str(metadata={"description": "Did key reference"}),
+        required=False,
+        metadata={
+            "description": "Array of did key references to denote individual routing hops"
+        },
+    )
+    accept = fields.List(
+        fields.Str(metadata={"description": "Media types"}),
+        required=False,
+        metadata={"description": "Array of supported media types"},
     )
 
 
@@ -400,6 +435,47 @@ async def deactivate_cheqd_did(request: web.BaseRequest):
 
 
 @docs(
+    tags=["wallet"], summary="Update the endpoint in the wallet and on ledger if posted"
+)
+@request_schema(CustomDIDEndpointWithTypeSchema)
+@response_schema(WalletModuleResponseSchema, 200, description="")
+@tenant_authentication
+async def cheqd_wallet_set_did_endpoint(request: web.BaseRequest):
+    """Set the endpoint for a did:cheqd DID."""
+    context: AdminRequestContext = request["context"]
+    config = context.settings.get("plugin_config")
+    resolver_url = None
+    registrar_url = None
+    if config:
+        registrar_url = config.get("registrar_url")
+        resolver_url = config.get("resolver_url")
+    try:
+        body = await request.json()
+    except Exception:
+        body = {}
+
+    try:
+        did = body.get("did")
+        endpoint = body.get("endpoint")
+        endpoint_type = EndpointType.get(
+            body.get("endpoint_type", EndpointType.ENDPOINT.w3c)
+        )
+
+        # Use the DIDManager to update the DID with the new endpoint
+        cheqd_manager = CheqdDIDManager(context.profile, registrar_url, resolver_url)
+        result = await cheqd_manager.set_did_endpoint(
+            did,
+            endpoint,
+            endpoint_type,
+        )
+
+        return web.json_response({"result": result})
+
+    except Exception as err:
+        raise web.HTTPBadRequest(reason=str(err))
+
+
+@docs(
     tags=["did"],
     summary="Import an existing DID into the wallet",
 )
@@ -451,6 +527,8 @@ async def register(app: web.Application):
             web.post("/did/cheqd/update", update_cheqd_did),
             web.post("/did/cheqd/deactivate", deactivate_cheqd_did),
             web.post("/did/import", import_did),
+            # Add a cheqd specific set-did-endpoint route with our custom handler
+            web.post("/wallet/cheqd/set-did-endpoint", cheqd_wallet_set_did_endpoint),
         ]
     )
 

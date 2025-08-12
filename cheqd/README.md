@@ -39,6 +39,8 @@ The plugin enables `did:cheqd` for the following existing endpoints:
 - **Revocation Support**: Comprehensive credential revocation capabilities
 - **DID Linked Resources**: Ability to create and manage resources linked to DIDs
 
+For more details on ACA-Py configuration and usage in Cheqd visit [Cheqd SDK Docs](https://docs.cheqd.io/product/sdk/aca-py).
+
 ## Developer Notes
 
 The best way to develop and test this plugin is to use the DevContainer configured in this repository (configurations provided in the `.devcontainer` folder).
