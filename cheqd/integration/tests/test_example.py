@@ -1,3 +1,4 @@
+import asyncio
 import time
 from os import getenv
 
@@ -237,14 +238,6 @@ async def test_issue_credential_with_revocation():
 
 
 @pytest.mark.asyncio
-async def test_deactivate_did():
-    """Test DID deactivation."""
-    did = load_did()
-    async with Controller(base_url=ISSUER) as issuer:
-        await deactivate_did(issuer, did)
-
-
-@pytest.mark.asyncio
 async def test_import_did_key_method():
     """Test importing a did:key DID into the wallet."""
     # Test data - a valid did:key DID document
@@ -383,3 +376,138 @@ async def test_cheqd_did_end_to_end_workflow():
         print("Step 4 completed: cheqd DID successfully retrieved individually")
 
         print("End-to-end workflow for did:cheqd completed successfully!")
+
+
+@pytest.mark.asyncio
+async def test_didexchange_with_cheqd_public_did():
+    """Test didexchange with cheqd public DID."""
+    issuer_did = "did:cheqd:testnet:c8b04ae0-9bff-4e94-b401-f2997b9caa5e"
+    async with (
+        Controller(base_url=ISSUER) as issuer,
+        Controller(base_url=HOLDER) as holder,
+    ):
+        # Set fixed did as public DID for issuer
+        public_did_response = await issuer.post(f"/wallet/did/public?did={issuer_did}")
+        assert public_did_response["result"]["did"] == issuer_did, (
+            "Public DID should match issuer DID"
+        )
+        print(f"Cheqd DID {issuer_did} has been set as public DID")
+
+        # Holder create connection invitation using the public cheqd DID
+        invitation_response = await holder.post(
+            f"/didexchange/create-request?their_public_did={issuer_did}&alias=Holder-to-Issuer&auto_accept=true&my_endpoint=http%3A%2F%2Fholder%3A4002&my_label=Holder-using-public-did"
+        )
+        connection_id_holder = invitation_response["connection_id"]
+        # Verify invitation contains the cheqd DID
+        assert invitation_response.get("state") == "request", (
+            "Invitation should be in 'request' state"
+        )
+        assert invitation_response.get("their_public_did") == issuer_did, (
+            "Invitation should contain the cheqd public DID"
+        )
+        assert invitation_response.get("alias") == "Holder-to-Issuer", (
+            "Invitation alias should match"
+        )
+        await asyncio.sleep(3)
+        # Issuer checks for incoming connection request
+        connections = await issuer.get(
+            "/connections?descending=false&limit=100&offset=0&order_by=id&state=request"
+        )
+        assert len(connections["results"]) > 0, "No connection requests found"
+        connection_id_issuer = connections["results"][0]["connection_id"]
+        # Issuer accepts invitation
+        receive_response = await issuer.post(
+            f"/didexchange/{connection_id_issuer}/accept-request?my_endpoint=http%3A%2F%2Fissuer%3A3002&use_public_did=false"
+        )
+        assert receive_response["state"] == "response", (
+            "Connection should be response after accepting request"
+        )
+        await asyncio.sleep(3)
+        # Issuer checks connection status
+        issuer_connection = await issuer.get(f"/connections/{connection_id_issuer}")
+        assert issuer_connection["state"] == "active", (
+            "Issuer connection should be active after accepting request"
+        )
+        assert issuer_connection["connection_protocol"] == "didexchange/1.0", (
+            "Connection protocol should be didexchange/1.0"
+        )
+        assert issuer_connection["rfc23_state"] == "completed", (
+            "Connection should be in completed state"
+        )
+        assert issuer_connection["their_label"] == "Holder-using-public-did", (
+            "Connection label should match holder's label"
+        )
+
+        holder_connection = await holder.get(f"/connections/{connection_id_holder}")
+        assert holder_connection["state"] == "active", (
+            "Holder connection should be active after accepting the request"
+        )
+        print("DID Exchange completed successfully")
+
+
+@pytest.mark.asyncio
+async def test_oob_invitation_with_cheqd_did():
+    """Test out-of-band invitation with cheqd DID."""
+    issuer_did = "did:cheqd:testnet:c8b04ae0-9bff-4e94-b401-f2997b9caa5e"
+    async with (
+        Controller(base_url=ISSUER) as issuer,
+        Controller(base_url=HOLDER) as holder,
+    ):
+        # Create out-of-band invitation with cheqd public DID
+        oob_invitation_response = await issuer.post(
+            "/out-of-band/create-invitation?auto_accept=true&create_unique_did=false&multi_use=false",
+            json={
+                "alias": "Issuer to Holder Connection",
+                "use_public_did": True,
+                "my_label": "Issuer with Cheqd Public DID",
+                "handshake_protocols": ["https://didcomm.org/didexchange/1.0"],
+            },
+        )
+        assert oob_invitation_response["state"] == "initial", (
+            "OOB invitation should be in 'initial' state"
+        )
+        assert oob_invitation_response["invitation"] is not None, (
+            "OOB invitation should contain an invitation object"
+        )
+        assert oob_invitation_response["invitation_url"] is not None, (
+            "OOB invitation should contain an invitation URL"
+        )
+        oob_invitation = oob_invitation_response["invitation"]
+        assert "services" in oob_invitation or "service" in oob_invitation
+
+        # Holder receives OOB invitation
+        receive_oob_response = await holder.post(
+            "/out-of-band/receive-invitation?alias=IssuerConnection&auto_accept=true&use_existing_connection=false",
+            json=oob_invitation,
+        )
+        assert receive_oob_response["role"] == "receiver", (
+            "OOB invitation should be received as a receiver"
+        )
+        assert receive_oob_response["state"] == "deleted", (
+            "OOB invitation should be in 'deleted' state after receiving"
+        )
+        holder_oob_conn_id = receive_oob_response["connection_id"]
+        await asyncio.sleep(3)
+        holder_connection = await holder.get(f"/connections/{holder_oob_conn_id}")
+        assert holder_connection["state"] == "active", (
+            "Holder connection should be active after accepting the request"
+        )
+        assert holder_connection["their_public_did"] == issuer_did, (
+            "Holder connection should have the issuer's public DID"
+        )
+        assert holder_connection["alias"] == "IssuerConnection", (
+            "Holder connection alias should match the OOB invitation alias"
+        )
+        assert holder_connection["their_label"] == "Issuer with Cheqd Public DID", (
+            "Holder connection label should match the issuer's label"
+        )
+
+        print("OOB Invitation created successfully with cheqd DID")
+
+
+@pytest.mark.asyncio
+async def test_deactivate_did():
+    """Test DID deactivation."""
+    did = load_did()
+    async with Controller(base_url=ISSUER) as issuer:
+        await deactivate_did(issuer, did)
