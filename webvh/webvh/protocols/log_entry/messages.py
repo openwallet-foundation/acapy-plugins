@@ -1,25 +1,8 @@
 """Witness messages."""
 
-from acapy_agent.protocols.didcomm_prefix import DIDCommPrefix
 from acapy_agent.messaging.agent_message import AgentMessage, AgentMessageSchema
 from marshmallow import EXCLUDE, fields
-
-HANDLER_MODULE = "webvh.protocols.endorse_attested_resource.handlers"
-
-PROTOCOL = "did-webvh-endorse-attested-resource/1.0"
-PROTOCOL_PACKAGE = "webvh.protocols.endorse_attested_resource"
-
-# Message types
-WITNESS_REQUEST = f"{PROTOCOL}/witness_request"
-WITNESS_RESPONSE = f"{PROTOCOL}/witness_response"
-
-
-MESSAGE_TYPES = DIDCommPrefix.qualify_all(
-    {
-        WITNESS_REQUEST: f"{PROTOCOL_PACKAGE}.messages.WitnessRequest",  # noqa: E501
-        WITNESS_RESPONSE: f"{PROTOCOL_PACKAGE}.messages.WitnessResponse",  # noqa: E501
-    }
-)
+from .message_types import HANDLER_MODULE, WITNESS_REQUEST, WITNESS_RESPONSE
 
 
 class WitnessRequest(AgentMessage):

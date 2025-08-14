@@ -1,9 +1,11 @@
 """Module for handling pending webvh dids."""
 
 import logging
+from typing import Any, Optional
 
 from acapy_agent.core.profile import Profile
 from aries_askar import AskarError
+from .states import WitnessingState
 
 LOGGER = logging.getLogger(__name__)
 
@@ -12,6 +14,7 @@ class BasePendingRecord:
     """Base class to manage pending witness requests."""
 
     RECORD_TYPE = "generic_record"
+    EVENT_NAMESPACE: str = "acapy::record"
     instance = None
     scids = None
 
@@ -94,3 +97,26 @@ class BasePendingRecord:
                 value_json=record,
                 tags={"connection_id": connection_id},
             )
+        await self.emit_event(
+            profile,
+            {"state": WitnessingState.PENDING.value, "scid": scid, "record": record},
+        )
+
+    async def emit_event(self, profile: Profile, payload: Optional[Any] = None):
+        """Emit an event.
+
+        Args:
+            profile: The profile to use
+            payload: The event payload
+        """
+
+        if not self.RECORD_TYPE:
+            return
+
+        topic = f"{self.EVENT_NAMESPACE}::{self.RECORD_TYPE}"
+
+        if not payload:
+            payload = self.serialize()
+
+        async with profile.session() as session:
+            await session.emit_event(topic, payload, True)
