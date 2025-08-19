@@ -190,14 +190,12 @@ flowchart TD
 
 The plugin requires the following configuration options, which can be set either as environment variables (`STATUS_LIST_*`) or as plugin configuration values (`-o status_list.*`).
 
-| **Environment Variable**     | **Plugin Config Option**     | **Description**                                      |
-|------------------------------|------------------------------|------------------------------------------------------|
-| `STATUS_LIST_SIZE`           | `status_list.list_size`      | Default number of status entries in the status list. |
-| `STATUS_LIST_SHARD_SIZE`     | `status_list.shard_size`     | Default number of status entries per shard.          |
-| `STATUS_LIST_BASE_URL`       | `status_list.base_url`       | Base URL for published status lists.                 |
-| `STATUS_LIST_BASE_DIR`       | `status_list.base_dir`       | Base directory for local storage.                    |
-| `STATUS_LIST_PATH_TEMPLATE`  | `status_list.path_template`  | Template string format for the status list’s subpath.|
-
+| **Environment Variable** | **Plugin Config Option** | **Description**                                                                                           |
+| ------------------------ | ------------------------ | --------------------------------------------------------------------------------------------------------- |
+| `STATUS_LIST_SIZE`       | `status_list.list_size`  | Number of status entries in each status list.                                                             |
+| `STATUS_LIST_SHARD_SIZE` | `status_list.shard_size` | Number of status entries in each shard.                                                                   |
+| `STATUS_LIST_PUBLIC_URI` | `status_list.public_uri` | Template URI for published status lists with placeholders like {tenant_id} and {list_number}.             |
+| `STATUS_LIST_FILE_PATH`  | `status_list.file_path`  | Template local file path for published status lists with placeholders like {tenant_id} and {list_number}. |
 
 ### Unit Tests
 

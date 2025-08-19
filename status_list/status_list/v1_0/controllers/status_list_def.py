@@ -82,6 +82,23 @@ class CreateStatusListDefRequest(OpenAPISchema):
             "example": "ietf",
         },
     )
+    issuer_did = fields.Str(
+        required=False,
+        metadata={
+            "description": "Issuer DID for the status list",
+            "example": "did:web:dev.lab.di.gov.on.ca",
+        },
+    )
+    verification_method = fields.Str(
+        required=False,
+        metadata={
+            "description": "Issuer DID for the status list",
+            "example": (
+                "did:web:dev.lab.di.gov.on.ca#"
+                "z6Mkgg342Ycpuk263R9d8Aq6MUaxPn1DDeHyGo38EefXmgDL"
+            ),
+        },
+    )
 
 
 class CreateStatusListDefResponse(OpenAPISchema):
@@ -129,6 +146,10 @@ async def create_status_list_def(request: web.BaseRequest):
 
     supported_cred_id = body.get("supported_cred_id", None)
 
+    list_type = body.get("list_type", None)
+    issuer_did = body.get("issuer_did", None)
+    verification_method = body.get("verification_method", None)
+
     try:
         context: AdminRequestContext = request["context"]
         wallet_id = status_handler.get_wallet_id(context)
@@ -142,6 +163,9 @@ async def create_status_list_def(request: web.BaseRequest):
                 status_size=status_size,
                 shard_size=shard_size,
                 list_size=list_size,
+                list_type=list_type,
+                issuer_did=issuer_did,
+                verification_method=verification_method,
             )
             # Create current status list
             list_number = await status_handler.assign_status_list_number(txn, wallet_id)
