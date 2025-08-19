@@ -1341,27 +1341,22 @@ acapy -&gt;&gt; controller: POST /topic/oid4vci (issued)</code></pre>
 <tr>
 <td><code>STATUS_LIST_SIZE</code></td>
 <td><code>status_list.list_size</code></td>
-<td>Default number of status entries in the status list.</td>
+<td>Number of status entries in each status list.</td>
 </tr>
 <tr>
 <td><code>STATUS_LIST_SHARD_SIZE</code></td>
 <td><code>status_list.shard_size</code></td>
-<td>Default number of status entries per shard.</td>
+<td>Number of status entries in each shard.</td>
 </tr>
 <tr>
-<td><code>STATUS_LIST_BASE_URL</code></td>
-<td><code>status_list.base_url</code></td>
-<td>Base URL for published status lists.</td>
+<td><code>STATUS_LIST_PUBLIC_URI</code></td>
+<td><code>status_list.public_uri</code></td>
+<td>Template URI for published status lists with placeholders like {tenant_id} and {list_number}.</td>
 </tr>
 <tr>
-<td><code>STATUS_LIST_BASE_DIR</code></td>
-<td><code>status_list.base_dir</code></td>
-<td>Base directory for local storage.</td>
-</tr>
-<tr>
-<td><code>STATUS_LIST_PATH_TEMPLATE</code></td>
-<td><code>status_list.path_template</code></td>
-<td>Template string format for the status list’s subpath.</td>
+<td><code>STATUS_LIST_FILE_PATH</code></td>
+<td><code>status_list.file_path</code></td>
+<td>Template local file path for published status lists with placeholders like {tenant_id} and {list_number}.</td>
 </tr>
 </tbody>
 </table>
