@@ -52,6 +52,9 @@ async def test_status_list_def_routes(
             {"status": "0x11", "message": "suspended"},
         ],
         "supported_cred_id": "supported_cred_id",
+        "list_type": "ietf",
+        "issuer_did": "did:web:dev.lab.di.gov.on.ca",
+        "verification_method": "did:web:dev.lab.di.gov.on.ca#z6Mkgg342Ycpuk263R9d8Aq6MUaxPn1DDeHyGo38EefXmgDL",
     }
     await controller.create_status_list_def(request)
     async with context.profile.session() as session:

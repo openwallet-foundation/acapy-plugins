@@ -258,7 +258,7 @@ async def assign_status_entries(
 
             # construct status by status type
             if definition.list_type == "ietf":
-                status = {"idx": entry.list_index, "uri": public_uri}
+                status = {"status_list": {"idx": entry.list_index, "uri": public_uri}}
             else:
                 status = {
                     "id": f"{public_uri}#{entry.list_index}",
