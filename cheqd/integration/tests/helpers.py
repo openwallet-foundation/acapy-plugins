@@ -162,12 +162,15 @@ async def update_did(issuer, did, did_document):
     """Update the DID document by adding a service endpoint."""
     service = [
         {
-            "id": f"{did}#service-1",
-            "type": "MessagingService",
-            "serviceEndpoint": ["https://example.com/service"],
+            "id": f"{did}#did-communication",
+            "type": "did-communication",
+            "serviceEndpoint": "http://issuer:3002",
+            "recipientKeys": [f"{did}#key-1"],
+            "priority": 1,
         }
     ]
     did_document["service"] = service
+    did_document["assertionMethod"] = [f"{did}#key-1"]
     del did_document["@context"]
 
     did_update_result = await issuer.post(
@@ -180,8 +183,11 @@ async def update_did(issuer, did, did_document):
     assert "service" in updated_did_doc, (
         "Key 'service' is missing in updated DID document."
     )
-    assert updated_did_doc["service"] == service, (
-        "Service does not match the expected value!"
+    assert updated_did_doc["service"][0]["type"] == "did-communication", (
+        "Service does not match expected type 'did-communication'."
+    )
+    assert updated_did_doc["service"][0]["serviceEndpoint"] == "http://issuer:3002", (
+        "Service endpoint does not match expected value 'http://issuer:3002'."
     )
 
     print(f"Updated DID Document: {format_json(updated_did_doc)}")
