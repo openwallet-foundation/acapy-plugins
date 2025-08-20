@@ -39,8 +39,8 @@ from ..config.config import (
     notify_watchers,
     set_config,
 )
-from ..protocols.endorse_attested_resource.record import PendingAttestedResourceRecord
-from ..protocols.witness_log_entry.record import PendingLogEntryRecord
+from ..protocols.attested_resource.record import PendingAttestedResourceRecord
+from ..protocols.log_entry.record import PendingLogEntryRecord
 from ..protocols.states import WitnessingState
 from .witness import WitnessManager
 from .exceptions import DidCreationError, OperationError

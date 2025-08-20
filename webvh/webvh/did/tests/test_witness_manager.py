@@ -13,7 +13,7 @@ from acapy_agent.wallet.keys.manager import MultikeyManager
 from ..exceptions import ConfigurationError
 from ..manager import ControllerManager
 from ..witness import WitnessManager
-from ...protocols.witness_log_entry.record import PendingLogEntryRecord
+from ...protocols.log_entry.record import PendingLogEntryRecord
 
 PENDING_DOCUMENT_TABLE_NAME = PendingLogEntryRecord().RECORD_TYPE
 
