@@ -1,6 +1,7 @@
 """Module for handling pending webvh dids."""
 
 import logging
+import uuid
 from typing import Any, Optional
 
 from acapy_agent.core.profile import Profile
@@ -14,6 +15,7 @@ class BasePendingRecord:
     """Base class to manage pending witness requests."""
 
     RECORD_TYPE = "generic_record"
+    RECORD_TOPIC = "generic-record"
     EVENT_NAMESPACE: str = "acapy::record"
     instance = None
     scids = None
@@ -99,7 +101,13 @@ class BasePendingRecord:
             )
         await self.emit_event(
             profile,
-            {"state": WitnessingState.PENDING.value, "scid": scid, "record": record},
+            {
+                "record_id": str(uuid.uuid4()),
+                "record_type": self.RECORD_TYPE,
+                "record": record, 
+                "state": WitnessingState.PENDING.value, 
+                "scid": scid, 
+            },
         )
 
     async def emit_event(self, profile: Profile, payload: Optional[Any] = None):
