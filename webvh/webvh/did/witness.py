@@ -113,7 +113,9 @@ class WitnessManager:
                 raise WitnessError("No active witness connection found.")
 
             await responder.send(
-                message=LogEntryWitnessRequest(document=log_entry),
+                message=LogEntryWitnessRequest(
+                    document=log_entry, request_id=witness_request_id
+                ),
                 connection_id=witness_connection.connection_id,
             )
 

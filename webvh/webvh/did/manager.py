@@ -222,12 +222,13 @@ class ControllerManager:
                     document,
                     event.payload.get("witness_signature", None),
                     state=WitnessingState.FINISHED.value,
+                    record_id=record_id,
                 )
 
-    async def _wait_for_resource(self, scid: str):
+    async def _wait_for_resource(self, record_id: str):
         event_bus = self.profile.inject(EventBus)
         with event_bus.wait_for_event(
-            self.profile, re.compile(rf"^{WITNESS_EVENT}{scid}$")
+            self.profile, re.compile(rf"^{WITNESS_EVENT}{record_id}$")
         ) as await_event:
             event = await await_event
             if (
@@ -236,7 +237,9 @@ class ControllerManager:
             ):
                 return PENDING_MESSAGE
             else:
-                await self.pending_log_entries.remove_pending_scid(self.profile, scid)
+                await self.pending_log_entries.remove_pending_record_id(
+                    self.profile, record_id
+                )
                 document = event.payload.get("document")
                 await self.upload_resource(
                     document,
@@ -467,7 +470,7 @@ class ControllerManager:
             await event_bus.notify(
                 self.profile,
                 Event(
-                    f"{WITNESS_EVENT}{scid}",
+                    f"{WITNESS_EVENT}{record_id}",
                     {
                         "document": initial_log_entry,
                         "witness_signature": witness_signature,
@@ -490,7 +493,7 @@ class ControllerManager:
             await event_bus.notify(
                 self.profile,
                 Event(
-                    f"{WITNESS_EVENT}{scid}",
+                    f"{WITNESS_EVENT}{record_id}",
                     {
                         "document": initial_log_entry,
                         "metadata": {
@@ -546,7 +549,7 @@ class ControllerManager:
             await event_bus.notify(
                 self.profile,
                 Event(
-                    f"{WITNESS_EVENT}{scid}",
+                    f"{WITNESS_EVENT}{record_id}",
                     {"document": resolved_did_doc["did_document"], "metadata": metadata},
                 ),
             )
