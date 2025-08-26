@@ -33,12 +33,12 @@ from .did.models.operations import (
     WebvhUpdateWhoisSchema,
 )
 from .did.witness import WitnessManager
-from .protocols.witness_log_entry.routes import (
+from .protocols.log_entry.routes import (
     get_pending_log_entries,
     approve_pending_log_entry,
     reject_pending_log_entry,
 )
-from .protocols.endorse_attested_resource.routes import (
+from .protocols.attested_resource.routes import (
     get_pending_attested_resources,
     approve_pending_attested_resource,
     reject_pending_attested_resource,

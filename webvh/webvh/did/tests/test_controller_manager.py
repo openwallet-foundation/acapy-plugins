@@ -1,4 +1,5 @@
 from unittest import IsolatedAsyncioTestCase
+import uuid
 
 from acapy_agent.core.event_bus import EventBus
 from acapy_agent.messaging.responder import BaseResponder
@@ -14,7 +15,7 @@ from ..manager import ControllerManager
 from ..witness import WitnessManager
 from ..exceptions import ConfigurationError
 from ...protocols.states import WitnessingState
-from ...protocols.witness_log_entry.record import PendingLogEntryRecord
+from ...protocols.log_entry.record import PendingLogEntryRecord
 
 SCID_PLACEHOLDER = "{SCID}"
 TEST_DOMAIN = "id.test-suite.app"
@@ -176,14 +177,13 @@ class TestOperationsManager(IsolatedAsyncioTestCase):
         await set_config(self.profile, {"server_url": f"https://{TEST_DOMAIN}"})
 
         # Has pending dids - attested
+        record_id = str(uuid.uuid4())
         await PendingLogEntryRecord().save_pending_record(
-            self.profile,
-            TEST_SCID,
-            TEST_LOG_ENTRY,
+            self.profile, TEST_SCID, TEST_LOG_ENTRY, record_id
         )
-        await PendingLogEntryRecord().set_pending_scid(
+        await PendingLogEntryRecord().set_pending_record_id(
             self.profile,
-            TEST_SCID,
+            record_id,
         )
 
         witness_signature = await self.witness.sign_log_version(
@@ -193,7 +193,8 @@ class TestOperationsManager(IsolatedAsyncioTestCase):
             initial_log_entry=TEST_LOG_ENTRY,
             witness_signature=witness_signature,
             state=WitnessingState.ATTESTED.value,
+            record_id=record_id,
         )
-        assert TEST_SCID not in (
-            await PendingLogEntryRecord().get_pending_scids(self.profile)
+        assert record_id not in (
+            await PendingLogEntryRecord().get_pending_record_ids(self.profile)
         )

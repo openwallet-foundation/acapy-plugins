@@ -4,6 +4,7 @@ import asyncio
 import logging
 import time
 from typing import Optional, Pattern, Sequence
+import uuid
 
 import jcs
 from acapy_agent.anoncreds.base import (
@@ -53,7 +54,7 @@ from ..resolver.resolver import DIDWebVHResolver
 from ..validation import WebVHDID
 from ..config.config import get_plugin_config, is_witness
 from ..did.server_client import WebVHServerClient
-from ..protocols.endorse_attested_resource.record import PendingAttestedResourceRecord
+from ..protocols.attested_resource.record import PendingAttestedResourceRecord
 from ..protocols.states import WitnessingState
 from ..did.witness import WitnessManager
 from ..did.manager import ControllerManager
@@ -603,8 +604,9 @@ class DIDWebVHRegistry(BaseAnonCredsResolver, BaseAnonCredsRegistrar):
             # Request witness approval
             witness = WitnessManager(profile)
             controller = ControllerManager(profile)
+            witness_request_id = str(uuid.uuid4())
             endorsed_resource = await witness.witness_attested_resource(
-                scid, secured_resource
+                scid, secured_resource, witness_request_id
             )
 
             if not isinstance(endorsed_resource, dict):
@@ -612,9 +614,11 @@ class DIDWebVHRegistry(BaseAnonCredsResolver, BaseAnonCredsRegistrar):
                     pass
 
                 try:
-                    await PendingAttestedResourceRecord().set_pending_scid(profile, scid)
+                    await PendingAttestedResourceRecord().set_pending_record_id(
+                        profile, witness_request_id
+                    )
                     await asyncio.wait_for(
-                        controller._wait_for_resource(scid),
+                        controller._wait_for_resource(witness_request_id),
                         WITNESS_WAIT_TIMEOUT_SECONDS,
                     )
                 except asyncio.TimeoutError:

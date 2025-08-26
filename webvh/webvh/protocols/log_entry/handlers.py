@@ -30,6 +30,7 @@ class WitnessRequestHandler(BaseHandler):
         )
 
         log_entry = context.message.document
+        request_id = context.message.request_id
         if not log_entry.get("proof", None):
             LOGGER.error("No proof found in log entry")
             return
@@ -44,6 +45,7 @@ class WitnessRequestHandler(BaseHandler):
                     state=WitnessingState.ATTESTED.value,
                     document=log_entry,
                     witness_proof=witness_signature.get("proof")[0],
+                    request_id=request_id,
                 ),
                 connection_id=context.connection_record.connection_id,
             )
@@ -62,7 +64,9 @@ class WitnessRequestHandler(BaseHandler):
 
             await responder.send(
                 message=WitnessResponse(
-                    state=WitnessingState.PENDING.value, document=log_entry
+                    state=WitnessingState.PENDING.value,
+                    document=log_entry,
+                    request_id=request_id,
                 ),
                 connection_id=connection_id,
             )
@@ -95,6 +99,7 @@ class WitnessResponseHandler(BaseHandler):
                 initial_log_entry=log_entry,
                 witness_signature=witness_signature,
                 state=context.message.state,
+                record_id=context.message.request_id,
             )
 
         # Call finish_update for subsequent entry
@@ -103,6 +108,7 @@ class WitnessResponseHandler(BaseHandler):
                 initial_log_entry=log_entry,
                 witness_signature=witness_signature,
                 state=context.message.state,
+                record_id=context.message.request_id,
             )
 
         return {"status": "ok"}

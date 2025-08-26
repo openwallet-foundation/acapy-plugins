@@ -18,13 +18,13 @@ from acapy_agent.protocols.out_of_band.v1_0.messages.invitation import (
 from ..config.config import get_plugin_config, get_server_domain
 
 from .exceptions import WitnessError
-from ..protocols.endorse_attested_resource.record import PendingAttestedResourceRecord
-from ..protocols.endorse_attested_resource.messages import (
+from ..protocols.attested_resource.record import PendingAttestedResourceRecord
+from ..protocols.attested_resource.messages import (
     WitnessRequest as AttestedResourceWitnessRequest,
     WitnessResponse as AttestedResrouceWitnessResponse,
 )
-from ..protocols.witness_log_entry.record import PendingLogEntryRecord
-from ..protocols.witness_log_entry.messages import (
+from ..protocols.log_entry.record import PendingLogEntryRecord
+from ..protocols.log_entry.messages import (
     WitnessRequest as LogEntryWitnessRequest,
     WitnessResponse as LogEntryWitnessResponse,
 )
@@ -88,17 +88,19 @@ class WitnessManager:
         self,
         scid: str,
         log_entry: dict,
+        witness_request_id: str,
     ) -> Optional[dict]:
         """Witness the document with the given parameters."""
         config = await get_plugin_config(self.profile)
 
         # Self witness
         if config.get("witness", False):
+            record = PendingLogEntryRecord()
             if config.get("auto_attest", False):
                 return await self.sign_log_version(log_entry.get("versionId"))
 
-            await PendingLogEntryRecord().save_pending_record(
-                self.profile, scid, log_entry
+            await record.save_pending_record(
+                self.profile, scid, log_entry, witness_request_id
             )
             return
 
@@ -111,7 +113,9 @@ class WitnessManager:
                 raise WitnessError("No active witness connection found.")
 
             await responder.send(
-                message=LogEntryWitnessRequest(document=log_entry),
+                message=LogEntryWitnessRequest(
+                    document=log_entry, request_id=witness_request_id
+                ),
                 connection_id=witness_connection.connection_id,
             )
 
@@ -119,6 +123,7 @@ class WitnessManager:
         self,
         scid: str,
         attested_resource: dict,
+        witness_request_id: str,
     ) -> Optional[dict]:
         """Witness the document with the given parameters."""
         config = await get_plugin_config(self.profile)
@@ -132,9 +137,9 @@ class WitnessManager:
                     attested_resource,
                     f"did:key:{witness_key}#{witness_key}",
                 )
-
-            await PendingAttestedResourceRecord().save_pending_record(
-                self.profile, scid, attested_resource
+            record = PendingAttestedResourceRecord()
+            await record.save_pending_record(
+                self.profile, scid, attested_resource, witness_request_id
             )
             return
 

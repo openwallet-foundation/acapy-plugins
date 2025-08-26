@@ -7,6 +7,7 @@ import re
 from datetime import datetime, timezone
 from uuid import uuid4
 from typing import Optional
+import uuid
 
 from acapy_agent.connections.models.conn_record import ConnRecord
 from acapy_agent.core.event_bus import Event, EventBus
@@ -39,8 +40,8 @@ from ..config.config import (
     notify_watchers,
     set_config,
 )
-from ..protocols.endorse_attested_resource.record import PendingAttestedResourceRecord
-from ..protocols.witness_log_entry.record import PendingLogEntryRecord
+from ..protocols.attested_resource.record import PendingAttestedResourceRecord
+from ..protocols.log_entry.record import PendingLogEntryRecord
 from ..protocols.states import WitnessingState
 from .witness import WitnessManager
 from .exceptions import DidCreationError, OperationError
@@ -201,10 +202,10 @@ class ControllerManager:
 
         return initial_log_entry
 
-    async def _wait_for_log_entry(self, scid: str):
+    async def _wait_for_log_entry(self, record_id: str):
         event_bus = self.profile.inject(EventBus)
         with event_bus.wait_for_event(
-            self.profile, re.compile(rf"^{WITNESS_EVENT}{scid}$")
+            self.profile, re.compile(rf"^{WITNESS_EVENT}{record_id}$")
         ) as await_event:
             event = await await_event
             if (
@@ -213,18 +214,21 @@ class ControllerManager:
             ):
                 return PENDING_MESSAGE
             else:
-                await self.pending_log_entries.remove_pending_scid(self.profile, scid)
+                await self.pending_log_entries.remove_pending_record_id(
+                    self.profile, record_id
+                )
                 document = event.payload.get("document")
                 return await self.finish_create(
                     document,
                     event.payload.get("witness_signature", None),
                     state=WitnessingState.FINISHED.value,
+                    record_id=record_id,
                 )
 
-    async def _wait_for_resource(self, scid: str):
+    async def _wait_for_resource(self, record_id: str):
         event_bus = self.profile.inject(EventBus)
         with event_bus.wait_for_event(
-            self.profile, re.compile(rf"^{WITNESS_EVENT}{scid}$")
+            self.profile, re.compile(rf"^{WITNESS_EVENT}{record_id}$")
         ) as await_event:
             event = await await_event
             if (
@@ -233,7 +237,9 @@ class ControllerManager:
             ):
                 return PENDING_MESSAGE
             else:
-                await self.pending_log_entries.remove_pending_scid(self.profile, scid)
+                await self.pending_log_entries.remove_pending_record_id(
+                    self.profile, record_id
+                )
                 document = event.payload.get("document")
                 await self.upload_resource(
                     document,
@@ -416,8 +422,9 @@ class ControllerManager:
 
         witness_signature = None
         if initial_log_entry.get("parameters").get("witness", None):
+            witness_request_id = str(uuid.uuid4())
             witness_signature = await self.witness.witness_log_entry(
-                scid, initial_log_entry
+                scid, initial_log_entry, witness_request_id
             )
 
             if not isinstance(witness_signature, dict):
@@ -425,9 +432,11 @@ class ControllerManager:
                     return PENDING_MESSAGE
 
                 try:
-                    await self.pending_log_entries.set_pending_scid(self.profile, scid)
+                    await self.pending_log_entries.set_pending_record_id(
+                        self.profile, witness_request_id
+                    )
                     return await asyncio.wait_for(
-                        self._wait_for_log_entry(scid),
+                        self._wait_for_log_entry(witness_request_id),
                         WITNESS_WAIT_TIMEOUT_SECONDS,
                     )
                 except asyncio.TimeoutError:
@@ -447,6 +456,7 @@ class ControllerManager:
         initial_log_entry: dict,
         witness_signature: dict = None,
         state: str = WitnessingState.SUCCESS.value,
+        record_id: str = None,
     ):
         """Finish the creation of the DID."""
         did_state = initial_log_entry["state"]
@@ -460,7 +470,7 @@ class ControllerManager:
             await event_bus.notify(
                 self.profile,
                 Event(
-                    f"{WITNESS_EVENT}{scid}",
+                    f"{WITNESS_EVENT}{record_id}",
                     {
                         "document": initial_log_entry,
                         "witness_signature": witness_signature,
@@ -469,16 +479,21 @@ class ControllerManager:
                 ),
             )
             await asyncio.sleep(WITNESS_WAIT_TIMEOUT_SECONDS)
-            if scid not in await self.pending_log_entries.get_pending_scids(self.profile):
+            record_ids = await self.pending_log_entries.get_pending_record_ids(
+                self.profile
+            )
+            if record_id is None or record_id not in record_ids:
                 return
-            await self.pending_log_entries.remove_pending_scid(self.profile, scid)
+            await self.pending_log_entries.remove_pending_record_id(
+                self.profile, record_id
+            )
 
         if state == WitnessingState.PENDING.value:
             event_bus = self.profile.inject(EventBus)
             await event_bus.notify(
                 self.profile,
                 Event(
-                    f"{WITNESS_EVENT}{scid}",
+                    f"{WITNESS_EVENT}{record_id}",
                     {
                         "document": initial_log_entry,
                         "metadata": {
@@ -534,7 +549,7 @@ class ControllerManager:
             await event_bus.notify(
                 self.profile,
                 Event(
-                    f"{WITNESS_EVENT}{scid}",
+                    f"{WITNESS_EVENT}{record_id}",
                     {"document": resolved_did_doc["did_document"], "metadata": metadata},
                 ),
             )

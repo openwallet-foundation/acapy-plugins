@@ -234,12 +234,12 @@ async def test_create_with_witness_and_manual_attest():
 
         await witness.post(
             "/did/webvh/witness/log-entries",
-            params=params(scid=entry.get("parameters").get("scid")),
+            params=params(record_id=entry.get("record_id")),
         )
         await asyncio.sleep(3)
 
         # Confirm DID is published
-        did = entry["state"]["id"]
+        did = entry["record"]["state"]["id"]
         response = await witness.get(f"/resolver/resolve/{did}")
         assert response["did_document"]["id"] == did
 
@@ -290,11 +290,11 @@ async def test_create_self_witness_and_manual_attest():
 
         await witness.post(
             "/did/webvh/witness/log-entries",
-            params=params(scid=entry.get("parameters").get("scid")),
+            params=params(record_id=entry.get("record_id")),
         )
         await asyncio.sleep(3)
 
         # Confirm DID is published
-        did = entry["state"]["id"]
+        did = entry["record"]["state"]["id"]
         response = await witness.get(f"/resolver/resolve/{did}")
         assert response["did_document"]["id"] == did

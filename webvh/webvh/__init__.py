@@ -5,11 +5,11 @@ from acapy_agent.config.injection_context import InjectionContext
 from acapy_agent.config.provider import ClassProvider
 from acapy_agent.core.protocol_registry import ProtocolRegistry
 
-from .protocols.endorse_attested_resource.messages import (
-    MESSAGE_TYPES as endorse_attested_resource_message_types,
+from .protocols.attested_resource.message_types import (
+    MESSAGE_TYPES as ATTESTED_RESOURCE_MESSAGE_TYPES,
 )
-from .protocols.witness_log_entry.messages import (
-    MESSAGE_TYPES as witness_log_entry_message_types,
+from .protocols.log_entry.message_types import (
+    MESSAGE_TYPES as LOG_ENTRY_MESSAGE_TYPES,
 )
 
 LOGGER = logging.getLogger(__name__)
@@ -35,5 +35,5 @@ async def setup(context: InjectionContext):
     # Did-comm message types
     protocol_registry = context.inject(ProtocolRegistry)
     LOGGER.info("Registering did:webvh message types")
-    protocol_registry.register_message_types(endorse_attested_resource_message_types)
-    protocol_registry.register_message_types(witness_log_entry_message_types)
+    protocol_registry.register_message_types(ATTESTED_RESOURCE_MESSAGE_TYPES)
+    protocol_registry.register_message_types(LOG_ENTRY_MESSAGE_TYPES)
