@@ -4,7 +4,7 @@ from acapy_agent.tests import mock
 
 
 SCID_PLACEHOLDER = "{SCID}"
-TEST_DOMAIN = "id.test-suite.app"
+TEST_DOMAIN = "sandbox.bcvh.vonx.io"
 TEST_SERVER_URL = f"https://{TEST_DOMAIN}"
 TEST_WITNESS_SEED = "00000000000000000000000000000000"
 TEST_WITNESS_KEY = "z6MkgKA7yrw5kYSiDuQFcye4bMaJpcfHFry3Bx45pdWh3s8i"
