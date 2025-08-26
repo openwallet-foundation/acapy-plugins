@@ -4,7 +4,7 @@ from acapy_agent.admin.decorators.auth import tenant_authentication
 from acapy_agent.admin.request_context import AdminRequestContext
 from aiohttp import web
 from aiohttp_apispec import docs, querystring_schema
-from ...did.models.operations import WebvhSCIDQueryStringSchema
+from ...did.models.operations import WebvhRecordIdQueryStringSchema
 from .record import PendingAttestedResourceRecord
 from ...did.witness import WitnessManager
 from ...did.exceptions import WitnessError
@@ -22,25 +22,25 @@ async def get_pending_attested_resources(request: web.BaseRequest):
 
 
 @docs(tags=["did-webvh"], summary="Approve a pending attested resource")
-@querystring_schema(WebvhSCIDQueryStringSchema())
+@querystring_schema(WebvhRecordIdQueryStringSchema())
 @tenant_authentication
 async def approve_pending_attested_resource(request: web.BaseRequest):
     """Approve a pending attested resource."""
     context: AdminRequestContext = request["context"]
 
     try:
-        attested_resource, connection_id = await PENDING_RECORDS.get_pending_record(
-            context.profile, request.query.get("scid")
+        record, connection_id = await PENDING_RECORDS.get_pending_record(
+            context.profile, request.query.get("record_id")
         )
-        if attested_resource is None:
+        if record is None:
             raise WitnessError("Failed to find pending document.")
 
         await WitnessManager(context.profile).approve_attested_resource(
-            attested_resource, connection_id
+            record.get("record", None), connection_id
         )
 
         await PENDING_RECORDS.remove_pending_record(
-            context.profile, request.query.get("scid")
+            context.profile, request.query.get("record_id")
         )
 
         return web.json_response({"status": "success", "message": "Witness successful."})
@@ -50,7 +50,7 @@ async def approve_pending_attested_resource(request: web.BaseRequest):
 
 
 @docs(tags=["did-webvh"], summary="Reject a pending attested resource")
-@querystring_schema(WebvhSCIDQueryStringSchema())
+@querystring_schema(WebvhRecordIdQueryStringSchema())
 @tenant_authentication
 async def reject_pending_attested_resource(request: web.BaseRequest):
     """Reject a pending attested resource."""
@@ -59,7 +59,7 @@ async def reject_pending_attested_resource(request: web.BaseRequest):
     try:
         return web.json_response(
             await PENDING_RECORDS.remove_pending_record(
-                context.profile, request.query.get("scid")
+                context.profile, request.query.get("record_id")
             )
         )
     except WitnessError as err:

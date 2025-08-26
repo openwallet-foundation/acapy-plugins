@@ -88,6 +88,7 @@ class WitnessManager:
         self,
         scid: str,
         log_entry: dict,
+        witness_request_id: str,
     ) -> Optional[dict]:
         """Witness the document with the given parameters."""
         config = await get_plugin_config(self.profile)
@@ -98,7 +99,9 @@ class WitnessManager:
             if config.get("auto_attest", False):
                 return await self.sign_log_version(log_entry.get("versionId"))
 
-            await record.save_pending_record(self.profile, scid, log_entry)
+            await record.save_pending_record(
+                self.profile, scid, log_entry, witness_request_id
+            )
             return
 
         # Need proof from witness agent
@@ -118,6 +121,7 @@ class WitnessManager:
         self,
         scid: str,
         attested_resource: dict,
+        witness_request_id: str,
     ) -> Optional[dict]:
         """Witness the document with the given parameters."""
         config = await get_plugin_config(self.profile)
@@ -132,7 +136,9 @@ class WitnessManager:
                     f"did:key:{witness_key}#{witness_key}",
                 )
             record = PendingAttestedResourceRecord()
-            await record.save_pending_record(self.profile, scid, attested_resource)
+            await record.save_pending_record(
+                self.profile, scid, attested_resource, witness_request_id
+            )
             return
 
         # Need proof from witness agent

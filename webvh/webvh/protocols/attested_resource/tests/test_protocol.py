@@ -1,4 +1,5 @@
 from unittest import IsolatedAsyncioTestCase
+import uuid
 
 from acapy_agent.connections.models.conn_record import ConnRecord
 from acapy_agent.core.event_bus import EventBus
@@ -20,6 +21,7 @@ record = PendingAttestedResourceRecord()
 
 TEST_DOMAIN = "example.com"
 TEST_SCID = "123"
+TEST_RECORD_ID = str(uuid.uuid4())
 TEST_DID = f"did:webvh:{TEST_SCID}:{TEST_DOMAIN}:test:123"
 TEST_RESOURCE_ID = f"{TEST_DID}/resources/123"
 TEST_RECORD = {
@@ -57,19 +59,21 @@ class TestAttestedResourceProtocol(IsolatedAsyncioTestCase):
             )
 
     async def test_record(self):
-        await record.set_pending_scid(self.profile, TEST_SCID)
-        await record.get_pending_scids(self.profile)
-        await record.remove_pending_scid(self.profile, TEST_SCID)
-        await record.get_pending_scids(self.profile)
+        await record.set_pending_record_id(self.profile, TEST_RECORD_ID)
+        await record.get_pending_record_ids(self.profile)
+        await record.remove_pending_record_id(self.profile, TEST_RECORD_ID)
+        await record.get_pending_record_ids(self.profile)
 
-        await record.save_pending_record(self.profile, TEST_SCID, TEST_RECORD)
+        await record.save_pending_record(
+            self.profile, TEST_SCID, TEST_RECORD, TEST_RECORD_ID
+        )
         await record.get_pending_records(self.profile)
-        await record.get_pending_record(self.profile, TEST_SCID)
-        await record.remove_pending_record(self.profile, TEST_SCID)
+        await record.get_pending_record(self.profile, TEST_RECORD_ID)
+        await record.remove_pending_record(self.profile, TEST_RECORD_ID)
 
         with self.assertRaises(AttributeError):
             await record.get_pending_records(self.profile)
-            await record.get_pending_record(self.profile, TEST_SCID)
+            await record.get_pending_record(self.profile, TEST_RECORD_ID)
 
     @mock.patch(
         "aiohttp.ClientSession.post",

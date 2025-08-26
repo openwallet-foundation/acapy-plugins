@@ -5,7 +5,7 @@ from acapy_agent.tests import mock
 from acapy_agent.utils.testing import create_test_profile
 from aiohttp.web_response import Response
 
-from . import TEST_DOMAIN, TEST_SCID, TEST_RECORD
+from . import TEST_DOMAIN, TEST_SCID, TEST_RECORD, TEST_RECORD_ID
 from ..record import PendingAttestedResourceRecord
 from ..routes import (
     get_pending_attested_resources,
@@ -32,7 +32,9 @@ class TestAttestedResourcesRoutes(IsolatedAsyncioTestCase):
         self.record = PendingAttestedResourceRecord()
 
     async def test_get_pending_attested_resources(self):
-        await self.record.save_pending_record(self.profile, TEST_SCID, TEST_RECORD)
+        await self.record.save_pending_record(
+            self.profile, TEST_SCID, TEST_RECORD, TEST_RECORD_ID
+        )
         self.request = mock.MagicMock(
             app={},
             match_info={},
@@ -44,22 +46,26 @@ class TestAttestedResourcesRoutes(IsolatedAsyncioTestCase):
         assert isinstance(response, Response)
 
     async def test_approve_pending_attested_resource(self):
-        await self.record.save_pending_record(self.profile, TEST_SCID, TEST_RECORD)
+        await self.record.save_pending_record(
+            self.profile, TEST_SCID, TEST_RECORD, TEST_RECORD_ID
+        )
         self.request = mock.MagicMock(
             app={},
             match_info={},
-            query={"scid": TEST_SCID},
+            query={"record_id": TEST_RECORD_ID},
             __getitem__=lambda _, k: self.request_dict[k],
         )
         response = await approve_pending_attested_resource(self.request)
         assert isinstance(response, Response)
 
     async def test_reject_pending_attested_resource(self):
-        await self.record.save_pending_record(self.profile, TEST_SCID, TEST_RECORD)
+        await self.record.save_pending_record(
+            self.profile, TEST_SCID, TEST_RECORD, TEST_RECORD_ID
+        )
         self.request = mock.MagicMock(
             app={},
             match_info={},
-            query={"scid": TEST_SCID},
+            query={"record_id": TEST_RECORD_ID},
             __getitem__=lambda _, k: self.request_dict[k],
         )
         response = await reject_pending_attested_resource(self.request)

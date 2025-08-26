@@ -230,6 +230,18 @@ class WebvhSCIDQueryStringSchema(OpenAPISchema):
     )
 
 
+class WebvhRecordIdQueryStringSchema(OpenAPISchema):
+    """Query model for providing a SCID."""
+
+    record_id = fields.Str(
+        required=True,
+        metadata={
+            "description": "Record ID for the witness request.",
+            "example": "eb3f768d-08fa-4622-88b0-dfcd0f1ddebb",
+        },
+    )
+
+
 class WebvhAddVMSchema(OpenAPISchema):
     """Request model for adding a Webvh Verification Method."""
 
