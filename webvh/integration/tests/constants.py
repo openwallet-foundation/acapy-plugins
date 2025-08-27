@@ -1,6 +1,6 @@
 from os import getenv
 
-WEBVH_DOMAIN = "id.test-suite.app"
+WEBVH_DOMAIN = "sandbox.bcvh.vonx.io"
 WITNESS_SEED = "00000000000000000000000000000000"
 WITNESS_KEY = "z6MkgKA7yrw5kYSiDuQFcye4bMaJpcfHFry3Bx45pdWh3s8i"
 WITNESS_KID = f"webvh:{WEBVH_DOMAIN}@witnessKey"

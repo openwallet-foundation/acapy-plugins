@@ -23,7 +23,7 @@ services:
         --notify-revocation
         --plugin webvh
         --plugin-config-value did-webvh.witness=true
-        --plugin-config-value did-webvh.server_url=https://id.test-suite.app
+        --plugin-config-value did-webvh.server_url=https://sandbox.bcvh.vonx.io
         --tails-server-base-url https://tails.anoncreds.vc
         --auto-provision
         --seed 00000000000000000000000000000000
@@ -55,7 +55,7 @@ services:
         --monitor-revocation-notification
         --plugin webvh
         --plugin-config-value did-webvh.witness=false
-        --plugin-config-value did-webvh.server_url=https://id.test-suite.app
+        --plugin-config-value did-webvh.server_url=https://sandbox.bcvh.vonx.io
         --auto-accept-invites
         --auto-respond-messages
   tests:

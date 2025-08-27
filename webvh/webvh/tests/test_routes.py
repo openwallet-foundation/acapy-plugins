@@ -12,7 +12,7 @@ from webvh.routes import (
     create,
 )
 
-TEST_SERVER_URL = "https://id.test-suite.app"
+TEST_SERVER_URL = "https://sandbox.bcvh.vonx.io"
 TEST_WITNESS_INVITATION = {
     "@type": "https://didcomm.org/out-of-band/1.1/invitation",
     "@id": "fe469f3d-b288-4e3f-99ba-b631af98248b",

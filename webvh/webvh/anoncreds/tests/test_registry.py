@@ -38,8 +38,8 @@ from ...tests.fixtures import (
 from ...did.manager import ControllerManager
 from ..registry import DIDWebVHRegistry
 
-test_domain = "id.test-suite.app"
-test_server = "https://id.test-suite.app"
+test_domain = "sandbox.bcvh.vonx.io"
+test_server = "https://sandbox.bcvh.vonx.io"
 test_schema = AnonCredsSchema(
     issuer_id=f"did:webvh:Q:{test_domain}:issuer:01",
     attr_names=["name", "age", "vmax"],

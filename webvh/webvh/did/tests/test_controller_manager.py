@@ -18,7 +18,7 @@ from ...protocols.states import WitnessingState
 from ...protocols.log_entry.record import PendingLogEntryRecord
 
 SCID_PLACEHOLDER = "{SCID}"
-TEST_DOMAIN = "id.test-suite.app"
+TEST_DOMAIN = "sandbox.bcvh.vonx.io"
 TEST_NAMESPACE = "test"
 TEST_IDENTIFIER = "123"
 TEST_VERSION_TIME = "2025-07-28T21:47:32Z"
