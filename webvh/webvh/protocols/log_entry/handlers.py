@@ -38,6 +38,7 @@ class WitnessRequestHandler(BaseHandler):
         witness = WitnessManager(context.profile)
 
         config = await get_plugin_config(context.profile)
+        connection_id = context.connection_record.connection_id
         if config.get("auto_attest", False):
             witness_signature = await witness.sign_log_version(log_entry.get("versionId"))
             await responder.send(
@@ -47,7 +48,7 @@ class WitnessRequestHandler(BaseHandler):
                     witness_proof=witness_signature.get("proof")[0],
                     request_id=request_id,
                 ),
-                connection_id=context.connection_record.connection_id,
+                connection_id=connection_id,
             )
 
         else:
@@ -56,10 +57,9 @@ class WitnessRequestHandler(BaseHandler):
                 "attest the did request document."
             )
             # Save the document to the wallet for manual witness
-            connection_id = context.connection_record.connection_id
             scid = log_entry.get("state").get("id").split(":")[2]
             await PENDING_RECORDS.save_pending_record(
-                context.profile, scid, log_entry, connection_id
+                context.profile, scid, log_entry, request_id, connection_id
             )
 
             await responder.send(

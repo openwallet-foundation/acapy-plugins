@@ -217,9 +217,8 @@ class ControllerManager:
                 await self.pending_log_entries.remove_pending_record_id(
                     self.profile, record_id
                 )
-                document = event.payload.get("document")
                 return await self.finish_create(
-                    document,
+                    event.payload.get("document"),
                     event.payload.get("witness_signature", None),
                     state=WitnessingState.FINISHED.value,
                     record_id=record_id,

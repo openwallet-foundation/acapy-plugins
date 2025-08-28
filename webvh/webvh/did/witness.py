@@ -102,7 +102,6 @@ class WitnessManager:
             await record.save_pending_record(
                 self.profile, scid, log_entry, witness_request_id
             )
-            return
 
         # Need proof from witness agent
         else:
@@ -167,7 +166,7 @@ class WitnessManager:
         return witness_signature
 
     async def approve_log_entry(
-        self, log_entry: dict, connection_id: str
+        self, log_entry: dict, connection_id: str, request_id: str = None
     ) -> dict[str, str]:
         """Attest a did request doc."""
 
@@ -196,6 +195,7 @@ class WitnessManager:
                     state=WitnessingState.ATTESTED.value,
                     document=log_entry,
                     witness_proof=witness_signature.get("proof")[0],
+                    request_id=request_id,
                 ),
                 connection_id=connection_id,
             )
