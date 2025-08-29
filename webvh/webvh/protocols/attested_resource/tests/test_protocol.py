@@ -95,7 +95,8 @@ class TestAttestedResourceProtocol(IsolatedAsyncioTestCase):
             {"did-webvh": {"server_url": "https://example.com", "auto_attest": False}},
         )
         context = RequestContext(self.profile)
-        context.message = WitnessRequest(document=TEST_RECORD)
+        request_id = str(uuid.uuid4())
+        context.message = WitnessRequest(document=TEST_RECORD, request_id=request_id)
         context.connection_record = ConnRecord(
             alias=f"webvh:{TEST_DOMAIN}@witness",
             state="active",
@@ -111,6 +112,7 @@ class TestAttestedResourceProtocol(IsolatedAsyncioTestCase):
             state=WitnessingState.SUCCESS.value,
             document=TEST_RECORD,
             witness_proof=witness_proof,
+            request_id=request_id,
         )
         assert await WitnessResponseHandler().handle(
             context, mock.AsyncMock(BaseResponder, autospec=True)

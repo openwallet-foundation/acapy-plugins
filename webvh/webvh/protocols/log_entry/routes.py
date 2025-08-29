@@ -36,7 +36,7 @@ async def approve_pending_log_entry(request: web.BaseRequest):
             raise WitnessError("Failed to find pending document.")
 
         await WitnessManager(context.profile).approve_log_entry(
-            record.get("record", None), connection_id
+            record.get("record", None), connection_id, request.query.get("record_id")
         )
 
         await PENDING_RECORDS.remove_pending_record(

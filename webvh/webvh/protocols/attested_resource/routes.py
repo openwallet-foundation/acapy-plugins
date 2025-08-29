@@ -17,8 +17,10 @@ PENDING_RECORDS = PendingAttestedResourceRecord()
 async def get_pending_attested_resources(request: web.BaseRequest):
     """Get all pending attested resources."""
     context: AdminRequestContext = request["context"]
-    pending_log_entries = await PENDING_RECORDS.get_pending_records(context.profile)
-    return web.json_response({"results": pending_log_entries})
+    pending_attested_resources = await PENDING_RECORDS.get_pending_records(
+        context.profile
+    )
+    return web.json_response({"results": pending_attested_resources})
 
 
 @docs(tags=["did-webvh"], summary="Approve a pending attested resource")
@@ -36,7 +38,7 @@ async def approve_pending_attested_resource(request: web.BaseRequest):
             raise WitnessError("Failed to find pending document.")
 
         await WitnessManager(context.profile).approve_attested_resource(
-            record.get("record", None), connection_id
+            record.get("record", None), connection_id, request.query.get("record_id")
         )
 
         await PENDING_RECORDS.remove_pending_record(

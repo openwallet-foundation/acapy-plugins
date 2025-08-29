@@ -217,9 +217,8 @@ class ControllerManager:
                 await self.pending_log_entries.remove_pending_record_id(
                     self.profile, record_id
                 )
-                document = event.payload.get("document")
                 return await self.finish_create(
-                    document,
+                    event.payload.get("document"),
                     event.payload.get("witness_signature", None),
                     state=WitnessingState.FINISHED.value,
                     record_id=record_id,
@@ -237,13 +236,12 @@ class ControllerManager:
             ):
                 return PENDING_MESSAGE
             else:
-                await self.pending_log_entries.remove_pending_record_id(
+                await self.pending_attested_resource.remove_pending_record_id(
                     self.profile, record_id
                 )
                 document = event.payload.get("document")
                 await self.upload_resource(
-                    document,
-                    state=WitnessingState.FINISHED.value,
+                    document, state=WitnessingState.FINISHED.value, record_id=record_id
                 )
 
     async def _apply_config_defaults(self, options: dict, defaults: dict):
@@ -791,9 +789,8 @@ class ControllerManager:
             vp,
         )
 
-    async def upload_resource(self, attested_resource, state):
+    async def upload_resource(self, attested_resource, state, record_id):
         """Upload an attested resource to the server."""
-        scid = attested_resource.get("id").split(":")[2]
         namespace = attested_resource.get("id").split(":")[4]
         identifier = attested_resource.get("id").split(":")[5].split("/")[0]
 
@@ -802,7 +799,7 @@ class ControllerManager:
             await event_bus.notify(
                 self.profile,
                 Event(
-                    f"{WITNESS_EVENT}{scid}",
+                    f"{WITNESS_EVENT}{record_id}",
                     {
                         "document": attested_resource,
                         "metadata": {"state": WitnessingState.ATTESTED.value},
@@ -810,16 +807,21 @@ class ControllerManager:
                 ),
             )
             await asyncio.sleep(WITNESS_WAIT_TIMEOUT_SECONDS)
-            if scid not in await self.pending_log_entries.get_pending_scids(self.profile):
+            record_ids = await self.pending_attested_resource.get_pending_record_ids(
+                self.profile
+            )
+            if record_id is None or record_id not in record_ids:
                 return
-            await self.pending_log_entries.remove_pending_scid(self.profile, scid)
+            await self.pending_attested_resource.remove_pending_record_id(
+                self.profile, record_id
+            )
 
         if state == WitnessingState.PENDING.value:
             event_bus = self.profile.inject(EventBus)
             await event_bus.notify(
                 self.profile,
                 Event(
-                    f"{WITNESS_EVENT}{scid}",
+                    f"{WITNESS_EVENT}{record_id}",
                     {
                         "document": attested_resource,
                         "metadata": {

@@ -33,6 +33,7 @@ class WitnessRequestHandler(BaseHandler):
         )
 
         attested_resource = context.message.document
+        request_id = context.message.request_id
         if not attested_resource.get("proof", None):
             LOGGER.error("No proof found in attested resource")
             return
@@ -40,6 +41,7 @@ class WitnessRequestHandler(BaseHandler):
         witness = WitnessManager(context.profile)
 
         config = await get_plugin_config(context.profile)
+        connection_id = context.connection_record.connection_id
         if config.get("auto_attest", False):
             witness_key = await witness.get_witness_key()
             witness_signature = await add_proof(
@@ -52,8 +54,9 @@ class WitnessRequestHandler(BaseHandler):
                     state=WitnessingState.ATTESTED.value,
                     document=attested_resource,
                     witness_proof=witness_signature.get("proof")[-1],
+                    request_id=request_id,
                 ),
-                connection_id=context.connection_record.connection_id,
+                connection_id=connection_id,
             )
 
         else:
@@ -64,15 +67,16 @@ class WitnessRequestHandler(BaseHandler):
 
             # We define if the request is for a log entry or an attested resource
             # Save the document to the wallet for manual witness
-            connection_id = context.connection_record.connection_id
             scid = attested_resource.get("id").split(":")[2]
             await PENDING_RECORDS.save_pending_record(
-                context.profile, scid, attested_resource, connection_id
+                context.profile, scid, attested_resource, request_id, connection_id
             )
 
             await responder.send(
                 message=WitnessResponse(
-                    state=WitnessingState.PENDING.value, document=attested_resource
+                    state=WitnessingState.PENDING.value,
+                    document=attested_resource,
+                    request_id=request_id,
                 ),
                 connection_id=connection_id,
             )
@@ -96,6 +100,9 @@ class WitnessResponseHandler(BaseHandler):
 
         # For an attested resource, we append the proof
         attested_resource["proof"].append(context.message.witness_proof)
-        await controller.upload_resource(attested_resource, context.message.state)
+        self._logger.info(attested_resource)
+        await controller.upload_resource(
+            attested_resource, context.message.state, context.message.request_id
+        )
 
         return {"status": "ok"}

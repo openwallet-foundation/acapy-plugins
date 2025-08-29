@@ -102,7 +102,6 @@ class WitnessManager:
             await record.save_pending_record(
                 self.profile, scid, log_entry, witness_request_id
             )
-            return
 
         # Need proof from witness agent
         else:
@@ -130,6 +129,7 @@ class WitnessManager:
 
         # Self witness
         if config.get("witness", False):
+            record = PendingAttestedResourceRecord()
             if config.get("auto_attest", False):
                 witness_key = await self.get_witness_key()
                 return await add_proof(
@@ -137,11 +137,12 @@ class WitnessManager:
                     attested_resource,
                     f"did:key:{witness_key}#{witness_key}",
                 )
-            record = PendingAttestedResourceRecord()
             await record.save_pending_record(
-                self.profile, scid, attested_resource, witness_request_id
+                self.profile,
+                scid,
+                attested_resource,
+                witness_request_id,
             )
-            return
 
         # Need proof from witness agent
         else:
@@ -152,7 +153,9 @@ class WitnessManager:
                 raise WitnessError("No active witness connection found.")
 
             await responder.send(
-                message=AttestedResourceWitnessRequest(document=attested_resource),
+                message=AttestedResourceWitnessRequest(
+                    document=attested_resource, request_id=witness_request_id
+                ),
                 connection_id=witness_connection.connection_id,
             )
 
@@ -167,7 +170,7 @@ class WitnessManager:
         return witness_signature
 
     async def approve_log_entry(
-        self, log_entry: dict, connection_id: str
+        self, log_entry: dict, connection_id: str, request_id: str = None
     ) -> dict[str, str]:
         """Attest a did request doc."""
 
@@ -196,6 +199,7 @@ class WitnessManager:
                     state=WitnessingState.ATTESTED.value,
                     document=log_entry,
                     witness_proof=witness_signature.get("proof")[0],
+                    request_id=request_id,
                 ),
                 connection_id=connection_id,
             )
@@ -203,7 +207,7 @@ class WitnessManager:
         return {"status": "success", "message": "Witness successful."}
 
     async def approve_attested_resource(
-        self, attested_resource: dict, connection_id: str = None
+        self, attested_resource: dict, connection_id: str = None, request_id: str = None
     ) -> dict[str, str]:
         """Approve an attested resource."""
 
@@ -232,6 +236,7 @@ class WitnessManager:
                     state=WitnessingState.ATTESTED.value,
                     document=attested_resource,
                     witness_proof=witnessed_resource.get("proof")[-1],
+                    request_id=request_id,
                 ),
                 connection_id=connection_id,
             )

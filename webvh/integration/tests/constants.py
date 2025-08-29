@@ -4,6 +4,7 @@ WEBVH_DOMAIN = "sandbox.bcvh.vonx.io"
 WITNESS_SEED = "00000000000000000000000000000000"
 WITNESS_KEY = "z6MkgKA7yrw5kYSiDuQFcye4bMaJpcfHFry3Bx45pdWh3s8i"
 WITNESS_KID = f"webvh:{WEBVH_DOMAIN}@witnessKey"
+WITNESS_ID = f"did:key:{WITNESS_KEY}"
 SERVER_URL = f"https://{WEBVH_DOMAIN}"
 
 

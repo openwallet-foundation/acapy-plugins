@@ -15,10 +15,11 @@ class WitnessRequest(AgentMessage):
         message_type = WITNESS_REQUEST
         schema_class = "WitnessRequestSchema"
 
-    def __init__(self, document: dict, **kwargs):
+    def __init__(self, document: dict, request_id: str = None, **kwargs):
         """Initialize RequestWitness."""
         super().__init__(**kwargs)
         self.document = document
+        self.request_id = request_id
 
 
 class WitnessRequestSchema(AgentMessageSchema):
@@ -37,6 +38,11 @@ class WitnessRequestSchema(AgentMessageSchema):
         metadata={"description": "document to witness"},
     )
 
+    request_id = fields.Str(
+        required=False,
+        metadata={"description": "the witness request id"},
+    )
+
 
 class WitnessResponse(AgentMessage):
     """Response witness of a log entry."""
@@ -48,12 +54,20 @@ class WitnessResponse(AgentMessage):
         message_type = WITNESS_RESPONSE
         schema_class = "WitnessResponseSchema"
 
-    def __init__(self, state: str, document: dict, witness_proof: dict = None, **kwargs):
+    def __init__(
+        self,
+        state: str,
+        document: dict,
+        witness_proof: dict = None,
+        request_id: str = None,
+        **kwargs,
+    ):
         """Initialize ResponseWitness."""
         super().__init__(**kwargs)
         self.state = state
         self.document = document
         self.witness_proof = witness_proof
+        self.request_id = request_id
 
 
 class WitnessResponseSchema(AgentMessageSchema):
@@ -85,4 +99,9 @@ class WitnessResponseSchema(AgentMessageSchema):
         metadata={
             "description": "witness proof",
         },
+    )
+
+    request_id = fields.Str(
+        required=False,
+        metadata={"description": "the witness request id"},
     )
