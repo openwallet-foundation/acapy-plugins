@@ -65,7 +65,7 @@ from ..did.utils import add_proof
 LOGGER = logging.getLogger(__name__)
 
 # NOTE, temporary context location
-ATTESTED_RESOURCE_CTX = "https://opsecid.github.io/attested-resource/v1"
+ATTESTED_RESOURCE_CTX = "https://identity.foundation/did-attested-resources/context/v0.1"
 
 PENDING_MESSAGE = {
     "status": WitnessingState.PENDING.value,
@@ -614,6 +614,7 @@ class DIDWebVHRegistry(BaseAnonCredsResolver, BaseAnonCredsRegistrar):
                     pass
 
                 try:
+                    LOGGER.info(witness_request_id)
                     await PendingAttestedResourceRecord().set_pending_record_id(
                         profile, witness_request_id
                     )

@@ -100,6 +100,9 @@ class WitnessResponseHandler(BaseHandler):
 
         # For an attested resource, we append the proof
         attested_resource["proof"].append(context.message.witness_proof)
-        await controller.upload_resource(attested_resource, context.message.state)
+        self._logger.info(attested_resource)
+        await controller.upload_resource(
+            attested_resource, context.message.state, context.message.request_id
+        )
 
         return {"status": "ok"}
