@@ -18,7 +18,9 @@ plugin:
 
 # Wallet
 auto-provision: true
-wallet-test: true
+wallet-type: askar
+wallet-name: connection_update
+wallet-key: connection_update
 
 #config
 genesis-url: http://test.bcovrin.vonx.io/genesis

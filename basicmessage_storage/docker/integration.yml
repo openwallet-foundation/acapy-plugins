@@ -18,7 +18,9 @@ plugin:
 
 # Wallet
 auto-provision: true
-wallet-test: true
+wallet-type: askar
+wallet-name: basicmessage_storage
+wallet-key: basicmessage_storage
 
 #config
 genesis-url: http://test.bcovrin.vonx.io/genesis

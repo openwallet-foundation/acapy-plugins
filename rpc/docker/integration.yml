@@ -21,4 +21,6 @@ auto-respond-messages: true
 
 # Wallet
 auto-provision: true
-wallet-test: true
+wallet-type: askar
+wallet-name: rpc
+wallet-key: rpc
