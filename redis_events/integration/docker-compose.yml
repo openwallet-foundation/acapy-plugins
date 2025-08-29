@@ -208,7 +208,7 @@ services:
     ports:
       - 8021:8021
       - 8020:8020
-    command: start -it http 0.0.0.0 8020 -ot http -e http://alice:8020 --auto-accept-invites --auto-respond-messages --admin 0.0.0.0 8021 --admin-insecure-mode --label alice --no-ledger --log-level info --debug-connections --wallet-test --auto-provision
+    command: start -it http 0.0.0.0 8020 -ot http -e http://alice:8020 --auto-accept-invites --auto-respond-messages --admin 0.0.0.0 8021 --admin-insecure-mode --label alice --no-ledger --log-level info --debug-connections --wallet-type askar --wallet-name alice --wallet-key alice --auto-provision
     depends_on:
       - relay
     networks:
