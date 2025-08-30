@@ -1,38 +1,60 @@
 """Status handler."""
 
-import logging
 import gzip
+import logging
 import math
 import os
-import time
+import queue
+import shutil
 import tempfile
-from functools import wraps
-from typing import Optional
-from types import SimpleNamespace
+import threading
+import time
+import zlib
 from datetime import datetime, timedelta, timezone
-from bitarray import bitarray
-from filelock import FileLock, Timeout
+from functools import wraps
 from pathlib import Path
+from types import SimpleNamespace
+from typing import Any, Optional
 
 from acapy_agent.admin.request_context import AdminRequestContext
 from acapy_agent.core.profile import ProfileSession
 from acapy_agent.storage.error import StorageNotFoundError
 from acapy_agent.wallet.util import bytes_to_b64
+from bitarray import bitarray
+from filelock import FileLock, Timeout
 
 from .config import Config
 from .error import StatusListError
-from .models import StatusListDef, StatusListShard, StatusListCred, StatusListReg
 from .jwt import jwt_sign
+from .models import StatusListCred, StatusListDef, StatusListReg, StatusListShard
 
 LOGGER = logging.getLogger(__name__)
 
+delete_queue = queue.Queue()
 
-def with_retries(max_attempts=3, delay=2):
-    """Decorator to retry a function."""
+
+def deletion_worker():
+    """Worker thread to handle file deletions."""
+    while True:
+        file_path, delay = delete_queue.get()
+        if delay > 0:
+            time.sleep(delay)
+        try:
+            Path(file_path).unlink()
+        except Exception:
+            pass
+        delete_queue.task_done()
+
+
+threading.Thread(target=deletion_worker, daemon=True).start()
+
+
+def with_retries(max_attempts: int = 3, delay: float = 2.0):
+    """Decorator to retry a function with a fixed delay."""
 
     def decorator(func):
         @wraps(func)
-        def wrapper(*args, **kwargs):
+        def wrapper(*args: Any, **kwargs: Any):
             for attempt in range(1, max_attempts + 1):
                 try:
                     return func(*args, **kwargs)
@@ -47,46 +69,74 @@ def with_retries(max_attempts=3, delay=2):
     return decorator
 
 
-@with_retries(max_attempts=3, delay=2)
-def write_to_file(path: str, data: bytes) -> None:
-    """Write data to a local file atomically."""
+def alt_name(p: Path) -> Path:
+    """Return alternative file name: 'a.txt' -> 'a.alt.txt', 'foo' -> 'foo.alt'."""
+    return (
+        p.with_name(f"{p.stem}.alt{''.join(p.suffixes)}")
+        if p.suffixes
+        else p.with_name(p.name + ".alt")
+    )
 
-    full_path = Path(path).resolve()
+
+def unlink_file(file_path: Path | str | None, delay_seconds: int = 0) -> None:
+    """Unlink a file with an optional delay (best-effort)."""
+    if not file_path:
+        return
     try:
-        full_path.parent.mkdir(parents=True, exist_ok=True)
-        LOGGER.debug(f"Writing to local file (atomic): {full_path}")
-        lock_path = full_path.with_suffix(full_path.suffix + ".lock")
+        if delay_seconds > 0:
+            time.sleep(delay_seconds)
+        Path(file_path).unlink()
+    except FileNotFoundError:
+        pass
+    except OSError as ex:
+        LOGGER.warning(f"Failed to unlink {file_path}: {ex}")
+
+
+@with_retries(max_attempts=3, delay=2)
+def write_to_file(
+    path: str | Path,
+    data: bytes | bytearray | memoryview,
+    with_alt: bool = False,
+) -> None:
+    """Atomically write `data` to `path`; optionally publish an atomic `.alt` sibling."""
+    full_path = Path(path).absolute()
+    full_path.parent.mkdir(parents=True, exist_ok=True)
+    lock_path = full_path.with_suffix(full_path.suffix + ".lock")
+    alt_path: Path | None = None
+    alt_temp: Path | None = None
+    temp_path: Path | None = None
+    LOGGER.debug(f"Writing to local file: {full_path}")
+
+    try:
         with FileLock(str(lock_path), timeout=10):
-            with tempfile.NamedTemporaryFile(
-                dir=full_path.parent, delete=False
-            ) as tmp_file:
-                tmp_file.write(data)
-                temp_path = Path(tmp_file.name)
-            try:
-                os.replace(temp_path, full_path)
-            except OSError as e:
-                LOGGER.error(f"Failed to replace {temp_path} with {full_path}: {e}")
-                try:
-                    if temp_path.exists():
-                        os.unlink(temp_path)
-                except OSError:
-                    LOGGER.warning(f"Failed to clean up temporary file: {temp_path}")
-                raise
-        LOGGER.debug("Write to local file completed.")
-        # Explicitly remove the lock file (needed on Unix)
-        try:
-            if lock_path.exists():
-                lock_path.unlink()
-        except OSError as e:
-            LOGGER.warning(f"Failed to remove lock file {lock_path}: {e}")
+            with tempfile.NamedTemporaryFile(dir=full_path.parent, delete=False) as tmp:
+                tmp.write(memoryview(data))
+                tmp.flush()
+                os.fsync(tmp.fileno())
+                temp_path = Path(tmp.name)
+
+            if with_alt:
+                alt_path = alt_name(full_path)
+                alt_temp = alt_path.with_suffix(alt_path.suffix + ".tmp")
+                shutil.copy(temp_path, alt_temp)
+                with open(alt_temp, "rb", buffering=0) as f:
+                    os.fsync(f.fileno())
+                os.replace(alt_temp, alt_path)
+
+            os.replace(temp_path, full_path)
+            LOGGER.debug("Write to local file completed.")
+
     except (OSError, Timeout) as e:
         LOGGER.error(f"Failed to write to file {full_path}: {e}")
-        try:
-            if lock_path.exists():
-                lock_path.unlink()
-        except OSError as e:
-            LOGGER.warning(f"Failed to remove lock file {lock_path}: {e}")
         raise
+    finally:
+        unlink_file(temp_path)
+        unlink_file(lock_path)
+        if with_alt:
+            unlink_file(alt_temp)
+            # Instead of spawning a thread per file, use the queue
+            if alt_path:
+                delete_queue.put((alt_path, 5))
 
 
 def get_wallet_id(context: AdminRequestContext):
@@ -394,8 +444,12 @@ async def get_status_list(
         for shard in shards:
             status_bits.extend(shard.status_bits)
 
-        bytes = gzip.compress(status_bits.tobytes())
-        base64 = bytes_to_b64(bytes, True)
+        bit_bytes = status_bits.tobytes()
+        if definition.list_type == "ietf":
+            bit_bytes = zlib.compress(bit_bytes)
+        elif definition.list_type == "w3c":
+            bit_bytes = gzip.compress(bit_bytes)
+        base64 = bytes_to_b64(bit_bytes, True)
         encoded_list = base64.rstrip("=")
 
         public_uri = config.public_uri.format(
