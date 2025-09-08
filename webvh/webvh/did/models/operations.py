@@ -100,10 +100,10 @@ class WebvhCreateWitnessInvitationSchema(OpenAPISchema):
 class WebvhUpdateSchema(OpenAPISchema):
     """Request model for updating a Webvh DID."""
 
-    # class UpdateStateSchema(OpenAPISchema):
-    #     "Webvh DID state update schema."""
+    class StateUpdateSchema(OpenAPISchema):
+        """Webvh DID state update schema."""
 
-    class UpdateParametersSchema(OpenAPISchema):
+    class ParametersOptionsSchema(OpenAPISchema):
         """Webvh DID parameters update schema."""
 
         portable = fields.Bool(
@@ -128,8 +128,8 @@ class WebvhUpdateSchema(OpenAPISchema):
             },
         )
 
-    # state = fields.Nested(UpdateStateSchema())
-    parameters = fields.Nested(UpdateParametersSchema())
+    state = fields.Nested(StateUpdateSchema())
+    options = fields.Nested(ParametersOptionsSchema())
 
 
 class WebvhCreateSchema(OpenAPISchema):
@@ -293,16 +293,41 @@ class WebvhAddVMSchema(OpenAPISchema):
             raise ValidationError("Duplicate relationship.")
 
 
-class WebvhDeactivateSchema(OpenAPISchema):
-    """Request model for deactivating a Webvh DID."""
+class WebvhAddServiceSchema(OpenAPISchema):
+    """Request model for adding a Webvh service."""
 
     id = fields.Str(
         required=True,
         metadata={
-            "description": "ID of the DID to deactivate",
-            "example": "did:webvh:scid:example.com:prod:1",
+            "description": "An user provided service ID",
+            "example": "my-service",
         },
     )
+
+    type = fields.Str(
+        required=True,
+        metadata={"description": ""},
+    )
+
+    serviceEdnpoint = fields.Str(
+        required=True,
+        metadata={"description": "The service endpoint", "example": ""},
+    )
+
+    @validates("id")
+    def validate_key_id(self, value):
+        """Relationship validator."""
+        if "#" in value:
+            raise ValidationError("Forbidden character in id.")
+
+
+class WebvhDeactivateSchema(OpenAPISchema):
+    """Request model for deactivating a Webvh DID."""
+
+    class DeactivateOptionsSchema(OpenAPISchema):
+        """Options for a Webvh DID request."""
+
+    options = fields.Nested(DeactivateOptionsSchema())
 
 
 class IdRequestParamSchema(OpenAPISchema):

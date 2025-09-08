@@ -598,8 +598,7 @@ class DIDWebVHRegistry(BaseAnonCredsResolver, BaseAnonCredsRegistrar):
 
         config = await get_plugin_config(profile)
         scid = issuer.split(":")[2]
-        namespace = issuer.split(":")[4]
-        identifier = issuer.split(":")[5]
+        server = WebVHServerClient(profile)
         if config.get("endorsement", False):
             # Request witness approval
             witness = WitnessManager(profile)
@@ -626,13 +625,9 @@ class DIDWebVHRegistry(BaseAnonCredsResolver, BaseAnonCredsRegistrar):
                     pass
             else:
                 # Upload resource to server
-                await WebVHServerClient(profile).upload_attested_resource(
-                    namespace, identifier, endorsed_resource
-                )
+                await server.upload_attested_resource(endorsed_resource)
         else:
             # Upload resource to server
-            await WebVHServerClient(profile).upload_attested_resource(
-                namespace, identifier, secured_resource
-            )
+            await server.upload_attested_resource(secured_resource)
 
         return secured_resource

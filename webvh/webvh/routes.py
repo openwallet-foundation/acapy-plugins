@@ -96,12 +96,10 @@ async def create(request: web.BaseRequest):
     """Create a Webvh DID."""
     context: AdminRequestContext = request["context"]
     request_json = await request.json()
+    manager = ControllerManager(context.profile)
     try:
-        return web.json_response(
-            await ControllerManager(context.profile).create(
-                options=request_json["options"]
-            )
-        )
+        log_entry = await manager.create(request_json["options"])
+        return web.json_response(await manager.streamline_did_operation(log_entry))
     except (DidCreationError, WitnessError, ConfigurationError) as err:
         return web.json_response({"status": "error", "message": str(err)})
 
@@ -113,10 +111,33 @@ async def create(request: web.BaseRequest):
 async def update(request: web.BaseRequest):
     """Update a Webvh log."""
     context: AdminRequestContext = request["context"]
+    request_json = await request.json()
+    manager = ControllerManager(context.profile)
     try:
-        return web.json_response(
-            await ControllerManager(context.profile).update(request.query.get("scid"))
+        log_entry = await manager.update(
+            request.query.get("scid"),
+            request_json.get("did_document"),
+            request_json.get("options"),
         )
+        return web.json_response(await manager.streamline_did_operation(log_entry))
+    except DidUpdateError as err:
+        return web.json_response({"status": "error", "message": str(err)})
+
+
+@docs(tags=["did-webvh"], summary="Deactivate a did:webvh")
+@request_schema(WebvhDeactivateSchema)
+@response_schema(ResolutionResultSchema(), 200)
+@tenant_authentication
+async def deactivate(request: web.BaseRequest):
+    """Deactivate a Webvh DID."""
+    context: AdminRequestContext = request["context"]
+    request_json = await request.json()
+    manager = ControllerManager(context.profile)
+    try:
+        log_entry = await manager.deactivate(
+            request.query.get("scid"), request_json.get("options")
+        )
+        return web.json_response(await manager.streamline_did_operation(log_entry))
 
     except DidUpdateError as err:
         return web.json_response({"status": "error", "message": str(err)})
@@ -166,23 +187,6 @@ async def delete_verification_method_request(request: web.BaseRequest):
                 request.query.get("scid"), request.match_info["key_id"]
             )
         )
-    except DidUpdateError as err:
-        return web.json_response({"status": "error", "message": str(err)})
-
-
-@docs(tags=["did-webvh"], summary="Deactivate a did:webvh")
-@request_schema(WebvhDeactivateSchema)
-@response_schema(ResolutionResultSchema(), 200)
-@tenant_authentication
-async def deactivate(request: web.BaseRequest):
-    """Deactivate a Webvh DID."""
-    context: AdminRequestContext = request["context"]
-    request_json = await request.json()
-    try:
-        return web.json_response(
-            await ControllerManager(context.profile).deactivate(request_json["options"])
-        )
-
     except DidUpdateError as err:
         return web.json_response({"status": "error", "message": str(err)})
 

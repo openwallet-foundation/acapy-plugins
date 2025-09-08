@@ -93,22 +93,11 @@ class WitnessResponseHandler(BaseHandler):
             "proof": [context.message.witness_proof],
         }
 
-        # Call finish_create for first entry
-        if log_entry.get("versionId")[0] == "1":
-            await controller.finish_create(
-                initial_log_entry=log_entry,
-                witness_signature=witness_signature,
-                state=context.message.state,
-                record_id=context.message.request_id,
-            )
-
-        # Call finish_update for subsequent entry
-        else:
-            await controller.finish_update(
-                initial_log_entry=log_entry,
-                witness_signature=witness_signature,
-                state=context.message.state,
-                record_id=context.message.request_id,
-            )
+        await controller.finish_did_operation(
+            log_entry=log_entry,
+            witness_signature=witness_signature,
+            state=context.message.state,
+            record_id=context.message.request_id,
+        )
 
         return {"status": "ok"}
