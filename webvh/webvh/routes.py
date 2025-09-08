@@ -27,34 +27,30 @@ from .did.models.operations import (
     ConfigureWebvhSchema,
     WebvhAddVMSchema,
     WebvhCreateSchema,
+    WebvhUpdateSchema,
     WebvhCreateWitnessInvitationSchema,
     WebvhDeactivateSchema,
     WebvhSCIDQueryStringSchema,
     WebvhUpdateWhoisSchema,
 )
 from .did.witness import WitnessManager
-from .protocols.log_entry.routes import (
-    get_pending_log_entries,
-    approve_pending_log_entry,
-    reject_pending_log_entry,
-)
-from .protocols.attested_resource.routes import (
-    get_pending_attested_resources,
-    approve_pending_attested_resource,
-    reject_pending_attested_resource,
+from .protocols.routes import (
+    get_pending_witness_requests,
+    approve_pending_witness_request,
+    reject_pending_witness_request,
 )
 
 LOGGER = logging.getLogger(__name__)
 
 
-@docs(tags=["did-webvh"], summary="Get webvh agent configuration")
+@docs(tags=["did-webvh"], summary="Get webvh plugin configuration")
 @tenant_authentication
 async def get_config(request: web.BaseRequest):
     """Get webvh agent configuration."""
     return web.json_response(await get_plugin_config(request["context"].profile))
 
 
-@docs(tags=["did-webvh"], summary="Configure a webvh agent")
+@docs(tags=["did-webvh"], summary="Configure webvh plugin")
 @request_schema(ConfigureWebvhSchema)
 @tenant_authentication
 async def configure(request: web.BaseRequest):
@@ -106,6 +102,7 @@ async def create(request: web.BaseRequest):
 
 @docs(tags=["did-webvh"], summary="Update a did:webvh")
 @querystring_schema(WebvhSCIDQueryStringSchema())
+@request_schema(WebvhUpdateSchema)
 @response_schema(ResolutionResultSchema(), 200)
 @tenant_authentication
 async def update(request: web.BaseRequest):
@@ -156,20 +153,18 @@ async def add_verification_method_request(request: web.BaseRequest):
     scid = request.query.get("scid")
     key_type = request_json.get("type") or "Multikey"
     relationships = request_json.get("relationships") or []
+    manager = ControllerManager(context.profile)
 
     try:
-        did_document = await ControllerManager(context.profile).add_verification_method(
+        did_document = await manager.add_verification_method(
             scid=scid,
             key_type=key_type,
             relationships=relationships,
             key_id=request_json.get("id"),
             multikey=request_json.get("multikey"),
         )
-        return web.json_response(
-            await ControllerManager(context.profile).update(
-                scid=scid, did_document=did_document
-            )
-        )
+        log_entry = await manager.update(request.query.get("scid"), did_document)
+        return web.json_response(await manager.streamline_did_operation(log_entry))
     except (DidUpdateError, MultikeyManagerError) as err:
         return web.json_response({"status": "error", "message": str(err)})
 
@@ -232,33 +227,28 @@ async def register(app: web.Application):
             web.post("/did/webvh/create", create),
             web.post("/did/webvh/update", update),
             web.post("/did/webvh/deactivate", deactivate),
-            web.post(
-                "/did/webvh/verification-methods",
-                add_verification_method_request,
-            ),
-            web.delete(
-                "/did/webvh/verification-methods/{key_id}",
-                delete_verification_method_request,
-            ),
+            # web.post(
+            #     "/did/webvh/verification-methods",
+            #     add_verification_method_request,
+            # ),
+            # web.delete(
+            #     "/did/webvh/verification-methods/{key_id}",
+            #     delete_verification_method_request,
+            # ),
             web.post("/did/webvh/whois", update_whois),
             web.post("/did/webvh/witness-invitation", witness_create_invite),
             web.get(
-                "/did/webvh/witness/log-entries",
-                get_pending_log_entries,
-                allow_head=False,
-            ),
-            web.post("/did/webvh/witness/log-entries", approve_pending_log_entry),
-            web.delete("/did/webvh/witness/log-entries", reject_pending_log_entry),
-            web.get(
-                "/did/webvh/witness/attested-resources",
-                get_pending_attested_resources,
+                "/did/webvh/witness-requests/{request_type}",
+                get_pending_witness_requests,
                 allow_head=False,
             ),
             web.post(
-                "/did/webvh/witness/attested-resources", approve_pending_attested_resource
+                "/did/webvh/witness-requests/{request_type}/{request_id}",
+                approve_pending_witness_request,
             ),
             web.delete(
-                "/did/webvh/witness/attested-resources", reject_pending_attested_resource
+                "/did/webvh/witness-requests/{request_type}/{request_id}",
+                reject_pending_witness_request,
             ),
         ]
     )

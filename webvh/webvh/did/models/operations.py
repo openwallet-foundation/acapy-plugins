@@ -100,10 +100,52 @@ class WebvhCreateWitnessInvitationSchema(OpenAPISchema):
 class WebvhUpdateSchema(OpenAPISchema):
     """Request model for updating a Webvh DID."""
 
-    class StateUpdateSchema(OpenAPISchema):
-        """Webvh DID state update schema."""
+    class DocumentUpdateSchema(OpenAPISchema):
+        """Webvh DID document update schema."""
 
-    class ParametersOptionsSchema(OpenAPISchema):
+    # class DocumentOperationsSchema(OpenAPISchema):
+    #     """Webvh DID document operations schema."""
+
+    #     class OperationTypesEnum(enum.Enum):
+    #         """Relationships for a Webvh verification method."""
+
+    #         add = "add"
+    #         update = "update"
+    #         delete = "delete"
+
+    #     type = fields.Nested(
+    #         fields.Enum(OperationTypesEnum),
+    #         required=True,
+    #         metadata={
+    #             "description": "The CRUD operation type",
+    #             "example": 'add',
+    #         },
+    #     )
+
+    #     class PropertiesEnum(enum.Enum):
+    #         """Relationships for a Webvh verification method."""
+
+    #         service = "service"
+    #         verificationMethod = "verificationMethod"
+
+    #     property = fields.Nested(
+    #         fields.Enum(PropertiesEnum),
+    #         required=True,
+    #         metadata={
+    #             "description": "The affected property",
+    #             "example": 'add',
+    #         },
+    #     )
+
+    #     id = fields.Str(
+    #         required=False,
+    #         metadata={
+    #             "description": "An user provided verification method ID",
+    #             "example": "key-01",
+    #         },
+    #     )
+
+    class UpdateOptionsSchema(OpenAPISchema):
         """Webvh DID parameters update schema."""
 
         portable = fields.Bool(
@@ -120,7 +162,7 @@ class WebvhUpdateSchema(OpenAPISchema):
                 "example": False,
             },
         )
-        witnessThreshold = fields.Int(
+        witness_threshold = fields.Int(
             required=False,
             metadata={
                 "description": "The witness threshold",
@@ -128,8 +170,13 @@ class WebvhUpdateSchema(OpenAPISchema):
             },
         )
 
-    state = fields.Nested(StateUpdateSchema())
-    options = fields.Nested(ParametersOptionsSchema())
+    did_document = fields.Nested(DocumentUpdateSchema())
+    options = fields.Nested(UpdateOptionsSchema())
+    # operations = fields.List(
+    #     fields.Nested(DocumentOperationsSchema),
+    #     required=False,
+    #     metadata={"description": ""},
+    # )
 
 
 class WebvhCreateSchema(OpenAPISchema):
@@ -227,18 +274,6 @@ class WebvhSCIDQueryStringSchema(OpenAPISchema):
     scid = fields.Str(
         required=True,
         metadata={"description": "SCID of interest", "example": ""},
-    )
-
-
-class WebvhRecordIdQueryStringSchema(OpenAPISchema):
-    """Query model for providing a SCID."""
-
-    record_id = fields.Str(
-        required=True,
-        metadata={
-            "description": "Record ID for the witness request.",
-            "example": "eb3f768d-08fa-4622-88b0-dfcd0f1ddebb",
-        },
     )
 
 

@@ -526,8 +526,6 @@ class ControllerManager:
         new_log_entry = document_state.create_next(
             document=did_document or None, params_update=params_update
         )
-        # LOGGER.warning(new_log_entry.history_line())
-        # return new_log_entry.history_line()
         return await self._sign_log_entry(new_log_entry.history_line())
 
     async def deactivate(self, scid: str, options: dict = None):
