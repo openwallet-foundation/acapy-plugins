@@ -77,7 +77,7 @@ class WebVHServerClient:
                 )
 
     async def submit_log_entry(self, log_entry, witness_signature):
-        """Submit an initial log entry to the WebVH server."""
+        """Submit a log entry to the WebVH server."""
         did = log_entry.get("state", {}).get("id")
         namespace, identifier = itemgetter(4, 5)(did.split(":"))
         async with ClientSession() as session:
@@ -88,15 +88,15 @@ class WebVHServerClient:
             )
 
             if response.status == http.HTTPStatus.INTERNAL_SERVER_ERROR:
-                raise DidCreationError("Server had a problem creating log entry.")
+                raise OperationError("Server had a problem creating log entry.")
 
             response_json = await response.json()
             if response.status == http.HTTPStatus.BAD_REQUEST:
-                raise DidCreationError(response_json.get("detail"))
+                raise OperationError(response_json.get("detail"))
 
         did = log_entry.get("state", {}).get("id", None)
         if response_json.get("state", {}).get("id") != did:
-            raise DidCreationError("Bad state returned")
+            raise OperationError("Bad state returned")
 
         return response_json
 

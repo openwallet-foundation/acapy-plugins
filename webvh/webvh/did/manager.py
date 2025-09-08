@@ -545,7 +545,7 @@ class ControllerManager:
 
         log_entry = document_state.create_next(
             {
-                "@context": "https://www.w3.org/ns/did/v1",
+                "@context": ["https://www.w3.org/ns/did/v1"],
                 "id": document_state.document_id,
             },
             params_update,
@@ -558,11 +558,9 @@ class ControllerManager:
         # Process witnessing
         did = log_entry.get("state", {}).get("id", None)
         scid = itemgetter(2)(did.split(":"))
-        if log_entry.get("versionId")[0] == "1":
-            document_state = None
-        else:
-            document_state = await self.server_client.fetch_document_state(did)
-        document_state = DocumentState.load_history_line(log_entry, document_state)
+        document_state = DocumentState.load_history_line(
+            log_entry, await self.server_client.fetch_document_state(did)
+        )
         witness_signature = None
         if document_state.witness_rule:
             witness_request_id = str(uuid.uuid4())
