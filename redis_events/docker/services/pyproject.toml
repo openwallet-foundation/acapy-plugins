@@ -12,7 +12,7 @@ aiohttp = "^3.12.6"
 fastapi-slim = "^0.115.14"
 uvicorn = "^0.35.0"
 nest-asyncio = "^1.5.5"
-pydantic = "^2.11.5"
+pydantic = "^2.11.9"
 
 [tool.poetry.group.dev.dependencies]
 black = "~24.8.0"
