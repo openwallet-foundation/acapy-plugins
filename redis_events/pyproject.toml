@@ -16,13 +16,13 @@ fastapi-slim = "^0.115.14"
 nest-asyncio = "^1.5.5"
 redis = "^5.2.1"
 uvicorn = "^0.35.0"
-pydantic = "^2.11.5"
+pydantic = "^2.11.9"
 
 [tool.poetry.extras]
 aca-py = ["acapy-agent"]
 
 [tool.poetry.group.dev.dependencies]
-ruff = "^0.12.12"
+ruff = "^0.13.0"
 pytest = "^8.3.5"
 pytest-asyncio = "^1.1.0"
 pytest-cov = "^5.0.0"
