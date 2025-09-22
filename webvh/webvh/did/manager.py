@@ -173,7 +173,7 @@ class ControllerManager:
                 did,
                 value_json={
                     "did": did,
-                    "verkey": multikey_to_verkey(signing_key),
+                    "verkey": multikey_to_verkey(signing_key) if signing_key else None,
                     "metadata": {
                         "posted": True,
                         "scid": scid,
@@ -715,7 +715,7 @@ class ControllerManager:
                 pass
                 # raise OperationError("Credential subject id doesn't match holder.")
 
-            if not (await verify_proof(credential)).verified:
+            if not (await verify_proof(self.profile, credential)).verified:
                 # NOTE, should we enforce this?
                 pass
                 # LOGGER.info("Credential verification failed.")
@@ -729,7 +729,9 @@ class ControllerManager:
             json.loads(did_info.value).get("verkey"), "ed25519"
         )
 
-        vp = await add_proof(self.profile, presentation, f"{holder_id}#{signing_key}")
+        vp = await add_proof(
+            self.profile, presentation, f"{holder_id}#{signing_key}", "authentication"
+        )
         return await self.server_client.submit_whois(vp)
 
     async def upload_resource(self, attested_resource, state, record_id):
