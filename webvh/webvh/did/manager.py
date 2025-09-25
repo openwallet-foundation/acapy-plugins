@@ -187,6 +187,15 @@ class ControllerManager:
                 tags={},
             )
 
+    def _create_didcomm_service(self, did_doc):
+        did = did_doc.get("id")
+        return {
+            "id": f"{did}#did-communication",
+            "type": "did-communication",
+            "serviceEndpoint": self.profile.settings.get("default_endpoint"),
+            "recipientKeys": [did_doc.get("authentication", None)[0]],
+        }
+
     async def _fire_pending_event(self, record_id, log_entry):
         event_bus = self.profile.inject(EventBus)
         await event_bus.notify(
@@ -264,6 +273,7 @@ class ControllerManager:
                     "publicKeyMultibase": signing_key,
                 }
             ],
+            "service": [],
         }
 
     async def _create_initial_log_entry(
@@ -394,9 +404,11 @@ class ControllerManager:
         if not config.get("server_url"):
             raise OperationError("No server url configured.")
 
+        await set_config(self.profile, config)
+
         if config.get("witness", False):
             # Create a local witness key to setup self witnessing
-            domain = await get_server_domain(self.profile)
+            domain = url_to_domain(config["server_url"])
             key_alias = f"webvh:{domain}@witnessKey"
             if options.get("witness_key", None):
                 witness_key = await bind_key(
@@ -498,6 +510,11 @@ class ControllerManager:
 
         # Add a verification method to the initial state document & create preliminary doc
         preliminary_doc = await self._create_preliminary_doc(placeholder_id)
+
+        if options.get("didcomm", False):
+            preliminary_doc["service"].append(
+                self._create_didcomm_service(preliminary_doc)
+            )
 
         # Create update keys and set parameters
         parameters_input = await self._set_parameters_input(placeholder_id, options)

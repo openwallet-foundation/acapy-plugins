@@ -255,6 +255,14 @@ class WebvhCreateSchema(OpenAPISchema):
             },
             default=True,
         )
+        didcomm = fields.Bool(
+            required=False,
+            metadata={
+                "description": "Enable DIDComm service.",
+                "example": True,
+            },
+            default=False,
+        )
 
     options = fields.Nested(CreateOptionsSchema())
 
