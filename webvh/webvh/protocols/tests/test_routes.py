@@ -58,7 +58,7 @@ class TestProtocolRoutesLogEntry(IsolatedAsyncioTestCase):
         )
         self.request = mock.MagicMock(
             app={},
-            match_info={"record_type": "log-entry", "request_id": TEST_RECORD_ID},
+            match_info={"record_type": "log-entry", "record_id": TEST_RECORD_ID},
             query={},
             __getitem__=lambda _, k: self.request_dict[k],
         )
@@ -71,7 +71,7 @@ class TestProtocolRoutesLogEntry(IsolatedAsyncioTestCase):
         )
         self.request = mock.MagicMock(
             app={},
-            match_info={"record_type": "log-entry", "request_id": TEST_RECORD_ID},
+            match_info={"record_type": "log-entry", "record_id": TEST_RECORD_ID},
             query={},
             __getitem__=lambda _, k: self.request_dict[k],
         )
@@ -116,7 +116,7 @@ class TestProtocolRoutesAttestedResource(IsolatedAsyncioTestCase):
         )
         self.request = mock.MagicMock(
             app={},
-            match_info={"record_type": "attested-resource", "request_id": TEST_RECORD_ID},
+            match_info={"record_type": "attested-resource", "record_id": TEST_RECORD_ID},
             query={},
             __getitem__=lambda _, k: self.request_dict[k],
         )
@@ -129,7 +129,7 @@ class TestProtocolRoutesAttestedResource(IsolatedAsyncioTestCase):
         )
         self.request = mock.MagicMock(
             app={},
-            match_info={"record_type": "attested-resource", "request_id": TEST_RECORD_ID},
+            match_info={"record_type": "attested-resource", "record_id": TEST_RECORD_ID},
             query={},
             __getitem__=lambda _, k: self.request_dict[k],
         )
