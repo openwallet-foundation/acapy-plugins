@@ -4,6 +4,8 @@ import http
 import json
 import logging
 
+from operator import itemgetter
+
 from acapy_agent.core.profile import Profile
 from aiohttp import ClientConnectionError, ClientResponseError, ClientSession
 from did_webvh.core.state import DocumentState
@@ -74,8 +76,10 @@ class WebVHServerClient:
                     "Invalid response from Webvh server requesting identifier"
                 )
 
-    async def submit_log_entry(self, log_entry, witness_signature, namespace, identifier):
-        """Submit an initial log entry to the WebVH server."""
+    async def submit_log_entry(self, log_entry, witness_signature):
+        """Submit a log entry to the WebVH server."""
+        did = log_entry.get("state", {}).get("id")
+        namespace, identifier = itemgetter(4, 5)(did.split(":"))
         async with ClientSession() as session:
             response = await session.post(
                 f"{await get_server_url(self.profile)}/{namespace}/{identifier}",
@@ -84,32 +88,21 @@ class WebVHServerClient:
             )
 
             if response.status == http.HTTPStatus.INTERNAL_SERVER_ERROR:
-                raise DidCreationError("Server had a problem creating log entry.")
+                raise OperationError("Server had a problem creating log entry.")
 
             response_json = await response.json()
             if response.status == http.HTTPStatus.BAD_REQUEST:
-                raise DidCreationError(response_json.get("detail"))
+                raise OperationError(response_json.get("detail"))
+
+        did = log_entry.get("state", {}).get("id", None)
+        if response_json.get("state", {}).get("id") != did:
+            raise OperationError("Bad state returned")
 
         return response_json
 
-    async def deactivate_did(
-        self, namespace: str, identifier: str, signed_log_entry: dict
-    ):
-        """Deactivate a DID by sending a request to the WebVH server."""
-        async with ClientSession() as session:
-            response = await session.delete(
-                f"{await get_server_url(self.profile)}/{namespace}/{identifier}",
-                json={"logEntry": signed_log_entry},
-                ssl=(await use_strict_ssl(self.profile)),
-            )
-
-            response_json = await response.json()
-
-            if response_json.get("detail") == "Key unauthorized.":
-                raise DidCreationError("Problem creating log entry: Key unauthorized.")
-
-    async def fetch_jsonl(self, namespace: str, identifier: str):
+    async def fetch_jsonl(self, did: str):
         """Fetch a JSONL file from the given URL."""
+        namespace, identifier = itemgetter(4, 5)(did.split(":"))
         async with ClientSession() as session:
             async with session.get(
                 f"{await get_server_url(self.profile)}/{namespace}/{identifier}/did.jsonl"
@@ -124,19 +117,21 @@ class WebVHServerClient:
                     if decoded_line:  # Ignore empty lines
                         yield json.loads(decoded_line)
 
-    async def fetch_document_state(self, namespace: str, identifier: str):
+    async def fetch_document_state(self, did: str):
         """Fetch a JSONL file from the given URL."""
         # Get the document state from the server
         document_state = None
         try:
-            async for line in self.fetch_jsonl(namespace, identifier):
+            async for line in self.fetch_jsonl(did):
                 document_state = DocumentState.load_history_line(line, document_state)
         except ClientResponseError:
             pass
         return document_state
 
-    async def submit_whois(self, namespace: str, identifier: str, vp: dict):
+    async def submit_whois(self, vp: dict):
         """Submit a whois Verifiable Presentation for a given identifier."""
+        holder_id = vp.get("holder")
+        namespace, identifier = itemgetter(4, 5)(holder_id.split(":"))
         async with ClientSession() as http_session:
             try:
                 response = await http_session.post(
@@ -150,14 +145,11 @@ class WebVHServerClient:
 
             return await response.json()
 
-    async def upload_attested_resource(
-        self,
-        namespace: str,
-        identifier: str,
-        resource: dict,
-    ):
+    async def upload_attested_resource(self, resource: dict):
         """Submit a whois Verifiable Presentation for a given identifier."""
+        author_id = resource.get("id").split("/")[0]
         server_url = await get_server_url(self.profile)
+        namespace, identifier = itemgetter(4, 5)(author_id.split(":"))
         async with ClientSession() as http_session:
             try:
                 response = await http_session.post(

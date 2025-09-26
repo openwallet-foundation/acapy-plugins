@@ -38,4 +38,6 @@ log-level: info
 # Plugin
 plugin:
   - webvh
+plugin-config-value:
+  - webvh.server_url=https://sandbox.bcvh.vonx.io
 

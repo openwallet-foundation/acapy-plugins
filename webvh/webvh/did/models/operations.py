@@ -100,10 +100,52 @@ class WebvhCreateWitnessInvitationSchema(OpenAPISchema):
 class WebvhUpdateSchema(OpenAPISchema):
     """Request model for updating a Webvh DID."""
 
-    # class UpdateStateSchema(OpenAPISchema):
-    #     "Webvh DID state update schema."""
+    class DocumentUpdateSchema(OpenAPISchema):
+        """Webvh DID document update schema."""
 
-    class UpdateParametersSchema(OpenAPISchema):
+    # class DocumentOperationsSchema(OpenAPISchema):
+    #     """Webvh DID document operations schema."""
+
+    #     class OperationTypesEnum(enum.Enum):
+    #         """Relationships for a Webvh verification method."""
+
+    #         add = "add"
+    #         update = "update"
+    #         delete = "delete"
+
+    #     type = fields.Nested(
+    #         fields.Enum(OperationTypesEnum),
+    #         required=True,
+    #         metadata={
+    #             "description": "The CRUD operation type",
+    #             "example": 'add',
+    #         },
+    #     )
+
+    #     class PropertiesEnum(enum.Enum):
+    #         """Relationships for a Webvh verification method."""
+
+    #         service = "service"
+    #         verificationMethod = "verificationMethod"
+
+    #     property = fields.Nested(
+    #         fields.Enum(PropertiesEnum),
+    #         required=True,
+    #         metadata={
+    #             "description": "The affected property",
+    #             "example": 'add',
+    #         },
+    #     )
+
+    #     id = fields.Str(
+    #         required=False,
+    #         metadata={
+    #             "description": "An user provided verification method ID",
+    #             "example": "key-01",
+    #         },
+    #     )
+
+    class UpdateOptionsSchema(OpenAPISchema):
         """Webvh DID parameters update schema."""
 
         portable = fields.Bool(
@@ -120,7 +162,7 @@ class WebvhUpdateSchema(OpenAPISchema):
                 "example": False,
             },
         )
-        witnessThreshold = fields.Int(
+        witness_threshold = fields.Int(
             required=False,
             metadata={
                 "description": "The witness threshold",
@@ -128,8 +170,13 @@ class WebvhUpdateSchema(OpenAPISchema):
             },
         )
 
-    # state = fields.Nested(UpdateStateSchema())
-    parameters = fields.Nested(UpdateParametersSchema())
+    did_document = fields.Nested(DocumentUpdateSchema())
+    options = fields.Nested(UpdateOptionsSchema())
+    # operations = fields.List(
+    #     fields.Nested(DocumentOperationsSchema),
+    #     required=False,
+    #     metadata={"description": ""},
+    # )
 
 
 class WebvhCreateSchema(OpenAPISchema):
@@ -208,6 +255,14 @@ class WebvhCreateSchema(OpenAPISchema):
             },
             default=True,
         )
+        didcomm = fields.Bool(
+            required=False,
+            metadata={
+                "description": "Enable DIDComm service.",
+                "example": True,
+            },
+            default=False,
+        )
 
     options = fields.Nested(CreateOptionsSchema())
 
@@ -227,18 +282,6 @@ class WebvhSCIDQueryStringSchema(OpenAPISchema):
     scid = fields.Str(
         required=True,
         metadata={"description": "SCID of interest", "example": ""},
-    )
-
-
-class WebvhRecordIdQueryStringSchema(OpenAPISchema):
-    """Query model for providing a SCID."""
-
-    record_id = fields.Str(
-        required=True,
-        metadata={
-            "description": "Record ID for the witness request.",
-            "example": "eb3f768d-08fa-4622-88b0-dfcd0f1ddebb",
-        },
     )
 
 
@@ -293,16 +336,41 @@ class WebvhAddVMSchema(OpenAPISchema):
             raise ValidationError("Duplicate relationship.")
 
 
-class WebvhDeactivateSchema(OpenAPISchema):
-    """Request model for deactivating a Webvh DID."""
+class WebvhAddServiceSchema(OpenAPISchema):
+    """Request model for adding a Webvh service."""
 
     id = fields.Str(
         required=True,
         metadata={
-            "description": "ID of the DID to deactivate",
-            "example": "did:webvh:scid:example.com:prod:1",
+            "description": "An user provided service ID",
+            "example": "my-service",
         },
     )
+
+    type = fields.Str(
+        required=True,
+        metadata={"description": ""},
+    )
+
+    serviceEdnpoint = fields.Str(
+        required=True,
+        metadata={"description": "The service endpoint", "example": ""},
+    )
+
+    @validates("id")
+    def validate_key_id(self, value):
+        """Relationship validator."""
+        if "#" in value:
+            raise ValidationError("Forbidden character in id.")
+
+
+class WebvhDeactivateSchema(OpenAPISchema):
+    """Request model for deactivating a Webvh DID."""
+
+    class DeactivateOptionsSchema(OpenAPISchema):
+        """Options for a Webvh DID request."""
+
+    options = fields.Nested(DeactivateOptionsSchema())
 
 
 class IdRequestParamSchema(OpenAPISchema):

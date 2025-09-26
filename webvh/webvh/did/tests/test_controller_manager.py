@@ -133,7 +133,7 @@ class TestOperationsManager(IsolatedAsyncioTestCase):
         self.profile.context.injector.bind_instance(EventBus, EventBus())
         self.profile.context.injector.bind_instance(KeyTypes, KeyTypes())
         self.profile.settings.set_value(
-            "plugin_config", {"did-webvh": {"server_url": f"https://{TEST_DOMAIN}"}}
+            "plugin_config", {"webvh": {"server_url": f"https://{TEST_DOMAIN}"}}
         )
         self.controller = ControllerManager(self.profile)
         self.witness = WitnessManager(self.profile)
@@ -189,8 +189,8 @@ class TestOperationsManager(IsolatedAsyncioTestCase):
         witness_signature = await self.witness.sign_log_version(
             TEST_LOG_ENTRY.get("versionId")
         )
-        await self.controller.finish_create(
-            initial_log_entry=TEST_LOG_ENTRY,
+        await self.controller.finish_did_operation(
+            log_entry=TEST_LOG_ENTRY,
             witness_signature=witness_signature,
             state=WitnessingState.ATTESTED.value,
             record_id=record_id,

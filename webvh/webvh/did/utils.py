@@ -123,7 +123,9 @@ async def unbind_key(profile, multikey, kid):
         )
 
 
-async def add_proof(profile, document, verification_method) -> dict:
+async def add_proof(
+    profile, document, verification_method, proof_purpose="assertionMethod"
+) -> dict:
     """Add data integrity proof to document shortcut."""
     async with profile.session() as session:
         signed_document = await DataIntegrityManager(session).add_proof(
@@ -131,7 +133,7 @@ async def add_proof(profile, document, verification_method) -> dict:
             DataIntegrityProofOptions(
                 type="DataIntegrityProof",
                 cryptosuite="eddsa-jcs-2022",
-                proof_purpose="assertionMethod",
+                proof_purpose=proof_purpose,
                 verification_method=verification_method,
             ),
         )

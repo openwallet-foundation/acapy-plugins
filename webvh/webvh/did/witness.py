@@ -189,10 +189,9 @@ class WitnessManager:
             # is supported
             from ..did.manager import ControllerManager
 
-            if witness_signature.get("versionId")[0] == "1":
-                await ControllerManager(self.profile).finish_create(
-                    log_entry, witness_signature
-                )
+            await ControllerManager(self.profile).finish_did_operation(
+                log_entry, witness_signature
+            )
         else:
             await self.profile.inject(BaseResponder).send(
                 message=LogEntryWitnessResponse(
