@@ -59,7 +59,7 @@ class TestAnonCredsRegistry(IsolatedAsyncioTestCase):
         self.profile.context.injector.bind_instance(EventBus, EventBus())
         self.profile.context.injector.bind_instance(KeyTypes, KeyTypes())
         self.profile.settings.set_value(
-            "plugin_config", {"did-webvh": {"server_url": TEST_SERVER_URL}}
+            "plugin_config", {"webvh": {"server_url": TEST_SERVER_URL}}
         )
         self.registry = DIDWebVHRegistry()
 

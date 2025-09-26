@@ -133,7 +133,7 @@ class TestOperationsManager(IsolatedAsyncioTestCase):
         self.profile.context.injector.bind_instance(EventBus, EventBus())
         self.profile.context.injector.bind_instance(KeyTypes, KeyTypes())
         self.profile.settings.set_value(
-            "plugin_config", {"did-webvh": {"server_url": f"https://{TEST_DOMAIN}"}}
+            "plugin_config", {"webvh": {"server_url": f"https://{TEST_DOMAIN}"}}
         )
         self.controller = ControllerManager(self.profile)
         self.witness = WitnessManager(self.profile)

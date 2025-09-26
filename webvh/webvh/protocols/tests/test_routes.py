@@ -30,7 +30,7 @@ class TestProtocolRoutesLogEntry(IsolatedAsyncioTestCase):
             }
         )
         self.profile.settings.set_value(
-            "plugin_config", {"did-webvh": {"server_url": f"https://{TEST_DOMAIN}"}}
+            "plugin_config", {"webvh": {"server_url": f"https://{TEST_DOMAIN}"}}
         )
         self.context = AdminRequestContext.test_context({}, self.profile)
         self.request_dict = {
@@ -88,7 +88,7 @@ class TestProtocolRoutesAttestedResource(IsolatedAsyncioTestCase):
             }
         )
         self.profile.settings.set_value(
-            "plugin_config", {"did-webvh": {"server_url": f"https://{TEST_DOMAIN}"}}
+            "plugin_config", {"webvh": {"server_url": f"https://{TEST_DOMAIN}"}}
         )
         self.context = AdminRequestContext.test_context({}, self.profile)
         self.request_dict = {

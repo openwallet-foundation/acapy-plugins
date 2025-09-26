@@ -36,7 +36,7 @@ class TestAttestedResourceProtocol(IsolatedAsyncioTestCase):
         self.profile = await create_test_profile({"wallet.type": "askar-anoncreds"})
         self.profile.settings.set_value(
             "plugin_config",
-            {"did-webvh": {"server_url": "https://example.com"}},
+            {"webvh": {"server_url": "https://example.com"}},
         )
         self.profile.context.injector.bind_instance(
             BaseResponder, mock.AsyncMock(BaseResponder, autospec=True)
@@ -92,7 +92,7 @@ class TestAttestedResourceProtocol(IsolatedAsyncioTestCase):
     async def test_handler(self):
         self.profile.settings.set_value(
             "plugin_config",
-            {"did-webvh": {"server_url": "https://example.com", "auto_attest": False}},
+            {"webvh": {"server_url": "https://example.com", "auto_attest": False}},
         )
         context = RequestContext(self.profile)
         request_id = str(uuid.uuid4())
