@@ -34,26 +34,26 @@ async def approve_pending_witness_request(request: web.BaseRequest):
     manager = WitnessManager(context.profile)
 
     try:
-        request_id = request.match_info["request_id"]
+        record_id = request.match_info["record_id"]
         record_type = request.match_info["record_type"]
         PENDING_RECORDS = RECORD_TYPES.get(record_type, None)
 
         record, connection_id = await PENDING_RECORDS.get_pending_record(
-            context.profile, request_id
+            context.profile, record_id
         )
         if record is None:
             raise WitnessError("Failed to find pending document.")
 
         if record_type == "attested-resource":
             await manager.approve_attested_resource(
-                record.get("record", None), connection_id, request_id
+                record.get("record", None), connection_id, record_id
             )
         elif record_type == "log-entry":
             await manager.approve_log_entry(
-                record.get("record", None), connection_id, request_id
+                record.get("record", None), connection_id, record_id
             )
 
-        await PENDING_RECORDS.remove_pending_record(context.profile, request_id)
+        await PENDING_RECORDS.remove_pending_record(context.profile, record_id)
 
         return web.json_response({"status": "success", "message": "Witness successful."})
 
@@ -68,11 +68,11 @@ async def reject_pending_witness_request(request: web.BaseRequest):
     context: AdminRequestContext = request["context"]
 
     try:
-        request_id = request.match_info["request_id"]
+        record_id = request.match_info["record_id"]
         record_type = request.match_info["record_type"]
         PENDING_RECORDS = RECORD_TYPES.get(record_type, None)
         return web.json_response(
-            await PENDING_RECORDS.remove_pending_record(context.profile, request_id)
+            await PENDING_RECORDS.remove_pending_record(context.profile, record_id)
         )
     except WitnessError as err:
         return web.json_response({"status": "error", "message": str(err)})

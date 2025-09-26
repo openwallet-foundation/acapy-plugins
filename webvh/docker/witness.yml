@@ -32,4 +32,4 @@ auto-respond-messages: true
 
 # Plugin
 plugin-config-value:
-   - did-webvh.server_url=https://sandbox.bcvh.vonx.io
+   - webvh.server_url=https://sandbox.bcvh.vonx.io

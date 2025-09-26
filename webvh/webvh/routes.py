@@ -238,16 +238,16 @@ async def register(app: web.Application):
             web.post("/did/webvh/whois", update_whois),
             web.post("/did/webvh/witness-invitation", witness_create_invite),
             web.get(
-                "/did/webvh/witness-requests/{request_type}",
+                "/did/webvh/witness-requests/{record_type}",
                 get_pending_witness_requests,
                 allow_head=False,
             ),
             web.post(
-                "/did/webvh/witness-requests/{request_type}/{request_id}",
+                "/did/webvh/witness-requests/{record_type}/{record_id}",
                 approve_pending_witness_request,
             ),
             web.delete(
-                "/did/webvh/witness-requests/{request_type}/{request_id}",
+                "/did/webvh/witness-requests/{record_type}/{record_id}",
                 reject_pending_witness_request,
             ),
         ]
