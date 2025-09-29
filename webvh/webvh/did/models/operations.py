@@ -103,48 +103,6 @@ class WebvhUpdateSchema(OpenAPISchema):
     class DocumentUpdateSchema(OpenAPISchema):
         """Webvh DID document update schema."""
 
-    # class DocumentOperationsSchema(OpenAPISchema):
-    #     """Webvh DID document operations schema."""
-
-    #     class OperationTypesEnum(enum.Enum):
-    #         """Relationships for a Webvh verification method."""
-
-    #         add = "add"
-    #         update = "update"
-    #         delete = "delete"
-
-    #     type = fields.Nested(
-    #         fields.Enum(OperationTypesEnum),
-    #         required=True,
-    #         metadata={
-    #             "description": "The CRUD operation type",
-    #             "example": 'add',
-    #         },
-    #     )
-
-    #     class PropertiesEnum(enum.Enum):
-    #         """Relationships for a Webvh verification method."""
-
-    #         service = "service"
-    #         verificationMethod = "verificationMethod"
-
-    #     property = fields.Nested(
-    #         fields.Enum(PropertiesEnum),
-    #         required=True,
-    #         metadata={
-    #             "description": "The affected property",
-    #             "example": 'add',
-    #         },
-    #     )
-
-    #     id = fields.Str(
-    #         required=False,
-    #         metadata={
-    #             "description": "An user provided verification method ID",
-    #             "example": "key-01",
-    #         },
-    #     )
-
     class UpdateOptionsSchema(OpenAPISchema):
         """Webvh DID parameters update schema."""
 
@@ -172,11 +130,6 @@ class WebvhUpdateSchema(OpenAPISchema):
 
     did_document = fields.Nested(DocumentUpdateSchema())
     options = fields.Nested(UpdateOptionsSchema())
-    # operations = fields.List(
-    #     fields.Nested(DocumentOperationsSchema),
-    #     required=False,
-    #     metadata={"description": ""},
-    # )
 
 
 class WebvhCreateSchema(OpenAPISchema):
