@@ -59,7 +59,7 @@ class TestAnonCredsRegistry(IsolatedAsyncioTestCase):
         self.profile.context.injector.bind_instance(EventBus, EventBus())
         self.profile.context.injector.bind_instance(KeyTypes, KeyTypes())
         self.profile.settings.set_value(
-            "plugin_config", {"did-webvh": {"server_url": TEST_SERVER_URL}}
+            "plugin_config", {"webvh": {"server_url": TEST_SERVER_URL}}
         )
         self.registry = DIDWebVHRegistry()
 
@@ -76,6 +76,7 @@ class TestAnonCredsRegistry(IsolatedAsyncioTestCase):
 
         # Create DID
         log_entry = await self.controller.create(options={"namespace": TEST_NAMESPACE})
+        await self.controller.streamline_did_operation(log_entry)
         self.issuer_id = log_entry.get("state").get("id")
         self.test_schema = test_schema
         self.test_schema.issuer_id = self.issuer_id

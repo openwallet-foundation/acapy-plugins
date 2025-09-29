@@ -2,6 +2,8 @@
 
 import json
 
+from operator import itemgetter
+
 from acapy_agent.core.profile import Profile
 from acapy_agent.storage.base import BaseStorage
 from acapy_agent.storage.error import StorageNotFoundError
@@ -34,7 +36,7 @@ async def get_plugin_config(profile: Profile):
 
     if stored_config:
         return json.loads(stored_config.value)["config"]
-    return profile.settings.get("plugin_config", {}).get("did-webvh", {})
+    return profile.settings.get("plugin_config", {}).get("webvh", {})
 
 
 async def is_controller(profile: Profile):
@@ -121,8 +123,9 @@ async def set_config(profile: Profile, config: dict):
             )
 
 
-async def add_scid_mapping(profile: Profile, scid: str, did: str):
+async def add_scid_mapping(profile: Profile, did: str):
     """Add a scid mapping."""
+    scid = itemgetter(2)(did.split(":"))
     async with profile.session() as session:
         storage = session.inject(BaseStorage)
         stored_config_record = await storage.get_record(
