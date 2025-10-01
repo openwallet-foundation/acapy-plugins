@@ -17,7 +17,8 @@
 
 - Prereqs: Python 3.12, PostgreSQL, Poetry
 - Install dependencies: `poetry install`
-- Configure env files (examples below) and ensure the admin database exists.
+- Configure env files (examples below)
+- Run `alembic/sql/init.sql` to create the admin user and database
 - Initialize Admin DB schema (Alembic): `python alembic/admin/migrate.py`
 - Run Admin API (e.g., port 9000): `uvicorn admin.main:app --reload --port 9000`
 - Run Tenant API (e.g., port 9001): `uvicorn tenant.main:app --reload --port 9001`
