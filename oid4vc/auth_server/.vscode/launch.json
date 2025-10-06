@@ -1,0 +1,44 @@
+{
+    // Use IntelliSense to learn about possible attributes.
+    // Hover to view descriptions of existing attributes.
+    // For more information, visit: https://go.microsoft.com/fwlink/?linkid=830387
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "name": "Admin API",
+            "type": "debugpy",
+            "request": "launch",
+            "module": "uvicorn",
+            "envFile": "${workspaceFolder}/.env.admin",
+            "args": [
+                "admin.main:app",
+                "--host",
+                "0.0.0.0",
+                "--port",
+                "9000",
+                "--reload",
+                "--proxy-headers",
+                "--forwarded-allow-ips=*"
+            ],
+            "jinja": true
+        },
+        {
+            "name": "Tenant API",
+            "type": "debugpy",
+            "request": "launch",
+            "module": "uvicorn",
+            "envFile": "${workspaceFolder}/.env.tenant",
+            "args": [
+                "tenant.main:app",
+                "--host",
+                "0.0.0.0",
+                "--port",
+                "9001",
+                "--reload",
+                "--proxy-headers",
+                "--forwarded-allow-ips=*"
+            ],
+            "jinja": true
+        }
+    ]
+}

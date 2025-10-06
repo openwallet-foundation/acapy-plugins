@@ -1,0 +1,22 @@
+Tenant: 60a15d1e-052a-4a4c-9fc6-2576a630f069
+
+private_key_jwt client:
+  client_id: dev-pkjwt-6da31278
+  signing_alg: ES256
+  jwks (public): {'keys': [{'crv': 'P-256', 'x': 'OsAWOp0KDLbVuX-6f8nKD0Zwt32kstek4sXAIJiR9nA', 'y': '6lRWRLFNs5p0D7TcD-geIWGQGSQdWiJj0sFNjDbVzdQ', 'kty': 'EC', 'kid': 'jCpyvBDcxVKqaRCexJmQhhcqiIWWZkyhWLwvd4VQa_A'}]}
+  private_key_pem (keep secret):
+ -----BEGIN PRIVATE KEY-----
+MIGHAgEAMBMGByqGSM49AgEGCCqGSM49AwEHBG0wawIBAQQg+yMyxBVEASmwNvFB
+uJIifTHLZ+V4eboAkbDMUvdpF6ShRANCAAQ6wBY6nQoMttW5f7p/ycoPRnC3faSy
+16TixcAgmJH2cOpUVkSxTbOadA+03A/oHiFhkBkkHVoiY9LBTYw21c3U
+-----END PRIVATE KEY-----
+
+
+shared_bearer client:
+  client_id: dev-shared-7d2cb250
+  signing_alg: HS256
+  shared_secret (keep secret): hoqmL67QBlqXbk-myK0gVJLHjsHk6OrYjYcVcpgVtsM
+
+client_secret_basic client:
+  client_id: dev-basic-ac699ffb
+  client_secret (keep secret): EYLdcOzRryToxTlaiIiWTDulEA5VPZoH

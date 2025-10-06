@@ -1,0 +1,92 @@
+[tool.poetry]
+name = "auth-server"
+version = "0.1.0"
+description = "Standalone Authorization Server for OID4VCI"
+authors = ["Ivan Wei <ivan.wei@ontario.ca>"]
+packages = [{ include = "admin" }, { include = "tenant" }, { include = "core" }]
+
+[tool.poetry.dependencies]
+python = "^3.12"
+orjson = "^3.11.2"
+fastapi = "^0.116"
+uvicorn = { extras = ["standard"], version = "^0.35" }
+authlib = "^1.6"
+SQLAlchemy = { version = "^2.0", extras = ["asyncio"] }
+asyncpg = "^0.30"
+psycopg = { extras = ["binary"], version = "^3.2.9" }
+pydantic-settings = "^2.10"
+python-multipart = "^0.0.20"
+httpx = "^0.28.1"
+structlog = "^25.4.0"
+
+[tool.poetry.group.dev.dependencies]
+alembic = "^1.16.4"
+sqlacodegen-v2 = "^0.1.4"
+pytest = "^8.3"
+pytest-asyncio = "^1.1"
+pytest-cov = "^6.0"
+coverage = "^7.6"
+ruff = "^0.13"
+
+[tool.ruff]
+line-length = 90
+extend-exclude = ["alembic/**/versions/*"]
+
+[tool.ruff.format]
+quote-style = "double"
+indent-style = "space"
+
+[tool.ruff.lint]
+# Use explicit families. E=pycodestyle, F=pyflakes, D=pydocstyle, C90=mccabe, C4=flake8-comprehensions
+select = ["E", "F", "D", "C90", "C4"]
+ignore = [
+    # Google Docstring style relaxations
+    "D203",
+    "D204",
+    "D213",
+    "D215",
+    "D400",
+    "D401",
+    "D404",
+    "D406",
+    "D407",
+    "D408",
+    "D409",
+    "D413",
+    "D202", # Allow blank line after docstring
+    "D104", # No package-level docstring required
+
+    # Too much work to fix now
+    "C901", # Complexity
+]
+
+[tool.ruff.lint.per-file-ignores]
+"tests/**" = ["F841", "D", "E501"] # looser in tests
+
+[tool.pytest.ini_options]
+testpaths = ["admin", "tenant", "core", "tests"]
+addopts = """
+    -p no:warnings
+    --quiet --junitxml=./.test-reports/junit.xml
+    --cov=admin --cov=tenant --cov=core --cov-report=term --cov-report=xml:.test-reports/coverage.xml
+"""
+markers = []
+junit_family = "xunit1"
+asyncio_mode = "auto"
+
+[tool.coverage.run]
+omit = ["*/tests/*", "docker/*", "integration/*", "*/definition.py"]
+data_file = ".test-reports/.coverage"
+
+[tool.coverage.report]
+exclude_lines = ["pragma: no cover", "@abstract"]
+precision = 2
+skip_covered = true
+show_missing = true
+
+[tool.coverage.xml]
+output = ".test-reports/coverage.xml"
+
+[build-system]
+requires = ["poetry-core>=2.1"]
+build-backend = "poetry.core.masonry.api"
