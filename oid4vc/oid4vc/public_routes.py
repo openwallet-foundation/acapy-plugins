@@ -150,21 +150,11 @@ async def credential_issuer_metadata(request: web.Request):
                 f"{config.auth_server_url}{auth_tenant_subpath}"
             ]
         metadata["credential_endpoint"] = f"{public_url}{subpath}/credential"
-        # uncomment for future release
-        # metadata["nonce_endpoint"] = f"{public_url}{subpath}/nonce"
         metadata["notification_endpoint"] = f"{public_url}{subpath}/notification"
         metadata["credential_configurations_supported"] = {
             supported.identifier: supported.to_issuer_metadata()
             for supported in credentials_supported
         }
-        #
-        # TODO: Remove when released
-        #
-        # metadata["credential_configurations_supported"] = {
-        #     "OntarioTestPhotoCard": metadata["credential_configurations_supported"][
-        #         "OntarioTestPhotoCard"
-        #     ]
-        # }
 
     LOGGER.debug("METADATA: %s", metadata)
 
@@ -945,7 +935,6 @@ async def register(app: web.Application, multitenant: bool, context: InjectionCo
         # TODO Add .well-known/did-configuration.json
         # Spec: https://identity.foundation/.well-known/resources/did-configuration/
         web.post(f"{subpath}/token", token),
-        # web.post(f"{subpath}/nonce", get_nonce),
         web.post(f"{subpath}/notification", receive_notification),
         web.post(f"{subpath}/credential", issue_cred),
         web.get(f"{subpath}/oid4vp/request/{{request_id}}", get_request),

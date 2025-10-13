@@ -57,9 +57,7 @@ async def test_issuer_metadata(context: AdminRequestContext, req: web.Request):
         mock_web.json_response.assert_called_once_with(
             {
                 "credential_issuer": f"http://localhost:8020/tenant/{wallet_id}",
-                "authorization_servers": [
-                    "http://localhost:9001/tenants/538451fa-11ab-41de-b6e3-7ae3df7356d6"
-                ],
+                "authorization_servers": ["http://localhost:9001"],
                 "credential_endpoint": f"http://localhost:8020/tenant/{wallet_id}/credential",
                 "notification_endpoint": f"http://localhost:8020/tenant/{wallet_id}/notification",
                 "credential_configurations_supported": {
