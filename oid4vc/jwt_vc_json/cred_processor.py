@@ -10,7 +10,6 @@ from acapy_agent.core.profile import Profile
 from pydid import DIDUrl
 
 from oid4vc.cred_processor import (
-    CredProcessorError,
     CredVerifier,
     Issuer,
     PresVerifier,
@@ -21,7 +20,6 @@ from oid4vc.models.exchange import OID4VCIExchangeRecord
 from oid4vc.models.presentation import OID4VPPresentation
 from oid4vc.models.supported_cred import SupportedCredential
 from oid4vc.pop_result import PopResult
-from oid4vc.public_routes import types_are_subset
 from oid4vc.status_handler import StatusHandler
 
 LOGGER = logging.getLogger(__name__)
@@ -40,8 +38,6 @@ class JwtVcJsonCredProcessor(Issuer, CredVerifier, PresVerifier):
     ) -> Any:
         """Return signed credential in JWT format."""
         assert supported.format_data
-        if not types_are_subset(body.get("types"), supported.format_data.get("types")):
-            raise CredProcessorError("Requested types does not match offer.")
 
         current_time = datetime.datetime.now(datetime.timezone.utc)
         current_time_unix_timestamp = int(current_time.timestamp())

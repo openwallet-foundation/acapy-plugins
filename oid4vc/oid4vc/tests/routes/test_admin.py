@@ -27,7 +27,7 @@ async def test_credential_supported_create(context: AdminRequestContext):
                 "id": "MyCredential",
                 "format_data": {
                     "credentialSubject": {"name": "alice"},
-                    "types": ["VerifiableCredential", "MyCredential"],
+                    "type": ["VerifiableCredential", "MyCredential"],
                 },
                 "cryptographic_binding_methods_supported": ["proof"],
                 "cryptographic_suites_supported": ["ES256"],
@@ -48,5 +48,5 @@ async def test_credential_supported_create(context: AdminRequestContext):
     assert record.identifier == "MyCredential"
     assert record.format_data == {
         "credentialSubject": {"name": "alice"},
-        "types": ["VerifiableCredential", "MyCredential"],
+        "type": ["VerifiableCredential", "MyCredential"],
     }

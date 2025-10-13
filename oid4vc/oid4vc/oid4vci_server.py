@@ -16,6 +16,7 @@ from acapy_agent.multitenant.base import BaseMultitenantManager
 from aiohttp import web
 from aiohttp_apispec import setup_aiohttp_apispec, validation_middleware
 
+from .app_resources import AppResources
 from .public_routes import register as public_routes_register
 
 LOGGER = logging.getLogger(__name__)
@@ -176,6 +177,7 @@ class Oid4vciServer(BaseAdminServer):
             await self.site.start()
             self.app._state["ready"] = True
             self.app._state["alive"] = True
+            await AppResources.startup()
         except OSError:
             raise AdminSetupError(
                 "Unable to start webserver with host "
@@ -188,6 +190,7 @@ class Oid4vciServer(BaseAdminServer):
         if self.site:
             await self.site.stop()
             self.site = None
+        await AppResources.shutdown()
 
     async def redirect_handler(self, request: web.BaseRequest):
         """Perform redirect to documentation."""

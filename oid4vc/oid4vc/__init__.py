@@ -12,12 +12,13 @@ from acapy_agent.wallet.key_type import KeyTypes
 
 from jwt_vc_json.cred_processor import JwtVcJsonCredProcessor
 from oid4vc.cred_processor import CredProcessors
-from .status_handler import StatusHandler
 
+from .app_resources import AppResources
 from .config import Config
 from .jwk import DID_JWK, P256
 from .jwk_resolver import JwkResolver
 from .oid4vci_server import Oid4vciServer
+from .status_handler import StatusHandler
 
 LOGGER = logging.getLogger(__name__)
 
@@ -64,6 +65,7 @@ async def startup(profile: Profile, event: Event):
             profile,
         )
         profile.context.injector.bind_instance(Oid4vciServer, oid4vci)
+        await AppResources.startup(config)
     except Exception:
         LOGGER.exception("Unable to register admin server")
         raise
@@ -76,3 +78,4 @@ async def shutdown(context: InjectionContext):
     """Teardown the plugin."""
     oid4vci = context.inject(Oid4vciServer)
     await oid4vci.stop()
+    await AppResources.shutdown()

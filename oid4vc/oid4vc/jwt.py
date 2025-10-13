@@ -100,7 +100,6 @@ async def jwt_sign(
         wallet = session.inject(BaseWallet)
         did_info = await wallet.get_local_did(did_lookup_name(did))
 
-        did_info = await wallet.get_local_did(did_lookup_name(did))
         if did_info.key_type == ED25519:
             headers["alg"] = "EdDSA"
         elif did_info.key_type == P256:
