@@ -259,7 +259,6 @@ async def test_issue_cred(monkeypatch, context, dummy_request):
     # Patch handle_proof_of_posession to return a verified PopResult
     mock_pop = MagicMock()
     mock_pop.verified = True
-    mock_pop.verified = True
     mock_pop.holder_kid = "did:example:123#key-1"
     monkeypatch.setattr(
         "oid4vc.public_routes.handle_proof_of_posession", AsyncMock(return_value=mock_pop)

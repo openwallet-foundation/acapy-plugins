@@ -248,7 +248,6 @@ async def receive_notification(request: web.Request):
                 record.state = OID4VCIExchangeRecord.STATE_DELETED
             else:
                 raise web.HTTPBadRequest(reason="invalid_notification_request")
-            record.state = body["event"]
             record.notification_event = {"event": event, "description": event_desc}
             await record.save(session, reason="Updated by notification")
         except (StorageError, BaseModelError, StorageNotFoundError) as err:

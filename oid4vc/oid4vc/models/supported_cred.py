@@ -49,7 +49,7 @@ class SupportedCredential(BaseRecord):
                 supported cryptographic suites.
             proof_types_supported (Optional[Dict]): A dict of supported proof types.
             display (Optional[List[Dict]]): Display characteristics of the credential.
-            format_data (Optional[Dict]): Format sepcific attributes; e.g.
+            format_data (Optional[Dict]): Format specific attributes; e.g.
                 credentialSubject for jwt_vc_json
             vc_additional_data (Optional[Dict]): Additional data to include in the
                 Verifiable Credential.
