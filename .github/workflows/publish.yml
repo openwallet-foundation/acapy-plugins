@@ -82,26 +82,8 @@ jobs:
         with:
           context: .
           file: |
-            # Multi-stage Dockerfile for ACA-Py with all plugins
-            FROM python:3.12-slim-bookworm AS base
-            
-            # Install minimal system dependencies
-            RUN apt-get update
-            RUN apt-get install -y --no-install-recommends build-essential libsqlcipher-dev
-            RUN apt-get clean
-            RUN rm -rf /var/lib/apt/lists/*
-            
-            # Create user
-            RUN useradd --create-home --shell /bin/bash acapy
-            
-            # Set working directory
-            WORKDIR /home/acapy
-            
-            # Install ACA-Py agent package from PyPI
-            RUN pip install --no-cache-dir acapy-agent==${{ steps.version.outputs.version }}
-            
-            # Stage 2: Install all plugins from this repository
-            FROM base AS plugins
+            # Dockerfile for ACA-Py with all plugins
+            FROM ghcr.io/openwallet-foundation/acapy-agent:py3.12-${{ steps.version.outputs.version }}
             
             USER root
             
