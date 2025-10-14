@@ -87,20 +87,16 @@ jobs:
             
             USER root
             
-            # Install all available plugins for the matching version
-            RUN pip install git+https://github.com/${{ github.repository }}@${{ steps.version.outputs.version }}#subdirectory=basicmessage_storage && \
-                pip install git+https://github.com/${{ github.repository }}@${{ steps.version.outputs.version }}#subdirectory=cheqd && \
-                pip install git+https://github.com/${{ github.repository }}@${{ steps.version.outputs.version }}#subdirectory=connection_update && \
-                pip install git+https://github.com/${{ github.repository }}@${{ steps.version.outputs.version }}#subdirectory=connections && \
-                pip install git+https://github.com/${{ github.repository }}@${{ steps.version.outputs.version }}#subdirectory=firebase_push_notifications && \
-                pip install git+https://github.com/${{ github.repository }}@${{ steps.version.outputs.version }}#subdirectory=hedera && \
-                pip install git+https://github.com/${{ github.repository }}@${{ steps.version.outputs.version }}#subdirectory=multitenant_provider && \
-                pip install git+https://github.com/${{ github.repository }}@${{ steps.version.outputs.version }}#subdirectory=oid4vc && \
-                pip install git+https://github.com/${{ github.repository }}@${{ steps.version.outputs.version }}#subdirectory=plugin_globals && \
-                pip install git+https://github.com/${{ github.repository }}@${{ steps.version.outputs.version }}#subdirectory=redis_events && \
-                pip install git+https://github.com/${{ github.repository }}@${{ steps.version.outputs.version }}#subdirectory=rpc && \
-                pip install git+https://github.com/${{ github.repository }}@${{ steps.version.outputs.version }}#subdirectory=status_list && \
-                pip install git+https://github.com/${{ github.repository }}@${{ steps.version.outputs.version }}#subdirectory=webvh
+            # Dynamically install all available plugins
+            RUN for plugin in */; do \
+                plugin_name=$$(basename "$$plugin"); \
+                if [ -f "$$plugin/pyproject.toml" ] || [ -f "$$plugin/setup.py" ]; then \
+                    echo "Installing plugin: $$plugin_name"; \
+                    pip install git+https://github.com/${{ github.repository }}@${{ steps.version.outputs.version }}#subdirectory=$$plugin_name; \
+                else \
+                    echo "Skipping $$plugin_name (not a plugin)"; \
+                fi; \
+            done
             
             USER acapy
             
