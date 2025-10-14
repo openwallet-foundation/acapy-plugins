@@ -77,30 +77,47 @@ jobs:
             type=raw,value=${{ steps.version.outputs.version }}
             type=raw,value=latest
 
-      - name: Create Dockerfile
+      - name: Discover plugins and create Dockerfile
         run: |
-          cat > Dockerfile << 'EOF'
+          # Discover all plugins (directories with pyproject.toml or setup.py)
+          PLUGINS=$(find . -maxdepth 1 -type d -name ".*" -prune -o -type d -print | while read dir; do
+            if [ -f "$dir/pyproject.toml" ] || [ -f "$dir/setup.py" ]; then
+              echo "$(basename "$dir")"
+            fi
+          done | tr '\n' ' ')
+          
+          echo "Found plugins: $PLUGINS"
+          
+          # Create Dockerfile
+          cat > Dockerfile << EOF
           # Dockerfile for ACA-Py with all plugins
           FROM ghcr.io/openwallet-foundation/acapy-agent:py3.12-${{ steps.version.outputs.version }}
           
           USER root
           
-          # Dynamically install all available plugins
-          RUN for plugin in */; do \
-              plugin_name=$$(basename "$$plugin"); \
-              if [ -f "$$plugin/pyproject.toml" ] || [ -f "$$plugin/setup.py" ]; then \
-                  echo "Installing plugin: $$plugin_name"; \
-                  pip install git+https://github.com/${{ github.repository }}@${{ steps.version.outputs.version }}#subdirectory=$$plugin_name; \
-              else \
-                  echo "Skipping $$plugin_name (not a plugin)"; \
-              fi; \
-          done
+          # Copy and install plugins from requirements.txt
+          COPY requirements.txt /tmp/requirements.txt
+          RUN pip install -r /tmp/requirements.txt
           
           USER acapy
           
           # Set entrypoint
           ENTRYPOINT ["aca-py", "start"]
           EOF
+          
+          # Create requirements file with plugin URLs
+          cat > requirements.txt << EOF
+          $(
+            find . -maxdepth 1 -type d -name ".*" -prune -o -type d -print | while read dir; do
+              if [ -f "$dir/pyproject.toml" ] || [ -f "$dir/setup.py" ]; then
+                echo "git+https://github.com/${{ github.repository }}@${{ steps.version.outputs.version }}#subdirectory=$(basename "$dir")"
+              fi
+            done
+          )
+          EOF
+          
+          echo "Generated requirements.txt:"
+          cat requirements.txt
 
       - name: Build and push Docker image with all plugins
         uses: docker/build-push-action@v6
