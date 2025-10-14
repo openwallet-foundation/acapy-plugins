@@ -28,6 +28,7 @@ class SupportedCredential(BaseRecord):
         identifier: Optional[str] = None,
         cryptographic_binding_methods_supported: Optional[List[str]] = None,
         cryptographic_suites_supported: Optional[List[str]] = None,
+        proof_types_supported: Optional[Dict] = None,
         display: Optional[List[Dict]] = None,
         format_data: Optional[Dict] = None,
         vc_additional_data: Optional[Dict] = None,
@@ -46,8 +47,9 @@ class SupportedCredential(BaseRecord):
                 list of supported cryptographic binding methods.
             cryptographic_suites_supported (Optional[List[str]]): A list of
                 supported cryptographic suites.
+            proof_types_supported (Optional[Dict]): A dict of supported proof types.
             display (Optional[List[Dict]]): Display characteristics of the credential.
-            format_data (Optional[Dict]): Format sepcific attributes; e.g.
+            format_data (Optional[Dict]): Format specific attributes; e.g.
                 credentialSubject for jwt_vc_json
             vc_additional_data (Optional[Dict]): Additional data to include in the
                 Verifiable Credential.
@@ -60,6 +62,7 @@ class SupportedCredential(BaseRecord):
             cryptographic_binding_methods_supported
         )
         self.cryptographic_suites_supported = cryptographic_suites_supported
+        self.proof_types_supported = proof_types_supported
         self.display = display
         self.format_data = format_data
         self.vc_additional_data = vc_additional_data
@@ -79,6 +82,7 @@ class SupportedCredential(BaseRecord):
                 "identifier",
                 "cryptographic_binding_methods_supported",
                 "cryptographic_suites_supported",
+                "proof_types_supported",
                 "display",
                 "format_data",
                 "vc_additional_data",
@@ -98,17 +102,25 @@ class SupportedCredential(BaseRecord):
                 "format",
                 "cryptographic_binding_methods_supported",
                 "cryptographic_suites_supported",
+                "proof_types_supported",
                 "display",
             )
             if (value := getattr(self, prop)) is not None
         }
-
+        alg_supported = issuer_metadata.pop("cryptographic_suites_supported", None)
+        if alg_supported:
+            issuer_metadata["credential_signing_alg_values_supported"] = alg_supported
         issuer_metadata["id"] = self.identifier
-
-        # Flatten the format specific metadata into the object
-        issuer_metadata = {
-            **issuer_metadata,
-            **(self.format_data or {}),
+        issuer_metadata["credential_definition"] = (
+            self.format_data if self.format_data else {}
+        )
+        context = issuer_metadata["credential_definition"].pop("context", None)
+        if context:
+            issuer_metadata["credential_definition"]["@context"] = context
+        issuer_metadata["credential_definition"] = {
+            k: v
+            for k, v in issuer_metadata["credential_definition"].items()
+            if v is not None
         }
         return issuer_metadata
 
@@ -134,6 +146,10 @@ class SupportedCredentialSchema(BaseRecordSchema):
     )
     cryptographic_suites_supported = fields.List(
         fields.Str(), metadata={"example": ["ES256K"]}
+    )
+    proof_types_supported = fields.Dict(
+        required=False,
+        metadata={"example": {"jwt": {"proof_signing_alg_values_supported": ["ES256"]}}},
     )
     display = fields.List(
         fields.Dict(),

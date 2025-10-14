@@ -34,16 +34,17 @@ DOCKER_DEFAULT_PLATFORM=linux/amd64 docker build -f ../docker/Dockerfile --tag o
 
 ### Demo Flow
 
-Navigate to `http://localhost:3002` in your browser. You will start at the landing page. The sidebar has buttons to take you to the issuance and presentation pages. 
+Navigate to `http://localhost:3002` in your browser. You will start at the landing page. The sidebar has buttons to take you to the issuance and presentation pages.
 
 1. Issue Credential
 
    - This page generates a simple `UniversityCredential` for issuance
-       - The demo obscures and automates the necessary `credential-supported/create` call, which is what defines the type and values of a credential that can be issued
+
+     - The demo obscures and automates the necessary `credential-supported/create` call, which is what defines the type and values of a credential that can be issued
 
    - Preparing a credential offer is simple:
-      - Enter your name and email, or use the test value provided, and hit `Register`
-      - Once you hit `Register`, you'll be automatically taken to the Credential Offer Page
+     - Enter your name and email, or use the test value provided, and hit `Register`
+     - Once you hit `Register`, you'll be automatically taken to the Credential Offer Page
 
 2. Credential Offer Page
    - Presents a credential offer in the form of a QR code.
@@ -145,7 +146,9 @@ controller ->> alice: redirect to success page
 end
 end
 ```
+
 ### Credential Presentation
+
 ```mermaid
 sequenceDiagram
 autonumber
@@ -164,13 +167,13 @@ admin ->> acapy: store presentation definition
 admin -->> controller: created presentation definition
 alice ->> controller: Hits web page initiating presentation
 controller ->> admin: POST /oid4vp/request
-admin ->> acapy: save request record associated <br/>with a particular pres def 
+admin ->> acapy: save request record associated <br/>with a particular pres def
 admin -->> controller: request URI
 controller ->> alice: QR Code
 alice ->> holder: Scan QR Code
 holder ->> public: GET /oid4vp/request/{request_id} (request uri in QR code)
 public -> acapy: retrieve stored request
-public -->> holder: request 
+public -->> holder: request
 holder ->> public: POST /oid4vp/response/{presentation_id}
 acapy ->> controller: POST /topic/oid4vp <br/>(state: presentation-valid/invalid)
 controller ->> holder: result
@@ -183,13 +186,17 @@ controller ->> holder: result
 The Plugin expects the following configuration options. These options can either be set by environment variable (`OID4VCI_*`) or by plugin config value (`-o oid4vci.*`).
 
 - `OID4VCI_HOST` or `oid4vci.host`
-    - Host used for the OpenID4VCI public server
+  - Host used for the OpenID4VCI public server
 - `OID4VCI_PORT` or `oid4vci.port`
-    - Port used for the OpenID4VCI public server
+  - Port used for the OpenID4VCI public server
 - `OID4VCI_ENDPOINT` or `oid4vci.endpoint`
-    - `credential_issuer` endpoint, seen in the Credential Offer
+  - `credential_issuer` endpoint, seen in the Credential Offer
 - `OID4VCI_CRED_HANDLER` or `oid4vci.cred_handler`
-    - Dict of credential handlers. e.g. `{"jwt_vc_json": "jwt_vc_json"}`
+  - Dict of credential handlers. e.g. `{"jwt_vc_json": "jwt_vc_json"}`
+- `OID4VCI_AUTH_SERVER_URL` or `oid4vci.auth_server_url`
+  - Optional authorization server URL
+- `OID4VCI_AUTH_SERVER_CLIENT` or `oid4vci.auth_server_client`
+  - Optional authorization server client credential, e.g. `{"auth_type": "client_secret_basic", "client_id": "client_id", "client_secret": "client_secret"}`
 
 ### Creating Supported Credential Records
 
@@ -197,12 +204,8 @@ To issue a credential using OpenID4VCI, the Issuer must first prepare credential
 
 ```json
 {
-  "cryptographic_binding_methods_supported": [
-    "did"
-  ],
-  "cryptographic_suites_supported": [
-    "ES256K"
-  ],
+  "cryptographic_binding_methods_supported": ["did"],
+  "cryptographic_suites_supported": ["ES256K"],
   "display": [
     {
       "name": "University Credential",
@@ -242,15 +245,12 @@ To issue a credential using OpenID4VCI, the Issuer must first prepare credential
       ]
     }
   },
-  "type": [
-    "VerifiableCredential",
-    "UniversityDegreeCredential"
-  ],
+  "type": ["VerifiableCredential", "UniversityDegreeCredential"],
   "id": "UniversityDegreeCredential",
   "@context": [
     "https://www.w3.org/2018/credentials/v1",
     "https://www.w3.org/2018/credentials/examples/v1"
-  ],
+  ]
 }
 ```
 
@@ -268,12 +268,8 @@ When the Controller sets up a Supported Credential record using the Admin API, t
   "credentials_supported": [
     {
       "format": "jwt_vc_json",
-      "cryptographic_binding_methods_supported": [
-        "did"
-      ],
-      "cryptographic_suites_supported": [
-        "ES256K"
-      ],
+      "cryptographic_binding_methods_supported": ["did"],
+      "cryptographic_suites_supported": ["ES256K"],
       "display": [
         {
           "name": "University Credential",
@@ -313,10 +309,7 @@ When the Controller sets up a Supported Credential record using the Admin API, t
           ]
         }
       },
-      "types": [
-        "VerifiableCredential",
-        "UniversityDegreeCredential"
-      ]
+      "types": ["VerifiableCredential", "UniversityDegreeCredential"]
     }
   ]
 }

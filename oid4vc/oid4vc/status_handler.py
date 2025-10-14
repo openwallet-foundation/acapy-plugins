@@ -2,8 +2,9 @@
 
 import logging
 
+from acapy_agent.config.injection_context import InjectionContext
 from acapy_agent.core.plugin_registry import PluginRegistry
-from acapy_agent.admin.request_context import AdminRequestContext
+
 from .config import Config
 
 logger = logging.getLogger(__name__)
@@ -12,7 +13,7 @@ logger = logging.getLogger(__name__)
 class StatusHandler:
     """Status handler class."""
 
-    def __init__(self, context: AdminRequestContext):
+    def __init__(self, context: InjectionContext):
         """Initialize the StatusHandler class."""
 
         self.context = context
@@ -20,6 +21,9 @@ class StatusHandler:
 
         config = Config.from_settings(context.settings)
         plugin_registry = context.inject_or(PluginRegistry)
+        if not plugin_registry:
+            logger.error("PluginRegistry is not available in the context.")
+            return
 
         if config and config.status_handler:
             status_handler_path = config.status_handler

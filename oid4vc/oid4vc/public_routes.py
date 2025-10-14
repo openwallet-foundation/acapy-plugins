@@ -14,6 +14,7 @@ from acapy_agent.admin.request_context import AdminRequestContext
 from acapy_agent.core.profile import Profile, ProfileSession
 from acapy_agent.messaging.models.base import BaseModelError
 from acapy_agent.messaging.models.openapi import OpenAPISchema
+from acapy_agent.messaging.util import datetime_now, datetime_to_str
 from acapy_agent.protocols.present_proof.dif.pres_exch import (
     PresentationDefinition,
 )
@@ -22,7 +23,7 @@ from acapy_agent.storage.error import StorageError, StorageNotFoundError
 from acapy_agent.wallet.base import BaseWallet, WalletError
 from acapy_agent.wallet.did_info import DIDInfo
 from acapy_agent.wallet.error import WalletNotFoundError
-from acapy_agent.wallet.jwt import JWTVerifyResult, b64_to_dict
+from acapy_agent.wallet.jwt import b64_to_dict
 from acapy_agent.wallet.key_type import ED25519
 from acapy_agent.wallet.util import b64_to_bytes, bytes_to_b64
 from aiohttp import web
@@ -40,7 +41,7 @@ from marshmallow import fields
 
 from oid4vc.dcql import DCQLQueryEvaluator
 from oid4vc.jwk import DID_JWK
-from oid4vc.jwt import jwt_sign, jwt_verify, key_material_for_kid
+from oid4vc.jwt import jwt_sign, jwt_verify, key_material_for_kid, JWTVerifyResult
 from oid4vc.models.dcql_query import DCQLQuery
 from oid4vc.models.presentation import OID4VPPresentation
 from oid4vc.models.presentation_definition import OID4VPPresDef
@@ -51,13 +52,16 @@ from oid4vc.pex import (
     PresentationSubmission,
 )
 
+from .app_resources import AppResources
 from .config import Config
 from .cred_processor import CredProcessorError, CredProcessors
 from .models.exchange import OID4VCIExchangeRecord
+from .models.nonce import Nonce
 from .models.supported_cred import SupportedCredential
 from .pop_result import PopResult
 from .routes import _parse_cred_offer, CredOfferQuerySchema, CredOfferResponseSchemaVal
 from .status_handler import StatusHandler
+from .utils import get_auth_header, get_tenant_subpath
 
 LOGGER = logging.getLogger(__name__)
 PRE_AUTHORIZED_CODE_GRANT_TYPE = "urn:ietf:params:oauth:grant-type:pre-authorized_code"
@@ -86,6 +90,14 @@ async def dereference_cred_offer(request: web.BaseRequest):
     )
 
 
+class BatchCredentialIssuanceSchema(OpenAPISchema):
+    """Batch credential issuance schema."""
+
+    batch_size = fields.Int(
+        required=True, metadata={"description": "The maximum array size for the proofs"}
+    )
+
+
 class CredentialIssuerMetadataSchema(OpenAPISchema):
     """Credential issuer metadata schema."""
 
@@ -93,21 +105,27 @@ class CredentialIssuerMetadataSchema(OpenAPISchema):
         required=True,
         metadata={"description": "The credential issuer endpoint."},
     )
+    authorization_servers = fields.List(
+        fields.Str(),
+        required=False,
+        metadata={"description": "The authorization server endpoint."},
+    )
     credential_endpoint = fields.Str(
         required=True,
         metadata={"description": "The credential endpoint."},
     )
-    credentials_supported = fields.List(
+    nonce_endpoint = fields.Str(
+        required=False,
+        metadata={"description": "The nonce endpoint."},
+    )
+    credential_configurations_supported = fields.List(
         fields.Dict(),
         metadata={"description": "The supported credentials."},
     )
-    authorization_server = fields.Str(
+    batch_credential_issuance = fields.Nested(
+        BatchCredentialIssuanceSchema,
         required=False,
-        metadata={"description": "The authorization server endpoint. Currently ignored."},
-    )
-    batch_credential_endpoint = fields.Str(
-        required=False,
-        metadata={"description": "The batch credential endpoint. Currently ignored."},
+        metadata={"description": "The batch credential issuance. Currently ignored."},
     )
 
 
@@ -125,17 +143,117 @@ async def credential_issuer_metadata(request: web.Request):
 
         wallet_id = request.match_info.get("wallet_id")
         subpath = f"/tenant/{wallet_id}" if wallet_id else ""
-        metadata = {
-            "credential_issuer": f"{public_url}{subpath}",
-            "credential_endpoint": f"{public_url}{subpath}/credential",
-            "credentials_supported": [
-                supported.to_issuer_metadata() for supported in credentials_supported
-            ],
+        metadata: dict[str, Any] = {"credential_issuer": f"{public_url}{subpath}"}
+        if config.auth_server_url:
+            auth_tenant_subpath = get_tenant_subpath(context.profile)
+            metadata["authorization_servers"] = [
+                f"{config.auth_server_url}{auth_tenant_subpath}"
+            ]
+        metadata["credential_endpoint"] = f"{public_url}{subpath}/credential"
+        metadata["notification_endpoint"] = f"{public_url}{subpath}/notification"
+        metadata["credential_configurations_supported"] = {
+            supported.identifier: supported.to_issuer_metadata()
+            for supported in credentials_supported
         }
 
     LOGGER.debug("METADATA: %s", metadata)
 
     return web.json_response(metadata)
+
+
+async def create_nonce(profile: Profile, nbytes: int, ttl: int) -> Nonce:
+    """Create and store a fresh nonce."""
+    nonce = token_urlsafe(nbytes)
+    issued_at = datetime_now()
+    expires_at = issued_at + datetime.timedelta(seconds=ttl)
+    issued_at_str = datetime_to_str(issued_at)
+    expires_at_str = datetime_to_str(expires_at)
+
+    if issued_at_str is None or expires_at_str is None:
+        raise web.HTTPInternalServerError(reason="Could not generate timestamps")
+
+    nonce_record = Nonce(
+        nonce_value=nonce,
+        used=False,
+        issued_at=issued_at_str,
+        expires_at=expires_at_str,
+    )
+    async with profile.session() as session:
+        await nonce_record.save(session=session, reason="Created new nonce")
+
+    return nonce_record
+
+
+@docs(tags=["oid4vci"], summary="Get a fresh nonce for proof of possession")
+async def get_nonce(request: web.Request):
+    """Get a fresh nonce for proof of possession."""
+    context: AdminRequestContext = request["context"]
+    nonce = await create_nonce(context.profile, NONCE_BYTES, EXPIRES_IN)
+
+    return web.json_response(
+        {
+            "c_nonce": nonce.nonce_value,
+            "expires_in": EXPIRES_IN,
+        }
+    )
+
+
+class NotificationSchema(OpenAPISchema):
+    """Schema for notification endpoint."""
+
+    notification_id = fields.Str(
+        required=True,
+        metadata={"description": "Notification identifier", "example": "3fwe98js"},
+    )
+    event = fields.Str(
+        required=True,
+        metadata={
+            "description": (
+                "Type of the notification event, value is one of: "
+                "'credential_accepted', 'credential_failure', or 'credential_deleted'"
+            ),
+            "example": "credential_accepted",
+        },
+    )
+    event_description = fields.Str(
+        required=False, metadata={"description": "Human-readable ASCII [USASCII] text"}
+    )
+
+
+@docs(tags=["oid4vci"], summary="Send a notification to the user")
+@request_schema(NotificationSchema())
+async def receive_notification(request: web.Request):
+    """Send a notification to the user."""
+    body = await request.json()
+    LOGGER.debug(f"Notification request: {body}")
+
+    context: AdminRequestContext = request["context"]
+    if not await check_token(context, request.headers.get("Authorization")):
+        raise web.HTTPUnauthorized(reason="invalid_token")
+
+    async with context.profile.session() as session:
+        try:
+            record = await OID4VCIExchangeRecord.retrieve_by_notification_id(
+                session, body.get("notification_id", None)
+            )
+            if not record:
+                raise web.HTTPBadRequest(reason="invalid_notification_id")
+            event = body.get("event", None)
+            event_desc = body.get("event_description", None)
+            if event == "credential_accepted":
+                record.state = OID4VCIExchangeRecord.STATE_ACCEPTED
+            elif event == "credential_failure":
+                record.state = OID4VCIExchangeRecord.STATE_FAILED
+            elif event == "credential_deleted":
+                record.state = OID4VCIExchangeRecord.STATE_DELETED
+            else:
+                raise web.HTTPBadRequest(reason="invalid_notification_request")
+            record.notification_event = {"event": event, "description": event_desc}
+            await record.save(session, reason="Updated by notification")
+        except (StorageError, BaseModelError, StorageNotFoundError) as err:
+            raise web.HTTPBadRequest(reason=err.roll_up) from err
+
+    return web.Response(status=204)
 
 
 class GetTokenSchema(OpenAPISchema):
@@ -155,6 +273,13 @@ class GetTokenSchema(OpenAPISchema):
 @form_schema(GetTokenSchema())
 async def token(request: web.Request):
     """Token endpoint to exchange pre_authorized codes for access tokens."""
+    context = request["context"]
+    config = Config.from_settings(context.settings)
+    if config.auth_server_url:
+        subpath = get_tenant_subpath(context.profile)
+        token_url = f"{config.auth_server_url}{subpath}/token"
+        raise web.HTTPFound(location=token_url)
+
     context: AdminRequestContext = request["context"]
     form = await request.post()
     LOGGER.debug(f"Token request: {form}")
@@ -181,7 +306,7 @@ async def token(request: web.Request):
             raise web.HTTPBadRequest(reason="pin is invalid")
 
     payload = {
-        "id": record.exchange_id,
+        "sub": record.refresh_id,
         "exp": int(time.time()) + EXPIRES_IN,
     }
     async with context.profile.session() as session:
@@ -217,27 +342,55 @@ async def token(request: web.Request):
 
 
 async def check_token(
-    profile: Profile, auth_header: Optional[str] = None
+    context: AdminRequestContext,
+    bearer: Optional[str] = None,
 ) -> JWTVerifyResult:
     """Validate the OID4VCI token."""
-    if not auth_header:
-        raise web.HTTPUnauthorized()  # no authentication
-
-    scheme, cred = auth_header.split(" ")
+    if not bearer or not bearer.lower().startswith("bearer "):
+        raise web.HTTPUnauthorized()
+    try:
+        scheme, cred = bearer.split(" ", 1)
+    except ValueError:
+        raise web.HTTPUnauthorized()
     if scheme.lower() != "bearer":
-        raise web.HTTPUnauthorized()  # Invalid authentication credentials
+        raise web.HTTPUnauthorized()
 
-    result = await jwt_verify(profile, cred)
+    config = Config.from_settings(context.settings)
+    profile = context.profile
+
+    if config.auth_server_url:
+        subpath = get_tenant_subpath(profile, tenant_prefix="/tenant")
+        issuer_server_url = f"{config.endpoint}{subpath}"
+        auth_server_url = f"{config.auth_server_url}{get_tenant_subpath(profile)}"
+        introspect_endpoint = f"{auth_server_url}/introspect"
+        auth_header = await get_auth_header(
+            profile, config, issuer_server_url, introspect_endpoint
+        )
+        resp = await AppResources.get_http_client().post(
+            introspect_endpoint,
+            data={"token": cred},
+            headers={"Authorization": auth_header},
+        )
+        introspect = await resp.json()
+        if not introspect.get("active"):
+            raise web.HTTPUnauthorized(reason="invalid_token")
+        else:
+            result = JWTVerifyResult(headers={}, payload=introspect, verified=True)
+            return result
+
+    result = await jwt_verify(context.profile, cred)
     if not result.verified:
         raise web.HTTPUnauthorized()  # Invalid credentials
 
-    if result.payload["exp"] < datetime.datetime.utcnow().timestamp():
+    if result.payload["exp"] < datetime_now().timestamp():
         raise web.HTTPUnauthorized()  # Token expired
 
     return result
 
 
-async def handle_proof_of_posession(profile: Profile, proof: Dict[str, Any], nonce: str):
+async def handle_proof_of_posession(
+    profile: Profile, proof: Dict[str, Any], c_nonce: str | None = None
+):
     """Handle proof of posession."""
     encoded_headers, encoded_payload, encoded_signature = proof["jwt"].split(".", 3)
     headers = b64_to_dict(encoded_headers)
@@ -258,17 +411,20 @@ async def handle_proof_of_posession(profile: Profile, proof: Dict[str, Any], non
         raise web.HTTPBadRequest(reason="No key material in proof")
 
     payload = b64_to_dict(encoded_payload)
-
-    if nonce != payload.get("nonce"):
-        raise web.HTTPBadRequest(
-            reason="Invalid proof: wrong nonce.",
-        )
+    nonce = payload.get("nonce")
+    if c_nonce:
+        if c_nonce != nonce:
+            raise web.HTTPBadRequest(reason="Invalid proof: wrong nonce.")
+    else:
+        redeemed = await Nonce.redeem_by_value(profile.session(), nonce)
+        if not redeemed:
+            raise web.HTTPBadRequest(reason="Invalid proof: wrong or used nonce.")
 
     decoded_signature = b64_to_bytes(encoded_signature, urlsafe=True)
     verified = key.verify_signature(
         f"{encoded_headers}.{encoded_payload}".encode(),
         decoded_signature,
-        sig_type=headers.get("alg"),
+        sig_type=headers.get("alg", ""),
     )
     return PopResult(
         headers,
@@ -295,7 +451,7 @@ class IssueCredentialRequestSchema(OpenAPISchema):
         required=True,
         metadata={"description": "The client ID for the token request.", "example": ""},
     )
-    types = fields.List(
+    type = fields.List(
         fields.Str(),
         metadata={"description": ""},
     )
@@ -310,28 +466,50 @@ async def issue_cred(request: web.Request):
     As validated upon presentation of a valid Access Token.
     """
     context: AdminRequestContext = request["context"]
-    token_result = await check_token(
-        context.profile, request.headers.get("Authorization")
-    )
-    exchange_id = token_result.payload["id"]
+    token_result = await check_token(context, request.headers.get("Authorization"))
+    refresh_id = token_result.payload["sub"]
     body = await request.json()
     LOGGER.info(f"request: {body}")
     try:
         async with context.profile.session() as session:
-            ex_record = await OID4VCIExchangeRecord.retrieve_by_id(session, exchange_id)
+            ex_record = await OID4VCIExchangeRecord.retrieve_by_refresh_id(
+                session, refresh_id=refresh_id
+            )
+            if not ex_record:
+                raise StorageNotFoundError("No exchange record found")
+            is_offer = (
+                True
+                if ex_record.state == OID4VCIExchangeRecord.STATE_OFFER_CREATED
+                else False
+            )
             supported = await SupportedCredential.retrieve_by_id(
                 session, ex_record.supported_cred_id
             )
-    except (StorageError, BaseModelError, StorageNotFoundError) as err:
+    except StorageNotFoundError as err:
+        raise web.HTTPNotFound(reason="No credential offer available.") from err
+    except (StorageError, BaseModelError) as err:
         raise web.HTTPBadRequest(reason=err.roll_up) from err
+
+    if not supported.format:
+        raise web.HTTPBadRequest(reason="SupportedCredential missing format identifier.")
 
     if supported.format != body.get("format"):
         raise web.HTTPBadRequest(reason="Requested format does not match offer.")
 
-    if not supported.format:
-        raise web.HTTPBadRequest(reason="SupportedCredential missing format identifier")
+    authorization_details = token_result.payload.get("authorization_details", None)
+    if authorization_details:
+        found = any(
+            isinstance(ad, dict)
+            and ad.get("credential_configuration_id") == supported.identifier
+            for ad in authorization_details
+        )
+        if not found:
+            raise web.HTTPBadRequest(
+                reason=f"{supported.identifier} is not authorized by the token."
+            )
 
-    if ex_record.nonce is None:
+    c_nonce = token_result.payload.get("c_nonce") or ex_record.nonce
+    if c_nonce is None:
         raise web.HTTPBadRequest(
             reason="Invalid exchange; no offer created for this request"
         )
@@ -343,7 +521,8 @@ async def issue_cred(request: web.Request):
     if "proof" not in body:
         raise web.HTTPBadRequest(reason=f"proof is required for {supported.format}")
 
-    pop = await handle_proof_of_posession(context.profile, body["proof"], ex_record.nonce)
+    pop = await handle_proof_of_posession(context.profile, body["proof"], c_nonce)
+
     if not pop.verified:
         raise web.HTTPBadRequest(reason="Invalid proof")
 
@@ -363,12 +542,15 @@ async def issue_cred(request: web.Request):
         # But we'll leave it to the controller
         # await ex_record.delete_record(session)
 
-    return web.json_response(
-        {
-            "format": supported.format,
-            "credential": credential,
-        }
-    )
+    cred_response = {
+        "format": supported.format,
+        "credential": credential,
+        "notification_id": ex_record.notification_id,
+    }
+    if is_offer:
+        cred_response["refresh_id"] = ex_record.refresh_id
+
+    return web.json_response(cred_response)
 
 
 class OID4VPRequestIDMatchSchema(OpenAPISchema):
@@ -729,6 +911,7 @@ async def get_status_list(request: web.Request):
     if status_handler:
         status_list = await status_handler.get_status_list(context, list_number)
         return web.Response(text=status_list)
+    raise web.HTTPNotFound(reason="Status handler not available")
 
 
 async def register(app: web.Application, multitenant: bool, context: InjectionContext):
@@ -751,6 +934,7 @@ async def register(app: web.Application, multitenant: bool, context: InjectionCo
         # TODO Add .well-known/did-configuration.json
         # Spec: https://identity.foundation/.well-known/resources/did-configuration/
         web.post(f"{subpath}/token", token),
+        web.post(f"{subpath}/notification", receive_notification),
         web.post(f"{subpath}/credential", issue_cred),
         web.get(f"{subpath}/oid4vp/request/{{request_id}}", get_request),
         web.post(f"{subpath}/oid4vp/response/{{presentation_id}}", post_response),

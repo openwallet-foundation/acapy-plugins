@@ -2,7 +2,7 @@
 
 import json
 from dataclasses import dataclass
-from typing import Dict, List, Literal, Optional, Union
+from typing import Dict, List, Literal, Optional, Union, Any
 from urllib.parse import parse_qsl, urlparse
 
 from aiohttp import ClientSession
@@ -61,7 +61,7 @@ class IssuerMetadata:
 
     credential_endpoint: str
     token_endpoint: str
-    credentials_supported: List[dict]
+    credential_configurations_supported: dict[str, Any]
 
 
 @dataclass
@@ -101,7 +101,7 @@ class OpenID4VCIClient:
         return IssuerMetadata(
             metadata["credential_endpoint"],
             token_endpoint,
-            metadata["credentials_supported"],
+            metadata["credential_configurations_supported"],
         )
 
     async def request_token(self, offer: CredentialOffer, metadata: IssuerMetadata):

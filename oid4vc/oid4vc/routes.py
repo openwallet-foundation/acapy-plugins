@@ -9,6 +9,7 @@ from urllib.parse import quote
 from acapy_agent.admin.decorators.auth import tenant_authentication
 from acapy_agent.admin.request_context import AdminRequestContext
 from acapy_agent.askar.profile import AskarProfileSession
+from acapy_agent.core.profile import Profile
 from acapy_agent.messaging.models.base import BaseModelError
 from acapy_agent.messaging.models.openapi import OpenAPISchema
 from acapy_agent.messaging.valid import (
@@ -18,7 +19,6 @@ from acapy_agent.messaging.valid import (
 )
 from acapy_agent.storage.error import StorageError, StorageNotFoundError
 from acapy_agent.wallet.base import BaseWallet
-from acapy_agent.core.profile import Profile
 from acapy_agent.wallet.default_verification_key_strategy import (
     BaseVerificationKeyStrategy,
 )
@@ -38,6 +38,7 @@ from aries_askar import Key, KeyAlg
 from marshmallow import fields
 from marshmallow.validate import OneOf
 
+
 from oid4vc.cred_processor import CredProcessors
 from oid4vc.jwk import DID_JWK, P256
 from oid4vc.models.dcql_query import (
@@ -51,12 +52,14 @@ from oid4vc.models.presentation import OID4VPPresentation, OID4VPPresentationSch
 from oid4vc.models.presentation_definition import OID4VPPresDef, OID4VPPresDefSchema
 from oid4vc.models.request import OID4VPRequest, OID4VPRequestSchema
 
+from .app_resources import AppResources
 from .config import Config
 from .models.exchange import OID4VCIExchangeRecord, OID4VCIExchangeRecordSchema
 from .models.supported_cred import SupportedCredential, SupportedCredentialSchema
+from .utils import get_auth_header, get_tenant_subpath
 
 VCI_SPEC_URI = (
-    "https://openid.net/specs/openid-4-verifiable-credential-issuance-1_0-11.html"
+    "https://openid.net/specs/openid-4-verifiable-credential-issuance-1_0-13.html"
 )
 VP_SPEC_URI = "https://openid.net/specs/openid-4-verifiable-presentations-1_0-ID2.html"
 LOGGER = logging.getLogger(__name__)
@@ -168,14 +171,7 @@ class ExchangeRecordCreateRequestSchema(OpenAPISchema):
     )
 
 
-@docs(
-    tags=["oid4vci"],
-    summary=("Create a credential exchange record"),
-)
-@request_schema(ExchangeRecordCreateRequestSchema())
-@response_schema(OID4VCIExchangeRecordSchema())
-@tenant_authentication
-async def exchange_create(request: web.Request):
+async def create_exchange(request: web.Request, refresh_id: str | None = None):
     """Request handler for creating a credential from attr values.
 
     The internal credential record will be created without the credential
@@ -183,6 +179,7 @@ async def exchange_create(request: web.Request):
 
     Args:
         request: aiohttp request object
+        refresh_id: optional refresh identifier for the exchange record
 
     Returns:
         The credential exchange record
@@ -238,6 +235,7 @@ async def exchange_create(request: web.Request):
     except ValueError as err:
         raise web.HTTPBadRequest(reason=str(err)) from err
 
+    notification_id = secrets.token_urlsafe(CODE_BYTES)
     record = OID4VCIExchangeRecord(
         supported_cred_id=supported_cred_id,
         credential_subject=credential_subject,
@@ -245,13 +243,76 @@ async def exchange_create(request: web.Request):
         state=OID4VCIExchangeRecord.STATE_CREATED,
         verification_method=verification_method,
         issuer_id=issuer_id,
+        refresh_id=refresh_id,
+        notification_id=notification_id,
     )
     LOGGER.debug(f"Created exchange record: {record}")
 
     async with context.session() as session:
         await record.save(session, reason="New OpenID4VCI exchange")
 
+    return record
+
+
+@docs(
+    tags=["oid4vci"],
+    summary=("Create a credential exchange record"),
+)
+@request_schema(ExchangeRecordCreateRequestSchema())
+@response_schema(OID4VCIExchangeRecordSchema())
+@tenant_authentication
+async def exchange_create(request: web.Request):
+    """Request handler for creating a credential from attr values."""
+
+    record = await create_exchange(request)
     return web.json_response(record.serialize())
+
+
+class ExchangeRefreshIDMatchSchema(OpenAPISchema):
+    """Path parameters and validators for request taking credential exchange id."""
+
+    refresh_id = fields.Str(
+        required=True,
+        metadata={
+            "description": "Credential refresh identifier",
+        },
+    )
+
+
+@docs(
+    tags=["oid4vci"],
+    summary=("Patch a credential exchange record"),
+)
+@match_info_schema(ExchangeRefreshIDMatchSchema())
+@request_schema(ExchangeRecordCreateRequestSchema())
+@response_schema(OID4VCIExchangeRecordSchema())
+@tenant_authentication
+async def credential_refresh(request: web.Request):
+    """Request handler for creating a refresh credential from attr values."""
+    context: AdminRequestContext = request["context"]
+    refresh_id = request.match_info["refresh_id"]
+
+    try:
+        async with context.session() as session:
+            try:
+                existing = await OID4VCIExchangeRecord.retrieve_by_refresh_id(
+                    session=session,
+                    refresh_id=refresh_id,
+                    for_update=True,
+                )
+                if existing:
+                    if existing.state == OID4VCIExchangeRecord.STATE_OFFER_CREATED:
+                        raise web.HTTPBadRequest(reason="Offer exists; cannot refresh.")
+                    else:
+                        existing.state = OID4VCIExchangeRecord.STATE_SUPERCEDED
+                        await existing.save(session, reason="Superceded by new request.")
+            except StorageNotFoundError:
+                pass
+        record = await create_exchange(request, refresh_id)
+        return web.json_response(record.serialize())
+
+    except (StorageError, BaseModelError) as err:
+        raise web.HTTPBadRequest(reason=err.roll_up) from err
 
 
 class ExchangeRecordIDMatchSchema(OpenAPISchema):
@@ -375,22 +436,67 @@ class CredOfferResponseSchemaRef(OpenAPISchema):
     offer = fields.Nested(CredOfferSchema(), required=True)
 
 
+async def _create_pre_auth_code(
+    profile: Profile,
+    config: Config,
+    subject_id: str,
+    credential_configuration_id: str | None = None,
+    user_pin: str | None = None,
+) -> str:
+    """Create a secure random pre-authorized code."""
+
+    if config.auth_server_url:
+        subpath = get_tenant_subpath(profile, tenant_prefix="/tenant")
+        issuer_server_url = f"{config.endpoint}{subpath}"
+
+        auth_server_url = f"{config.auth_server_url}{get_tenant_subpath(profile)}"
+        grants_endpoint = f"{auth_server_url}/grants/pre-authorized-code"
+
+        auth_header = await get_auth_header(
+            profile, config, issuer_server_url, grants_endpoint
+        )
+        user_pin_required = user_pin is not None
+        resp = await AppResources.get_http_client().post(
+            grants_endpoint,
+            json={
+                "subject_id": subject_id,
+                "user_pin_required": user_pin_required,
+                "user_pin": user_pin,
+                "authorization_details": [
+                    {
+                        "type": "openid_credential",
+                        "credential_configuration_id": credential_configuration_id,
+                    }
+                ],
+            },
+            headers={"Authorization": f"{auth_header}"},
+        )
+        data = await resp.json()
+        code = data["pre_authorized_code"]
+    else:
+        code = secrets.token_urlsafe(CODE_BYTES)
+    return code
+
+
 async def _parse_cred_offer(context: AdminRequestContext, exchange_id: str) -> dict:
     """Helper function for cred_offer request parsing.
 
     Used in get_cred_offer and public_routes.dereference_cred_offer endpoints.
     """
     config = Config.from_settings(context.settings)
-    code = secrets.token_urlsafe(CODE_BYTES)
-
     try:
         async with context.session() as session:
             record = await OID4VCIExchangeRecord.retrieve_by_id(session, exchange_id)
             supported = await SupportedCredential.retrieve_by_id(
                 session, record.supported_cred_id
             )
-
-            record.code = code
+            record.code = await _create_pre_auth_code(
+                context.profile,
+                config,
+                record.refresh_id,
+                supported.identifier,
+                record.pin,
+            )
             record.state = OID4VCIExchangeRecord.STATE_OFFER_CREATED
             await record.save(session, reason="Credential offer created")
     except (StorageError, BaseModelError) as err:
@@ -408,7 +514,7 @@ async def _parse_cred_offer(context: AdminRequestContext, exchange_id: str) -> d
         "credentials": [supported.identifier],
         "grants": {
             "urn:ietf:params:oauth:grant-type:pre-authorized_code": {
-                "pre-authorized_code": code,
+                "pre-authorized_code": record.code,
                 "user_pin_required": user_pin_required,
             }
         },
@@ -481,6 +587,10 @@ class SupportedCredCreateRequestSchema(OpenAPISchema):
     cryptographic_suites_supported = fields.List(
         fields.Str(), metadata={"example": ["ES256K"]}
     )
+    proof_types_supported = fields.Dict(
+        required=False,
+        metadata={"example": {"jwt": {"proof_signing_alg_values_supported": ["ES256"]}}},
+    )
     display = fields.List(
         fields.Dict(),
         metadata={
@@ -514,7 +624,7 @@ class SupportedCredCreateRequestSchema(OpenAPISchema):
                     "degree": {},
                     "gpa": {"display": [{"name": "GPA"}]},
                 },
-                "types": ["VerifiableCredential", "UniversityDegreeCredential"],
+                "type": ["VerifiableCredential", "UniversityDegreeCredential"],
             },
         },
     )
@@ -569,10 +679,10 @@ async def supported_credential_create(request: web.Request):
     body["identifier"] = body.pop("id")
 
     format_data: dict = body.get("format_data", {})
-    if format_data.get("vct") and format_data.get("types"):
+    if format_data.get("vct") and format_data.get("type"):
         raise web.HTTPBadRequest(
-            reason="Cannot have both `vct` and `types`. "
-            "`vct` is for SD JWT and `types` is for JWT VC"
+            reason="Cannot have both `vct` and `type`. "
+            "`vct` is for SD JWT and `type` is for JWT VC"
         )
 
     record = SupportedCredential(
@@ -610,6 +720,10 @@ class JwtSupportedCredCreateRequestSchema(OpenAPISchema):
     )
     cryptographic_suites_supported = fields.List(
         fields.Str(), metadata={"example": ["ES256K"]}
+    )
+    proof_types_supported = fields.Dict(
+        required=False,
+        metadata={"example": {"jwt": {"proof_signing_alg_values_supported": ["ES256"]}}},
     )
     display = fields.List(
         fields.Dict(),
@@ -696,7 +810,7 @@ async def supported_credential_create_jwt(request: web.Request):
     LOGGER.info(f"body: {body}")
     body["identifier"] = body.pop("id")
     format_data = {}
-    format_data["types"] = body.pop("type")
+    format_data["type"] = body.pop("type")
     format_data["credentialSubject"] = body.pop("credentialSubject", None)
     format_data["context"] = body.pop("@context")
     format_data["order"] = body.pop("order", None)
@@ -704,7 +818,7 @@ async def supported_credential_create_jwt(request: web.Request):
     vc_additional_data["@context"] = format_data["context"]
     # type vs types is deliberate; OID4VCI spec is inconsistent with VCDM
     # ~ in Draft 11, fixed in later drafts
-    vc_additional_data["type"] = format_data["types"]
+    vc_additional_data["type"] = format_data["type"]
 
     record = SupportedCredential(
         **body,
@@ -853,14 +967,14 @@ async def jwt_supported_cred_update_helper(
     format_data = {}
     vc_additional_data = {}
 
-    format_data["types"] = body.get("type")
+    format_data["type"] = body.get("type")
     format_data["credentialSubject"] = body.get("credentialSubject", None)
     format_data["context"] = body.get("@context")
     format_data["order"] = body.get("order", None)
     vc_additional_data["@context"] = format_data["context"]
     # type vs types is deliberate; OID4VCI spec is inconsistent with VCDM
     # ~ as of Draft 11, fixed in later drafts
-    vc_additional_data["type"] = format_data["types"]
+    vc_additional_data["type"] = format_data["type"]
 
     record.identifier = body["id"]
     record.format = body["format"]
@@ -870,6 +984,7 @@ async def jwt_supported_cred_update_helper(
     record.cryptographic_suites_supported = body.get(
         "cryptographic_suites_supported", None
     )
+    record.proof_types_supported = body.get("proof_types_supported", None)
     record.display = body.get("display", None)
     record.format_data = format_data
     record.vc_additional_data = vc_additional_data
@@ -1793,13 +1908,18 @@ async def register(app: web.Application):
                 get_cred_offer_by_ref,
                 allow_head=False,
             ),
+            web.patch("/oid4vci/credential-refresh/{refresh_id}", credential_refresh),
             web.get(
                 "/oid4vci/exchange/records",
                 list_exchange_records,
                 allow_head=False,
             ),
             web.post("/oid4vci/exchange/create", exchange_create),
-            web.get("/oid4vci/exchange/records/{exchange_id}", get_exchange_by_id),
+            web.get(
+                "/oid4vci/exchange/records/{exchange_id}",
+                get_exchange_by_id,
+                allow_head=False,
+            ),
             web.delete("/oid4vci/exchange/records/{exchange_id}", exchange_delete),
             web.post("/oid4vci/credential-supported/create", supported_credential_create),
             web.post(
@@ -1814,6 +1934,7 @@ async def register(app: web.Application):
             web.get(
                 "/oid4vci/credential-supported/records/{supported_cred_id}",
                 get_supported_credential_by_id,
+                allow_head=False,
             ),
             web.put(
                 "/oid4vci/credential-supported/records/jwt/{supported_cred_id}",
