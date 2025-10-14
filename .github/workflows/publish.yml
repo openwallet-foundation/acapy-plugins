@@ -1,5 +1,5 @@
 name: Publish ACA-Py with Plugins
-run-name: Publish ACA-Py ${{ github.event.release.tag_name }} with all plugins
+run-name: Publish ACA-Py ${{ github.event.release.tag_name || github.event.inputs.version }} with all plugins
 
 on:
   release:
@@ -17,7 +17,6 @@ permissions:
 
 jobs:
   build-and-publish:
-    runs-on: ubuntu-latest
     strategy:
       fail-fast: false
       matrix:
