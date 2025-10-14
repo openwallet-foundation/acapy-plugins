@@ -85,14 +85,11 @@ jobs:
             # Multi-stage Dockerfile for ACA-Py with all plugins
             FROM python:3.12-slim-bookworm AS base
             
-            # Install system dependencies
+            # Install minimal system dependencies
             RUN apt-get update && \
                 apt-get install -y --no-install-recommends \
                 build-essential \
-                g++ \
-                gcc \
-                libsqlcipher-dev \
-                libsqlite3-dev && \
+                libsqlcipher-dev && \
                 apt-get clean && \
                 rm -rf /var/lib/apt/lists/*
             
