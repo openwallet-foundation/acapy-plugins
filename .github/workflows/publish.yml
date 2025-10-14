@@ -81,33 +81,11 @@ jobs:
             type=raw,value=${{ steps.version.outputs.version }}
             type=raw,value=latest
 
-      - name: Discover plugins and create Dockerfile
+      - name: Create Dockerfile from plugin manifest
         run: |
-          # List all directories to debug
-          echo "All directories in repository:"
-          ls -la
-          
-          # Discover all plugins (directories with pyproject.toml or setup.py)
-          echo "Looking for plugin directories..."
-          PLUGIN_DIRS=""
-          for dir in */; do
-            if [ -d "$dir" ] && [ "$dir" != "./" ] && [ "$dir" != "../" ]; then
-              plugin_name=$(basename "$dir")
-              echo "Checking directory: $plugin_name"
-              if [ -f "$dir/pyproject.toml" ] || [ -f "$dir/setup.py" ]; then
-                echo "Found plugin: $plugin_name"
-                PLUGIN_DIRS="$PLUGIN_DIRS $plugin_name"
-              else
-                echo "Skipping $plugin_name (not a plugin)"
-              fi
-            fi
-          done
-          
-          echo "Found plugins: $PLUGIN_DIRS"
-          
           # Create Dockerfile
           cat > Dockerfile << EOF
-          # Dockerfile for ACA-Py with all plugins
+          # Dockerfile for ACA-Py with plugins from manifest
           FROM ghcr.io/openwallet-foundation/acapy-agent:py3.12-${{ steps.version.outputs.version }}
           
           USER root
@@ -122,19 +100,14 @@ jobs:
           ENTRYPOINT ["aca-py", "start"]
           EOF
           
-          # Create requirements file with plugin URLs
-          cat > requirements.txt << EOF
-          $(
-            for dir in */; do
-              if [ -d "$dir" ] && [ "$dir" != "./" ] && [ "$dir" != "../" ]; then
-                plugin_name=$(basename "$dir")
-                if [ -f "$dir/pyproject.toml" ] || [ -f "$dir/setup.py" ]; then
-                  echo "git+https://github.com/${{ github.repository }}@${{ steps.version.outputs.version }}#subdirectory=$plugin_name"
-                fi
-              fi
-            done
-          )
-          EOF
+          # Create requirements.txt from plugin manifest
+          if [ -f "plugins.json" ]; then
+            echo "Using plugins.json manifest"
+            jq -r '.plugins[] | "git+https://github.com/${{ github.repository }}@${{ steps.version.outputs.version }}#subdirectory=" + .' plugins.json > requirements.txt
+          else
+            echo "No plugins.json found, creating empty requirements.txt"
+            touch requirements.txt
+          fi
           
           echo "Generated requirements.txt:"
           cat requirements.txt
