@@ -81,18 +81,41 @@ jobs:
             type=raw,value=${{ steps.version.outputs.version }}
             type=raw,value=latest
 
-      - name: Create Dockerfile from plugin manifest
+      - name: Create Dockerfile with static plugin list
         run: |
-          # Create Dockerfile
+          # Define plugins to install
+          PLUGINS=(
+            "basicmessage_storage"
+            "cheqd"
+            "connection_update"
+            "connections"
+            "firebase_push_notifications"
+            "hedera"
+            "multitenant_provider"
+            "oid4vc"
+            "plugin_globals"
+            "redis_events"
+            "rpc"
+            "status_list"
+            "webvh"
+          )
+          
+          # Create Dockerfile with build args
           cat > Dockerfile << EOF
-          # Dockerfile for ACA-Py with plugins from manifest
+          # Dockerfile for ACA-Py with plugins
           FROM ghcr.io/openwallet-foundation/acapy-agent:py3.12-${{ steps.version.outputs.version }}
+          
+          ARG PLUGINS
+          ARG REPO_URL
+          ARG VERSION
           
           USER root
           
-          # Copy and install plugins from requirements.txt
-          COPY requirements.txt /tmp/requirements.txt
-          RUN pip install -r /tmp/requirements.txt
+          # Install plugins individually
+          RUN for plugin in \$PLUGINS; do \\
+              echo "Installing plugin: \$plugin"; \\
+              pip install git+\$REPO_URL@\$VERSION#subdirectory=/\$plugin; \\
+          done
           
           USER acapy
           
@@ -100,22 +123,16 @@ jobs:
           ENTRYPOINT ["aca-py", "start"]
           EOF
           
-          # Create requirements.txt from plugin manifest
-          if [ -f "plugins.json" ]; then
-            echo "Using plugins.json manifest"
-            jq -r '.plugins[] | "git+https://github.com/${{ github.repository }}@${{ steps.version.outputs.version }}#subdirectory=" + .' plugins.json > requirements.txt
-          else
-            echo "No plugins.json found, creating empty requirements.txt"
-            touch requirements.txt
-          fi
-          
-          echo "Generated requirements.txt:"
-          cat requirements.txt
+          echo "Created Dockerfile with plugins: ${PLUGINS[*]}"
 
       - name: Build and push Docker image with all plugins
         uses: docker/build-push-action@v6
         with:
           context: .
+          build-args: |
+            PLUGINS=${PLUGINS[*]}
+            REPO_URL=https://github.com/${{ github.repository }}
+            VERSION=${{ steps.version.outputs.version }}
           file: ./Dockerfile
           platforms: linux/${{ matrix.arch }}
           push: true
