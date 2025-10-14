@@ -77,31 +77,36 @@ jobs:
             type=raw,value=${{ steps.version.outputs.version }}
             type=raw,value=latest
 
+      - name: Create Dockerfile
+        run: |
+          cat > Dockerfile << 'EOF'
+          # Dockerfile for ACA-Py with all plugins
+          FROM ghcr.io/openwallet-foundation/acapy-agent:py3.12-${{ steps.version.outputs.version }}
+          
+          USER root
+          
+          # Dynamically install all available plugins
+          RUN for plugin in */; do \
+              plugin_name=$$(basename "$$plugin"); \
+              if [ -f "$$plugin/pyproject.toml" ] || [ -f "$$plugin/setup.py" ]; then \
+                  echo "Installing plugin: $$plugin_name"; \
+                  pip install git+https://github.com/${{ github.repository }}@${{ steps.version.outputs.version }}#subdirectory=$$plugin_name; \
+              else \
+                  echo "Skipping $$plugin_name (not a plugin)"; \
+              fi; \
+          done
+          
+          USER acapy
+          
+          # Set entrypoint
+          ENTRYPOINT ["aca-py", "start"]
+          EOF
+
       - name: Build and push Docker image with all plugins
         uses: docker/build-push-action@v6
         with:
           context: .
-          file: |
-            # Dockerfile for ACA-Py with all plugins
-            FROM ghcr.io/openwallet-foundation/acapy-agent:py3.12-${{ steps.version.outputs.version }}
-            
-            USER root
-            
-            # Dynamically install all available plugins
-            RUN for plugin in */; do \
-                plugin_name=$$(basename "$$plugin"); \
-                if [ -f "$$plugin/pyproject.toml" ] || [ -f "$$plugin/setup.py" ]; then \
-                    echo "Installing plugin: $$plugin_name"; \
-                    pip install git+https://github.com/${{ github.repository }}@${{ steps.version.outputs.version }}#subdirectory=$$plugin_name; \
-                else \
-                    echo "Skipping $$plugin_name (not a plugin)"; \
-                fi; \
-            done
-            
-            USER acapy
-            
-            # Set entrypoint
-            ENTRYPOINT ["aca-py", "start"]
+          file: ./Dockerfile
           platforms: linux/${{ matrix.arch }}
           push: true
           tags: ${{ steps.meta.outputs.tags }}
