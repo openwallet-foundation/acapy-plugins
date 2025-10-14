@@ -307,7 +307,7 @@ async def token(request: web.Request):
             raise web.HTTPBadRequest(reason="pin is invalid")
 
     payload = {
-        "sub": record.exchange_id,
+        "sub": record.refresh_id,
         "exp": int(time.time()) + EXPIRES_IN,
     }
     async with context.profile.session() as session:
