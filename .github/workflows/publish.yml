@@ -79,14 +79,27 @@ jobs:
 
       - name: Discover plugins and create Dockerfile
         run: |
-          # Discover all plugins (directories with pyproject.toml or setup.py)
-          PLUGINS=$(find . -maxdepth 1 -type d -name ".*" -prune -o -type d -print | while read dir; do
-            if [ -f "$dir/pyproject.toml" ] || [ -f "$dir/setup.py" ]; then
-              echo "$(basename "$dir")"
-            fi
-          done | tr '\n' ' ')
+          # List all directories to debug
+          echo "All directories in repository:"
+          ls -la
           
-          echo "Found plugins: $PLUGINS"
+          # Discover all plugins (directories with pyproject.toml or setup.py)
+          echo "Looking for plugin directories..."
+          PLUGIN_DIRS=""
+          for dir in */; do
+            if [ -d "$dir" ] && [ "$dir" != "./" ] && [ "$dir" != "../" ]; then
+              plugin_name=$(basename "$dir")
+              echo "Checking directory: $plugin_name"
+              if [ -f "$dir/pyproject.toml" ] || [ -f "$dir/setup.py" ]; then
+                echo "Found plugin: $plugin_name"
+                PLUGIN_DIRS="$PLUGIN_DIRS $plugin_name"
+              else
+                echo "Skipping $plugin_name (not a plugin)"
+              fi
+            fi
+          done
+          
+          echo "Found plugins: $PLUGIN_DIRS"
           
           # Create Dockerfile
           cat > Dockerfile << EOF
@@ -108,9 +121,12 @@ jobs:
           # Create requirements file with plugin URLs
           cat > requirements.txt << EOF
           $(
-            find . -maxdepth 1 -type d -name ".*" -prune -o -type d -print | while read dir; do
-              if [ -f "$dir/pyproject.toml" ] || [ -f "$dir/setup.py" ]; then
-                echo "git+https://github.com/${{ github.repository }}@${{ steps.version.outputs.version }}#subdirectory=$(basename "$dir")"
+            for dir in */; do
+              if [ -d "$dir" ] && [ "$dir" != "./" ] && [ "$dir" != "../" ]; then
+                plugin_name=$(basename "$dir")
+                if [ -f "$dir/pyproject.toml" ] || [ -f "$dir/setup.py" ]; then
+                  echo "git+https://github.com/${{ github.repository }}@${{ steps.version.outputs.version }}#subdirectory=$plugin_name"
+                fi
               fi
             done
           )
