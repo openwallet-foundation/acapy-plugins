@@ -15,7 +15,7 @@ from oid4vc.cred_processor import CredProcessors
 
 from .app_resources import AppResources
 from .config import Config
-from .jwk import DID_JWK, P256
+from .jwk import DID_JWK
 from .jwk_resolver import JwkResolver
 from .oid4vci_server import Oid4vciServer
 from .status_handler import StatusHandler
@@ -34,9 +34,6 @@ async def setup(context: InjectionContext):
 
     methods = context.inject(DIDMethods)
     methods.register(DID_JWK)
-
-    key_types = context.inject(KeyTypes)
-    key_types.register(P256)
 
     # Include jwt_vc_json by default
     jwt_vc_json = JwtVcJsonCredProcessor()

@@ -24,7 +24,7 @@ from acapy_agent.wallet.default_verification_key_strategy import (
 )
 from acapy_agent.wallet.did_info import DIDInfo
 from acapy_agent.wallet.jwt import nym_to_did
-from acapy_agent.wallet.key_type import KeyTypes
+from acapy_agent.wallet.key_type import KeyTypes, P256
 from acapy_agent.wallet.util import bytes_to_b64
 from aiohttp import web
 from aiohttp_apispec import (
@@ -40,7 +40,7 @@ from marshmallow.validate import OneOf
 
 
 from oid4vc.cred_processor import CredProcessors
-from oid4vc.jwk import DID_JWK, P256
+from oid4vc.jwk import DID_JWK
 from oid4vc.models.dcql_query import (
     CredentialQuery,
     CredentialQuerySchema,

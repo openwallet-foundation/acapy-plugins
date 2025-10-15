@@ -6,7 +6,7 @@ from typing import Any, Dict, Mapping, Optional
 from acapy_agent.core.profile import Profile
 from acapy_agent.resolver.did_resolver import DIDResolver, DIDUrl
 from acapy_agent.wallet.base import BaseWallet
-from acapy_agent.wallet.key_type import ED25519, KeyType
+from acapy_agent.wallet.key_type import ED25519, P256
 from acapy_agent.wallet.jwt import (
     BadJWSHeaderError,
     BaseVerificationKeyStrategy,
@@ -18,9 +18,6 @@ from acapy_agent.wallet.jwt import (
 )
 from acapy_agent.wallet.util import b58_to_bytes, bytes_to_b64
 from aries_askar import Key, KeyAlg
-
-
-P256: KeyType = KeyType("p256", "p256-pub", b"\x12\x00", jws_alg=None)
 
 
 @dataclass
