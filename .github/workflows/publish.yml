@@ -90,21 +90,20 @@ jobs:
           
           USER root
           
-          # Install plugins
-          RUN pip install \\
-              git+https://github.com/${{ github.repository }}@${{ steps.version.outputs.version }}#subdirectory=basicmessage_storage \\
-              git+https://github.com/${{ github.repository }}@${{ steps.version.outputs.version }}#subdirectory=cheqd \\
-              git+https://github.com/${{ github.repository }}@${{ steps.version.outputs.version }}#subdirectory=connection_update \\
-              git+https://github.com/${{ github.repository }}@${{ steps.version.outputs.version }}#subdirectory=connections \\
-              git+https://github.com/${{ github.repository }}@${{ steps.version.outputs.version }}#subdirectory=firebase_push_notifications \\
-              git+https://github.com/${{ github.repository }}@${{ steps.version.outputs.version }}#subdirectory=hedera \\
-              git+https://github.com/${{ github.repository }}@${{ steps.version.outputs.version }}#subdirectory=multitenant_provider \\
-              git+https://github.com/${{ github.repository }}@${{ steps.version.outputs.version }}#subdirectory=oid4vc \\
-              git+https://github.com/${{ github.repository }}@${{ steps.version.outputs.version }}#subdirectory=plugin_globals \\
-              git+https://github.com/${{ github.repository }}@${{ steps.version.outputs.version }}#subdirectory=redis_events \\
-              git+https://github.com/${{ github.repository }}@${{ steps.version.outputs.version }}#subdirectory=rpc \\
-              git+https://github.com/${{ github.repository }}@${{ steps.version.outputs.version }}#subdirectory=status_list \\
-              git+https://github.com/${{ github.repository }}@${{ steps.version.outputs.version }}#subdirectory=webvh
+          # Install plugins individually with latest dependencies
+          RUN pip install --force-reinstall --no-deps git+https://github.com/${{ github.repository }}@${{ steps.version.outputs.version }}#subdirectory=basicmessage_storage
+          RUN pip install --force-reinstall --no-deps git+https://github.com/${{ github.repository }}@${{ steps.version.outputs.version }}#subdirectory=cheqd
+          RUN pip install --force-reinstall --no-deps git+https://github.com/${{ github.repository }}@${{ steps.version.outputs.version }}#subdirectory=connection_update
+          RUN pip install --force-reinstall --no-deps git+https://github.com/${{ github.repository }}@${{ steps.version.outputs.version }}#subdirectory=connections
+          RUN pip install --force-reinstall --no-deps git+https://github.com/${{ github.repository }}@${{ steps.version.outputs.version }}#subdirectory=firebase_push_notifications
+          RUN pip install --force-reinstall --no-deps git+https://github.com/${{ github.repository }}@${{ steps.version.outputs.version }}#subdirectory=hedera
+          RUN pip install --force-reinstall --no-deps git+https://github.com/${{ github.repository }}@${{ steps.version.outputs.version }}#subdirectory=multitenant_provider
+          RUN pip install --force-reinstall --no-deps git+https://github.com/${{ github.repository }}@${{ steps.version.outputs.version }}#subdirectory=oid4vc
+          RUN pip install --force-reinstall --no-deps git+https://github.com/${{ github.repository }}@${{ steps.version.outputs.version }}#subdirectory=plugin_globals
+          RUN pip install --force-reinstall --no-deps git+https://github.com/${{ github.repository }}@${{ steps.version.outputs.version }}#subdirectory=redis_events
+          RUN pip install --force-reinstall --no-deps git+https://github.com/${{ github.repository }}@${{ steps.version.outputs.version }}#subdirectory=rpc
+          RUN pip install --force-reinstall --no-deps git+https://github.com/${{ github.repository }}@${{ steps.version.outputs.version }}#subdirectory=status_list
+          RUN pip install --force-reinstall --no-deps git+https://github.com/${{ github.repository }}@${{ steps.version.outputs.version }}#subdirectory=webvh
           
           USER acapy
           
