@@ -99,7 +99,6 @@ jobs:
           RUN pip install --force-reinstall --no-deps git+https://github.com/${{ github.repository }}@${{ steps.version.outputs.version }}#subdirectory=hedera
           RUN pip install --force-reinstall --no-deps git+https://github.com/${{ github.repository }}@${{ steps.version.outputs.version }}#subdirectory=multitenant_provider
           RUN pip install --force-reinstall --no-deps git+https://github.com/${{ github.repository }}@${{ steps.version.outputs.version }}#subdirectory=oid4vc
-          RUN pip install --force-reinstall --no-deps git+https://github.com/${{ github.repository }}@${{ steps.version.outputs.version }}#subdirectory=plugin_globals
           RUN pip install --force-reinstall --no-deps git+https://github.com/${{ github.repository }}@${{ steps.version.outputs.version }}#subdirectory=redis_events
           RUN pip install --force-reinstall --no-deps git+https://github.com/${{ github.repository }}@${{ steps.version.outputs.version }}#subdirectory=rpc
           RUN pip install --force-reinstall --no-deps git+https://github.com/${{ github.repository }}@${{ steps.version.outputs.version }}#subdirectory=status_list
