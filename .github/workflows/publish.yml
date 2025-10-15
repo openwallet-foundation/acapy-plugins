@@ -1,5 +1,5 @@
 name: Publish ACA-Py with Plugins
-run-name: Publish ACA-Py ${{ github.event.release.tag_name }} with all plugins
+run-name: Publish ACA-Py ${{ github.event.release.tag_name || github.event.inputs.version }} with all plugins
 
 on:
   release:
@@ -17,7 +17,6 @@ permissions:
 
 jobs:
   build-and-publish:
-    runs-on: ubuntu-latest
     strategy:
       fail-fast: false
       matrix:
@@ -44,16 +43,22 @@ jobs:
         with:
           python-version: ${{ matrix.python-version }}
 
-      - name: Extract version from release or input
+      - name: Extract version and Python version from pyproject.toml
         id: version
         run: |
-          if [ "${{ github.event_name }}" = "release" ]; then
-            VERSION="${{ github.event.release.tag_name }}"
-          else
-            VERSION="${{ github.event.inputs.version }}"
-          fi
+          # Extract package name from pyproject.toml
+          PACKAGE_NAME=$(grep '^name = ' pyproject.toml | sed 's/name = "\(.*\)"/\1/')
+          echo "package_name=$PACKAGE_NAME" >> $PACKAGE_NAME
+
+          # Extract version from pyproject.toml
+          VERSION=$(grep '^version = ' pyproject.toml | sed 's/version = "\(.*\)"/\1/')
           echo "version=$VERSION" >> $GITHUB_OUTPUT
-          echo "Building ACA-Py with plugins for version: $VERSION"
+          
+          # Extract Python version from pyproject.toml
+          PYTHON_VERSION=$(grep '^requires-python = ' pyproject.toml | sed 's/requires-python = ">=\([0-9]\+\.[0-9]\+\)"/\1/')
+          echo "python_version=$PYTHON_VERSION" >> $GITHUB_OUTPUT
+          
+          echo "Building ACA-Py plugins bundle for version: $VERSION with Python: $PYTHON_VERSION"
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
@@ -69,11 +74,15 @@ jobs:
           username: ${{ github.repository_owner }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
+      - name: Set lowercase repository owner
+        id: repo-owner
+        run: echo "owner=$(echo '${{ github.repository_owner }}' | tr '[:upper:]' '[:lower:]')" >> $GITHUB_OUTPUT
+
       - name: Extract metadata for Docker tags
         id: meta
         uses: docker/metadata-action@v5
         with:
-          images: ghcr.io/${{ github.repository_owner }}/acapy-agent
+          images: ghcr.io/${{ steps.repo-owner.outputs.owner }}/${{ steps.version.outputs.package_name }}
           tags: |
             type=raw,value=${{ steps.version.outputs.version }}
             type=raw,value=latest
@@ -82,54 +91,11 @@ jobs:
         uses: docker/build-push-action@v6
         with:
           context: .
-          file: |
-            # Multi-stage Dockerfile for ACA-Py with all plugins
-            FROM python:3.12-slim-bookworm AS base
-            
-            # Install system dependencies
-            RUN apt-get update && \
-                apt-get install -y --no-install-recommends \
-                build-essential \
-                g++ \
-                gcc \
-                libsqlcipher-dev \
-                libsqlite3-dev && \
-                apt-get clean && \
-                rm -rf /var/lib/apt/lists/*
-            
-            # Create user
-            RUN useradd --create-home --shell /bin/bash acapy
-            
-            # Set working directory
-            WORKDIR /home/acapy
-            
-            # Install ACA-Py agent package from PyPI
-            RUN pip install --no-cache-dir acapy-agent==${{ steps.version.outputs.version }}
-            
-            # Stage 2: Install all plugins from this repository
-            FROM base AS plugins
-            
-            USER root
-            
-            # Install all available plugins for the matching version
-            RUN pip install git+https://github.com/${{ github.repository }}@${{ steps.version.outputs.version }}#subdirectory=basicmessage_storage && \
-                pip install git+https://github.com/${{ github.repository }}@${{ steps.version.outputs.version }}#subdirectory=cheqd && \
-                pip install git+https://github.com/${{ github.repository }}@${{ steps.version.outputs.version }}#subdirectory=connection_update && \
-                pip install git+https://github.com/${{ github.repository }}@${{ steps.version.outputs.version }}#subdirectory=connections && \
-                pip install git+https://github.com/${{ github.repository }}@${{ steps.version.outputs.version }}#subdirectory=firebase_push_notifications && \
-                pip install git+https://github.com/${{ github.repository }}@${{ steps.version.outputs.version }}#subdirectory=hedera && \
-                pip install git+https://github.com/${{ github.repository }}@${{ steps.version.outputs.version }}#subdirectory=multitenant_provider && \
-                pip install git+https://github.com/${{ github.repository }}@${{ steps.version.outputs.version }}#subdirectory=oid4vc && \
-                pip install git+https://github.com/${{ github.repository }}@${{ steps.version.outputs.version }}#subdirectory=plugin_globals && \
-                pip install git+https://github.com/${{ github.repository }}@${{ steps.version.outputs.version }}#subdirectory=redis_events && \
-                pip install git+https://github.com/${{ github.repository }}@${{ steps.version.outputs.version }}#subdirectory=rpc && \
-                pip install git+https://github.com/${{ github.repository }}@${{ steps.version.outputs.version }}#subdirectory=status_list && \
-                pip install git+https://github.com/${{ github.repository }}@${{ steps.version.outputs.version }}#subdirectory=webvh
-            
-            USER acapy
-            
-            # Set entrypoint
-            ENTRYPOINT ["aca-py", "start"]
+          file: ./Dockerfile
+          build-args: |
+            ACA_PY_VERSION=${{ steps.version.outputs.version }}
+            REPO_OWNER=${{ github.repository_owner }}
+            PYTHON_VERSION=${{ steps.version.outputs.python_version }}
           platforms: linux/${{ matrix.arch }}
           push: true
           tags: ${{ steps.meta.outputs.tags }}
@@ -140,7 +106,7 @@ jobs:
       - name: Display published image info
         run: |
           echo "✅ Successfully published ACA-Py with all plugins"
-          echo "Image: ghcr.io/${{ github.repository_owner }}/acapy-agent:${{ steps.version.outputs.version }}"
+          echo "Image: ghcr.io/${{ github.repository_owner }}/${{ steps.version.outputs.package_name }}:${{ steps.version.outputs.version }}"
           echo "Architecture: ${{ matrix.arch }}"
           echo "Tags: ${{ steps.meta.outputs.tags }}"
 
@@ -179,24 +145,24 @@ jobs:
       - name: Create and push multi-arch manifest
         run: |
           docker manifest create \
-            ghcr.io/${{ github.repository_owner }}/acapy-agent:${{ steps.version.outputs.version }} \
-            --amend ghcr.io/${{ github.repository_owner }}/acapy-agent:${{ steps.version.outputs.version }}-amd64 \
-            --amend ghcr.io/${{ github.repository_owner }}/acapy-agent:${{ steps.version.outputs.version }}-arm64
+            ghcr.io/${{ github.repository_owner }}/${{ steps.version.outputs.package_name }}:${{ steps.version.outputs.version }} \
+            --amend ghcr.io/${{ github.repository_owner }}/${{ steps.version.outputs.package_name }}:${{ steps.version.outputs.version }}-amd64 \
+            --amend ghcr.io/${{ github.repository_owner }}/${{ steps.version.outputs.package_name }}:${{ steps.version.outputs.version }}-arm64
           
-          docker manifest push ghcr.io/${{ github.repository_owner }}/acapy-agent:${{ steps.version.outputs.version }}
+          docker manifest push ghcr.io/${{ github.repository_owner }}/${{ steps.version.outputs.package_name }}:${{ steps.version.outputs.version }}
           
           # Also update latest tag
           docker manifest create \
-            ghcr.io/${{ github.repository_owner }}/acapy-agent:latest \
-            --amend ghcr.io/${{ github.repository_owner }}/acapy-agent:${{ steps.version.outputs.version }}-amd64 \
-            --amend ghcr.io/${{ github.repository_owner }}/acapy-agent:${{ steps.version.outputs.version }}-arm64
+            ghcr.io/${{ github.repository_owner }}/${{ steps.version.outputs.package_name }}:latest \
+            --amend ghcr.io/${{ github.repository_owner }}/${{ steps.version.outputs.package_name }}:${{ steps.version.outputs.version }}-amd64 \
+            --amend ghcr.io/${{ github.repository_owner }}/${{ steps.version.outputs.package_name }}:${{ steps.version.outputs.version }}-arm64
           
-          docker manifest push ghcr.io/${{ github.repository_owner }}/acapy-agent:latest
+          docker manifest push ghcr.io/${{ github.repository_owner }}/${{ steps.version.outputs.package_name }}:latest
 
       - name: Display final image info
         run: |
           echo "🎉 Multi-architecture image published successfully!"
-          echo "Image: ghcr.io/${{ github.repository_owner }}/acapy-agent:${{ steps.version.outputs.version }}"
-          echo "Latest: ghcr.io/${{ github.repository_owner }}/acapy-agent:latest"
+          echo "Image: ghcr.io/${{ github.repository_owner }}/${{ steps.version.outputs.package_name }}:${{ steps.version.outputs.version }}"
+          echo "Latest: ghcr.io/${{ github.repository_owner }}/${{ steps.version.outputs.package_name }}:latest"
           echo "Architectures: amd64, arm64"
           echo "Version: ${{ steps.version.outputs.version }}"
