@@ -83,56 +83,39 @@ jobs:
 
       - name: Create Dockerfile with static plugin list
         run: |
-          # Define plugins to install
-          PLUGINS=(
-            "basicmessage_storage"
-            "cheqd"
-            "connection_update"
-            "connections"
-            "firebase_push_notifications"
-            "hedera"
-            "multitenant_provider"
-            "oid4vc"
-            "plugin_globals"
-            "redis_events"
-            "rpc"
-            "status_list"
-            "webvh"
-          )
-          
-          # Create Dockerfile with build args
+          # Create Dockerfile with static plugin list
           cat > Dockerfile << EOF
           # Dockerfile for ACA-Py with plugins
           FROM ghcr.io/openwallet-foundation/acapy-agent:py3.12-${{ steps.version.outputs.version }}
           
-          ARG PLUGINS
-          ARG REPO_URL
-          ARG VERSION
-          
           USER root
           
-          # Install plugins individually
-          RUN for plugin in \$PLUGINS; do \\
-              echo "Installing plugin: \$plugin"; \\
-              pip install git+\$REPO_URL@\$VERSION#subdirectory=/\$plugin; \\
-          done
+          # Install plugins
+          RUN pip install \\
+              git+https://github.com/${{ github.repository }}@${{ steps.version.outputs.version }}#subdirectory=/basicmessage_storage \\
+              git+https://github.com/${{ github.repository }}@${{ steps.version.outputs.version }}#subdirectory=/cheqd \\
+              git+https://github.com/${{ github.repository }}@${{ steps.version.outputs.version }}#subdirectory=/connection_update \\
+              git+https://github.com/${{ github.repository }}@${{ steps.version.outputs.version }}#subdirectory=/connections \\
+              git+https://github.com/${{ github.repository }}@${{ steps.version.outputs.version }}#subdirectory=/firebase_push_notifications \\
+              git+https://github.com/${{ github.repository }}@${{ steps.version.outputs.version }}#subdirectory=/hedera \\
+              git+https://github.com/${{ github.repository }}@${{ steps.version.outputs.version }}#subdirectory=/multitenant_provider \\
+              git+https://github.com/${{ github.repository }}@${{ steps.version.outputs.version }}#subdirectory=/oid4vc \\
+              git+https://github.com/${{ github.repository }}@${{ steps.version.outputs.version }}#subdirectory=/plugin_globals \\
+              git+https://github.com/${{ github.repository }}@${{ steps.version.outputs.version }}#subdirectory=/redis_events \\
+              git+https://github.com/${{ github.repository }}@${{ steps.version.outputs.version }}#subdirectory=/rpc \\
+              git+https://github.com/${{ github.repository }}@${{ steps.version.outputs.version }}#subdirectory=/status_list \\
+              git+https://github.com/${{ github.repository }}@${{ steps.version.outputs.version }}#subdirectory=/webvh
           
           USER acapy
           
           # Set entrypoint
           ENTRYPOINT ["aca-py", "start"]
           EOF
-          
-          echo "Created Dockerfile with plugins: ${PLUGINS[*]}"
 
       - name: Build and push Docker image with all plugins
         uses: docker/build-push-action@v6
         with:
           context: .
-          build-args: |
-            PLUGINS=${PLUGINS[*]}
-            REPO_URL=https://github.com/${{ github.repository }}
-            VERSION=${{ steps.version.outputs.version }}
           file: ./Dockerfile
           platforms: linux/${{ matrix.arch }}
           push: true
