@@ -73,7 +73,7 @@ jobs:
         id: meta
         uses: docker/metadata-action@v5
         with:
-          images: ghcr.io/${{ steps.repo-owner.outputs.owner }}/acapy-agent
+          images: ghcr.io/${{ steps.repo-owner.outputs.owner }}/acapy-plugins-bundle
           tags: |
             type=raw,value=${{ steps.version.outputs.version }}
             type=raw,value=latest
@@ -85,6 +85,7 @@ jobs:
           file: ./Dockerfile
           build-args: |
             ACA_PY_VERSION=${{ steps.version.outputs.version }}
+            REPO_OWNER=${{ github.repository_owner }}
           platforms: linux/${{ matrix.arch }}
           push: true
           tags: ${{ steps.meta.outputs.tags }}
