@@ -1,7 +1,0 @@
-{
-  "plugins": [
-    "acapy-plugin-toolbox",
-    "acapy-plugin-ledger-browser",
-    "acapy-plugin-didcomm-messaging"
-  ]
-}

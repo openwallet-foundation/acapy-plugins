@@ -43,16 +43,13 @@ jobs:
         with:
           python-version: ${{ matrix.python-version }}
 
-      - name: Extract version from release or input
+      - name: Extract version from pyproject.toml
         id: version
         run: |
-          if [ "${{ github.event_name }}" = "release" ]; then
-            VERSION="${{ github.event.release.tag_name }}"
-          else
-            VERSION="${{ github.event.inputs.version }}"
-          fi
+          # Extract version from pyproject.toml
+          VERSION=$(grep '^version = ' pyproject.toml | sed 's/version = "\(.*\)"/\1/')
           echo "version=$VERSION" >> $GITHUB_OUTPUT
-          echo "Building ACA-Py with plugins for version: $VERSION"
+          echo "Building ACA-Py plugins bundle for version: $VERSION"
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
@@ -81,40 +78,13 @@ jobs:
             type=raw,value=${{ steps.version.outputs.version }}
             type=raw,value=latest
 
-      - name: Create Dockerfile with static plugin list
-        run: |
-          # Create Dockerfile with static plugin list
-          cat > Dockerfile << EOF
-          # Dockerfile for ACA-Py with plugins
-          FROM ghcr.io/openwallet-foundation/acapy-agent:py3.12-${{ steps.version.outputs.version }}
-          
-          USER root
-          
-          # Install plugins individually with latest dependencies
-          RUN pip install --force-reinstall --no-deps git+https://github.com/${{ github.repository }}@${{ steps.version.outputs.version }}#subdirectory=basicmessage_storage
-          RUN pip install --force-reinstall --no-deps git+https://github.com/${{ github.repository }}@${{ steps.version.outputs.version }}#subdirectory=cheqd
-          RUN pip install --force-reinstall --no-deps git+https://github.com/${{ github.repository }}@${{ steps.version.outputs.version }}#subdirectory=connection_update
-          RUN pip install --force-reinstall --no-deps git+https://github.com/${{ github.repository }}@${{ steps.version.outputs.version }}#subdirectory=connections
-          RUN pip install --force-reinstall --no-deps git+https://github.com/${{ github.repository }}@${{ steps.version.outputs.version }}#subdirectory=firebase_push_notifications
-          RUN pip install --force-reinstall --no-deps git+https://github.com/${{ github.repository }}@${{ steps.version.outputs.version }}#subdirectory=hedera
-          RUN pip install --force-reinstall --no-deps git+https://github.com/${{ github.repository }}@${{ steps.version.outputs.version }}#subdirectory=multitenant_provider
-          RUN pip install --force-reinstall --no-deps git+https://github.com/${{ github.repository }}@${{ steps.version.outputs.version }}#subdirectory=oid4vc
-          RUN pip install --force-reinstall --no-deps git+https://github.com/${{ github.repository }}@${{ steps.version.outputs.version }}#subdirectory=redis_events
-          RUN pip install --force-reinstall --no-deps git+https://github.com/${{ github.repository }}@${{ steps.version.outputs.version }}#subdirectory=rpc
-          RUN pip install --force-reinstall --no-deps git+https://github.com/${{ github.repository }}@${{ steps.version.outputs.version }}#subdirectory=status_list
-          RUN pip install --force-reinstall --no-deps git+https://github.com/${{ github.repository }}@${{ steps.version.outputs.version }}#subdirectory=webvh
-          
-          USER acapy
-          
-          # Set entrypoint
-          ENTRYPOINT ["aca-py", "start"]
-          EOF
-
       - name: Build and push Docker image with all plugins
         uses: docker/build-push-action@v6
         with:
           context: .
           file: ./Dockerfile
+          build-args: |
+            ACA_PY_VERSION=${{ steps.version.outputs.version }}
           platforms: linux/${{ matrix.arch }}
           push: true
           tags: ${{ steps.meta.outputs.tags }}
