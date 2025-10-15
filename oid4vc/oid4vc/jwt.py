@@ -14,11 +14,9 @@ from acapy_agent.wallet.jwt import (
     nym_to_did,
 )
 from acapy_agent.wallet.jwt import b64_to_bytes, b64_to_dict
-from acapy_agent.wallet.key_type import ED25519
+from acapy_agent.wallet.key_type import ED25519, P256
 from acapy_agent.wallet.util import b58_to_bytes, bytes_to_b64
 from aries_askar import Key, KeyAlg
-
-from oid4vc.jwk import P256
 
 
 @dataclass
