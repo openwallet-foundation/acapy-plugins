@@ -1,0 +1,168 @@
+name: Publish ACA-Py with Plugins
+run-name: Publish ACA-Py ${{ github.event.release.tag_name || github.event.inputs.version }} with all plugins
+
+on:
+  release:
+    types: [published]
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'ACA-Py version to build'
+        required: true
+        type: string
+
+permissions:
+  contents: read
+  packages: write
+
+jobs:
+  build-and-publish:
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ["3.12"]
+        arch: ["amd64", "arm64"]
+        include:
+          - arch: amd64
+            runs-on: ubuntu-24.04
+          - arch: arm64
+            runs-on: ubuntu-24.04-arm
+
+    name: Build ACA-Py with Plugins (${{ matrix.arch }})
+    runs-on: ${{ matrix.runs-on }}
+    permissions:
+      contents: read
+      packages: write
+
+    steps:
+      - name: Checkout ACA-Py Plugins repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+
+      - name: Extract version and Python version from pyproject.toml
+        id: version
+        run: |
+          # Extract package name from pyproject.toml
+          PACKAGE_NAME=$(grep '^name = ' pyproject.toml | sed 's/name = "\(.*\)"/\1/')
+          echo "package_name=$PACKAGE_NAME" >> $PACKAGE_NAME
+
+          # Extract version from pyproject.toml
+          VERSION=$(grep '^version = ' pyproject.toml | sed 's/version = "\(.*\)"/\1/')
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+          
+          # Extract Python version from pyproject.toml
+          PYTHON_VERSION=$(grep '^requires-python = ' pyproject.toml | sed 's/requires-python = ">=\([0-9]\+\.[0-9]\+\)"/\1/')
+          echo "python_version=$PYTHON_VERSION" >> $GITHUB_OUTPUT
+          
+          echo "Building ACA-Py plugins bundle for version: $VERSION with Python: $PYTHON_VERSION"
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+        with:
+          cache-binary: false
+          install: true
+          version: latest
+
+      - name: Log in to GitHub Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.repository_owner }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Set lowercase repository owner
+        id: repo-owner
+        run: echo "owner=$(echo '${{ github.repository_owner }}' | tr '[:upper:]' '[:lower:]')" >> $GITHUB_OUTPUT
+
+      - name: Extract metadata for Docker tags
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ghcr.io/${{ steps.repo-owner.outputs.owner }}/${{ steps.version.outputs.package_name }}
+          tags: |
+            type=raw,value=${{ steps.version.outputs.version }}
+            type=raw,value=latest
+
+      - name: Build and push Docker image with all plugins
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: ./Dockerfile
+          build-args: |
+            ACA_PY_VERSION=${{ steps.version.outputs.version }}
+            REPO_OWNER=${{ github.repository_owner }}
+            PYTHON_VERSION=${{ steps.version.outputs.python_version }}
+          platforms: linux/${{ matrix.arch }}
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=gha,scope=acapy-plugins-${{ matrix.arch }}
+          cache-to: type=gha,scope=acapy-plugins-${{ matrix.arch }},mode=max
+
+      - name: Display published image info
+        run: |
+          echo "✅ Successfully published ACA-Py with all plugins"
+          echo "Image: ghcr.io/${{ github.repository_owner }}/${{ steps.version.outputs.package_name }}:${{ steps.version.outputs.version }}"
+          echo "Architecture: ${{ matrix.arch }}"
+          echo "Tags: ${{ steps.meta.outputs.tags }}"
+
+  publish-manifest:
+    needs: build-and-publish
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+
+    steps:
+      - name: Extract version
+        id: version
+        run: |
+          if [ "${{ github.event_name }}" = "release" ]; then
+            VERSION="${{ github.event.release.tag_name }}"
+          else
+            VERSION="${{ github.event.inputs.version }}"
+          fi
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+        with:
+          cache-binary: false
+          install: true
+          version: latest
+
+      - name: Log in to GitHub Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.repository_owner }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Create and push multi-arch manifest
+        run: |
+          docker manifest create \
+            ghcr.io/${{ github.repository_owner }}/${{ steps.version.outputs.package_name }}:${{ steps.version.outputs.version }} \
+            --amend ghcr.io/${{ github.repository_owner }}/${{ steps.version.outputs.package_name }}:${{ steps.version.outputs.version }}-amd64 \
+            --amend ghcr.io/${{ github.repository_owner }}/${{ steps.version.outputs.package_name }}:${{ steps.version.outputs.version }}-arm64
+          
+          docker manifest push ghcr.io/${{ github.repository_owner }}/${{ steps.version.outputs.package_name }}:${{ steps.version.outputs.version }}
+          
+          # Also update latest tag
+          docker manifest create \
+            ghcr.io/${{ github.repository_owner }}/${{ steps.version.outputs.package_name }}:latest \
+            --amend ghcr.io/${{ github.repository_owner }}/${{ steps.version.outputs.package_name }}:${{ steps.version.outputs.version }}-amd64 \
+            --amend ghcr.io/${{ github.repository_owner }}/${{ steps.version.outputs.package_name }}:${{ steps.version.outputs.version }}-arm64
+          
+          docker manifest push ghcr.io/${{ github.repository_owner }}/${{ steps.version.outputs.package_name }}:latest
+
+      - name: Display final image info
+        run: |
+          echo "🎉 Multi-architecture image published successfully!"
+          echo "Image: ghcr.io/${{ github.repository_owner }}/${{ steps.version.outputs.package_name }}:${{ steps.version.outputs.version }}"
+          echo "Latest: ghcr.io/${{ github.repository_owner }}/${{ steps.version.outputs.package_name }}:latest"
+          echo "Architectures: amd64, arm64"
+          echo "Version: ${{ steps.version.outputs.version }}"
