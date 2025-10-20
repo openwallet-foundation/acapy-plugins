@@ -2,7 +2,7 @@ from unittest import TestCase, mock
 
 from acapy_agent.messaging.decorators.attach_decorator import AttachDecorator
 from acapy_agent.protocols.didcomm_prefix import DIDCommPrefix
-from ...message_types import ATTACH_DECO_IDS, CREDENTIAL_REQUEST, PROTOCOL_PACKAGE
+from ...message_types import ATTACH_DECO_IDS, CREDENTIAL_REQUEST
 from ..credential_request import CredentialRequest, CredentialRequestSchema
 
 

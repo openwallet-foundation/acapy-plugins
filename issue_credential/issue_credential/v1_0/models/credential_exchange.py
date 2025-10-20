@@ -3,14 +3,15 @@
 import logging
 from typing import Any, Mapping, Optional, Union
 
-from marshmallow import fields, validate
-
 from acapy_agent.core.profile import ProfileSession
 from acapy_agent.indy.models.cred import IndyCredential, IndyCredentialSchema
 from acapy_agent.indy.models.cred_abstract import IndyCredAbstract, IndyCredAbstractSchema
 from acapy_agent.indy.models.cred_precis import IndyCredInfo, IndyCredInfoSchema
 from acapy_agent.indy.models.cred_request import IndyCredRequest, IndyCredRequestSchema
-from acapy_agent.messaging.models.base_record import BaseExchangeRecord, BaseExchangeSchema
+from acapy_agent.messaging.models.base_record import (
+    BaseExchangeRecord,
+    BaseExchangeSchema,
+)
 from acapy_agent.messaging.valid import (
     INDY_CRED_DEF_ID_EXAMPLE,
     INDY_CRED_DEF_ID_VALIDATE,
@@ -19,6 +20,8 @@ from acapy_agent.messaging.valid import (
     UUID4_EXAMPLE,
 )
 from acapy_agent.storage.base import StorageError
+from marshmallow import fields, validate
+
 from ..messages.credential_exchange_webhook import V10CredentialExchangeWebhook
 from ..messages.credential_offer import CredentialOffer, CredentialOfferSchema
 from ..messages.credential_proposal import CredentialProposal, CredentialProposalSchema
