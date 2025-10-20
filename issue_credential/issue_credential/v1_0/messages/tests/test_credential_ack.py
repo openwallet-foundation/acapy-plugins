@@ -2,7 +2,7 @@ from unittest import TestCase, mock
 
 from acapy_agent.protocols.didcomm_prefix import DIDCommPrefix
 
-from ...message_types import CREDENTIAL_ACK, PROTOCOL_PACKAGE
+from ...message_types import CREDENTIAL_ACK
 from ..credential_ack import CredentialAck, CredentialAckSchema
 
 

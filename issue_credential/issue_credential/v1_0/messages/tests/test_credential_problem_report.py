@@ -4,7 +4,7 @@ import pytest
 
 from acapy_agent.messaging.models.base import BaseModelError
 from acapy_agent.protocols.didcomm_prefix import DIDCommPrefix
-from ...message_types import CREDENTIAL_PROBLEM_REPORT, PROTOCOL_PACKAGE
+from ...message_types import CREDENTIAL_PROBLEM_REPORT
 from .. import credential_problem_report as test_module
 from ..credential_problem_report import (
     CredentialProblemReport,

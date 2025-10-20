@@ -3,9 +3,12 @@
 import logging
 from enum import Enum
 
+from acapy_agent.protocols.problem_report.v1_0.message import (
+    ProblemReport,
+    ProblemReportSchema,
+)
 from marshmallow import EXCLUDE, ValidationError, validates_schema
 
-from acapy_agent.protocols.problem_report.v1_0.message import ProblemReport, ProblemReportSchema
 from ..message_types import CREDENTIAL_PROBLEM_REPORT, PROTOCOL_PACKAGE
 
 HANDLER_CLASS = (
