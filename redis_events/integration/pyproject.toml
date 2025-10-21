@@ -14,7 +14,7 @@ aiohttp = "^3.13.1"
 fastapi-slim = "^0.118.0"
 nest-asyncio = "^1.5.5"
 redis = "^5.1.1"
-uvicorn = "^0.35.0"
+uvicorn = "^0.38.0"
 pydantic = "2.12.3"
 
 [tool.poetry.group.dev.dependencies]
