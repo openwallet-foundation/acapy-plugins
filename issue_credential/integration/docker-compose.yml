@@ -6,6 +6,9 @@ version: '3'
 services:
   alice:
     image: plugin-image
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile
     ports:
       - "3001:3001"
     environment:
@@ -35,6 +38,9 @@ services:
 
   bob:
     image: plugin-image
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile
     ports:
       - "3002:3001"
     environment:
