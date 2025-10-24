@@ -1,9 +1,9 @@
 """A credential ack message."""
 
+from acapy_agent.protocols.notification.v1_0.messages.ack import V10Ack, V10AckSchema
 from marshmallow import EXCLUDE
 
-from acapy_agent.protocols.notification.v1_0.messages.ack import V10Ack, V10AckSchema
-from issue_credential.v1_0.message_types import CREDENTIAL_ACK, PROTOCOL_PACKAGE
+from ..message_types import CREDENTIAL_ACK, PROTOCOL_PACKAGE
 
 HANDLER_CLASS = f"{PROTOCOL_PACKAGE}.handlers.credential_ack_handler.CredentialAckHandler"
 
