@@ -10,6 +10,7 @@ python = "^3.12"
 pytest = "^8.3.5"
 pytest-asyncio = "^1.1.0"
 requests = "^2.32.0"
+acapy-controller = {git = "https://github.com/openwallet-foundation/acapy-minimal-example.git", rev = "main"}
 
 [tool.poetry.group.dev.dependencies]
 
