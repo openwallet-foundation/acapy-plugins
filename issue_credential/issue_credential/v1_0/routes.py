@@ -2,13 +2,15 @@
 
 import json
 import logging
+import re
 from json.decoder import JSONDecodeError
 from typing import Mapping, Optional
 
 from acapy_agent.admin.decorators.auth import tenant_authentication
 from acapy_agent.admin.request_context import AdminRequestContext
 from acapy_agent.connections.models.conn_record import ConnRecord
-from acapy_agent.core.profile import Profile
+from acapy_agent.core.event_bus import EventWithMetadata
+from acapy_agent.core.profile import EventBus, Profile
 from acapy_agent.indy.holder import IndyHolderError
 from acapy_agent.indy.issuer import IndyIssuerError
 from acapy_agent.ledger.error import LedgerError
@@ -48,6 +50,9 @@ from acapy_agent.protocols.out_of_band.v1_0.routes import (
     InvitationCreateQueryStringSchema,
     InvitationCreateRequestSchema,
     InvitationRecordSchema,
+)
+from acapy_agent.revocation.models.issuer_cred_rev_record import (
+    IssuerCredRevRecord,
 )
 from acapy_agent.storage.error import StorageError, StorageNotFoundError
 from acapy_agent.utils.tracing import AdminAPIMessageTracingSchema, get_timer, trace_event
@@ -1611,3 +1616,34 @@ def post_process_routes(app: web.Application):
             "externalDocs": {"description": "Specification", "url": SPEC_URI},
         }
     )
+
+
+def register_events(bus: EventBus):
+    """Register event listeners."""
+    bus.subscribe(re.compile(r"^acapy::cred-revoked$"), cred_revoked)
+
+
+async def cred_revoked(profile: Profile, event: EventWithMetadata):
+    """Handle cred revoked event."""
+    assert isinstance(event.payload, IssuerCredRevRecord)
+    rev_rec: IssuerCredRevRecord = event.payload
+
+    if rev_rec.cred_ex_id is None:
+        return
+
+    if (
+        rev_rec.cred_ex_version
+        and rev_rec.cred_ex_version != IssuerCredRevRecord.VERSION_1
+    ):
+        return
+
+    async with profile.transaction() as txn:
+        try:
+            cred_ex_record = await V10CredentialExchange.retrieve_by_id(
+                txn, rev_rec.cred_ex_id, for_update=True
+            )
+            cred_ex_record.state = V10CredentialExchange.STATE_CREDENTIAL_REVOKED
+            await cred_ex_record.save(txn, reason="revoke credential")
+            await txn.commit()
+        except StorageNotFoundError:
+            pass
