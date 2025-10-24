@@ -1,9 +1,14 @@
-# < Replace With The Plugin Name >
+# Issue Credential Plugin
 
 ## Description
 
-< Replace with information about the reason this plugin was produced and a brief overview of the features >
+This plugin was produced to facilitate the issuance of verifiable credentials in a decentralized identity ecosystem. It provides features for creating, managing, and presenting credentials in compliance with the Aries RFCs.
 
 ## Configuration
 
-< Replace this section with an outline of configuration options and basic defaults for deploying the plugin >
+To enable the Issue Credential plugin, add the following configuration to your `config.yml`:
+
+```yaml
+plugins:
+    - issue_credential
+```
