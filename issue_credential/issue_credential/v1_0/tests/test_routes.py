@@ -1,9 +1,10 @@
 from unittest import IsolatedAsyncioTestCase
 
-from .....admin.request_context import AdminRequestContext
-from .....tests import mock
-from .....utils.testing import create_test_profile
-from .....wallet.base import BaseWallet
+from acapy_agent.admin.request_context import AdminRequestContext
+from acapy_agent.tests import mock
+from acapy_agent.utils.testing import create_test_profile
+from acapy_agent.wallet.base import BaseWallet
+
 from .. import routes as test_module
 from . import CRED_DEF_ID
 
