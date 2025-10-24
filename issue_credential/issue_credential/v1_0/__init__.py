@@ -2,12 +2,12 @@ from typing import Coroutine, Union
 
 from acapy_agent.connections.models.conn_record import ConnRecord
 from acapy_agent.core.error import BaseError
-from issue_credential.v1_0.messages.credential_problem_report import (
+
+from .messages.credential_problem_report import (
     CredentialProblemReport,
     ProblemReportReason,
 )
-
-from issue_credential.v1_0.models.credential_exchange import V10CredentialExchange
+from .models.credential_exchange import V10CredentialExchange
 
 
 def problem_report_for_record(
