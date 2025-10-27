@@ -227,6 +227,18 @@ frozenlist = ">=1.1.0"
 typing-extensions = {version = ">=4.2", markers = "python_version < \"3.13\""}
 
 [[package]]
+name = "annotated-doc"
+version = "0.0.3"
+description = "Document parameters, class attributes, return types, and variables inline, with Annotated."
+optional = false
+python-versions = ">=3.8"
+groups = ["main"]
+files = [
+    {file = "annotated_doc-0.0.3-py3-none-any.whl", hash = "sha256:348ec6664a76f1fd3be81f43dffbee4c7e8ce931ba71ec67cc7f4ade7fbbb580"},
+    {file = "annotated_doc-0.0.3.tar.gz", hash = "sha256:e18370014c70187422c33e945053ff4c286f453a984eba84d0dbfa0c935adeda"},
+]
+
+[[package]]
 name = "annotated-types"
 version = "0.7.0"
 description = "Reusable constraint types to use with typing.Annotated"
@@ -1046,17 +1058,18 @@ test = ["hypothesis (>=4.43.0)", "mypy (==1.10.0)", "pytest (>=7.0.0)", "pytest-
 
 [[package]]
 name = "fastapi-slim"
-version = "0.118.3"
+version = "0.120.0"
 description = "FastAPI framework, high performance, easy to learn, fast to code, ready for production"
 optional = false
 python-versions = ">=3.8"
 groups = ["main"]
 files = [
-    {file = "fastapi_slim-0.118.3-py3-none-any.whl", hash = "sha256:2e01df3881382a23a03858e87c356d05e569fb524fa9857c2c0200546261aa4b"},
-    {file = "fastapi_slim-0.118.3.tar.gz", hash = "sha256:b714f9dca933c3358b47d3bf1a1f3c042ea1a099b46b984f5f8d2aaab2000877"},
+    {file = "fastapi_slim-0.120.0-py3-none-any.whl", hash = "sha256:159176f90fd6bbea910d4102b33eb3e9e19274fe943cf2d72acaaec3f921e571"},
+    {file = "fastapi_slim-0.120.0.tar.gz", hash = "sha256:91478eda0f463c600b854b328d85973375c3277d71696ea6f303c5c614b26a5c"},
 ]
 
 [package.dependencies]
+annotated-doc = ">=0.0.2"
 pydantic = ">=1.7.4,<1.8 || >1.8,<1.8.1 || >1.8.1,<2.0.0 || >2.0.0,<2.0.1 || >2.0.1,<2.1.0 || >2.1.0,<3.0.0"
 starlette = ">=0.40.0,<0.49.0"
 typing-extensions = ">=4.8.0"
@@ -3152,4 +3165,4 @@ aca-py = ["acapy-agent"]
 [metadata]
 lock-version = "2.1"
 python-versions = "^3.12"
-content-hash = "80f6f3c86438b87f8d6f13e2d25d808775c0a8c0fd2ad680f42596f2e5a004ab"
+content-hash = "13aa60be59c0d551b9aa9cc043dfac3370c40aadd83c8e36772599259c1f19f4"
