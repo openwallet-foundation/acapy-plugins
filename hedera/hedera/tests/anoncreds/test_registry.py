@@ -69,7 +69,7 @@ MOCK_ISSUER_ID = (
 MOCK_SCHEMA = HederaAnonCredsSchema(
     name="Example schema", issuer_id=MOCK_ISSUER_ID, attr_names=["score"], version="1.0"
 )
-MOCK_SCHEMA_ID = "did:hedera:testnet:zFwZUYPrhi333pC2anAnSkctXgZzLfeR8DXURo2N4xV1C_0.0.5284925/anoncreds/v0/SCHEMA/0.0.5284932"
+MOCK_SCHEMA_ID = "did:hedera:testnet:zFwZUYPrhi333pC2anAnSkctXgZzLfeR8DXURo2N4xV1C_0.0.5284925/anoncreds/v1/SCHEMA/0.0.5284932"
 
 MOCK_CRED_DEF = HederaAnonCredsCredDef(
     schema_id=MOCK_SCHEMA_ID,
@@ -92,7 +92,7 @@ MOCK_CRED_DEF = HederaAnonCredsCredDef(
         ),
     ),
 )
-MOCK_CRED_DEF_ID = "did:hedera:testnet:zcZMJMxUGZpxKmP35ACBWLhQyQVqtRc5T7LQhdyTDtEiP_0.0.5280965/anoncreds/v0/PUBLIC_CRED_DEF/0.0.5280968"
+MOCK_CRED_DEF_ID = "did:hedera:testnet:zcZMJMxUGZpxKmP35ACBWLhQyQVqtRc5T7LQhdyTDtEiP_0.0.5280965/anoncreds/v1/PUBLIC_CRED_DEF/0.0.5280968"
 
 MOCK_REV_REG_DEF = HederaAnonCredsRevRegDef(
     issuer_id=MOCK_ISSUER_ID,
@@ -105,7 +105,7 @@ MOCK_REV_REG_DEF = HederaAnonCredsRevRegDef(
         tails_hash="mock-tails-hash",
     ),
 )
-MOCK_REV_REG_DEF_ID = "did:hedera:testnet:zcZMJMxUGZpxKmP35ACBWLhQyQVqtRc5T7LQhdyTDtEiP_0.0.5280965/anoncreds/v0/REV_REG/0.0.5280969"
+MOCK_REV_REG_DEF_ID = "did:hedera:testnet:zcZMJMxUGZpxKmP35ACBWLhQyQVqtRc5T7LQhdyTDtEiP_0.0.5280965/anoncreds/v1/REV_REG/0.0.5280969"
 
 MOCK_REV_LIST = HederaAnonCredsRevList(
     issuer_id=MOCK_ISSUER_ID,

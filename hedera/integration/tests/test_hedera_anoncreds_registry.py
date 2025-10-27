@@ -1,9 +1,9 @@
 class TestHederaAnonCredsRegistry:
     def test_get_schema(self, holder):
         issuer_id = (
-            "did:hedera:testnet:zFwZUYPrhi333pC2anAnSkctXgZzLfeR8DXURo2N4xV1C_0.0.5284925"
+            "did:hedera:testnet:z6adipGGfqPB4PpSsJrx323eAtFVH15UeCYHgv1cKNq4y_0.0.7137768"
         )
-        schema_id = f"{issuer_id}/anoncreds/v0/SCHEMA/0.0.5284932"
+        schema_id = f"{issuer_id}/anoncreds/v1/SCHEMA/0.0.7137773"
 
         holder.create_wallet(persist_token=True)
 
@@ -15,18 +15,18 @@ class TestHederaAnonCredsRegistry:
             "schema_id": schema_id,
             "schema": {
                 "issuerId": issuer_id,
-                "attrNames": ["score"],
-                "name": "Example schema 18-12-2024",
+                "attrNames": ["name", "age"],
+                "name": "Demo AnonCreds schema",
                 "version": "1.0",
             },
         }
 
     def test_get_credential_definition(self, holder):
         issuer_id = (
-            "did:hedera:testnet:zcZMJMxUGZpxKmP35ACBWLhQyQVqtRc5T7LQhdyTDtEiP_0.0.5280965"
+            "did:hedera:testnet:zHx9yTeYzxZFNWtdWkHRVHYHjUqVs1xtqQxyWsuUnutgS_0.0.7137825"
         )
-        schema_id = f"{issuer_id}/anoncreds/v0/SCHEMA/0.0.5280967"
-        credential_definition_id = f"{issuer_id}/anoncreds/v0/PUBLIC_CRED_DEF/0.0.5280968"
+        schema_id = f"{issuer_id}/anoncreds/v1/SCHEMA/0.0.7137827"
+        credential_definition_id = f"{issuer_id}/anoncreds/v1/PUBLIC_CRED_DEF/0.0.7137829"
 
         holder.create_wallet(persist_token=True)
 

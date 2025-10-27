@@ -74,7 +74,7 @@ class TestTypes:
         issuer_id = (
             "did:hedera:testnet:zFwZUYPrhi333pC2anAnSkctXgZzLfeR8DXURo2N4xV1C_0.0.5284925"
         )
-        schema_id = f"{issuer_id}/anoncreds/v0/SCHEMA/0.0.5284932"
+        schema_id = f"{issuer_id}/anoncreds/v1/SCHEMA/0.0.5284932"
         tag = "demo-cred-def-1.0"
         type_ = "CL"
         n = "0954456694171"
@@ -144,7 +144,7 @@ class TestTypes:
             "did:hedera:testnet:zFwZUYPrhi333pC2anAnSkctXgZzLfeR8DXURo2N4xV1C_0.0.5284925"
         )
         type_ = "CL_ACCUM"
-        cred_def_id = "did:hedera:testnet:zcZMJMxUGZpxKmP35ACBWLhQyQVqtRc5T7LQhdyTDtEiP_0.0.5280965/anoncreds/v0/PUBLIC_CRED_DEF/0.0.5280968"
+        cred_def_id = "did:hedera:testnet:zcZMJMxUGZpxKmP35ACBWLhQyQVqtRc5T7LQhdyTDtEiP_0.0.5280965/anoncreds/v1/PUBLIC_CRED_DEF/0.0.5280968"
         tag = "demo-cred-def-1.0"
         public_keys = {}
         max_cred_num = 999
@@ -178,7 +178,7 @@ class TestTypes:
         issuer_id = (
             "did:hedera:testnet:zFwZUYPrhi333pC2anAnSkctXgZzLfeR8DXURo2N4xV1C_0.0.5284925"
         )
-        rev_reg_def_id = f"{issuer_id}/anoncreds/v0/REV_REG/0.0.5281064"
+        rev_reg_def_id = f"{issuer_id}/anoncreds/v1/REV_REG/0.0.5281064"
         revocation_list = [0, 1, 1, 0]
         current_accumulator = "21118FFB"
         timestamp = 1735318300
@@ -206,7 +206,7 @@ class TestTypes:
         issuer_id = (
             "did:hedera:testnet:zFwZUYPrhi333pC2anAnSkctXgZzLfeR8DXURo2N4xV1C_0.0.5284925"
         )
-        schema_id = f"{issuer_id}/anoncreds/v0/SCHEMA/0.0.5284932"
+        schema_id = f"{issuer_id}/anoncreds/v1/SCHEMA/0.0.5284932"
         attr_names = ["score"]
         version = "1.0"
 
@@ -235,11 +235,11 @@ class TestTypes:
     def test_build_acapy_get_cred_def_result(self):
         resolution_metadata = {"resolution_metadata_key": "test"}
         credential_definition_metadata = {"cred_def_metadata_key": "test"}
-        credential_definition_id = "did:hedera:testnet:zcZMJMxUGZpxKmP35ACBWLhQyQVqtRc5T7LQhdyTDtEiP_0.0.5280965/anoncreds/v0/PUBLIC_CRED_DEF/0.0.5280968"
+        credential_definition_id = "did:hedera:testnet:zcZMJMxUGZpxKmP35ACBWLhQyQVqtRc5T7LQhdyTDtEiP_0.0.5280965/anoncreds/v1/PUBLIC_CRED_DEF/0.0.5280968"
         issuer_id = (
             "did:hedera:testnet:zFwZUYPrhi333pC2anAnSkctXgZzLfeR8DXURo2N4xV1C_0.0.5284925"
         )
-        schema_id = f"{issuer_id}/anoncreds/v0/SCHEMA/0.0.5284932"
+        schema_id = f"{issuer_id}/anoncreds/v1/SCHEMA/0.0.5284932"
         tag = "demo-cred-def-1.0"
         n = "0954456694171"
         s = "0954456694171"
@@ -321,8 +321,8 @@ class TestTypes:
         issuer_id = (
             "did:hedera:testnet:zFwZUYPrhi333pC2anAnSkctXgZzLfeR8DXURo2N4xV1C_0.0.5284925"
         )
-        cred_def_id = "did:hedera:testnet:zcZMJMxUGZpxKmP35ACBWLhQyQVqtRc5T7LQhdyTDtEiP_0.0.5280965/anoncreds/v0/PUBLIC_CRED_DEF/0.0.5280968"
-        rev_reg_def_id = f"{issuer_id}/anoncreds/v0/REV_REG/0.0.5281064"
+        cred_def_id = "did:hedera:testnet:zcZMJMxUGZpxKmP35ACBWLhQyQVqtRc5T7LQhdyTDtEiP_0.0.5280965/anoncreds/v1/PUBLIC_CRED_DEF/0.0.5280968"
+        rev_reg_def_id = f"{issuer_id}/anoncreds/v1/REV_REG/0.0.5281064"
         resolution_metadata = {"resolution_metadata_key": "test"}
         revocation_registry_definition_metadata = {"registry_metadata_key": "test"}
         tag = "demo-cred-def-1.0"
@@ -371,7 +371,7 @@ class TestTypes:
         issuer_id = (
             "did:hedera:testnet:zFwZUYPrhi333pC2anAnSkctXgZzLfeR8DXURo2N4xV1C_0.0.5284925"
         )
-        rev_reg_def_id = f"{issuer_id}/anoncreds/v0/REV_REG/0.0.5281064"
+        rev_reg_def_id = f"{issuer_id}/anoncreds/v1/REV_REG/0.0.5281064"
         revocation_list = [0, 1, 1, 0]
         current_accumulator = "21118FFB"
         timestamp = 1735318300
@@ -414,7 +414,7 @@ class TestTypes:
         issuer_id = (
             "did:hedera:testnet:zFwZUYPrhi333pC2anAnSkctXgZzLfeR8DXURo2N4xV1C_0.0.5284925"
         )
-        schema_id = f"{issuer_id}/anoncreds/v0/SCHEMA/0.0.5284932"
+        schema_id = f"{issuer_id}/anoncreds/v1/SCHEMA/0.0.5284932"
         attr_names = ["score"]
         version = "1.0"
         state = "finished"
@@ -456,11 +456,11 @@ class TestTypes:
     def test_build_acapy_cred_def_result(self):
         registration_metadata = {"registration_metadata_key": "test"}
         credential_definition_metadata = {"cred_def_metadata_key": "test"}
-        credential_definition_id = "did:hedera:testnet:zcZMJMxUGZpxKmP35ACBWLhQyQVqtRc5T7LQhdyTDtEiP_0.0.5280965/anoncreds/v0/PUBLIC_CRED_DEF/0.0.5280968"
+        credential_definition_id = "did:hedera:testnet:zcZMJMxUGZpxKmP35ACBWLhQyQVqtRc5T7LQhdyTDtEiP_0.0.5280965/anoncreds/v1/PUBLIC_CRED_DEF/0.0.5280968"
         issuer_id = (
             "did:hedera:testnet:zFwZUYPrhi333pC2anAnSkctXgZzLfeR8DXURo2N4xV1C_0.0.5284925"
         )
-        schema_id = f"{issuer_id}/anoncreds/v0/SCHEMA/0.0.5284932"
+        schema_id = f"{issuer_id}/anoncreds/v1/SCHEMA/0.0.5284932"
         tag = "default"
         n = "0954456694171"
         s = "0954456694171"
@@ -557,8 +557,8 @@ class TestTypes:
         issuer_id = (
             "did:hedera:testnet:zFwZUYPrhi333pC2anAnSkctXgZzLfeR8DXURo2N4xV1C_0.0.5284925"
         )
-        rev_reg_def_id = f"{issuer_id}/anoncreds/v0/REV_REG/0.0.5281064"
-        cred_def_id = "did:hedera:testnet:zcZMJMxUGZpxKmP35ACBWLhQyQVqtRc5T7LQhdyTDtEiP_0.0.5280965/anoncreds/v0/PUBLIC_CRED_DEF/0.0.5280968"
+        rev_reg_def_id = f"{issuer_id}/anoncreds/v1/REV_REG/0.0.5281064"
+        cred_def_id = "did:hedera:testnet:zcZMJMxUGZpxKmP35ACBWLhQyQVqtRc5T7LQhdyTDtEiP_0.0.5280965/anoncreds/v1/PUBLIC_CRED_DEF/0.0.5280968"
         tag = "demo-cred-def-1.0"
         public_keys = {}
         max_cred_num = 999
@@ -617,7 +617,7 @@ class TestTypes:
         issuer_id = (
             "did:hedera:testnet:zFwZUYPrhi333pC2anAnSkctXgZzLfeR8DXURo2N4xV1C_0.0.5284925"
         )
-        rev_reg_def_id = f"{issuer_id}/anoncreds/v0/REV_REG/0.0.5281064"
+        rev_reg_def_id = f"{issuer_id}/anoncreds/v1/REV_REG/0.0.5281064"
         state = "finished"
         reason = "reason"
         revocation_list = [0, 1, 1, 0]
