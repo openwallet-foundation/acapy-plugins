@@ -19,7 +19,7 @@ from typing import Any, Optional
 from acapy_agent.admin.request_context import AdminRequestContext
 from acapy_agent.core.profile import ProfileSession
 from acapy_agent.storage.error import StorageNotFoundError
-from acapy_agent.wallet.util import bytes_to_b64
+from acapy_agent.wallet.util import bytes_to_b64, unpad
 from bitarray import bitarray
 from filelock import FileLock, Timeout
 
@@ -443,14 +443,16 @@ async def get_status_list(
         status_bits = bitarray()
         for shard in shards:
             status_bits.extend(shard.status_bits)
-
-        bit_bytes = status_bits.tobytes()
+        bit_bytes = b""
         if definition.list_type == "ietf":
+            status_bits = bitarray(status_bits, endian="little")
+            bit_bytes = status_bits.tobytes()
             bit_bytes = zlib.compress(bit_bytes)
         elif definition.list_type == "w3c":
+            bit_bytes = status_bits.tobytes()
             bit_bytes = gzip.compress(bit_bytes)
         base64 = bytes_to_b64(bit_bytes, True)
-        encoded_list = base64.rstrip("=")
+        encoded_list = unpad(base64)
 
         public_uri = config.public_uri.format(
             tenant_id=wallet_id,
