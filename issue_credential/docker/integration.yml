@@ -1,0 +1,26 @@
+label: issue_credential
+
+auto-provision: true
+
+admin: [0.0.0.0, 3001]
+admin-insecure-mode: true
+
+inbound-transport:
+  - [http, 0.0.0.0, 3000]
+  
+outbound-transport: http
+endpoint:
+  - http://host.docker.internal:3000
+
+plugin:
+  - issue_credential.v1_0
+
+genesis-url: http://test.bcovrin.vonx.io/genesis
+
+log-level: info
+
+wallet-name: issue_credential_wallet
+wallet-key: issue_credential_wallet_key
+
+auto-accept-invites: true
+auto-respond-messages: true
