@@ -42,7 +42,7 @@ services:
         172.28.0.104:6383 172.28.0.105:6384 172.28.0.106:6385
       --cluster-replicas 1 --cluster-yes
     environment:
-      - REDISCLI_AUTH=${REDIS_PASSWORD}
+      - REDISCLI_AUTH=${REDIS_PASSWORD:-test1234}
     networks:
       acapy_default:
         ipv4_address: 172.28.0.107
@@ -157,6 +157,19 @@ services:
       timeout: 3s
       retries: 5
 
+  tests:
+    build:
+      context: .
+      dockerfile: ./Dockerfile
+    depends_on:
+      tests-cluster:
+        condition: service_completed_successfully
+      tests-host:
+        condition: service_completed_successfully
+    command: echo "All tests passed"
+    networks:
+      - acapy_default
+
   tests-cluster:
     build:
       context: .
@@ -210,6 +223,7 @@ services:
 
   redis-host:
     image: "redis:alpine"
+    command: redis-server
     ports:
       - "6379:6379"
     # volumes:
@@ -217,6 +231,8 @@ services:
     #   - ./redis.conf:/etc/redis/redis.conf:ro,z
     environment:
       - REDIS_REPLICATION_MODE=master
+    networks:
+      - acapy_default
     healthcheck:
       test: ["CMD-SHELL", "redis-cli ping | grep PONG"]
       start_period: 15s
@@ -254,5 +270,7 @@ services:
 
 networks:
   acapy_default:
-    external: true
-    name: ${NETWORK_NAME}
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.28.0.0/16

@@ -3,6 +3,7 @@ name = "acapy-cache-redis-int-tests"
 version = "0.1.0"
 description = "Integration tests for ACA-Py Redis Cache Plugin"
 authors = ["Colton Wolkins <colton@indicio.tech>", "Kim Ebert <kim@indicio.tech>", "Alex Walker <alex.walker@indicio.tech>"]
+packages = [{include = "tests"}]
 
 [tool.poetry.dependencies]
 python = "^3.9"
@@ -13,7 +14,7 @@ acapy-client = {git = "https://github.com/Indicio-tech/acapy-client.git", rev = 
 httpx = "^0.15.5"
 redis = "^4.2.0"
 
-[tool.poetry.dev-dependencies]
+[tool.poetry.group.dev.dependencies]
 black = "^23.7.0"
 ruff = "^0.0.287"
 

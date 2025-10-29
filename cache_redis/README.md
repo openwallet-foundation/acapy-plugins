@@ -99,7 +99,7 @@ configuration options are defined as follows:
 
 ### Single redis host
 ```sh
-$ docker-compose -f int/docker-compose.yml run tests-host
+$ docker-compose -f integration/docker-compose.yml run tests-host
 ```
 
 ### Redis cluster
@@ -108,5 +108,5 @@ Cluster requires external docker network with specified subnet
 $ docker network create --subnet=172.28.0.0/24 `network_name`
 $ export REDIS_PASSWORD=" ... As specified in redis_cluster.conf ... "
 $ export NETWORK_NAME="`network_name`"
-$ docker-compose -f int/docker-compose.yml run tests-cluster
+$ docker-compose -f integration/docker-compose.yml run tests-cluster
 ```

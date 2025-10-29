@@ -10,8 +10,7 @@ RUN curl -sSL https://install.python-poetry.org | python -
 RUN poetry config virtualenvs.create true; poetry config virtualenvs.in-project true
 
 COPY pyproject.toml poetry.lock ./
-RUN poetry install --only main
-
 COPY tests/ tests/
+RUN poetry install --only main
 
 ENTRYPOINT ["poetry", "run", "pytest"]
