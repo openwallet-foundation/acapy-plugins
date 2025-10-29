@@ -23,6 +23,7 @@ RUN useradd -m -s /bin/bash acapy
 # Install plugins with --no-deps to avoid dependency conflicts
 RUN pip install --no-deps \
     git+https://github.com/${REPO_OWNER}/acapy-plugins@${ACA_PY_VERSION}#subdirectory=basicmessage_storage \
+    git+https://github.com/${REPO_OWNER}/acapy-plugins@${ACA_PY_VERSION}#subdirectory=cache_redis \
     git+https://github.com/${REPO_OWNER}/acapy-plugins@${ACA_PY_VERSION}#subdirectory=cheqd \
     git+https://github.com/${REPO_OWNER}/acapy-plugins@${ACA_PY_VERSION}#subdirectory=connection_update \
     git+https://github.com/${REPO_OWNER}/acapy-plugins@${ACA_PY_VERSION}#subdirectory=connections \
