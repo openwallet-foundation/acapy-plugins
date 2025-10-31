@@ -231,6 +231,30 @@ updates:
 
   # Maintain dependencies for Python Packages
   - package-ecosystem: "pip"
+    directory: "/cache_redis"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "04:00"
+      timezone: "Canada/Pacific"
+    ignore:
+      - dependency-name: "*"
+        update-types: ["version-update:semver-major"]
+
+  # Maintain dependencies for Python Packages
+  - package-ecosystem: "pip"
+    directory: "/cache_redis/int"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "04:00"
+      timezone: "Canada/Pacific"
+    ignore:
+      - dependency-name: "*"
+        update-types: ["version-update:semver-major"]
+
+  # Maintain dependencies for Python Packages
+  - package-ecosystem: "pip"
     directory: "/cheqd"
     schedule:
       interval: "weekly"
