@@ -95,13 +95,31 @@ jobs:
           for dir in ${{ steps.changed-plugins.outputs.changed-plugins }}; do
             echo "Running integration tests for $dir"
             cd $dir/integration
-            docker compose build
-            if ! docker compose up --exit-code-from tests; then
-              echo "❌ Tests failed for $dir - dumping logs:"
-              docker compose logs
+            if [[ "$dir" == "cache_redis" ]]; then
+              # Clean up any existing resources first
+              docker compose -f docker-compose.yml down -v --remove-orphans 2>/dev/null || true
+              docker network rm test_network 2>/dev/null || true
+              docker network rm integration_acapy_default 2>/dev/null || true
+
+              # Create network and run tests
+              docker network create --subnet=172.28.0.0/24 test_network
+              export REDIS_PASSWORD=test1234
+              export NETWORK_NAME=test_network
+              docker compose -f docker-compose.yml run tests-cluster
+              docker compose -f docker-compose.yml run tests-host
+
+              # Clean up
+              docker compose -f docker-compose.yml down -v --remove-orphans
+              docker network rm test_network 2>/dev/null || true
+            else
+              docker compose build
+              if ! docker compose up --exit-code-from tests; then
+                echo "❌ Tests failed for $dir - dumping logs:"
+                docker compose logs
+                docker compose down --remove-orphans
+                exit 1
+              fi
               docker compose down --remove-orphans
-              exit 1
             fi
-            docker compose down --remove-orphans
             cd ../..
           done
