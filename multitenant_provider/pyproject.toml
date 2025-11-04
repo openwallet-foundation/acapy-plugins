@@ -19,14 +19,14 @@ python-dateutil = "^2.8.2"
 aca-py = ["acapy-agent"]
 
 [tool.poetry.group.dev.dependencies]
-ruff = "^0.14.2"
+ruff = "^0.14.3"
 pytest = "^8.3.5"
 pytest-asyncio = "^1.1.0"
 pytest-cov = "^5.0.0"
 pytest-ruff = "^0.4.1"
 
 [tool.poetry.group.integration.dependencies]
-aries-askar = { version = "~0.4.3" }
+aries-askar = { version = "~0.4.6" }
 indy-credx = { version = "~1.1.1" }
 indy-vdr = { version = "~0.4.1" }
 python3-indy = { version = "^1.11.1" }
