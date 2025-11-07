@@ -51,8 +51,6 @@ class CreateStatusListDefRequest(OpenAPISchema):
             "example": [
                 {"status": "0x00", "message": "active"},
                 {"status": "0x01", "message": "revoked"},
-                {"status": "0x10", "message": "pending"},
-                {"status": "0x11", "message": "suspended"},
             ],
         },
     )
@@ -86,7 +84,7 @@ class CreateStatusListDefRequest(OpenAPISchema):
         required=False,
         metadata={
             "description": "Issuer DID for the status list",
-            "example": "did:web:dev.lab.di.gov.on.ca",
+            "example": "did:web:example.com",
         },
     )
     verification_method = fields.Str(
@@ -94,8 +92,7 @@ class CreateStatusListDefRequest(OpenAPISchema):
         metadata={
             "description": "Issuer DID for the status list",
             "example": (
-                "did:web:dev.lab.di.gov.on.ca#"
-                "z6Mkgg342Ycpuk263R9d8Aq6MUaxPn1DDeHyGo38EefXmgDL"
+                "did:web:example.com#z6Mkgg342Ycpuk263R9d8Aq6MUaxPn1DDeHyGo38EefXmgDL"
             ),
         },
     )
@@ -316,7 +313,7 @@ class UpdateStatusListDefRequest(OpenAPISchema):
         required=False,
         metadata={
             "description": "Issuer DID for the status list",
-            "example": "did:web:dev.lab.di.gov.on.ca",
+            "example": "did:web:example.com",
         },
     )
     verification_method = fields.Str(
@@ -324,8 +321,7 @@ class UpdateStatusListDefRequest(OpenAPISchema):
         metadata={
             "description": "Issuer DID for the status list",
             "example": (
-                "did:web:dev.lab.di.gov.on.ca#"
-                "z6Mkgg342Ycpuk263R9d8Aq6MUaxPn1DDeHyGo38EefXmgDL"
+                "did:web:example.com#z6Mkgg342Ycpuk263R9d8Aq6MUaxPn1DDeHyGo38EefXmgDL"
             ),
         },
     )

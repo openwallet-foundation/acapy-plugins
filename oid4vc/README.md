@@ -76,7 +76,7 @@ Documentation for the [Status List Plugin] (https://github.com/openwallet-founda
 ```
      OID4VCI_STATUS_HANDLER: status_list.v1_0.status_handler
      STATUS_LIST_SIZE: 131072
-     STATUS_LIST_SHARD_SIZE: 131072
+     STATUS_LIST_SHARD_SIZE: 1024
      STATUS_LIST_PUBLIC_URI: https://localhost:8082/tenant/{tenant_id}/status/{list_number}
      STATUS_LIST_FILE_PATH: /tmp/bitstring/{tenant_id}/{list_number}
 ```
@@ -90,8 +90,8 @@ Documentation for the [Status List Plugin] (https://github.com/openwallet-founda
 ```
       {
         "issuer_did": "did....",
+        "list_type": "w3c",
         "list_size": 131072,
-        "list_type": "ietf",
         "shard_size": 1024,
         "status_message": [
           {
@@ -103,7 +103,7 @@ Documentation for the [Status List Plugin] (https://github.com/openwallet-founda
             "message": "revoked"
           },
         ],
-        "status_purpose": "revocation",
+        "status_purpose": "message",
         "status_size": 1,
         "supported_cred_id": "string",
         "verification_method": "did...."

@@ -63,7 +63,7 @@ async def test_get_status_list(context: AdminRequestContext, seed_db):
     request = MagicMock(
         app={},
         match_info={"def_id": "definition_id", "list_num": "0"},
-        query={},  # {"issuer_did": "did:web:dev.lab.di.gov.on.ca"},
+        query={},  # {"issuer_did": "did:web:example.com"},
         __getitem__=lambda _, k: request_dict[k],
         headers={},
         json={},

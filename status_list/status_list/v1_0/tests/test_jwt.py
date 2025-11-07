@@ -12,6 +12,6 @@ async def test_jwt(context):
         context.profile,
         headers=headers,
         payload=payload,
-        verification_method="did:web:dev.lab.di.gov.on.ca#3Dn1SJNPaCXcvvJvSbsFWP2xaCjMom3can8CQNhWrTRx",
+        verification_method="did:web:example.com#3Dn1SJNPaCXcvvJvSbsFWP2xaCjMom3can8CQNhWrTRx",
     )
     assert jwt
