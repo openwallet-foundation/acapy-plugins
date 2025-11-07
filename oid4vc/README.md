@@ -63,6 +63,53 @@ Now you have a `UniversityCredential` in your Sphereon Wallet. To demonstrate th
 
 As mentioned, the demo automatically takes care of a lot of the setup calls necessary to prepare credential definitions, presentation requests, and so forth. You can see what calls are being made, and with what values, both in the container logs and on the page.
 
+
+### Integrating the Status List Plugin
+
+Documentation for the [Status List Plugin] (https://github.com/openwallet-foundation/acapy-plugins/blob/main/status_list/README.md)
+
+1. Configuring the plugin:
+
+     Command Line: *--plugin status_list.v1_0*
+
+     Example Configuration:
+```
+     OID4VCI_STATUS_HANDLER: status_list.v1_0.status_handler
+     STATUS_LIST_SIZE: 131072
+     STATUS_LIST_SHARD_SIZE: 131072
+     STATUS_LIST_PUBLIC_URI: https://localhost:8082/tenant/{tenant_id}/status/{list_number}
+     STATUS_LIST_FILE_PATH: /tmp/bitstring/{tenant_id}/{list_number}
+```
+3. Binding a status list to a *supported_cred_id*:
+
+     Once bound all credentials issued with the given supported_cred_id will include a status list entry - either w3c or ietf
+
+     API Call - *POST .../status-list/defs*
+
+     Example JSON Body (list_type can be either "w3c" or "ietf"):
+```
+      {
+        "issuer_did": "did....",
+        "list_size": 131072,
+        "list_type": "ietf",
+        "shard_size": 1024,
+        "status_message": [
+          {
+            "status": "0x00",
+            "message": "active"
+          },
+          {
+            "status": "0x01",
+            "message": "revoked"
+          },
+        ],
+        "status_purpose": "revocation",
+        "status_size": 1,
+        "supported_cred_id": "string",
+        "verification_method": "did...."
+      }
+```
+
 ### Note
 
 In a production environment, the described processes would be more dynamic and involve additional security measures. This demo provides a streamlined representation for clarity and ease of understanding.
