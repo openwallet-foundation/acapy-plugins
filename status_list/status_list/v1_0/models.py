@@ -233,7 +233,7 @@ class StatusListDefSchema(BaseRecordSchema):
         required=False,
         metadata={
             "description": "Issuer DID for the status list",
-            "example": "did:web:dev.lab.di.gov.on.ca",
+            "example": "did:web:example.com",
         },
     )
     verification_method = fields.Str(
@@ -241,8 +241,7 @@ class StatusListDefSchema(BaseRecordSchema):
         metadata={
             "description": "Issuer DID for the status list",
             "example": (
-                "did:web:dev.lab.di.gov.on.ca#"
-                "z6Mkgg342Ycpuk263R9d8Aq6MUaxPn1DDeHyGo38EefXmgDL"
+                "did:web:example.com#z6Mkgg342Ycpuk263R9d8Aq6MUaxPn1DDeHyGo38EefXmgDL"
             ),
         },
     )

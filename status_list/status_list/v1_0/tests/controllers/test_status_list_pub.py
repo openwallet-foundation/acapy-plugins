@@ -44,8 +44,8 @@ async def test_status_list_pub_routes(context: AdminRequestContext, seed_db):
         headers={},
         json=AsyncMock(
             return_value={
-                "did": "did:web:dev.lab.di.gov.on.ca",
-                "verification_method": "did:web:dev.lab.di.gov.on.ca#3Dn1SJNPaCXcvvJvSbsFWP2xaCjMom3can8CQNhWrTRx",
+                "did": "did:web:example.com",
+                "verification_method": "did:web:example.com#3Dn1SJNPaCXcvvJvSbsFWP2xaCjMom3can8CQNhWrTRx",
             }
         ),
     )
