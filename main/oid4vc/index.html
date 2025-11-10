@@ -1452,7 +1452,7 @@
 <p>Example Configuration:
 <div class="highlight"><pre><span></span><code><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a>     OID4VCI_STATUS_HANDLER: status_list.v1_0.status_handler
 <a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a>     STATUS_LIST_SIZE: 131072
-<a id="__codelineno-2-3" name="__codelineno-2-3" href="#__codelineno-2-3"></a>     STATUS_LIST_SHARD_SIZE: 131072
+<a id="__codelineno-2-3" name="__codelineno-2-3" href="#__codelineno-2-3"></a>     STATUS_LIST_SHARD_SIZE: 1024
 <a id="__codelineno-2-4" name="__codelineno-2-4" href="#__codelineno-2-4"></a>     STATUS_LIST_PUBLIC_URI: https://localhost:8082/tenant/{tenant_id}/status/{list_number}
 <a id="__codelineno-2-5" name="__codelineno-2-5" href="#__codelineno-2-5"></a>     STATUS_LIST_FILE_PATH: /tmp/bitstring/{tenant_id}/{list_number}
 </code></pre></div>
@@ -1462,8 +1462,8 @@
 <p>Example JSON Body (list_type can be either "w3c" or "ietf"):
 <div class="highlight"><pre><span></span><code><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a>      {
 <a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a>        &quot;issuer_did&quot;: &quot;did....&quot;,
-<a id="__codelineno-3-3" name="__codelineno-3-3" href="#__codelineno-3-3"></a>        &quot;list_size&quot;: 131072,
-<a id="__codelineno-3-4" name="__codelineno-3-4" href="#__codelineno-3-4"></a>        &quot;list_type&quot;: &quot;ietf&quot;,
+<a id="__codelineno-3-3" name="__codelineno-3-3" href="#__codelineno-3-3"></a>        &quot;list_type&quot;: &quot;w3c&quot;,
+<a id="__codelineno-3-4" name="__codelineno-3-4" href="#__codelineno-3-4"></a>        &quot;list_size&quot;: 131072,
 <a id="__codelineno-3-5" name="__codelineno-3-5" href="#__codelineno-3-5"></a>        &quot;shard_size&quot;: 1024,
 <a id="__codelineno-3-6" name="__codelineno-3-6" href="#__codelineno-3-6"></a>        &quot;status_message&quot;: [
 <a id="__codelineno-3-7" name="__codelineno-3-7" href="#__codelineno-3-7"></a>          {
@@ -1475,7 +1475,7 @@
 <a id="__codelineno-3-13" name="__codelineno-3-13" href="#__codelineno-3-13"></a>            &quot;message&quot;: &quot;revoked&quot;
 <a id="__codelineno-3-14" name="__codelineno-3-14" href="#__codelineno-3-14"></a>          },
 <a id="__codelineno-3-15" name="__codelineno-3-15" href="#__codelineno-3-15"></a>        ],
-<a id="__codelineno-3-16" name="__codelineno-3-16" href="#__codelineno-3-16"></a>        &quot;status_purpose&quot;: &quot;revocation&quot;,
+<a id="__codelineno-3-16" name="__codelineno-3-16" href="#__codelineno-3-16"></a>        &quot;status_purpose&quot;: &quot;message&quot;,
 <a id="__codelineno-3-17" name="__codelineno-3-17" href="#__codelineno-3-17"></a>        &quot;status_size&quot;: 1,
 <a id="__codelineno-3-18" name="__codelineno-3-18" href="#__codelineno-3-18"></a>        &quot;supported_cred_id&quot;: &quot;string&quot;,
 <a id="__codelineno-3-19" name="__codelineno-3-19" href="#__codelineno-3-19"></a>        &quot;verification_method&quot;: &quot;did....&quot;
