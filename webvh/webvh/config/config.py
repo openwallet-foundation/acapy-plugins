@@ -1,5 +1,6 @@
 """Helper functions for managing agent or tenant configurations."""
 
+import copy
 import json
 
 from operator import itemgetter
@@ -36,7 +37,9 @@ async def get_plugin_config(profile: Profile):
 
     if stored_config:
         return json.loads(stored_config.value)["config"]
-    return profile.settings.get("plugin_config", {}).get("webvh", {})
+
+    config = profile.settings.get("plugin_config", {}).get("webvh", {})
+    return copy.deepcopy(config)
 
 
 async def is_controller(profile: Profile):
