@@ -28,7 +28,7 @@ async def get_plugin_config(profile: Profile):
     async with profile.session() as session:
         storage = session.inject(BaseStorage)
         stored_config_record = None
-        
+
         try:
             stored_config_record = await storage.get_record(
                 WebvhConfigRecord.RECORD_TYPE,
@@ -36,13 +36,11 @@ async def get_plugin_config(profile: Profile):
             )
         except StorageNotFoundError:
             pass
-        
+
     if stored_config_record:
         return json.loads(stored_config_record.value)["config"]
-    
-    return copy.deepcopy(
-        profile.settings.get("plugin_config", {}).get("webvh", {})
-    )
+
+    return copy.deepcopy(profile.settings.get("plugin_config", {}).get("webvh", {}))
 
 
 async def set_config(profile: Profile, config: dict):
@@ -50,7 +48,7 @@ async def set_config(profile: Profile, config: dict):
     wallet_id = _get_wallet_identifier(profile)
     async with profile.session() as session:
         storage = session.inject(BaseStorage)
-        
+
         # Update
         try:
             stored_config_record = await storage.get_record(
@@ -59,9 +57,7 @@ async def set_config(profile: Profile, config: dict):
             await storage.update_record(
                 stored_config_record,
                 value=json.dumps(
-                    WebvhConfigRecord(
-                        record_id=wallet_id, config=config
-                    ).serialize()
+                    WebvhConfigRecord(record_id=wallet_id, config=config).serialize()
                 ),
                 tags={},
             )
@@ -72,9 +68,7 @@ async def set_config(profile: Profile, config: dict):
                     type=WebvhConfigRecord.RECORD_TYPE,
                     id=wallet_id,
                     value=json.dumps(
-                        WebvhConfigRecord(
-                            record_id=wallet_id, config=config
-                        ).serialize()
+                        WebvhConfigRecord(record_id=wallet_id, config=config).serialize()
                     ),
                 )
             )
