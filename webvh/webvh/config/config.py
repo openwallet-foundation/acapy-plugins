@@ -27,17 +27,22 @@ async def get_plugin_config(profile: Profile):
     wallet_id = _get_wallet_identifier(profile)
     async with profile.session() as session:
         storage = session.inject(BaseStorage)
+        stored_config_record = None
         
-    try:
-        stored_config = await storage.get_record(
-            WebvhConfigRecord.RECORD_TYPE,
-            wallet_id,
-        )
-        return json.loads(stored_config.value)["config"]
-    except StorageNotFoundError:
-        return copy.deepcopy(
-            profile.settings.get("plugin_config", {}).get("webvh", {})
-        )
+        try:
+            stored_config_record = await storage.get_record(
+                WebvhConfigRecord.RECORD_TYPE,
+                wallet_id,
+            )
+        except StorageNotFoundError:
+            pass
+        
+    if stored_config_record:
+        return json.loads(stored_config_record.value)["config"]
+    
+    return copy.deepcopy(
+        profile.settings.get("plugin_config", {}).get("webvh", {})
+    )
 
 
 async def set_config(profile: Profile, config: dict):
@@ -46,33 +51,34 @@ async def set_config(profile: Profile, config: dict):
     async with profile.session() as session:
         storage = session.inject(BaseStorage)
         
-    # Update
-    try:
-        stored_config_record = await storage.get_record(
-            WebvhConfigRecord.RECORD_TYPE, wallet_id
-        )
-        await storage.update_record(
-            stored_config_record,
-            value=json.dumps(
-                WebvhConfigRecord(
-                    record_id=wallet_id, config=config
-                ).serialize()
-            ),
-            tags={},
-        )
-    # Add
-    except StorageNotFoundError:
-        await storage.add_record(
-            StorageRecord(
-                type=WebvhConfigRecord.RECORD_TYPE,
-                id=wallet_id,
+        # Update
+        try:
+            stored_config_record = await storage.get_record(
+                WebvhConfigRecord.RECORD_TYPE, wallet_id
+            )
+            await storage.update_record(
+                stored_config_record,
                 value=json.dumps(
                     WebvhConfigRecord(
                         record_id=wallet_id, config=config
                     ).serialize()
                 ),
+                tags={},
             )
-        )
+        # Add
+        except StorageNotFoundError:
+            await storage.add_record(
+                StorageRecord(
+                    type=WebvhConfigRecord.RECORD_TYPE,
+                    id=wallet_id,
+                    value=json.dumps(
+                        WebvhConfigRecord(
+                            record_id=wallet_id, config=config
+                        ).serialize()
+                    ),
+                )
+            )
+    return
 
 
 async def is_controller(profile: Profile):

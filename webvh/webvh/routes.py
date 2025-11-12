@@ -47,8 +47,7 @@ LOGGER = logging.getLogger(__name__)
 @tenant_authentication
 async def get_config(request: web.BaseRequest):
     """Get webvh agent configuration."""
-    plugin_config = await get_plugin_config(request["context"].profile)
-    return web.json_response(plugin_config | {'message': 'success'})
+    return web.json_response(await get_plugin_config(request["context"].profile))
 
 
 @docs(tags=["did-webvh"], summary="Configure webvh plugin")
