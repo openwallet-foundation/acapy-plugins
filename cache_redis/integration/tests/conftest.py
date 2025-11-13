@@ -8,7 +8,9 @@ from redis import asyncio as aioredis
 async def redis_cluster_client():
     """Yield RedisCluster client."""
     subnet_prefix = os.environ.get("SUBNET_PREFIX", "172.28")
-    redis = RedisCluster.from_url(url=f"redis://default:test1234@{subnet_prefix}.0.103:6382")
+    redis = RedisCluster.from_url(
+        url=f"redis://default:test1234@{subnet_prefix}.0.103:6382"
+    )
     yield redis
     await redis.close()
 
