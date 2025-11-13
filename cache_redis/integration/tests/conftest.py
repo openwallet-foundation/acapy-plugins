@@ -1,4 +1,3 @@
-import pytest
 import pytest_asyncio
 from redis.asyncio import RedisCluster
 from redis import asyncio as aioredis

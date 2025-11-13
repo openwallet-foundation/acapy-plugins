@@ -1,6 +1,5 @@
 """Status Request and response tests"""
 
-import json
 from os import getenv
 import pytest
 from acapy_controller import Controller

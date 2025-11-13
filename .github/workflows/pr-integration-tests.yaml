@@ -103,10 +103,14 @@ jobs:
 
               # Create network and run tests
               docker network create --subnet=172.28.0.0/24 test_network
-              export REDIS_PASSWORD=test1234
               export NETWORK_NAME=test_network
-              docker compose -f docker-compose.yml run tests-cluster
-              docker compose -f docker-compose.yml run tests-host
+              docker compose build
+              if ! docker compose up --exit-code-from tests; then
+                echo "❌ Tests failed for $dir - dumping logs:"
+                docker compose logs
+                docker compose down --remove-orphans
+                exit 1
+              fi
 
               # Clean up
               docker compose -f docker-compose.yml down -v --remove-orphans
