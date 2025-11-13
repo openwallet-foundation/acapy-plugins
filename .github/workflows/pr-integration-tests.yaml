@@ -102,6 +102,12 @@ jobs:
             fi
             
             docker compose build
+
+            # Custom setup for redis cache plugin to run the init in detached mode
+            if [[ "$dir" == "cache_redis" ]]; then
+              docker compose up -d redis-cluster-init
+            fi
+
             if ! docker compose up --exit-code-from tests; then
               echo "❌ Tests failed for $dir - dumping logs:"
               docker compose logs

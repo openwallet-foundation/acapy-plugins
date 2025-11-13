@@ -34,17 +34,18 @@ services:
       retries: 5
 
 
-  redis-cluster:
+  redis-cluster-init:
     image: redis:latest
     container_name: cluster
     command: >
-      sh -c "
-        redis-cli --cluster create
-          ${SUBNET_PREFIX:-172.28}.0.101:6380 ${SUBNET_PREFIX:-172.28}.0.102:6381 ${SUBNET_PREFIX:-172.28}.0.103:6382
-          ${SUBNET_PREFIX:-172.28}.0.104:6383 ${SUBNET_PREFIX:-172.28}.0.105:6384 ${SUBNET_PREFIX:-172.28}.0.106:6385
-          --cluster-replicas 1 --cluster-yes;
-        tail -f /dev/null
-      "
+      redis-cli --cluster create
+        ${SUBNET_PREFIX:-172.28}.0.101:6380 
+        ${SUBNET_PREFIX:-172.28}.0.102:6381 
+        ${SUBNET_PREFIX:-172.28}.0.103:6382
+        ${SUBNET_PREFIX:-172.28}.0.104:6383 
+        ${SUBNET_PREFIX:-172.28}.0.105:6384 
+        ${SUBNET_PREFIX:-172.28}.0.106:6385
+      --cluster-replicas 1 --cluster-yes
     environment:
       - REDISCLI_AUTH=${REDIS_PASSWORD:-test1234}
     networks:
