@@ -1,15 +1,18 @@
-version: "3"
 services:
   agent-cluster:
-    image: acapy-cache-redis
+    image: plugin-image
     build:
       context: ../
       dockerfile: ./docker/Dockerfile
+      args:
+        - install_flags=--no-interaction --with integration --extras aca-py
     command: >
-      start -it http 0.0.0.0 3000 
-        -ot http 
-        -e http://agent-cluster:3000
-        --admin 0.0.0.0 3001 --admin-insecure-mode 
+      start 
+        --inbound-transport http 0.0.0.0 3000 
+        --outbound-transport http 
+        --endpoint http://agent-cluster:3000
+        --admin 0.0.0.0 3001 
+        --admin-insecure-mode 
         --no-ledger
         --plugin acapy_cache_redis.v0_1
         --plugin-config-value redis_cache.connection="redis://default:test1234@172.28.0.103:6382"
@@ -21,8 +24,6 @@ services:
     networks:
       - acapy_default
     depends_on:
-      redis-cluster:
-        condition: service_completed_successfully
       redis-node-3:
         condition: service_healthy
     healthcheck:
@@ -59,7 +60,7 @@ services:
     container_name: node1
     command: [ "redis-server", "/conf/redis.conf", "--port 6380" ]
     environment:
-      - REDISCLI_AUTH=${REDIS_PASSWORD}
+      - REDISCLI_AUTH=test1234
     ports:
       - 6380:6380
     volumes:
@@ -73,7 +74,7 @@ services:
     container_name: node2
     command: [ "redis-server", "/conf/redis.conf", "--port 6381" ]
     environment:
-      - REDISCLI_AUTH=${REDIS_PASSWORD}
+      - REDISCLI_AUTH=test1234
     ports:
       - 6381:6381
     volumes:
@@ -87,7 +88,7 @@ services:
     container_name: node3
     command: [ "redis-server", "/conf/redis.conf", "--port 6382" ]
     environment:
-      - REDISCLI_AUTH=${REDIS_PASSWORD}
+      - REDISCLI_AUTH=test1234
     ports:
       - 6382:6382
     volumes:
@@ -96,7 +97,7 @@ services:
       acapy_default:
         ipv4_address: 172.28.0.103
     healthcheck:
-      test: ["CMD-SHELL", "redis-cli -p 6382 -a ${REDIS_PASSWORD} ping | grep PONG"]
+      test: ["CMD-SHELL", "redis-cli -p 6382 -a test1234 ping | grep PONG"]
       start_period: 15s
       interval: 1s
       timeout: 3s
@@ -107,7 +108,7 @@ services:
     container_name: node4
     command: [ "redis-server", "/conf/redis.conf", "--port 6383" ]
     environment:
-      - REDISCLI_AUTH=${REDIS_PASSWORD}
+      - REDISCLI_AUTH=test1234
     ports:
       - 6383:6383
     volumes:
@@ -121,7 +122,7 @@ services:
     container_name: node5
     command: [ "redis-server", "/conf/redis.conf", "--port 6384" ]
     environment:
-      - REDISCLI_AUTH=${REDIS_PASSWORD}
+      - REDISCLI_AUTH=test1234
     ports:
       - 6384:6384
     volumes:
@@ -135,7 +136,7 @@ services:
     container_name: node6
     command: [ "redis-server", "/conf/redis.conf", "--port 6385" ]
     environment:
-      - REDISCLI_AUTH=${REDIS_PASSWORD}
+      - REDISCLI_AUTH=test1234
     ports:
       - 6385:6385
     volumes:
@@ -144,56 +145,13 @@ services:
       acapy_default:
         ipv4_address: 172.28.0.106
 
-  echo-cluster:
-    image: dbluhm/echo-agent:6c22a88
-    ports:
-      - "3002:3002"
-    command: --host 0.0.0.0 --port 3002 --log-level debug
-    networks:
-      - acapy_default
-    healthcheck:
-      test: nc -z 0.0.0.0 3002
-      interval: 1s
-      timeout: 3s
-      retries: 5
-
-  tests:
-    build:
-      context: .
-      dockerfile: ./Dockerfile
-    depends_on:
-      tests-cluster:
-        condition: service_completed_successfully
-      tests-host:
-        condition: service_completed_successfully
-    command: echo "All tests passed"
-    networks:
-      - acapy_default
-
-  tests-cluster:
-    build:
-      context: .
-      dockerfile: ./Dockerfile
-    environment:
-      - AGENT_ENDPOINT=http://agent-cluster:3000
-      - ADMIN_ENDPOINT=http://agent-cluster:3001
-      - ECHO_ENDPOINT=http://echo-cluster:3002
-    depends_on:
-      agent-cluster:
-        condition: service_healthy
-      echo-cluster:
-        condition: service_healthy
-      redis-node-3:
-        condition: service_healthy
-    networks:
-      - acapy_default
-    command: tests/cluster
-
   agent-host:
-    image: acapy-cache-redis
+    image: plugin-image
     build:
       context: ../
       dockerfile: ./docker/Dockerfile
+      args:
+        - install_flags=--no-interaction --with integration --extras aca-py
     depends_on:
       redis-host:
         condition: service_healthy
@@ -202,10 +160,12 @@ services:
     #   - ./acapy_cache_redis:/home/indy/acapy_cache_redis:ro,z
     #   - ./docker/default.yml:/home/indy/default.yml:ro,z
     command: >
-      start -it http 0.0.0.0 3003 
-        -ot http 
-        -e http://agent-host:3003
-        --admin 0.0.0.0 3004 --admin-insecure-mode 
+      start 
+        --inbound-transport http 0.0.0.0 3003 
+        --outbound-transport http
+        --endpoint http://agent-host:3003
+        --admin 0.0.0.0 3004 
+        --admin-insecure-mode 
         --no-ledger
         --plugin acapy_cache_redis.v0_1
         --plugin-config-value redis_cache.connection="redis://redis-host:6379/0"
@@ -220,6 +180,37 @@ services:
       interval: 7s
       timeout: 5s
       retries: 5
+    networks:
+      - acapy_default
+
+  bob:
+    image: plugin-image
+    ports:
+      - "4001:4001"
+    command: >
+      start
+        --label Bob
+        --inbound-transport http 0.0.0.0 4000
+        --outbound-transport http
+        --endpoint http://bob:4000
+        --no-ledger
+        --admin 0.0.0.0 4001
+        --admin-insecure-mode
+        --wallet-type askar
+        --wallet-name bob
+        --wallet-key insecure
+        --auto-provision
+        --log-level info
+        --debug-webhooks
+        --monitor-revocation-notification
+    healthcheck:
+      test: curl -s -o /dev/null -w '%{http_code}' "http://localhost:4001/status/live" | grep "200" > /dev/null
+      start_period: 30s
+      interval: 7s
+      timeout: 5s
+      retries: 5
+    networks:
+      - acapy_default
 
   redis-host:
     image: "redis:alpine"
@@ -240,33 +231,27 @@ services:
       timeout: 3s
       retries: 5
 
-  echo-host:
-    image: dbluhm/echo-agent:6c22a88
-    ports:
-      - "3005:3005"
-    command: --host 0.0.0.0 --port 3005 --log-level debug
-    healthcheck:
-      test: nc -z 0.0.0.0 3005
-      interval: 1s
-      timeout: 3s
-      retries: 5
-
-  tests-host:
+  tests:
+    container_name: juggernaut
     build:
       context: .
-      dockerfile: ./Dockerfile
+      dockerfile: Dockerfile.test.runner
     environment:
+      - WAIT_BEFORE=3
+      - WAIT_HOSTS=agent-host:3003
+      - WAIT_TIMEOUT=60
+      - WAIT_SLEEP_INTERVAL=1
+      - WAIT_HOST_CONNECT_TIMEOUT=30
       - AGENT_ENDPOINT=http://agent-host:3003
       - ADMIN_ENDPOINT=http://agent-host:3004
-      - ECHO_ENDPOINT=http://echo-host:3005
+      - CLUSTER_ENDPOINT=http://agent-cluster:3000
+      - CLUSTER_ADMIN_ENDPOINT=http://agent-cluster:3001
+      - BOB_ENDPOINT=http://bob:4001
     depends_on:
-      agent-host:
-        condition: service_healthy
-      echo-host:
-        condition: service_healthy
-      redis-host:
-        condition: service_healthy
-    command: tests/host
+      - agent-host
+      - bob
+    networks:
+      - acapy_default
 
 networks:
   acapy_default:

@@ -1,22 +1,21 @@
 [tool.poetry]
-name = "acapy-cache-redis-int-tests"
+name = "acapy_cache_redis-tests"
 version = "0.1.0"
 description = "Integration tests for ACA-Py Redis Cache Plugin"
 authors = ["Colton Wolkins <colton@indicio.tech>", "Kim Ebert <kim@indicio.tech>", "Alex Walker <alex.walker@indicio.tech>"]
-packages = [{include = "tests"}]
+package-mode = false
 
 [tool.poetry.dependencies]
-python = "^3.9"
-pytest = "^6.2.5"
-pytest-asyncio = "^0.16.0"
-echo-agent = {git = "https://github.com/Indicio-tech/echo-agent.git", rev = "6c22a88632e5c3fb8f279e6098b7aa6a03b9929e", extras = ["client"]}
-acapy-client = {git = "https://github.com/Indicio-tech/acapy-client.git", rev = "0bd47af23308362db749c2671a3e7f8259855897"}
+python = "^3.12"
+pytest = "^8.3.5"
+pytest-asyncio = "^1.1.0"
+acapy-controller = {git = "https://github.com/openwallet-foundation/acapy-minimal-example.git", rev = "main"}
 httpx = "^0.15.5"
 redis = "^4.2.0"
 
 [tool.poetry.group.dev.dependencies]
-black = "^23.7.0"
-ruff = "^0.0.287"
+
+[tool.pytest.ini_options]
 
 [build-system]
 requires = ["poetry-core>=1.0.0"]

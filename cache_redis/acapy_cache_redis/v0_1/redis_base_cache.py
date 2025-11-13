@@ -97,7 +97,7 @@ class RedisBaseCache(BaseCache):
                     "Found redis connection string correspond to a cluster node,"
                     " reassigning redis to redis.asyncio.RedisCluster client."
                 )
-                self.root_profile.context.injector.bind_instance(
+                self.root_profile.injector.bind_instance(
                     RedisCluster, self.redis
                 )
                 await self.redis.ping(target_nodes=RedisCluster.PRIMARIES)

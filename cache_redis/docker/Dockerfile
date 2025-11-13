@@ -1,21 +1,31 @@
-FROM python:3.12-slim-bullseye
+FROM python:3.12-slim-bookworm AS base
 WORKDIR /usr/src/app/
 
-ENV POETRY_HOME=/opt/poetry \
-    VENV=/usr/src/app/.venv
-ENV PATH="$POETRY_HOME/bin:$VENV/bin:$PATH"
+# Install and configure poetry
+USER root
 
+ENV POETRY_VERSION=2.1.2
+ENV POETRY_HOME=/opt/poetry
 RUN apt-get update && apt-get install -y curl && apt-get clean
 RUN curl -sSL https://install.python-poetry.org | python -
-RUN poetry config virtualenvs.create true; poetry config virtualenvs.in-project true
 
+ENV PATH="/opt/poetry/bin:$PATH"
+RUN poetry config virtualenvs.in-project true
+
+# Setup project
 RUN mkdir acapy_cache_redis && touch acapy_cache_redis/__init__.py
-COPY README.md pyproject.toml poetry.lock ./
+COPY pyproject.toml poetry.lock README.md ./
+ARG install_flags='--with integration --extras aca-py'
+RUN poetry install ${install_flags}
+USER $user
 
-RUN poetry install --only main
+FROM python:3.12-bookworm
+WORKDIR /usr/src/app
+COPY --from=base /usr/src/app/.venv /usr/src/app/.venv
+ENV PATH="/usr/src/app/.venv/bin:$PATH"
 
-COPY docker/default.yml .
 COPY acapy_cache_redis/ acapy_cache_redis/
+COPY docker/*.yml ./
 
-ENTRYPOINT ["poetry", "run", "aca-py"]
+ENTRYPOINT ["/bin/bash", "-c", "aca-py \"$@\"", "--"]
 CMD ["start", "--arg-file", "default.yml"]
