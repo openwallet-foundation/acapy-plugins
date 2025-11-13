@@ -15,8 +15,8 @@ services:
         --admin-insecure-mode 
         --no-ledger
         --plugin acapy_cache_redis.v0_1
-        --plugin-config-value redis_cache.connection="redis://default:test1234@172.28.0.103:6382"
-        --log-level debug
+        --plugin-config-value redis_cache.connection="redis://default:test1234@${SUBNET_PREFIX:-172.28}.0.103:6382"
+        --log-level info
         --auto-provision
         --wallet-name default
         --wallet-type askar-anoncreds
@@ -39,14 +39,14 @@ services:
     container_name: cluster
     command: >
       redis-cli --cluster create
-        172.28.0.101:6380 172.28.0.102:6381 172.28.0.103:6382
-        172.28.0.104:6383 172.28.0.105:6384 172.28.0.106:6385
+        ${SUBNET_PREFIX:-172.28}.0.101:6380 ${SUBNET_PREFIX:-172.28}.0.102:6381 ${SUBNET_PREFIX:-172.28}.0.103:6382
+        ${SUBNET_PREFIX:-172.28}.0.104:6383 ${SUBNET_PREFIX:-172.28}.0.105:6384 ${SUBNET_PREFIX:-172.28}.0.106:6385
       --cluster-replicas 1 --cluster-yes
     environment:
       - REDISCLI_AUTH=${REDIS_PASSWORD:-test1234}
     networks:
       acapy_default:
-        ipv4_address: 172.28.0.107
+        ipv4_address: ${SUBNET_PREFIX:-172.28}.0.107
     depends_on:
       - redis-node-1
       - redis-node-2
@@ -67,7 +67,7 @@ services:
       - ../redis_cluster.conf:/conf/redis.conf
     networks:
       acapy_default:
-        ipv4_address: 172.28.0.101
+        ipv4_address: ${SUBNET_PREFIX:-172.28}.0.101
 
   redis-node-2:
     image: redis:latest
@@ -81,7 +81,7 @@ services:
       - ../redis_cluster.conf:/conf/redis.conf
     networks:
       acapy_default:
-        ipv4_address: 172.28.0.102
+        ipv4_address: ${SUBNET_PREFIX:-172.28}.0.102
 
   redis-node-3:
     image: redis:latest
@@ -95,7 +95,7 @@ services:
       - ../redis_cluster.conf:/conf/redis.conf
     networks:
       acapy_default:
-        ipv4_address: 172.28.0.103
+        ipv4_address: ${SUBNET_PREFIX:-172.28}.0.103
     healthcheck:
       test: ["CMD-SHELL", "redis-cli -p 6382 -a test1234 ping | grep PONG"]
       start_period: 15s
@@ -115,7 +115,7 @@ services:
       - ../redis_cluster.conf:/conf/redis.conf
     networks:
       acapy_default:
-        ipv4_address: 172.28.0.104
+        ipv4_address: ${SUBNET_PREFIX:-172.28}.0.104
 
   redis-node-5:
     image: redis:latest
@@ -129,7 +129,7 @@ services:
       - ../redis_cluster.conf:/conf/redis.conf
     networks:
       acapy_default:
-        ipv4_address: 172.28.0.105
+        ipv4_address: ${SUBNET_PREFIX:-172.28}.0.105
 
   redis-node-6:
     image: redis:latest
@@ -143,7 +143,7 @@ services:
       - ../redis_cluster.conf:/conf/redis.conf
     networks:
       acapy_default:
-        ipv4_address: 172.28.0.106
+        ipv4_address: ${SUBNET_PREFIX:-172.28}.0.106
 
   agent-host:
     image: plugin-image
@@ -169,7 +169,7 @@ services:
         --no-ledger
         --plugin acapy_cache_redis.v0_1
         --plugin-config-value redis_cache.connection="redis://redis-host:6379/0"
-        --log-level debug
+        --log-level info
         --auto-provision
         --wallet-name default
         --wallet-type askar-anoncreds
@@ -247,6 +247,7 @@ services:
       - CLUSTER_ENDPOINT=http://agent-cluster:3000
       - CLUSTER_ADMIN_ENDPOINT=http://agent-cluster:3001
       - BOB_ENDPOINT=http://bob:4001
+      - SUBNET_PREFIX=${SUBNET_PREFIX:-172.28}
     depends_on:
       - agent-host
       - bob
@@ -258,4 +259,4 @@ networks:
     driver: bridge
     ipam:
       config:
-        - subnet: 172.28.0.0/16
+        - subnet: ${SUBNET:-172.28.0.0/16}
