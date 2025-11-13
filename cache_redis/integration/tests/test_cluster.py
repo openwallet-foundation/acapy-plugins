@@ -20,7 +20,7 @@ BOB = getenv("BOB_ENDPOINT", "http://bob:4001")
 async def test_send_and_receive_cluster():
     async with Controller(base_url=AGENT) as agent, Controller(base_url=BOB) as bob:
         conn, _ = await didexchange(agent, bob)
-        
+
     # """Testing the Status Request Message with no queued messages."""
     # # await echo.send_message(
     # #     connection,
@@ -31,11 +31,10 @@ async def test_send_and_receive_cluster():
     # # )
     # # response = await echo.get_message(connection)
     # # assert response["@type"] == ("https://didcomm.org/trust_ping/1.0/ping_response")
-    
+
+
 @pytest.mark.asyncio
-async def test_redis_cluster_client(
-    redis_cluster_client
-):
+async def test_redis_cluster_client(redis_cluster_client):
     """Create a credential definition"""
 
     async with Controller(base_url=AGENT) as agent, Controller(base_url=BOB) as bob:
@@ -48,6 +47,7 @@ async def test_redis_cluster_client(
         assert response["results"][0]["connection_id"]
 
         raw_connection_info = await redis_cluster_client.keys(
-            "ACA-Py:connection_by_verkey::*")
+            "ACA-Py:connection_by_verkey::*"
+        )
 
         assert raw_connection_info
