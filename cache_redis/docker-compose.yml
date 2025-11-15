@@ -1,0 +1,56 @@
+services:
+  tunnel:
+    image: dbluhm/agent-tunnel
+    command: -s reverse-proxy:80 -p 4040 -h ${AGENT_TUNNEL_HOST}
+    ports:
+      - 4040:4040
+  agent:
+    image: acapy-cache-redis
+    build:
+     context: ./
+     dockerfile: ./docker/Dockerfile
+    depends_on:
+      redis-host:
+        condition: service_healthy
+    links:
+      - redis-host
+      - reverse-proxy
+    ports:
+      - 3000:3000
+      - 3001:3001
+    volumes:
+      - ./acapy-endpoint.sh:/acapy-endpoint.sh:ro,z
+      - ./acapy_cache_redis:/home/indy/acapy_cache_redis:ro,z
+      - ./docker/default.yml:/home/indy/default.yml:ro,z
+    environment:
+      TUNNEL_ENDPOINT: http://tunnel:4040
+    entrypoint: >
+      /bin/sh -c '/acapy-endpoint.sh poetry run aca-py "$$@"' --
+    command: >
+      start --arg-file default.yml
+
+  reverse-proxy:
+    image: nginx:alpine
+    restart: unless-stopped
+    environment:
+      AGENT_HTTP: "agent:3000"
+      AGENT_WS: "agent:3002"
+    ports:
+      - 80:80
+    volumes:
+     - ./nginx.conf.template:/etc/nginx/templates/default.conf.template:z
+
+  redis-host:
+    image: "redis:alpine"
+    healthcheck:
+      test: ["CMD-SHELL", "redis-cli ping | grep PONG"]
+    ports:
+     - "6379:6379"
+    volumes:
+      - ./redis-data:/var/lib/redis
+      - ./redis.conf:/etc/redis/redis.conf:ro,z
+    environment:
+     - REDIS_REPLICATION_MODE=master
+
+#TODO: add a volume for the redis data
+#TODO: add healthcheck and then the agent should have a depends on condition of service_healthy for the service.
