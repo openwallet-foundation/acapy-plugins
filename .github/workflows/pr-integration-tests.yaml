@@ -109,17 +109,6 @@ jobs:
             echo "🚀 Starting docker compose stack..."
             docker compose up -d
 
-            # For the redis plugin only:
-            if [[ "$dir" == "cache_redis" ]]; then
-              echo "🔐 Running Redis cluster init..."
-              docker compose run --rm redis-cluster-init || {
-                echo "❌ Redis cluster init failed!"
-                docker compose logs
-                docker compose down --remove-orphans
-                exit 1
-              }
-            fi
-
             echo "🧪 Running tests container..."
             docker compose run --rm tests
             TEST_EXIT=$?
