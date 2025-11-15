@@ -91,29 +91,48 @@ jobs:
       #----------------------------------------------
       - name: Run Integration Tests
         id: integration-tests
+        shell: bash
         run: |
           for dir in ${{ steps.changed-plugins.outputs.changed-plugins }}; do
-            echo "Running integration tests for $dir"
-            cd $dir/integration
+            echo "🔧 Running integration tests for $dir"
+            cd "$dir/integration"
 
             # Source init-network.sh if it exists
             if [ -f ./init-network.sh ]; then
+              echo "📡 Sourcing init-network.sh"
               . ./init-network.sh
             fi
-            
+
             docker compose build
 
-            # Custom setup for redis cache plugin to run the init in detached mode
+            # Start everything in the background
+            echo "🚀 Starting docker compose stack..."
+            docker compose up -d
+
+            # For the redis plugin only:
             if [[ "$dir" == "cache_redis" ]]; then
-              docker compose up -d redis-cluster-init
+              echo "🔐 Running Redis cluster init..."
+              docker compose run --rm redis-cluster-init || {
+                echo "❌ Redis cluster init failed!"
+                docker compose logs
+                docker compose down --remove-orphans
+                exit 1
+              }
             fi
 
-            if ! docker compose up --exit-code-from tests; then
+            echo "🧪 Running tests container..."
+            docker compose run --rm tests
+            TEST_EXIT=$?
+
+            if [[ $TEST_EXIT -ne 0 ]]; then
               echo "❌ Tests failed for $dir - dumping logs:"
-              docker compose logs
+              docker compose logs || true
               docker compose down --remove-orphans
-              exit 1
+              exit $TEST_EXIT
             fi
+
+            echo "✅ Tests passed for $dir"
+
             docker compose down --remove-orphans
             cd ../..
           done
