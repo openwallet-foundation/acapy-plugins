@@ -58,6 +58,8 @@ services:
       - redis-node-4
       - redis-node-5
       - redis-node-6
+    restart: "no"
+    init: true
 
   redis-node-1:
     image: redis:latest
