@@ -1,6 +1,6 @@
 [project]
 name = "acapy-plugins-bundle"
-version = "1.3.2"
+version = "1.4.0"
 description = "ACA-Py plugins bundle with all available plugins"
 authors = [
     {name = "PatStLouis", email = "patrick.st-louis@opsecid.ca"}
@@ -17,7 +17,7 @@ packages = []
 [project.optional-dependencies]
 plugins = [
     "acapy-plugin-basicmessage-storage @ file:///basicmessage_storage",
-    "acapy-plugin-cheqd @ file:///cache_redis",
+    "acapy-plugin-cache_redis @ file:///cache_redis",
     "acapy-plugin-cheqd @ file:///cheqd",
     "acapy-plugin-connection-update @ file:///connection_update",
     "acapy-plugin-connections @ file:///connections",
