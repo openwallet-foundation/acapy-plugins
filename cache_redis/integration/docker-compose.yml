@@ -1,0 +1,266 @@
+services:
+  agent-cluster:
+    image: plugin-image
+    build:
+      context: ../
+      dockerfile: ./docker/Dockerfile
+      args:
+        - install_flags=--no-interaction --with integration --extras aca-py
+    command: >
+      start 
+        --inbound-transport http 0.0.0.0 3000 
+        --outbound-transport http 
+        --endpoint http://agent-cluster:3000
+        --admin 0.0.0.0 3001 
+        --admin-insecure-mode 
+        --no-ledger
+        --plugin acapy_cache_redis.v0_1
+        --plugin-config-value redis_cache.connection="redis://default:test1234@${SUBNET_PREFIX:-172.28}.0.103:6382"
+        --log-level info
+        --auto-provision
+        --wallet-name default
+        --wallet-type askar-anoncreds
+        --wallet-key "insecure"
+    networks:
+      - acapy_default
+    depends_on:
+      redis-node-3:
+        condition: service_healthy
+    healthcheck:
+      test: curl -s -o /dev/null -w '%{http_code}' "http://localhost:3001/status/live" | grep "200" > /dev/null
+      start_period: 30s
+      interval: 7s
+      timeout: 5s
+      retries: 5
+
+
+  redis-cluster:
+    image: redis:latest
+    container_name: cluster
+    command: >
+      redis-cli --cluster create
+        ${SUBNET_PREFIX:-172.28}.0.101:6380 
+        ${SUBNET_PREFIX:-172.28}.0.102:6381 
+        ${SUBNET_PREFIX:-172.28}.0.103:6382
+        ${SUBNET_PREFIX:-172.28}.0.104:6383 
+        ${SUBNET_PREFIX:-172.28}.0.105:6384 
+        ${SUBNET_PREFIX:-172.28}.0.106:6385
+      --cluster-replicas 1 --cluster-yes
+    environment:
+      - REDISCLI_AUTH=${REDIS_PASSWORD:-test1234}
+    networks:
+      acapy_default:
+        ipv4_address: ${SUBNET_PREFIX:-172.28}.0.107
+    depends_on:
+      - redis-node-1
+      - redis-node-2
+      - redis-node-3
+      - redis-node-4
+      - redis-node-5
+      - redis-node-6
+
+  redis-node-1:
+    image: redis:latest
+    container_name: node1
+    command: [ "redis-server", "/conf/redis.conf", "--port 6380" ]
+    environment:
+      - REDISCLI_AUTH=test1234
+    ports:
+      - 6380:6380
+    volumes:
+      - ../redis_cluster.conf:/conf/redis.conf
+    networks:
+      acapy_default:
+        ipv4_address: ${SUBNET_PREFIX:-172.28}.0.101
+
+  redis-node-2:
+    image: redis:latest
+    container_name: node2
+    command: [ "redis-server", "/conf/redis.conf", "--port 6381" ]
+    environment:
+      - REDISCLI_AUTH=test1234
+    ports:
+      - 6381:6381
+    volumes:
+      - ../redis_cluster.conf:/conf/redis.conf
+    networks:
+      acapy_default:
+        ipv4_address: ${SUBNET_PREFIX:-172.28}.0.102
+
+  redis-node-3:
+    image: redis:latest
+    container_name: node3
+    command: [ "redis-server", "/conf/redis.conf", "--port 6382" ]
+    environment:
+      - REDISCLI_AUTH=test1234
+    ports:
+      - 6382:6382
+    volumes:
+      - ../redis_cluster.conf:/conf/redis.conf
+    networks:
+      acapy_default:
+        ipv4_address: ${SUBNET_PREFIX:-172.28}.0.103
+    healthcheck:
+      test: ["CMD-SHELL", "redis-cli -p 6382 -a test1234 ping | grep PONG"]
+      start_period: 15s
+      interval: 1s
+      timeout: 3s
+      retries: 5
+
+  redis-node-4:
+    image: redis:latest
+    container_name: node4
+    command: [ "redis-server", "/conf/redis.conf", "--port 6383" ]
+    environment:
+      - REDISCLI_AUTH=test1234
+    ports:
+      - 6383:6383
+    volumes:
+      - ../redis_cluster.conf:/conf/redis.conf
+    networks:
+      acapy_default:
+        ipv4_address: ${SUBNET_PREFIX:-172.28}.0.104
+
+  redis-node-5:
+    image: redis:latest
+    container_name: node5
+    command: [ "redis-server", "/conf/redis.conf", "--port 6384" ]
+    environment:
+      - REDISCLI_AUTH=test1234
+    ports:
+      - 6384:6384
+    volumes:
+      - ../redis_cluster.conf:/conf/redis.conf
+    networks:
+      acapy_default:
+        ipv4_address: ${SUBNET_PREFIX:-172.28}.0.105
+
+  redis-node-6:
+    image: redis:latest
+    container_name: node6
+    command: [ "redis-server", "/conf/redis.conf", "--port 6385" ]
+    environment:
+      - REDISCLI_AUTH=test1234
+    ports:
+      - 6385:6385
+    volumes:
+      - ../redis_cluster.conf:/conf/redis.conf
+    networks:
+      acapy_default:
+        ipv4_address: ${SUBNET_PREFIX:-172.28}.0.106
+
+  agent-host:
+    image: plugin-image
+    build:
+      context: ../
+      dockerfile: ./docker/Dockerfile
+      args:
+        - install_flags=--no-interaction --with integration --extras aca-py
+    depends_on:
+      redis-host:
+        condition: service_healthy
+    # volumes:
+    #   - ./acapy-endpoint.sh:/acapy-endpoint.sh:ro,z
+    #   - ./acapy_cache_redis:/home/indy/acapy_cache_redis:ro,z
+    #   - ./docker/default.yml:/home/indy/default.yml:ro,z
+    command: >
+      start 
+        --inbound-transport http 0.0.0.0 3003 
+        --outbound-transport http
+        --endpoint http://agent-host:3003
+        --admin 0.0.0.0 3004 
+        --admin-insecure-mode 
+        --no-ledger
+        --plugin acapy_cache_redis.v0_1
+        --plugin-config-value redis_cache.connection="redis://redis-host:6379/0"
+        --log-level info
+        --auto-provision
+        --wallet-name default
+        --wallet-type askar-anoncreds
+        --wallet-key "insecure"
+    healthcheck:
+      test: curl -s -o /dev/null -w '%{http_code}' "http://localhost:3004/status/live" | grep "200" > /dev/null
+      start_period: 30s
+      interval: 7s
+      timeout: 5s
+      retries: 5
+    networks:
+      - acapy_default
+
+  bob:
+    image: plugin-image
+    ports:
+      - "4001:4001"
+    command: >
+      start
+        --label Bob
+        --inbound-transport http 0.0.0.0 4000
+        --outbound-transport http
+        --endpoint http://bob:4000
+        --no-ledger
+        --admin 0.0.0.0 4001
+        --admin-insecure-mode
+        --wallet-type askar
+        --wallet-name bob
+        --wallet-key insecure
+        --auto-provision
+        --log-level info
+        --debug-webhooks
+        --monitor-revocation-notification
+    healthcheck:
+      test: curl -s -o /dev/null -w '%{http_code}' "http://localhost:4001/status/live" | grep "200" > /dev/null
+      start_period: 30s
+      interval: 7s
+      timeout: 5s
+      retries: 5
+    networks:
+      - acapy_default
+
+  redis-host:
+    image: "redis:alpine"
+    command: redis-server
+    ports:
+      - "6379:6379"
+    # volumes:
+    #   - ./redis-data:/var/lib/redis
+    #   - ./redis.conf:/etc/redis/redis.conf:ro,z
+    environment:
+      - REDIS_REPLICATION_MODE=master
+    networks:
+      - acapy_default
+    healthcheck:
+      test: ["CMD-SHELL", "redis-cli ping | grep PONG"]
+      start_period: 15s
+      interval: 1s
+      timeout: 3s
+      retries: 5
+
+  tests:
+    container_name: juggernaut
+    build:
+      context: .
+      dockerfile: Dockerfile.test.runner
+    environment:
+      - WAIT_BEFORE=3
+      - WAIT_HOSTS=agent-host:3003
+      - WAIT_TIMEOUT=60
+      - WAIT_SLEEP_INTERVAL=1
+      - WAIT_HOST_CONNECT_TIMEOUT=30
+      - AGENT_ENDPOINT=http://agent-host:3003
+      - ADMIN_ENDPOINT=http://agent-host:3004
+      - CLUSTER_ENDPOINT=http://agent-cluster:3000
+      - CLUSTER_ADMIN_ENDPOINT=http://agent-cluster:3001
+      - BOB_ENDPOINT=http://bob:4001
+      - SUBNET_PREFIX=${SUBNET_PREFIX:-172.28}
+    depends_on:
+      - agent-host
+      - bob
+    networks:
+      - acapy_default
+
+networks:
+  acapy_default:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: ${SUBNET:-172.28.0.0/16}
