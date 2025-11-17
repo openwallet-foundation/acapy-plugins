@@ -15,7 +15,7 @@ marshmallow = "^3.23.3"
 google-auth = "^2.43.0"
 google-api-python-client = "^2.187.0"
 requests = "^2.31.0"
-protobuf = "6.33.0"
+protobuf = "6.33.1"
 
 [tool.poetry.extras]
 aca-py = ["acapy-agent"]
