@@ -1,7 +1,7 @@
 [tool.poetry]
 name = "multitenant_provider"
 version = "0.1.0"
-description = " (Supported acapy-agent version: 1.3.2) "
+description = " (Supported acapy-agent version: 1.4.0) "
 authors = ["Jason Sherman <tools@usingtechnolo.gy>"]
 
 [tool.poetry.dependencies]

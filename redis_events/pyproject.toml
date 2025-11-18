@@ -1,7 +1,7 @@
 [tool.poetry]
 name = "redis_events"
 version = "0.1.0"
-description = "ACA-PY persisted events using Redis (Supported acapy-agent version: 1.3.2) "
+description = "ACA-PY persisted events using Redis (Supported acapy-agent version: 1.4.0) "
 authors = ["Shaanjot Gill <gill.shaanjots@gmail.com>"]
 
 [tool.poetry.dependencies]

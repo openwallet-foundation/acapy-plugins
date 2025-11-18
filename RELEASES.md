@@ -4,10 +4,12 @@
 | Plugin Name | Supported ACA-Py Release |
 | --- | --- |
 |basicmessage_storage | 1.4.0|
-|cahe_redis | 1.4.0|
+|cache_redis | 1.4.0|
+|cheqd | 1.4.0|
 |connection_update | 1.4.0|
 |connections | 1.4.0|
 |firebase_push_notifications | 1.4.0|
+|hedera | 1.3.2|
 |multitenant_provider | 1.4.0|
 |oid4vc | 1.4.0|
 |redis_events | 1.4.0|
@@ -17,6 +19,7 @@
 ### Plugins Upgraded For ACA-Py Release 1.4.0 
  - basicmessage_storage
  - cache_redis
+ - cheqd
  - connection_update
  - connections
  - firebase_push_notifications

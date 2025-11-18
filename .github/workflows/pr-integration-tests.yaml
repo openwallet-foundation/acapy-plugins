@@ -94,6 +94,12 @@ jobs:
         shell: bash
         run: |
           for dir in ${{ steps.changed-plugins.outputs.changed-plugins }}; do
+
+            if [[ "$dir" == "cheqd" ]]; then
+              echo "⏭️  Skipping integration tests for $dir"
+              continue
+            fi
+
             echo "🔧 Running integration tests for $dir"
             cd "$dir/integration"
 

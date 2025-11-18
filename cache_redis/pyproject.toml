@@ -1,7 +1,7 @@
 [tool.poetry]
 name = "acapy-cache-redis"
 version = "0.1.0"
-description = "ACA-Py Cache Plugin for Redis enabling common cache on clustered deployments"
+description = "ACA-Py Cache Plugin for Redis enabling common cache on clustered deployments (Supported acapy-agent version: 1.4.0)"
 authors = ["Colton Wolkins <colton@indicio.tech>", "Kim Ebert <kim@indicio.tech>", "Alex Walker <alex.walker@indicio.tech>"]
 
 [tool.poetry.dependencies]
