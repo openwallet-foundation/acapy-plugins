@@ -80,4 +80,5 @@ class TestHederaDid:
                 "retrieved_time": Something,
                 "duration": Something,
             },
+            "document_metadata": {},
         }

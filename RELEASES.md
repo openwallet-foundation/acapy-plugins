@@ -9,7 +9,7 @@
 |connection_update | 1.4.0|
 |connections | 1.4.0|
 |firebase_push_notifications | 1.4.0|
-|hedera | 1.3.2|
+|hedera | 1.4.0|
 |multitenant_provider | 1.4.0|
 |oid4vc | 1.4.0|
 |redis_events | 1.4.0|
@@ -23,6 +23,7 @@
  - connection_update
  - connections
  - firebase_push_notifications
+ - hedera
  - multitenant_provider
  - oid4vc
  - redis_events
