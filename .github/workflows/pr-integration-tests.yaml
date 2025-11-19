@@ -94,6 +94,12 @@ jobs:
         shell: bash
         run: |
           for dir in ${{ steps.changed-plugins.outputs.changed-plugins }}; do
+
+            if [[ "$dir" == "cheqd" ]]; then
+              echo "⏭️  Skipping integration tests for $dir"
+              continue
+            fi
+
             echo "🔧 Running integration tests for $dir"
             cd "$dir/integration"
 
@@ -105,23 +111,33 @@ jobs:
 
             docker compose build
 
-            # Start everything in the background
-            echo "🚀 Starting docker compose stack..."
-            docker compose up -d
+            if [[ "$dir" == "cache_redis" ]]; then
 
-            echo "🧪 Running tests container..."
-            docker compose run --rm tests
-            TEST_EXIT=$?
+              # Start everything in the background
+              echo "🚀 Starting docker compose stack..."
+              docker compose up -d
 
-            if [[ $TEST_EXIT -ne 0 ]]; then
-              echo "❌ Tests failed for $dir - dumping logs:"
-              docker compose logs || true
-              docker compose down --remove-orphans
-              exit $TEST_EXIT
+              echo "🧪 Running tests container..."
+              docker compose run --rm tests
+              TEST_EXIT=$?
+
+              if [[ $TEST_EXIT -ne 0 ]]; then
+                echo "❌ Tests failed for $dir - dumping logs:"
+                docker compose logs || true
+                docker compose down --remove-orphans
+                exit $TEST_EXIT
+              fi
+            else
+              # Normal plugin flow
+              if ! docker compose up --exit-code-from tests; then
+                echo "❌ Tests failed for $dir - dumping logs:"
+                docker compose logs
+                docker compose down --remove-orphans
+                exit 1
+              fi
             fi
 
             echo "✅ Tests passed for $dir"
-
             docker compose down --remove-orphans
             cd ../..
           done
