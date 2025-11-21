@@ -1,0 +1,37 @@
+[tool.poetry]
+name = "acapy-cache-redis"
+version = "0.1.0"
+description = "ACA-Py Cache Plugin for Redis enabling common cache on clustered deployments (Supported acapy-agent version: 1.4.0)"
+authors = ["Colton Wolkins <colton@indicio.tech>", "Kim Ebert <kim@indicio.tech>", "Alex Walker <alex.walker@indicio.tech>"]
+
+[tool.poetry.dependencies]
+python = "^3.12"
+acapy-agent = { version = "~1.4.0", optional = true }
+redis = "^4.3.0"
+
+# Define ACA-Py as an optional/extra dependency so it can be
+# explicitly installed with the plugin if desired.
+[tool.poetry.extras]
+aca-py = ["acapy-agent"]
+
+[tool.poetry.group.dev.dependencies]
+ruff = "^0.14.2"
+pytest = "^8.3.5"
+pytest-asyncio = "^1.2.0"
+pytest-cov = "^5.0.0"
+pytest-ruff = "^0.4.1"
+
+[tool.poetry.group.integration.dependencies]
+aries-askar = { version = "~0.4.6" }
+indy-credx = { version = "~1.1.1" }
+indy-vdr = { version = "~0.4.1" }
+python3-indy = { version = "^1.11.1" }
+anoncreds = { version = "0.2.3" }
+
+[build-system]
+requires = ["poetry-core>=1.0.0"]
+build-backend = "poetry.core.masonry.api"
+
+[tool.pytest.ini_options]
+testpaths = "acapy_cache_redis"
+addopts = "-p no:warnings"

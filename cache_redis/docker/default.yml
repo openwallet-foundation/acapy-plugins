@@ -1,0 +1,42 @@
+label: Aries Cloud Agent + redis cache with single host
+
+# Admin
+admin: [0.0.0.0, 3001]
+admin-insecure-mode: true
+
+# Load plugin
+plugin:
+  - acapy_cache_redis.v0_1
+
+# Transport
+inbound-transport:
+  - [http, 0.0.0.0, 3000]
+  - [ws, 0.0.0.0, 3002]
+outbound-transport: http
+endpoint:
+  - http://agent:3000
+  - ws://agent:3002
+
+# Ledger
+no-ledger: true
+
+# Connections
+debug-connections: true
+debug-credentials: true
+debug-presentations: true
+auto-accept-invites: true
+auto-accept-requests: true
+connections-invite: true
+log-level: debug
+
+plugin-config-value:
+  - redis_cache.connection="redis://redis-host:6379/0"
+  - redis_cache.max_connections=90
+  # - redis_cache.credentials.username="username"
+  # - redis_cache.credentials.password="password"
+  # - redis_cache.ssl.cacerts=./ca.crt
+
+auto-provision: true
+wallet-name: default
+wallet-type: askar-anoncreds
+wallet-key: "insecure"
