@@ -76,10 +76,12 @@ class WitnessManager:
             config["witnesses"].append(witness_id)
             await set_config(self.profile, config)
 
+        # Use the witness_key we already have instead of calling get_witness_key()
         invitation_record = await self.create_invitation(
             alias=None,
             label="Witness Service",
             multi_use=True,
+            witness_key=witness_key,
         )
         invitation_url = None
         if isinstance(invitation_record, dict):
@@ -128,7 +130,10 @@ class WitnessManager:
             config = await get_plugin_config(self.profile)
 
         if not config.get("witness", False):
+            LOGGER.debug("Skipping witness auto_setup - witness not configured")
             return
+        
+        LOGGER.info("Starting witness auto_setup")
 
         config.setdefault("witnesses", [])
         key_alias = self.key_alias
@@ -142,10 +147,12 @@ class WitnessManager:
             config["witnesses"].append(witness_id)
             await set_config(self.profile, config)
 
+        # Use the witness_key we already have instead of calling get_witness_key()
         invitation_record = await self.create_invitation(
             alias=None,
             label="Witness Service",
             multi_use=True,
+            witness_key=witness_key,
         )
         invitation_url = None
         if isinstance(invitation_record, dict):
@@ -176,13 +183,17 @@ class WitnessManager:
         print()
         
         # Also log the configuration details
+        invitation_display = invitation_url if invitation_url else "<not available>"
         LOGGER.info(
-            f"WebVH Witness configured - witness_id: {witness_id}, invitation_url: {invitation_url or '<not available>'}"
+            "WebVH Witness configured - witness_id: %s, invitation_url: %s",
+            witness_id,
+            invitation_display
         )
 
-    async def create_invitation(self, alias=None, label=None, multi_use=False) -> str:
+    async def create_invitation(self, alias=None, label=None, multi_use=False, witness_key=None) -> str:
         """Create a witness invitation."""
-        witness_key = await self.get_witness_key()
+        if witness_key is None:
+            witness_key = await self.get_witness_key()
         try:
             invi_rec = await OutOfBandManager(self.profile).create_invitation(
                 hs_protos=[
