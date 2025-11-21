@@ -215,25 +215,31 @@ async def update_whois(request: web.BaseRequest):
 
 def register_events(event_bus: EventBus):
     """Register to the acapy startup event."""
-    LOGGER.info("Registering WebVH startup event handler")
+    LOGGER.warning("=" * 70)
+    LOGGER.warning("Registering WebVH startup event handler")
+    LOGGER.warning("=" * 70)
     event_bus.subscribe(STARTUP_EVENT_PATTERN, on_startup_event)
+    LOGGER.warning("WebVH startup event handler registered successfully")
 
 
 async def on_startup_event(profile: Profile, event: Event):
     """Handle the plugin startup setup."""
-    LOGGER.info("WebVH startup event received")
+    LOGGER.warning("=" * 70)
+    LOGGER.warning("WebVH startup event received")
+    LOGGER.warning("=" * 70)
     config = get_global_plugin_config(profile)
-    LOGGER.info("WebVH global config: %s", config)
+    LOGGER.warning("WebVH global config: %s", config)
     
     if profile.settings.get("multitenant.enabled"):
-        LOGGER.info("Skipping WebVH auto_config - multitenant enabled")
+        LOGGER.warning("Skipping WebVH auto_config - multitenant enabled")
         return
     
     if not config.get("auto_config", False):
-        LOGGER.info("Skipping WebVH auto_config - auto_config not enabled in config")
+        LOGGER.warning("Skipping WebVH auto_config - auto_config not enabled in config")
         return
     
-    LOGGER.info("WebVH auto_config enabled, proceeding with setup")
+    LOGGER.warning("WebVH auto_config enabled, proceeding with setup")
+    LOGGER.warning("Witness mode: %s", config.get("witness", False))
 
     # Remove auto_config from config before passing to setup methods
     # so it doesn't get persisted to stored config

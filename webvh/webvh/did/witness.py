@@ -133,14 +133,18 @@ class WitnessManager:
             LOGGER.debug("Skipping witness auto_setup - witness not configured")
             return
         
-        LOGGER.info("Starting witness auto_setup")
+        LOGGER.warning("=" * 70)
+        LOGGER.warning("Starting witness auto_setup")
+        LOGGER.warning("Witness auto_setup: config.witness = %s", config.get("witness"))
 
         config.setdefault("witnesses", [])
         key_alias = self.key_alias
+        LOGGER.warning("Witness auto_setup: key_alias = %s", key_alias)
         witness_key = await find_key(self.profile, key_alias)
         if not witness_key:
-            LOGGER.info("Creating witness key for alias %s", key_alias)
+            LOGGER.warning("Creating witness key for alias %s", key_alias)
             witness_key = await create_key(self.profile, key_alias)
+            LOGGER.warning("Created witness key: %s", witness_key[:20] + "..." if witness_key else "None")
 
         witness_id = f"did:key:{witness_key}"
         if witness_id not in config["witnesses"]:
@@ -186,7 +190,10 @@ class WitnessManager:
 """
         
         # Log and print the same message
-        LOGGER.info(message)
+        # Use WARNING level to ensure visibility in Docker logs
+        # Use multiple LOGGER.warning calls to ensure each line is logged separately
+        for line in message.strip().split('\n'):
+            LOGGER.warning(line)
         print(message, end="")
 
     async def create_invitation(self, alias=None, label=None, multi_use=False, witness_key=None) -> str:
