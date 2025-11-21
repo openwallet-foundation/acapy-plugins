@@ -169,26 +169,25 @@ class WitnessManager:
                 oob_param = query["oob"][0]
                 invitation_url = f"didcomm://?oob={oob_param}"
 
-        print("\n" + "=" * 70)
-        print("✨" + " " * 20 + "WebVH Witness Ready!" + " " * 20 + "✨")
-        print("=" * 70)
-        print()
-        print("  🔑 Witness ID:")
-        print(f"     {witness_id}")
-        print()
-        print("  📨 Invitation URL:")
-        print(f"     {invitation_url or '<not available>'}")
-        print()
-        print("=" * 70)
-        print()
-        
-        # Also log the configuration details
+        # Format the witness configuration message
         invitation_display = invitation_url if invitation_url else "<not available>"
-        LOGGER.info(
-            "WebVH Witness configured - witness_id: %s, invitation_url: %s",
-            witness_id,
-            invitation_display
-        )
+        message = f"""
+{'=' * 70}
+✨{' ' * 20}WebVH Witness Ready!{' ' * 20}✨
+{'=' * 70}
+
+  🔑 Witness ID:
+     {witness_id}
+
+  📨 Invitation URL:
+     {invitation_display}
+
+{'=' * 70}
+"""
+        
+        # Log and print the same message
+        LOGGER.info(message)
+        print(message, end="")
 
     async def create_invitation(self, alias=None, label=None, multi_use=False, witness_key=None) -> str:
         """Create a witness invitation."""
