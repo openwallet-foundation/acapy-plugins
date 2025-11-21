@@ -1,6 +1,7 @@
 """DID Webvh protocol routes module."""
 
 import enum
+import logging
 
 from acapy_agent.admin.decorators.auth import tenant_authentication
 from acapy_agent.admin.request_context import AdminRequestContext
@@ -10,6 +11,8 @@ from .attested_resource.record import PendingAttestedResourceRecord
 from .log_entry.record import PendingLogEntryRecord
 from ..did.witness import WitnessManager
 from ..did.exceptions import WitnessError
+
+LOGGER = logging.getLogger(__name__)
 
 
 class WitnessRecordType(str, enum.Enum):
@@ -116,6 +119,9 @@ async def approve_pending_witness_request(request: web.BaseRequest):
 
         await PENDING_RECORDS.remove_pending_record(context.profile, record_id)
 
+        LOGGER.info(
+            f"Witness successful for {record_type.value} record {record_id}"
+        )
         return web.json_response({"status": "success", "message": "Witness successful."})
 
     except WitnessError as err:

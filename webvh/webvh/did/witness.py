@@ -174,6 +174,11 @@ class WitnessManager:
         print()
         print("=" * 70)
         print()
+        
+        # Also log the configuration details
+        LOGGER.info(
+            f"WebVH Witness configured - witness_id: {witness_id}, invitation_url: {invitation_url or '<not available>'}"
+        )
 
     async def create_invitation(self, alias=None, label=None, multi_use=False) -> str:
         """Create a witness invitation."""
