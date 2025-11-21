@@ -17,6 +17,7 @@ ALIAS_PURPOSES = {
     "nextKey": "@nextKey",
     "updateKey": "@updateKey",
     "witnessKey": "@witnessKey",
+    "innkeeperKey": "@innkeeper",
 }
 
 

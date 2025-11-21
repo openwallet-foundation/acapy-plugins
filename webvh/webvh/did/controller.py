@@ -43,7 +43,7 @@ from ..protocols.attested_resource.record import PendingAttestedResourceRecord
 from ..protocols.log_entry.record import PendingLogEntryRecord
 from ..protocols.states import WitnessingState
 from .witness import WitnessManager
-from .exceptions import DidCreationError, OperationError
+from .exceptions import ConfigurationError, DidCreationError, OperationError
 from .server_client import WebVHServerClient, WebVHWatcherClient
 from .utils import (
     decode_invitation,
@@ -85,7 +85,12 @@ class ControllerManager:
         self.watcher_client = WebVHWatcherClient(self.profile)
 
     async def _get_active_witness_connection(self) -> Optional[ConnRecord]:
-        server_url = await get_server_url(self.profile)
+        try:
+            server_url = await get_server_url(self.profile)
+        except ConfigurationError:
+            # No server_url configured yet, so no active connection possible
+            return None
+        
         witness_alias = create_alias(url_to_domain(server_url), "witnessConnection")
         async with self.profile.session() as session:
             connection_records = await ConnRecord.retrieve_by_alias(
@@ -122,9 +127,11 @@ class ControllerManager:
 
         # Witness
         # https://identity.foundation/didwebvh/next/#did-witnesses
-        if options.get("witnessThreshold", 0):
+        # Support both camelCase and snake_case for backward compatibility
+        witness_threshold = options.get("witnessThreshold") or options.get("witness_threshold", 0)
+        if witness_threshold:
             parameters["witness"] = {
-                "threshold": options.get("witnessThreshold"),
+                "threshold": witness_threshold,
                 "witnesses": [
                     {"id": witness} for witness in await get_witnesses(self.profile)
                 ],
@@ -387,81 +394,48 @@ class ControllerManager:
 
         return options
 
-    async def configure(self, options: dict) -> dict:
+    async def configure(self, config: dict) -> dict:
         """Configure did controller and/or witness."""
 
-        config = await get_plugin_config(self.profile)
-        config["scids"] = config.get("scids", {})
-        config["witnesses"] = config.get("witnesses", [])
-        config["witness"] = options.get("witness", False)
-        config["endorsement"] = options.get("endorsement", False)
-        config["auto_attest"] = options.get("auto_attest", False)
-        config["server_url"] = options.get("server_url", config.get("server_url")).rstrip(
-            "/"
-        )
-        config["parameter_options"] = options.get("parameter_options", {})
+        # Connect to witness service (only if not self-witness)
+        if witness_id := config.get("witness_id"):
+            await self.connect_to_witness(witness_id)
 
-        if not config.get("server_url"):
-            raise OperationError("No server url configured.")
-
-        await set_config(self.profile, config)
-
-        if config.get("witness", False):
-            # Create a local witness key to setup self witnessing
-            domain = url_to_domain(config["server_url"])
-            key_alias = f"webvh:{domain}@witnessKey"
-            if options.get("witness_key", None):
-                witness_key = await bind_key(
-                    self.profile, options.get("witness_key"), key_alias
-                )
-            else:
-                witness_key = await find_key(self.profile, key_alias) or await create_key(
-                    self.profile, key_alias
-                )
-            if not witness_key:
-                raise OperationError("Error creating witness key.")
-
-            witness_id = f"did:key:{witness_key}"
-
-        else:
-            # Connect to witness service
-            witness_id = await self.connect_to_witness(options.get("witness_invitation"))
-
-        if witness_id not in config["witnesses"]:
-            config["witnesses"].append(witness_id)
-
-        await set_config(self.profile, config)
+            if witness_id not in config.get("witnesses", []):
+                config.setdefault("witnesses", []).append(witness_id)
+                await set_config(self.profile, config)
 
         return config
 
-    async def connect_to_witness(self, witness_invitation) -> None:
+    async def connect_to_witness(self, witness_id: str) -> str:
         """Process witness invitation and connect."""
-        if not witness_invitation:
-            raise OperationError("No witness invitation provided.")
-
-        try:
-            decoded_invitation = decode_invitation(witness_invitation)
-        except UnicodeDecodeError:
-            raise OperationError("Invalid witness invitation.")
-
-        if (
-            not decoded_invitation.get("goal").startswith("did:key:")
-            and not decoded_invitation.get("goal-code") == "witness-service"
-        ):
+        
+        with WebVHServerClient(self.profile) as server_client:
+            invitation = await server_client.get_witness_invitation(witness_id)
+            
+        if not invitation:
+            raise OperationError(
+                f"Witness {witness_id} not listed by server document."
+            )
+        
+        if invitation.get("goal-code",  None) != "witness-service":
             raise OperationError("Missing invitation goal-code and witness did.")
+        
+        if invitation.get("goal",  None) != witness_id:
+            raise OperationError("Wrong invitation goal must match witness id.")
 
         # Get the witness connection is already set up
         if await self._get_active_witness_connection():
             LOGGER.info("Connected to witness from previous connection.")
-            return decoded_invitation.get("goal")
+            return witness_id
 
-        try:
+        try: 
             server_domain = await get_server_domain(self.profile)
-            alias = f"webvh:{server_domain}@witness"
+            witness_alias = f"webvh:{server_domain}@witness"
             await OutOfBandManager(self.profile).receive_invitation(
-                invitation=InvitationMessage.from_url(witness_invitation),
+                invitation=invitation,
                 auto_accept=True,
-                alias=alias,
+                alias=witness_alias,
             )
         except BaseModelError as err:
             raise OperationError(f"Error receiving witness invitation: {err}")
@@ -469,15 +443,16 @@ class ControllerManager:
         for _ in range(5):
             if await self._get_active_witness_connection():
                 LOGGER.info("Connected to witness agent.")
-                return decoded_invitation.get("goal")
+                return witness_id
+            
             await asyncio.sleep(1)
 
         LOGGER.info(
             "No immediate response when trying to connect to witness agent. You can "
-            f"try manually setting up a connection with alias {alias} or "
+            f"try manually setting up a connection with alias {witness_alias} or "
             "restart the agent when witness is available."
         )
-        return decoded_invitation.get("goal")
+        return witness_id
 
     async def create(self, options: dict):
         """Create DID and first log entry."""
@@ -793,11 +768,8 @@ class ControllerManager:
 
         await self.server_client.upload_attested_resource(attested_resource)
 
-    async def auto_witness_setup(self) -> None:
-        """Automatically set up the witness the connection."""
-        domain = await get_server_domain(self.profile)
-        witness_alias = create_alias(domain, "witnessConnection")
-
+    async def auto_setup(self, config: dict | None = None) -> None:
+        """Automatically set up the witness connection for controllers."""
         if not await is_controller(self.profile):
             return
 
@@ -806,30 +778,19 @@ class ControllerManager:
             LOGGER.info("Connected to witness from previous connection.")
             return
 
-        witness_invitation = (await get_plugin_config(self.profile)).get(
-            "witness_invitation"
-        )
-        if not witness_invitation:
-            LOGGER.info("No witness invitation, can't create connection automatically.")
-            return
-        oob_mgr = OutOfBandManager(self.profile)
-        try:
-            await oob_mgr.receive_invitation(
-                invitation=InvitationMessage.from_url(witness_invitation),
-                auto_accept=True,
-                alias=witness_alias,
+        config = config or await get_plugin_config(self.profile)
+        if not config.get("server_url"):
+            raise ConfigurationError("No server url configured.")
+
+        witness_id = config.get("witness_id")
+
+        if not witness_id:
+            LOGGER.info(
+                "No witness identifier, can't create connection automatically."
             )
-        except BaseModelError as err:
-            raise OperationError(f"Error receiving witness invitation: {err}")
+            return
 
-        for _ in range(5):
-            if await self._get_active_witness_connection():
-                LOGGER.info("Connected to witness agent.")
-                return
-            await asyncio.sleep(1)
-
-        LOGGER.info(
-            "No immediate response when trying to connect to witness agent. You can "
-            f"try manually setting up a connection with alias {witness_alias} or "
-            "restart the agent when witness is available."
-        )
+        try:
+            await self.connect_to_witness(witness_id)
+        except OperationError as err:
+            LOGGER.info("Automatic witness connection failed: %s", err)

@@ -3,6 +3,7 @@ import uuid
 
 from acapy_agent.core.event_bus import EventBus
 from acapy_agent.messaging.responder import BaseResponder
+from acapy_agent.protocols.coordinate_mediation.v1_0.route_manager import RouteManager
 from acapy_agent.resolver.base import ResolutionMetadata, ResolutionResult, ResolverType
 from acapy_agent.resolver.did_resolver import DIDResolver
 from acapy_agent.tests import mock
@@ -11,7 +12,7 @@ from acapy_agent.wallet.key_type import KeyTypes
 from acapy_agent.wallet.keys.manager import MultikeyManager
 
 from ...config.config import set_config
-from ..manager import ControllerManager
+from ..controller import ControllerManager
 from ..witness import WitnessManager
 from ..exceptions import ConfigurationError
 from ...protocols.states import WitnessingState
@@ -132,6 +133,9 @@ class TestOperationsManager(IsolatedAsyncioTestCase):
         self.profile.context.injector.bind_instance(DIDResolver, TEST_RESOLVER)
         self.profile.context.injector.bind_instance(EventBus, EventBus())
         self.profile.context.injector.bind_instance(KeyTypes, KeyTypes())
+        self.profile.context.injector.bind_instance(
+            RouteManager, mock.AsyncMock(RouteManager, autospec=True)
+        )
         self.profile.settings.set_value(
             "plugin_config", {"webvh": {"server_url": f"https://{TEST_DOMAIN}"}}
         )
@@ -159,6 +163,39 @@ class TestOperationsManager(IsolatedAsyncioTestCase):
 
         # Create DID
         await self.controller.create(options={"namespace": TEST_NAMESPACE})
+
+    @mock.patch("webvh.did.controller.decode_invitation")
+    @mock.patch("webvh.did.controller.InvitationMessage.from_url")
+    @mock.patch("webvh.did.controller.OutOfBandManager.receive_invitation")
+    @mock.patch("asyncio.sleep", new_callable=mock.AsyncMock)
+    async def test_connect_to_witness_uses_server_service(
+        self, _mock_sleep, mock_receive, mock_from_url, mock_decode
+    ):
+        desired_witness_id = f"did:key:{TEST_WITNESS_KEY}"
+        mock_decode.return_value = {
+            "goal": desired_witness_id,
+            "goal-code": "witness-service",
+        }
+        mock_from_url.return_value = mock.MagicMock()
+        self.controller.server_client.get_witness_services = mock.AsyncMock(
+            return_value=[
+                {
+                    "id": desired_witness_id,
+                    "serviceEndpoint": "https://example.com?oob=mock",
+                }
+            ]
+        )
+        connection_checker = mock.AsyncMock(side_effect=[None, mock.MagicMock()])
+        with mock.patch.object(
+            self.controller, "_get_active_witness_connection", connection_checker
+        ):
+            result = await self.controller.connect_to_witness(
+                witness_id=desired_witness_id
+            )
+
+        self.controller.server_client.get_witness_services.assert_awaited_once()
+        mock_receive.assert_awaited_once()
+        assert result == desired_witness_id
 
     @mock.patch("asyncio.sleep", mock.AsyncMock())
     @mock.patch(

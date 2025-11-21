@@ -35,7 +35,7 @@ from ...tests.fixtures import (
     TEST_WITNESS_SEED,
     TEST_RESOLVER,
 )
-from ...did.manager import ControllerManager
+from ...did.controller import ControllerManager
 from ..registry import DIDWebVHRegistry
 
 test_domain = "sandbox.bcvh.vonx.io"

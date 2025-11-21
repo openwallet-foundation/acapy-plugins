@@ -39,6 +39,40 @@ class WebVHServerClient:
         """Initialize the WebVHServerClient with a profile."""
         self.profile = profile
 
+    async def get_document(self):
+        """Get the server document."""
+        async with ClientSession() as session:
+            response = await session.get(
+                f"{await get_server_url(self.profile)}/.well-known/did.json"
+            )
+        return response.json()
+
+    async def get_witness_services(self):
+        """Get the witness services from the server document."""
+        document = await self.get_document()
+        return document.get("service", [])
+
+    async def get_witness_invitation(self, witness_id: str):
+        """Get the witness invitation from the server document."""
+        witness_services = await self.get_witness_services()
+        witness_service = next(
+            (svc for svc in witness_services if svc.get("id") == witness_id), None
+        )
+        if not witness_service:
+            raise OperationError(
+                f"Witness {witness_id} not listed by server document."
+            )
+            
+        invitation_url = witness_service.get("serviceEndpoint")
+        witness_key = witness_id.split(":")[-1]
+        if invitation_url != f"{await get_server_url(self.profile)}?_oobid={witness_key}":
+            raise OperationError("Witness service endpoint does not match server document.")
+        
+        async with ClientSession() as session:
+            response = await session.get(invitation_url)
+            
+        return response.json()
+
     async def request_identifier(self, namespace, identifier) -> tuple:
         """Contact the webvh server to request an identifier."""
         async with ClientSession() as session:

@@ -6,7 +6,7 @@ from acapy_agent.messaging.base_handler import BaseHandler
 from acapy_agent.messaging.request_context import RequestContext
 from acapy_agent.messaging.responder import BaseResponder
 
-from ...did.manager import ControllerManager
+from ...did.controller import ControllerManager
 from ...did.witness import WitnessManager
 
 from ...config.config import get_plugin_config

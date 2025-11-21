@@ -57,7 +57,7 @@ from ..did.server_client import WebVHServerClient
 from ..protocols.attested_resource.record import PendingAttestedResourceRecord
 from ..protocols.states import WitnessingState
 from ..did.witness import WitnessManager
-from ..did.manager import ControllerManager
+from ..did.controller import ControllerManager
 from ..did.utils import add_proof
 
 # from ..models.resources import AttestedResource

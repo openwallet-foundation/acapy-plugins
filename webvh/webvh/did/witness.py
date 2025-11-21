@@ -15,9 +15,9 @@ from acapy_agent.protocols.out_of_band.v1_0.messages.invitation import (
     HSProto,
 )
 
-from ..config.config import get_plugin_config, get_server_domain
+from ..config.config import get_plugin_config, set_config
 
-from .exceptions import WitnessError
+from .exceptions import WitnessError, ConfigurationError, OperationError
 from ..protocols.attested_resource.record import PendingAttestedResourceRecord
 from ..protocols.attested_resource.messages import (
     WitnessRequest as AttestedResourceWitnessRequest,
@@ -30,7 +30,7 @@ from ..protocols.log_entry.messages import (
 )
 from ..protocols.states import WitnessingState
 from ..did.server_client import WebVHServerClient
-from ..did.utils import find_key, add_proof
+from ..did.utils import find_key, add_proof, create_key, url_to_domain, bind_key
 
 LOGGER = logging.getLogger(__name__)
 
@@ -48,19 +48,155 @@ class WitnessManager:
             "proofPurpose": "assertionMethod",
         }
 
-    async def key_alias(self) -> str:
-        """Derive witness key alias."""
-        domain = await get_server_domain(self.profile)
+    async def configure(self, config: dict) -> dict:
+        """Configure this agent as a witness.
+
+        This creates the witness key, invitation, and updates the config.
+        Same logic as auto_setup but called from the configuration endpoint.
+        """
+        if not config.get("witness", False):
+            return config
+
+        config.setdefault("witnesses", [])
+        key_alias = self.key_alias
+        
+        # If witness_id is provided, try to use that key
+        if witness_id := config.get("witness_id", None):
+            witness_key = witness_id.split(":")[-1]  # Extract key from did:key:xxx
+            await bind_key(self.profile, witness_key, key_alias)
+        else:
+            # Otherwise, find existing key or create new one
+            witness_key = await find_key(self.profile, key_alias)
+            if not witness_key:
+                LOGGER.info("Creating witness key for alias %s", key_alias)
+                witness_key = await create_key(self.profile, key_alias)
+            witness_id = f"did:key:{witness_key}"
+
+        if witness_id not in config["witnesses"]:
+            config["witnesses"].append(witness_id)
+            await set_config(self.profile, config)
+
+        invitation_record = await self.create_invitation(
+            alias=None,
+            label="Witness Service",
+            multi_use=True,
+        )
+        invitation_url = None
+        if isinstance(invitation_record, dict):
+            invitation_url = invitation_record.get("invitation_url")
+        else:
+            invitation_url = getattr(invitation_record, "invitation_url", None)
+        
+        # Convert https:// URL to didcomm:// format
+        if invitation_url and invitation_url.startswith("http"):
+            from urllib.parse import urlparse, parse_qs
+            parsed = urlparse(invitation_url)
+            query = parse_qs(parsed.query)
+            if "oob" in query:
+                oob_param = query["oob"][0]
+                invitation_url = f"didcomm://?oob={oob_param}"
+
+        # Store witness_id in config (but not invitation_url - it's generated on demand)
+        config["witness_id"] = witness_id
+        await set_config(self.profile, config)
+        
+        # Return config with invitation_url for API response (but don't persist it)
+        response_config = config.copy()
+        response_config["invitation_url"] = invitation_url
+        return response_config
+
+    @property
+    def key_alias(self) -> str:
+        """Derive witness key alias from configured server URL."""
+        config = self.profile.settings.get("plugin_config", {}).get("webvh", {}) or {}
+        server_url = config.get("server_url")
+        if not server_url:
+            raise ConfigurationError("No server url configured for witness.")
+        domain = url_to_domain(server_url)
         return f"webvh:{domain}@witnessKey"
 
-    async def connection_alias(self) -> str:
+    @property
+    def connection_alias(self) -> str:
         """Derive witness connection alias."""
-        domain = await get_server_domain(self.profile)
-        return f"webvh:{domain}@witness"
+        # Reuse key_alias domain logic to keep behavior consistent
+        alias = self.key_alias
+        return alias.replace("@witnessKey", "@witness")
+
+    async def auto_setup(self, config: dict | None = None):
+        """Automatically ensure the witness configuration is ready."""
+        if config is None:
+            config = await get_plugin_config(self.profile)
+
+        if not config.get("witness", False):
+            return
+
+        config.setdefault("witnesses", [])
+        key_alias = self.key_alias
+        witness_key = await find_key(self.profile, key_alias)
+        if not witness_key:
+            LOGGER.info("Creating witness key for alias %s", key_alias)
+            witness_key = await create_key(self.profile, key_alias)
+
+        witness_id = f"did:key:{witness_key}"
+        if witness_id not in config["witnesses"]:
+            config["witnesses"].append(witness_id)
+            await set_config(self.profile, config)
+
+        invitation_record = await self.create_invitation(
+            alias=None,
+            label="Witness Service",
+            multi_use=True,
+        )
+        invitation_url = None
+        if isinstance(invitation_record, dict):
+            invitation_url = invitation_record.get("invitation_url")
+        else:
+            invitation_url = getattr(invitation_record, "invitation_url", None)
+        
+        # Convert https:// URL to didcomm:// format
+        if invitation_url and invitation_url.startswith("http"):
+            from urllib.parse import urlparse, parse_qs
+            parsed = urlparse(invitation_url)
+            query = parse_qs(parsed.query)
+            if "oob" in query:
+                oob_param = query["oob"][0]
+                invitation_url = f"didcomm://?oob={oob_param}"
+
+        print("\n" + "=" * 70)
+        print("✨" + " " * 20 + "WebVH Witness Ready!" + " " * 20 + "✨")
+        print("=" * 70)
+        print()
+        print("  🔑 Witness ID:")
+        print(f"     {witness_id}")
+        print()
+        print("  📨 Invitation URL:")
+        print(f"     {invitation_url or '<not available>'}")
+        print()
+        print("=" * 70)
+        print()
+
+    async def create_invitation(self, alias=None, label=None, multi_use=False) -> str:
+        """Create a witness invitation."""
+        witness_key = await self.get_witness_key()
+        try:
+            invi_rec = await OutOfBandManager(self.profile).create_invitation(
+                hs_protos=[
+                    HSProto.get("https://didcomm.org/didexchange/1.0"),
+                    HSProto.get("https://didcomm.org/didexchange/1.1"),
+                ],
+                alias=alias,
+                my_label=label,
+                goal_code="witness-service",
+                goal=f"did:key:{witness_key}",
+                multi_use=multi_use,
+            )
+            return invi_rec.serialize()
+        except OutOfBandManagerError as e:
+            raise WitnessError(e)
 
     async def _get_active_witness_connection(self) -> Optional[ConnRecord]:
         """Find active witness connection."""
-        witness_alias = await self.connection_alias()
+        witness_alias = self.connection_alias
         async with self.profile.session() as session:
             connection_records = await ConnRecord.retrieve_by_alias(
                 session, witness_alias
@@ -77,7 +213,7 @@ class WitnessManager:
 
     async def get_witness_key(self) -> str:
         """Return the witness key."""
-        witness_alias = await self.key_alias()
+        witness_alias = self.key_alias
         witness_key = await find_key(self.profile, witness_alias)
         if not witness_key:
             raise WitnessError(f"Witness key [{witness_alias}] not found.")
@@ -187,7 +323,7 @@ class WitnessManager:
         if not connection_id:
             # NOTE: will have to review this behavior when witness threshold is > 1
             # is supported
-            from ..did.manager import ControllerManager
+            from ..did.controller import ControllerManager
 
             await ControllerManager(self.profile).finish_did_operation(
                 log_entry, witness_signature
@@ -241,22 +377,3 @@ class WitnessManager:
             )
 
         return {"status": "success", "message": "Witness successful."}
-
-    async def create_invitation(self, alias=None, label=None, multi_use=False) -> str:
-        """Create a witness invitation."""
-        witness_key = await self.get_witness_key()
-        try:
-            invi_rec = await OutOfBandManager(self.profile).create_invitation(
-                hs_protos=[
-                    HSProto.get("https://didcomm.org/didexchange/1.0"),
-                    HSProto.get("https://didcomm.org/didexchange/1.1"),
-                ],
-                alias=alias,
-                my_label=label,
-                goal_code="witness-service",
-                goal=f"did:key:{witness_key}",
-                multi_use=multi_use,
-            )
-            return invi_rec.serialize()
-        except OutOfBandManagerError as e:
-            raise WitnessError(e)

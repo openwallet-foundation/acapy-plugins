@@ -22,6 +22,11 @@ def _get_wallet_identifier(profile: Profile):
     return profile.settings.get(WALLET_ID) or profile.settings.get(WALLET_NAME)
 
 
+def get_global_plugin_config(profile: Profile):
+    """Get the global plugin settings."""
+    return copy.deepcopy(profile.settings.get("plugin_config", {}).get("webvh", {}))
+
+
 async def get_plugin_config(profile: Profile):
     """Get the plugin settings."""
     wallet_id = _get_wallet_identifier(profile)
@@ -38,9 +43,14 @@ async def get_plugin_config(profile: Profile):
             pass
 
     if stored_config_record:
-        return json.loads(stored_config_record.value)["config"]
+        config = json.loads(stored_config_record.value)["config"]
+    else:
+        config = get_global_plugin_config(profile)
 
-    return copy.deepcopy(profile.settings.get("plugin_config", {}).get("webvh", {}))
+    if config is None:
+        config = {}
+
+    return config
 
 
 async def set_config(profile: Profile, config: dict):

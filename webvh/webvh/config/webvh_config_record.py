@@ -32,6 +32,17 @@ class WebvhConfigSchema(BaseRecordSchema):
         required=False, description="Auto attest requests", default=False
     )
 
+    witness_id = fields.Str(
+        required=False,
+        description="Preferred witness identifier",
+    )
+
+    auto_config = fields.Bool(
+        required=False,
+        description="Automatically configure controller and witness resources",
+        default=False,
+    )
+
     notify_watchers = fields.Bool(
         required=False, description="Notify watchers", default=False
     )

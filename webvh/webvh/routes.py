@@ -14,8 +14,8 @@ from aiohttp import web
 from aiohttp_apispec import docs, querystring_schema, request_schema, response_schema
 from marshmallow.exceptions import ValidationError
 
-from .config.config import get_plugin_config
-from .did.manager import ControllerManager
+from .config.config import get_global_plugin_config, get_plugin_config, set_config
+from .did.controller import ControllerManager
 from .did.exceptions import (
     ConfigurationError,
     DidCreationError,
@@ -28,7 +28,6 @@ from .did.models.operations import (
     WebvhAddVMSchema,
     WebvhCreateSchema,
     WebvhUpdateSchema,
-    WebvhCreateWitnessInvitationSchema,
     WebvhDeactivateSchema,
     WebvhSCIDQueryStringSchema,
     WebvhUpdateWhoisSchema,
@@ -59,29 +58,36 @@ async def configure(request: web.BaseRequest):
     request_json = await request.json()
 
     try:
-        return web.json_response(await ControllerManager(profile).configure(request_json))
+        options = request_json
+        config = await get_plugin_config(profile)
+        
+        config["server_url"] = options.get(
+            "server_url", config.get("server_url")
+        ).rstrip( "/")
+
+        if not config.get("server_url"):
+            raise OperationError("No server url configured.")
+        
+        config["scids"] = config.get("scids", {})
+        config["witnesses"] = config.get("witnesses", [])
+        config["endorsement"] = options.get("endorsement", False)
+        config["auto_attest"] = options.get("auto_attest", False)
+        config["parameter_options"] = options.get("parameter_options", {})
+        config["witness_id"] = options.get("witness_id", config.get("witness_id"))
+        
+        await set_config(profile, config)
+        
+        
+        config["witness"] = options.get("witness", False)
+        if config["witness"]:
+            return web.json_response(await WitnessManager(profile).configure(config))
+        else:
+            return web.json_response(await ControllerManager(profile).configure(config))
 
     except (ConfigurationError, OperationError) as err:
         return web.json_response({"status": "error", "message": str(err)})
 
 
-@docs(tags=["did-webvh"], summary="Create a witness invitation")
-@request_schema(WebvhCreateWitnessInvitationSchema)
-@tenant_authentication
-async def witness_create_invite(request: web.BaseRequest):
-    """Create a witness invitation."""
-    context: AdminRequestContext = request["context"]
-    request_json = await request.json()
-    try:
-        return web.json_response(
-            await WitnessManager(context.profile).create_invitation(
-                request_json.get("alias"),
-                request_json.get("label"),
-                request_json.get("multi"),
-            )
-        )
-    except (StorageNotFoundError, ValidationError, WitnessError) as e:
-        raise web.HTTPBadRequest(reason=e.roll_up)
 
 
 @docs(tags=["did-webvh"], summary="Create a did:webvh")
@@ -213,9 +219,29 @@ def register_events(event_bus: EventBus):
 
 
 async def on_startup_event(profile: Profile, event: Event):
-    """Handle the witness setup."""
-    if not profile.settings.get("multitenant.enabled"):
-        await ControllerManager(profile).auto_witness_setup()
+    """Handle the plugin startup setup."""
+    config = get_global_plugin_config(profile)
+    
+    if profile.settings.get("multitenant.enabled"):
+        return
+    
+    if not config.get("auto_config", False):
+        return
+
+    # Remove auto_config from config before passing to setup methods
+    # so it doesn't get persisted to stored config
+    # All other config values (including witness_id) are preserved
+    config_without_auto = {k: v for k, v in config.items() if k != "auto_config"}
+
+    if config.get("witness", False):
+        await WitnessManager(profile).auto_setup(config_without_auto)
+    else:
+        await ControllerManager(profile).auto_setup(config_without_auto)
+        # Save witness_id to stored config if it's in the global config
+        if "witness_id" in config_without_auto:
+            stored_config = await get_plugin_config(profile)
+            stored_config["witness_id"] = config_without_auto["witness_id"]
+            await set_config(profile, stored_config)
 
 
 async def register(app: web.Application):
@@ -236,7 +262,6 @@ async def register(app: web.Application):
             #     delete_verification_method_request,
             # ),
             web.post("/did/webvh/whois", update_whois),
-            web.post("/did/webvh/witness-invitation", witness_create_invite),
             web.get(
                 "/did/webvh/witness-requests/{record_type}",
                 get_pending_witness_requests,

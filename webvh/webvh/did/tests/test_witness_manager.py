@@ -11,8 +11,9 @@ from acapy_agent.wallet.key_type import KeyTypes
 from acapy_agent.wallet.keys.manager import MultikeyManager
 
 from ..exceptions import ConfigurationError
-from ..manager import ControllerManager
+from ..controller import ControllerManager
 from ..witness import WitnessManager
+from ...config.config import get_plugin_config
 from ...protocols.log_entry.record import PendingLogEntryRecord
 
 PENDING_DOCUMENT_TABLE_NAME = PendingLogEntryRecord().RECORD_TYPE
@@ -50,10 +51,10 @@ class TestWitnessManager(IsolatedAsyncioTestCase):
             )
 
     async def test_witness_key_alias(self):
-        assert await self.witness.key_alias()
+        assert self.witness.key_alias
 
     async def test_witness_connection_alias(self):
-        assert await self.witness.connection_alias()
+        assert self.witness.connection_alias
 
     @mock.patch.object(WitnessManager, "_get_active_witness_connection")
     async def test_auto_witness_setup_as_witness(
@@ -63,7 +64,7 @@ class TestWitnessManager(IsolatedAsyncioTestCase):
             "plugin_config",
             {"webvh": {"witness": True, "server_url": SERVER_URL}},
         )
-        await self.controller.auto_witness_setup()
+        await self.controller.auto_setup()
         assert not mock_get_active_witness_connection.called
 
     async def test_auto_witness_setup_as_controller_no_server_url(self):
@@ -72,7 +73,7 @@ class TestWitnessManager(IsolatedAsyncioTestCase):
             {"webvh": {"witness": False}},
         )
         with self.assertRaises(ConfigurationError):
-            await self.controller.auto_witness_setup()
+            await self.controller.auto_setup()
 
     async def test_auto_witness_setup_as_controller_with_previous_connection(self):
         self.profile.settings.set_value(
@@ -90,7 +91,7 @@ class TestWitnessManager(IsolatedAsyncioTestCase):
                 state="active",
             )
             await record.save(session)
-        await self.controller.auto_witness_setup()
+        await self.controller.auto_setup()
 
     async def test_auto_witness_setup_as_controller_no_witness_invitation(self):
         self.profile.settings.set_value(
@@ -102,7 +103,7 @@ class TestWitnessManager(IsolatedAsyncioTestCase):
                 }
             },
         )
-        await self.controller.auto_witness_setup()
+        await self.controller.auto_setup()
 
     @mock.patch.object(OutOfBandManager, "receive_invitation")
     @mock.patch.object(asyncio, "sleep")
@@ -121,7 +122,7 @@ class TestWitnessManager(IsolatedAsyncioTestCase):
         self.profile.context.injector.bind_instance(
             RouteManager, mock.AsyncMock(RouteManager, autospec=True)
         )
-        await self.controller.auto_witness_setup()
+        await self.controller.auto_setup()
 
     @mock.patch.object(OutOfBandManager, "receive_invitation")
     async def test_auto_witness_setup_as_controller_conn_becomes_active(self, *_):
@@ -150,4 +151,62 @@ class TestWitnessManager(IsolatedAsyncioTestCase):
                 await record.save(session)
 
         asyncio.create_task(_create_connection())
-        await self.controller.auto_witness_setup()
+        await self.controller.auto_setup()
+
+    async def test_witness_auto_setup_skips_when_not_configured(self):
+        self.profile.settings.set_value(
+            "plugin_config",
+            {
+                "webvh": {
+                    "witness": False,
+                    "server_url": SERVER_URL,
+                }
+            },
+        )
+        await self.witness.auto_setup()
+        config = await get_plugin_config(self.profile)
+        assert "witnesses" not in config
+
+    async def test_witness_auto_setup_creates_key_and_updates_config(self):
+        profile = await create_test_profile(
+            {
+                "wallet.type": "askar-anoncreds",
+                "default_label": "TestWitness",
+                "default_endpoint": "https://example.com",
+            }
+        )
+        profile.settings.set_value(
+            "plugin_config",
+            {
+                "webvh": {
+                    "witness": True,
+                    "server_url": SERVER_URL,
+                }
+            },
+        )
+        profile.context.injector.bind_instance(KeyTypes, KeyTypes())
+        profile.context.injector.bind_instance(
+            RouteManager, mock.AsyncMock(RouteManager, autospec=True)
+        )
+        witness = WitnessManager(profile)
+        with mock.patch.object(
+            WitnessManager,
+            "create_invitation",
+            new=mock.AsyncMock(return_value={"invitation_url": "https://example.com"}),
+        ):
+            await witness.auto_setup()
+
+        config = await get_plugin_config(profile)
+        assert config.get("witnesses")
+        assert len(config["witnesses"]) == 1
+        # Ensure the witness key exists and can be retrieved
+        assert await witness.get_witness_key()
+
+    async def test_witness_configure_delegates_to_controller(self):
+        options = {"server_url": SERVER_URL, "auto_attest": True}
+        with mock.patch(
+            "webvh.did.tests.test_witness_manager.ControllerManager.configure",
+            new=mock.AsyncMock(),
+        ) as mock_configure:
+            await self.witness.configure(options)
+            mock_configure.assert_awaited_once()

@@ -109,12 +109,12 @@ You should get a status success response and the controller logs should say `Con
 
 ### Creating a DID
 
-When creating a did, you need to provide at the minimum a namespace. An identifier can optionally be provided otherwise a random uuid will be generated.
+When creating a did, you need to provide at the minimum a namespace. An alias can optionally be provided otherwise a random uuid will be generated.
 
 The resulting did will use these values as such:
-`did:webvh:<SCID>:<server_url_domain>:<namespace>:<identifier>`
+`did:webvh:<SCID>:<server_url_domain>:<namespace>:<alias>`
 
-Given a `server_url` of `https://example.com`, a full example for the `demo` `namespace` and the `01` `identifier` would look like:
+Given a `server_url` of `https://example.com`, a full example for the `demo` `namespace` and the `01` `alias` would look like:
 `did:webvh:<SCID>:example.com:demo:01`
 
 The parameters values can be opted out to their default.
@@ -123,14 +123,14 @@ The parameters values can be opted out to their default.
 ```json
 {
   "options": {
-    "identifier": "01",
+    "alias": "01",
     "namespace": "demo"
   }
 }
 ```
 
- - identifier - The identifier for the did. If this isn't provided it will be a randomly generated uuid.
- - namespace - This is required and is the root identifier for the did.
+ - alias - The alias for the did. If this isn't provided it will be a randomly generated uuid.
+ - namespace - This is required and is the root alias for the did.
  - parameters - This is an optional object that can be used to set the did to be portable or prerotated. If portable is true the did will be able to be moved to another server. If prerotation is true the did will be able to be rotated by the controller.
 
 #### Auto attest response
@@ -222,6 +222,80 @@ Witness - Attest a did doc - `POST /did/webvh/witness/registrations?id=did:web:e
 ```
 
 Controller - The controller gets a message `Received witness response: attested` and will finish creating the did. The did should now be resolvable and available in local storage.
+
+## Protocols
+
+### Connecting to a witness service
+
+Once the controller is configured with a `server_url` and a `witness_id`, it can automatically discover and connect to a witness service:
+
+- **Server discovery**: The controller calls the WebVH server’s `/.well-known/did.json` via `WebVHServerClient.get_witness_services()` to obtain the list of witness services.
+- **Service selection**: It locates the service whose `id` matches the configured `witness_id`.
+- **Invitation resolution**: The controller reads the `serviceEndpoint` field from that service, which MUST be an out-of-band invitation URL (`... ?oob=...`).
+- **Connection establishment**: The controller passes this invitation URL to `OutOfBandManager.receive_invitation(...)` to create and/or reuse a DIDComm connection to the witness.
+
+### Requesting a DID path
+
+To request a new DID path (domain + namespace + alias) from the WebVH server:
+
+- **Request**: The controller calls `WebVHServerClient.request_identifier(namespace, alias)`, which translates to an HTTP `GET` on:
+  - `GET {server_url}?namespace={namespace}&alias={alias}`
+- **Server response**: The server returns a JSON containing:
+  - `parameters`: Method parameters **and server policies** that must be applied when creating the DID:
+    - `method` – the DID method identifier (e.g. `did:webvh:1.0`) that tells the controller which rules to follow.
+    - `witness.threshold` – the minimum number of witnesses that must attest each log entry.
+    - `witness.witnesses` – the list of witness identifiers (`id` values) that are allowed to attest for this DID.
+    - `watchers` – a list of mandatory watcher service URLs that should be notified on updates.
+    - `portability` – if `true`, the DID must be created as portable so it can be migrated between servers.
+    - `nextKeyHashes` – if present (as an empty list), indicates that prerotation is required and a `nextKeyHash` must be provisioned.
+  - `state.id`: A placeholder DID of the form `did:webvh:{SCID}:{domain}:{namespace}:{alias}`.
+
+This response is then used to create the preliminary DID document, update keys, and initial log entry.
+
+### Creating a log entry
+
+Log entries represent the DID’s history on the WebVH server:
+
+- **Preliminary document**: The controller builds a preliminary DID document with a fresh signing key, default authentication/assertion methods, and any requested DIDComm service entries.
+- **Parameters**: It computes the method parameters (e.g. portability, witness threshold, watcher list, update/next keys).
+- **Initial log entry**: Using `DocumentState.initial(...)`, the controller constructs the first history line (log entry) and signs it with the configured update key.
+- **Witnessing**:
+  - If the method requires a witness, the controller sends a witness request to the configured witness (self-witnessing or remote).
+  - The witness returns a Data Integrity Proof over the log entry’s `versionId`, or the controller waits for an attestation event.
+- **Publishing**: The controller calls `WebVHServerClient.submit_log_entry(log_entry, witness_signature)` to POST the log entry to the server.
+
+Subsequent updates (e.g. key rotation, deactivation) follow the same pattern using `DocumentState.create_next(...)` to generate the next history line.
+
+### Uploading an attested resource
+
+Generic attested resources (such as schemas, status lists, or other linked objects) follow a similar witness workflow:
+
+- **Preparation**: The controller (or resource author) builds the resource payload and signs it as required.
+- **Witnessing**:
+  - For self-witnessing, the witness adds its own Data Integrity Proof directly to the resource.
+  - For remote witnessing, the author sends an attested resource witness request; the witness verifies the proof and appends its own proof.
+- **Upload**: The author (or witness, depending on the flow) calls `WebVHServerClient.upload_attested_resource(...)`, which POSTs to the WebVH server:
+  - `POST {server_url}/{namespace}/{alias}/resources`
+  - Body: `{ "attestedResource": <attested_resource_with_witness_proof> }`
+- **Notification**: If watcher notifications are enabled, the controller uses `WebVHWatcherClient.notify_watchers(...)` to inform any configured watchers that a new resource has been published.
+
+### Updating WHOIS
+
+WHOIS data is published as a dedicated attested Verifiable Presentation (VP) linked to a DID:
+
+- **Preparation**:
+  - The controller (as holder) builds a WHOIS VP with `holder` set to the controller DID and one or more VCs describing WHOIS attributes.
+  - The presentation may already contain proofs on individual VCs (the controller can optionally verify these).
+- **Controller signing**:
+  - The controller overwrites the `holder` field to ensure it matches the controller DID.
+  - It then signs the VP using its DID authentication key (Data Integrity Proof with proofPurpose `authentication`).
+- **Upload to server**:
+  - The controller calls `update_whois` (ACAPy admin API), which internally invokes `WebVHServerClient.submit_whois(...)`.
+  - This results in a server call:
+    - `POST {server_url}/{namespace}/{alias}/whois`
+    - Body: `{ "verifiablePresentation": <whois_vp_with_controller_proof> }`
+- **Result**:
+  - The WHOIS VP becomes the authoritative WHOIS record for that DID on the WebVH server and can be resolved by clients that understand the WHOIS extension.
 
 ### Updating a DID
 
