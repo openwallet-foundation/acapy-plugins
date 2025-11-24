@@ -59,7 +59,7 @@ sqlcipher = ["sqlcipher3-binary (>=0.5.4)"]
 type = "git"
 url = "https://github.com/jamshale/acapy.git"
 reference = "remove-issue-credential-v1"
-resolved_reference = "92401d952ae394277995081955a98a3a50b4ac11"
+resolved_reference = "dbea310142a92c53add6227b60e4a0732c4112f4"
 
 [[package]]
 name = "aiohappyeyeballs"
