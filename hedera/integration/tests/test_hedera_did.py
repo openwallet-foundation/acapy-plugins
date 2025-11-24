@@ -44,7 +44,7 @@ class TestHederaDid:
         method = "hedera:testnet"
         ver_key = "zHNJ37tiLbGxD7XPvnTkaZCAV3PCe5P4HJFGMGUkVVZAJ"
         ver_key_no_multibase = ver_key[1:]
-        topic_id = "0.0.5254574"
+        topic_id = "0.0.7312749"
         did = f"did:{method}:{ver_key}_{topic_id}"
 
         holder.create_wallet(persist_token=True)
@@ -54,9 +54,9 @@ class TestHederaDid:
         assert response == {
             "did_document": {
                 "didDocumentMetadata": {
-                    "versionId": "1734001354.326603",
-                    "created": "2024-12-12",
-                    "updated": "2024-12-12",
+                    "created": "2025-11-24T13:35:39.177474Z",
+                    "updated": "2025-11-24T13:35:39.177474Z",
+                    "deactivated": False,
                 },
                 "didResolutionMetadata": {"contentType": "application/did+ld+json"},
                 "didDocument": {

@@ -10,31 +10,31 @@ class TestDidResolver:
     @patch("hedera.did.resolver.SdkHederaDidResolver")
     async def test_resolve_success(self, mock_hedera_did_resolver, profile, context):
         did = (
-            "did:hedera:testnet:zHNJ37tiLbGxD7XPvnTkaZCAV3PCe5P4HJFGMGUkVVZAJ_0.0.5254574"
+            "did:hedera:testnet:zHNJ37tiLbGxD7XPvnTkaZCAV3PCe5P4HJFGMGUkVVZAJ_0.0.7312749"
         )
         did_document = {
             "didDocumentMetadata": {
-                "versionId": "1734001354.326604",
-                "created": "2024-12-12",
-                "updated": "2024-12-12",
+                "created": "2025-11-24T13:35:39.177474Z",
+                "updated": "2025-11-24T13:35:39.177474Z",
+                "deactivated": False,
             },
             "didResolutionMetadata": {"contentType": "application/did+ld+json"},
             "didDocument": {
                 "@context": "https://www.w3.org/ns/did/v1",
-                "id": "did:hedera:testnet:zHNJ37tiLbGxD7XPvnTkaZCAV3PCe5P4HJFGMGUkVVZAJ_0.0.5254574",
+                "id": "did:hedera:testnet:zHNJ37tiLbGxD7XPvnTkaZCAV3PCe5P4HJFGMGUkVVZAJ_0.0.7312749",
                 "verificationMethod": [
                     {
-                        "id": "did:hedera:testnet:zHNJ37tiLbGxD7XPvnTkaZCAV3PCe5P4HJFGMGUkVVZAJ_0.0.5254574#did-root-key",
+                        "id": "did:hedera:testnet:zHNJ37tiLbGxD7XPvnTkaZCAV3PCe5P4HJFGMGUkVVZAJ_0.0.7312749#did-root-key",
                         "type": "Ed25519VerificationKey2018",
-                        "controller": "did:hedera:testnet:zHNJ37tiLbGxD7XPvnTkaZCAV3PCe5P4HJFGMGUkVVZAJ_0.0.5254574",
+                        "controller": "did:hedera:testnet:zHNJ37tiLbGxD7XPvnTkaZCAV3PCe5P4HJFGMGUkVVZAJ_0.0.7312749",
                         "publicKeyBase58": "HNJ37tiLbGxD7XPvnTkaZCAV3PCe5P4HJFGMGUkVVZAJ",
                     }
                 ],
                 "assertionMethod": [
-                    "did:hedera:testnet:zHNJ37tiLbGxD7XPvnTkaZCAV3PCe5P4HJFGMGUkVVZAJ_0.0.5254574#did-root-key"
+                    "did:hedera:testnet:zHNJ37tiLbGxD7XPvnTkaZCAV3PCe5P4HJFGMGUkVVZAJ_0.0.7312749#did-root-key"
                 ],
                 "authentication": [
-                    "did:hedera:testnet:zHNJ37tiLbGxD7XPvnTkaZCAV3PCe5P4HJFGMGUkVVZAJ_0.0.5254574#did-root-key"
+                    "did:hedera:testnet:zHNJ37tiLbGxD7XPvnTkaZCAV3PCe5P4HJFGMGUkVVZAJ_0.0.7312749#did-root-key"
                 ],
             },
         }
@@ -89,7 +89,7 @@ class TestDidResolver:
         self, mock_hedera_did_resolver, profile, context
     ):
         did = (
-            "did:hedera:testnet:zHNJ37tiLbGxD7XPvnTkaZCAV3PCe5P4HJFGMGUkVVZAJ_0.0.5254574"
+            "did:hedera:testnet:zHNJ37tiLbGxD7XPvnTkaZCAV3PCe5P4HJFGMGUkVVZAJ_0.0.7312749"
         )
         did_document = {
             "didDocument": {
@@ -122,7 +122,7 @@ class TestDidResolver:
     @patch("hedera.did.resolver.SdkHederaDidResolver")
     async def test_resolve_no_medatada(self, mock_hedera_did_resolver, profile, context):
         did = (
-            "did:hedera:testnet:zHNJ37tiLbGxD7XPvnTkaZCAV3PCe5P4HJFGMGUkVVZAJ_0.0.5254574"
+            "did:hedera:testnet:zHNJ37tiLbGxD7XPvnTkaZCAV3PCe5P4HJFGMGUkVVZAJ_0.0.7312749"
         )
         did_document = {
             "didDocument": None,
@@ -144,7 +144,7 @@ class TestDidResolver:
         self, mock_hedera_did_resolver, profile, context
     ):
         did = (
-            "did:hedera:testnet:zHNJ37tiLbGxD7XPvnTkaZCAV3PCe5P4HJFGMGUkVVZAJ_0.0.5254574"
+            "did:hedera:testnet:zHNJ37tiLbGxD7XPvnTkaZCAV3PCe5P4HJFGMGUkVVZAJ_0.0.7312749"
         )
         did_document = {
             "didDocument": None,
