@@ -19,7 +19,7 @@ filelock = "^3.18.0"
 aca-py = ["acapy-agent"]
 
 [tool.poetry.group.dev.dependencies]
-ruff = "^0.14.5"
+ruff = "^0.14.6"
 pytest = "^8.3.5"
 pytest-asyncio = "^1.2.0"
 pytest-cov = "^5.0.0"
