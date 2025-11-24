@@ -170,7 +170,8 @@ class TestHederaAnonCredsFullFlow:
         )
         assert credential_definition_id
 
-        time.sleep(10)
+        # We want to wait a bit longer for revocation registry creation to reduce test flakiness
+        time.sleep(15)
 
         print("""
               +---------------------------------------------+
