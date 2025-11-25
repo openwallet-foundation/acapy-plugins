@@ -77,6 +77,8 @@ from .models.credential_exchange import V10CredentialExchange, V10CredentialExch
 
 LOGGER = logging.getLogger(__name__)
 
+non_patched_create_attachment = InvitationCreator.create_attachment
+
 
 async def _patched_create_attachment(self, attachment: Mapping, pthid: str, session):
     a_type = attachment.get("type")
@@ -91,7 +93,7 @@ async def _patched_create_attachment(self, attachment: Mapping, pthid: str, sess
             message.assign_thread_id(pthid=pthid)
             return InvitationMessage.wrap_message(message.serialize())
     else:
-        return InvitationCreator.create_attachment(self)
+        return await non_patched_create_attachment(self, attachment, pthid, session)
 
 
 InvitationCreator.create_attachment = _patched_create_attachment
