@@ -1,12 +1,12 @@
 from unittest import IsolatedAsyncioTestCase
 import uuid
+from unittest import mock
 
 from acapy_agent.core.event_bus import EventBus
 from acapy_agent.messaging.responder import BaseResponder
 from acapy_agent.protocols.coordinate_mediation.v1_0.route_manager import RouteManager
 from acapy_agent.resolver.base import ResolutionMetadata, ResolutionResult, ResolverType
 from acapy_agent.resolver.did_resolver import DIDResolver
-from acapy_agent.tests import mock
 from acapy_agent.utils.testing import create_test_profile
 from acapy_agent.wallet.key_type import KeyTypes
 from acapy_agent.wallet.keys.manager import MultikeyManager
@@ -155,45 +155,87 @@ class TestOperationsManager(IsolatedAsyncioTestCase):
         with self.assertRaises(ConfigurationError):
             await self.controller.create(options={})
 
-    async def test_create_self_witness(self):
+    @mock.patch("webvh.did.server_client.WebVHServerClient.request_identifier")
+    @mock.patch("webvh.did.server_client.WebVHServerClient.submit_log_entry")
+    async def test_create_self_witness(
+        self, mock_submit_log_entry, mock_request_identifier
+    ):
         await set_config(self.profile, {"server_url": f"https://{TEST_DOMAIN}"})
 
+        # Mock server_client.request_identifier to return valid response
+        # The identifier will be generated dynamically, so we need to capture it
+        # Note: The code expects {SCID} placeholder in the document ID
+        async def mock_request_identifier_impl(namespace, identifier):
+            return {
+                "versionId": SCID_PLACEHOLDER,
+                "versionTime": TEST_VERSION_TIME,
+                "parameters": {
+                    "scid": SCID_PLACEHOLDER,
+                    "method": "did:webvh:1.0",
+                    "updateKeys": [],
+                    "witness": {
+                        "threshold": 1,
+                        "witnesses": [{"id": f"did:key:{TEST_WITNESS_KEY}"}],
+                    },
+                },
+                "state": {
+                    "@context": ["https://www.w3.org/ns/did/v1"],
+                    "id": f"did:webvh:{SCID_PLACEHOLDER}:{TEST_DOMAIN}:{namespace}:{identifier}",
+                },
+                "proof": {
+                    "type": "DataIntegrityProof",
+                    "cryptosuite": "eddsa-jcs-2022",
+                    "proofPurpose": "assertionMethod",
+                },
+            }
+
+        mock_request_identifier.side_effect = mock_request_identifier_impl
+
+        # Mock server_client.submit_log_entry
+        async def mock_submit_log_entry_impl(*args, **kwargs):
+            return {"state": {"id": TEST_DID}}
+
+        mock_submit_log_entry.side_effect = mock_submit_log_entry_impl
+
         # Configure witness key
-        await self.controller.configure(options={"auto_attest": True, "witness": True})
+        await self.controller.configure(config={"auto_attest": True, "witness": True})
 
         # Create DID
         await self.controller.create(options={"namespace": TEST_NAMESPACE})
 
-    @mock.patch("webvh.did.controller.decode_invitation")
-    @mock.patch("webvh.did.controller.InvitationMessage.from_url")
-    @mock.patch("webvh.did.controller.OutOfBandManager.receive_invitation")
+    @mock.patch("webvh.did.connection.OutOfBandManager")
+    @mock.patch("webvh.did.connection.WebVHServerClient")
     @mock.patch("asyncio.sleep", new_callable=mock.AsyncMock)
     async def test_connect_to_witness_uses_server_service(
-        self, _mock_sleep, mock_receive, mock_from_url, mock_decode
+        self, _mock_sleep, mock_server_client_class, mock_oob_manager
     ):
         desired_witness_id = f"did:key:{TEST_WITNESS_KEY}"
-        mock_decode.return_value = {
-            "goal": desired_witness_id,
-            "goal-code": "witness-service",
-        }
-        mock_from_url.return_value = mock.MagicMock()
-        self.controller.server_client.get_witness_services = mock.AsyncMock(
-            return_value=[
-                {
-                    "id": desired_witness_id,
-                    "serviceEndpoint": "https://example.com?oob=mock",
-                }
-            ]
+        mock_receive = mock.AsyncMock()
+        mock_oob_manager.return_value.receive_invitation = mock_receive
+
+        # Mock the server client
+        mock_server_client = mock.MagicMock()
+        mock_server_client.get_witness_invitation = mock.AsyncMock(
+            return_value={
+                "goal": desired_witness_id,
+                "goal-code": "witness-service",
+            }
         )
+        mock_server_client_class.return_value = mock_server_client
+
         connection_checker = mock.AsyncMock(side_effect=[None, mock.MagicMock()])
         with mock.patch.object(
-            self.controller, "_get_active_witness_connection", connection_checker
+            self.controller.witness_connection,
+            "get_active_connection",
+            connection_checker,
         ):
-            result = await self.controller.connect_to_witness(
+            result = await self.controller.witness_connection.connect(
                 witness_id=desired_witness_id
             )
 
-        self.controller.server_client.get_witness_services.assert_awaited_once()
+        mock_server_client.get_witness_invitation.assert_awaited_once_with(
+            desired_witness_id
+        )
         mock_receive.assert_awaited_once()
         assert result == desired_witness_id
 
@@ -223,8 +265,8 @@ class TestOperationsManager(IsolatedAsyncioTestCase):
             record_id,
         )
 
-        witness_signature = await self.witness.sign_log_version(
-            TEST_LOG_ENTRY.get("versionId")
+        witness_signature = await self.witness.sign(
+            {"versionId": TEST_LOG_ENTRY.get("versionId")}
         )
         await self.controller.finish_did_operation(
             log_entry=TEST_LOG_ENTRY,

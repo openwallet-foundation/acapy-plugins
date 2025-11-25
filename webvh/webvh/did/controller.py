@@ -5,21 +5,11 @@ import json
 import logging
 import re
 from uuid import uuid4
-from typing import Optional
-from operator import itemgetter
+from typing import Callable, Awaitable
 import uuid
 
-from acapy_agent.connections.models.conn_record import ConnRecord
-from acapy_agent.core.event_bus import Event, EventBus
+from acapy_agent.core.event_bus import EventBus
 from acapy_agent.core.profile import Profile
-from acapy_agent.messaging.models.base import BaseModelError
-from acapy_agent.protocols.out_of_band.v1_0.manager import (
-    OutOfBandManager,
-)
-from acapy_agent.protocols.out_of_band.v1_0.messages.invitation import (
-    InvitationMessage,
-)
-from acapy_agent.resolver.did_resolver import DIDResolver
 from acapy_agent.wallet.askar import CATEGORY_DID
 from acapy_agent.wallet.keys.manager import (
     multikey_to_verkey,
@@ -31,31 +21,23 @@ from ..config.config import (
     add_scid_mapping,
     did_from_scid,
     get_plugin_config,
-    get_server_url,
     get_server_domain,
-    get_witnesses,
-    is_controller,
     is_witness,
     notify_watchers,
-    set_config,
 )
 from ..protocols.attested_resource.record import PendingAttestedResourceRecord
 from ..protocols.log_entry.record import PendingLogEntryRecord
-from ..protocols.states import WitnessingState
+from ..protocols.states import WitnessingState, WitnessingStateHandler
 from .witness import WitnessManager
-from .exceptions import ConfigurationError, DidCreationError, OperationError
+from ..protocols.events import WitnessEventManager
+from .connection import WebVHConnectionManager
+from .utils import parse_webvh
+from .key_chain import KeyChainManager
+from .parameters import ParameterResolver
+from .exceptions import DidCreationError
 from .server_client import WebVHServerClient, WebVHWatcherClient
 from .utils import (
-    decode_invitation,
-    key_hash,
     multikey_to_jwk,
-    create_alias,
-    url_to_domain,
-    create_key,
-    find_key,
-    find_multikey,
-    bind_key,
-    unbind_key,
     add_proof,
     verify_proof,
     validate_did,
@@ -63,9 +45,7 @@ from .utils import (
 
 LOGGER = logging.getLogger(__name__)
 
-WEBVH_METHOD = "did:webvh:1.0"
 WITNESS_WAIT_TIMEOUT_SECONDS = 2
-WITNESS_EVENT = "witness_response::"
 PENDING_MESSAGE = {
     "status": WitnessingState.PENDING.value,
     "message": "The witness is pending.",
@@ -79,81 +59,24 @@ class ControllerManager:
         """Initialize the DID Webvh Manager."""
         self.profile = profile
         self.witness = WitnessManager(self.profile)
+        self.event_manager = WitnessEventManager(self.profile)
+        self.witness_connection = WebVHConnectionManager(self.profile)
+        self.key_chain = KeyChainManager(self.profile)
+        self.parameter_resolver = ParameterResolver(self.profile)
+        self.state_handler = WitnessingStateHandler(self.profile, self.event_manager)
         self.pending_log_entries = PendingLogEntryRecord()
         self.pending_attested_resource = PendingAttestedResourceRecord()
         self.server_client = WebVHServerClient(self.profile)
         self.watcher_client = WebVHWatcherClient(self.profile)
 
-    async def _get_active_witness_connection(self) -> Optional[ConnRecord]:
-        try:
-            server_url = await get_server_url(self.profile)
-        except ConfigurationError:
-            # No server_url configured yet, so no active connection possible
-            return None
-        
-        witness_alias = create_alias(url_to_domain(server_url), "witnessConnection")
-        async with self.profile.session() as session:
-            connection_records = await ConnRecord.retrieve_by_alias(
-                session, witness_alias
-            )
-
-        active_connections = [
-            conn for conn in connection_records if conn.state == "active"
-        ]
-
-        if len(active_connections) > 0:
-            return active_connections[0]
-
-        return None
-
     async def _sign_log_entry(self, log_entry):
         did = log_entry.get("state", {}).get("id", None)
-        update_key = await find_key(self.profile, f"{did}#updateKey")
+        update_key = await self.key_chain.update_key(did)
         return await add_proof(
             self.profile,
             log_entry,
             f"did:key:{update_key}#{update_key}",
         )
-
-    async def _set_parameters_input(self, placeholder_id, options):
-        # Method
-        # https://identity.foundation/didwebvh/next/#didwebvh-did-method-parameters
-        parameters = {"method": WEBVH_METHOD}
-
-        # Portability
-        # https://identity.foundation/didwebvh/next/#did-portability
-        if options.get("portable", False):
-            parameters["portable"] = True
-
-        # Witness
-        # https://identity.foundation/didwebvh/next/#did-witnesses
-        # Support both camelCase and snake_case for backward compatibility
-        witness_threshold = options.get("witnessThreshold") or options.get("witness_threshold", 0)
-        if witness_threshold:
-            parameters["witness"] = {
-                "threshold": witness_threshold,
-                "witnesses": [
-                    {"id": witness} for witness in await get_witnesses(self.profile)
-                ],
-            }
-
-        # Watchers
-        # https://identity.foundation/didwebvh/next/#did-watchers
-        if options.get("watchers", []):
-            parameters["watchers"] = options.get("watchers")
-
-        # Provision Update Key
-        # https://identity.foundation/didwebvh/next/#authorized-keys
-        update_key = await create_key(self.profile, f"{placeholder_id}#updateKey")
-        parameters["updateKeys"] = [update_key]
-
-        # Provision Rotation Key
-        # https://identity.foundation/didwebvh/next/#pre-rotation-key-hash-generation-and-verification
-        if options.get("prerotation", False):
-            next_key = await create_key(self.profile, f"{placeholder_id}#nextKey")
-            parameters["nextKeyHashes"] = [key_hash(next_key)]
-
-        return parameters
 
     async def _request_witness_signature(self, request_id):
         if await is_witness(self.profile):
@@ -172,8 +95,8 @@ class ControllerManager:
             }
 
     async def _save_local_did(self, did):
-        scid, domain, namespace, identifier = itemgetter(2, 3, 4, 5)(did.split(":"))
-        signing_key = await find_key(self.profile, f"{did}#signingKey")
+        parsed = parse_webvh(did)
+        signing_key = await self.key_chain.signing_key(did)
         async with self.profile.session() as session:
             await session.handle.insert(
                 CATEGORY_DID,
@@ -183,10 +106,10 @@ class ControllerManager:
                     "verkey": multikey_to_verkey(signing_key) if signing_key else None,
                     "metadata": {
                         "posted": True,
-                        "scid": scid,
-                        "domain": domain,
-                        "namespace": namespace,
-                        "identifier": identifier,
+                        "scid": parsed.scid,
+                        "domain": parsed.domain,
+                        "namespace": parsed.namespace,
+                        "identifier": parsed.identifier,
                     },
                     "method": "webvh",
                     "key_type": "ed25519",
@@ -203,66 +126,18 @@ class ControllerManager:
             "recipientKeys": [did_doc.get("authentication", None)[0]],
         }
 
-    async def _fire_pending_event(self, record_id, log_entry):
-        event_bus = self.profile.inject(EventBus)
-        await event_bus.notify(
-            self.profile,
-            Event(
-                f"{WITNESS_EVENT}{record_id}",
-                {
-                    "document": log_entry,
-                    "metadata": {
-                        "state": WitnessingState.PENDING.value,
-                    },
-                },
-            ),
-        )
-
-    async def _fire_attested_event(self, record_id, log_entry, witness_signature=None):
-        event_bus = self.profile.inject(EventBus)
-        await event_bus.notify(
-            self.profile,
-            Event(
-                f"{WITNESS_EVENT}{record_id}",
-                {
-                    "document": log_entry,
-                    "witness_signature": witness_signature,
-                    "metadata": {"state": WitnessingState.ATTESTED.value},
-                },
-            ),
-        )
-
-    async def _fire_post_attested_event(self, record_id, did):
-        async with self.profile.session() as session:
-            resolver = session.inject(DIDResolver)
-
-            resolved_did_doc = (
-                await resolver.resolve_with_metadata(self.profile, did)
-            ).serialize()
-
-        event_bus = self.profile.inject(EventBus)
-
-        metadata = resolved_did_doc["metadata"]
-        metadata["state"] = WitnessingState.ATTESTED.value
-        await event_bus.notify(
-            self.profile,
-            Event(
-                f"{WITNESS_EVENT}{record_id}",
-                {"document": resolved_did_doc["did_document"], "metadata": metadata},
-            ),
-        )
-
     async def _create_preliminary_doc(self, placeholder_id):
         # Create a signing key
-        signing_key = await create_key(self.profile)
+        signing_key = await self.key_chain.create_key()
         public_signing_key_id = f"{placeholder_id}#{signing_key}"
-        await bind_key(self.profile, signing_key, f"{placeholder_id}#signingKey")
-        await bind_key(self.profile, signing_key, public_signing_key_id)
+
+        # Bind signing key for placeholder DID
+        await self.key_chain.bind_key(signing_key, public_signing_key_id)
 
         # Bind parallel DID
         # https://identity.foundation/didwebvh/next/#publishing-a-parallel-didweb-did
         did_web = placeholder_id.replace(r"did:webvh:{SCID}:", "did:web:")
-        await bind_key(self.profile, signing_key, f"{did_web}#{signing_key}")
+        await self.key_chain.bind_key(signing_key, f"{did_web}#{signing_key}")
 
         return {
             "@context": [
@@ -288,7 +163,6 @@ class ControllerManager:
     ):
         # We update the key id's stored during the preliminary log entry processing
         placeholder_id = preliminary_doc.get("id")
-        update_key = await find_key(self.profile, f"{placeholder_id}#updateKey")
         doc_state = DocumentState.initial(
             parameters_input, preliminary_doc, timestamp=timestamp
         )
@@ -296,24 +170,34 @@ class ControllerManager:
         document = initial_log_entry.get("state")
         did = document.get("id")
 
-        await bind_key(self.profile, update_key, f"{did}#updateKey")
-
-        # Update default signing key
-        signing_key = await find_key(self.profile, f"{placeholder_id}#signingKey")
-        await bind_key(self.profile, signing_key, f"{did}#signingKey")
-        await bind_key(self.profile, signing_key, f"{did}#{signing_key}")
-
-        # Update prerotation key
+        # Migrate keys from placeholder DID to final DID
+        await self.key_chain.migrate_key(placeholder_id, did, "signingKey")
+        await self.key_chain.migrate_key(placeholder_id, did, "updateKey")
         if parameters_input.get("nextKeyHashes"):
-            next_key = await find_key(self.profile, f"{placeholder_id}#nextKey")
-            await bind_key(self.profile, next_key, f"{did}#nextKey")
+            await self.key_chain.migrate_key(placeholder_id, did, "nextKey")
 
         return initial_log_entry
 
-    async def _wait_for_log_entry(self, record_id: str):
+    async def _wait_for_witness_event(
+        self,
+        record_id: str,
+        pending_record_manager,
+        handler: Callable[[dict, str], Awaitable],
+    ):
+        """Generic method to wait for witness events.
+
+        Args:
+            record_id: The record ID to wait for
+            pending_record_manager: The pending record manager to use for cleanup
+            handler: Async function to call when event is received (not pending)
+                    Should accept (event_payload, record_id) and return result
+
+        Returns:
+            Result from handler or PENDING_MESSAGE if event is pending
+        """
         event_bus = self.profile.inject(EventBus)
         with event_bus.wait_for_event(
-            self.profile, re.compile(rf"^{WITNESS_EVENT}{record_id}$")
+            self.profile, re.compile(self.event_manager.get_event_pattern(record_id))
         ) as await_event:
             event = await await_event
             if (
@@ -322,137 +206,49 @@ class ControllerManager:
             ):
                 return PENDING_MESSAGE
             else:
-                await self.pending_log_entries.remove_pending_record_id(
+                await pending_record_manager.remove_pending_record_id(
                     self.profile, record_id
                 )
-                return await self.finish_did_operation(
-                    event.payload.get("document"),
-                    event.payload.get("witness_signature", None),
-                    state=WitnessingState.FINISHED.value,
-                    record_id=record_id,
-                )
+                return await handler(event.payload, record_id)
+
+    async def _wait_for_log_entry(self, record_id: str):
+        """Wait for log entry witness event."""
+
+        async def handler(event_payload, record_id):
+            return await self.finish_did_operation(
+                event_payload.get("document"),
+                event_payload.get("witness_signature", None),
+                state=WitnessingState.FINISHED.value,
+                record_id=record_id,
+            )
+
+        return await self._wait_for_witness_event(
+            record_id, self.pending_log_entries, handler
+        )
 
     async def _wait_for_resource(self, record_id: str):
-        event_bus = self.profile.inject(EventBus)
-        with event_bus.wait_for_event(
-            self.profile, re.compile(rf"^{WITNESS_EVENT}{record_id}$")
-        ) as await_event:
-            event = await await_event
-            if (
-                event.payload.get("metadata", {}).get("state")
-                == WitnessingState.PENDING.value
-            ):
-                return PENDING_MESSAGE
-            else:
-                await self.pending_attested_resource.remove_pending_record_id(
-                    self.profile, record_id
-                )
-                document = event.payload.get("document")
-                await self.upload_resource(
-                    document, state=WitnessingState.FINISHED.value, record_id=record_id
-                )
+        """Wait for resource witness event."""
 
-    async def _apply_config_defaults(self, options: dict, defaults: dict):
-        """Apply default parameter options if not overwritten by request.
+        async def handler(event_payload, record_id):
+            document = event_payload.get("document")
+            await self.upload_resource(
+                document, state=WitnessingState.FINISHED.value, record_id=record_id
+            )
 
-        options: The user provided did creation options.
-        defaults: The default configured options.
-
-        """
-        options["portability"] = options.get(
-            "portability", defaults.get("portability", False)
+        return await self._wait_for_witness_event(
+            record_id, self.pending_attested_resource, handler
         )
-        options["prerotation"] = options.get(
-            "prerotation", defaults.get("prerotation", False)
-        )
-        options["witness_threshold"] = options.get(
-            "witness_threshold", defaults.get("witness_threshold", 0)
-        )
-        options["watchers"] = options.get("watchers", defaults.get("watchers", None))
-        return options
-
-    async def _apply_policy(self, parameters: dict, options: dict):
-        """Apply server policy to did creation options.
-
-        parameters: The parameters object returned by the server,
-        based on the configured policies.
-
-        options: The user provided did creation options.
-
-        """
-        if parameters.get("witness", {}).get("threshold", 0):
-            options["witness_threshold"] = parameters.get("witness").get("threshold")
-
-        if parameters.get("watchers", None):
-            options["watchers"] = parameters.get("watchers")
-
-        if parameters.get("portability", False):
-            options["portability"] = parameters.get("portability")
-
-        if parameters.get("nextKeyHashes", None) == []:
-            options["prerotation"] = True
-
-        return options
 
     async def configure(self, config: dict) -> dict:
-        """Configure did controller and/or witness."""
+        """Configure did controller.
 
-        # Connect to witness service (only if not self-witness)
-        if witness_id := config.get("witness_id"):
-            await self.connect_to_witness(witness_id)
-
-            if witness_id not in config.get("witnesses", []):
-                config.setdefault("witnesses", []).append(witness_id)
-                await set_config(self.profile, config)
-
+        This method only stores the configuration. Witness connection setup
+        is handled separately via WebVHConnectionManager.setup() or can be
+        done lazily when needed.
+        """
+        # Configuration is already stored by the route handler
+        # No need to establish witness connection here
         return config
-
-    async def connect_to_witness(self, witness_id: str) -> str:
-        """Process witness invitation and connect."""
-        
-        with WebVHServerClient(self.profile) as server_client:
-            invitation = await server_client.get_witness_invitation(witness_id)
-            
-        if not invitation:
-            raise OperationError(
-                f"Witness {witness_id} not listed by server document."
-            )
-        
-        if invitation.get("goal-code",  None) != "witness-service":
-            raise OperationError("Missing invitation goal-code and witness did.")
-        
-        if invitation.get("goal",  None) != witness_id:
-            raise OperationError("Wrong invitation goal must match witness id.")
-
-        # Get the witness connection is already set up
-        if await self._get_active_witness_connection():
-            LOGGER.info("Connected to witness from previous connection.")
-            return witness_id
-
-        try: 
-            server_domain = await get_server_domain(self.profile)
-            witness_alias = f"webvh:{server_domain}@witness"
-            await OutOfBandManager(self.profile).receive_invitation(
-                invitation=invitation,
-                auto_accept=True,
-                alias=witness_alias,
-            )
-        except BaseModelError as err:
-            raise OperationError(f"Error receiving witness invitation: {err}")
-
-        for _ in range(5):
-            if await self._get_active_witness_connection():
-                LOGGER.info("Connected to witness agent.")
-                return witness_id
-            
-            await asyncio.sleep(1)
-
-        LOGGER.info(
-            "No immediate response when trying to connect to witness agent. You can "
-            f"try manually setting up a connection with alias {witness_alias} or "
-            "restart the agent when witness is available."
-        )
-        return witness_id
 
     async def create(self, options: dict):
         """Create DID and first log entry."""
@@ -472,31 +268,30 @@ class ControllerManager:
         if not validate_did(placeholder_id, domain, namespace, identifier):
             raise DidCreationError(f"Server returned invalid did: {placeholder_id}")
 
+        # Resolve parameters (apply defaults, policy, and build parameters dict)
         config = await get_plugin_config(self.profile)
-        options = await self._apply_config_defaults(
-            options, config.get("parameter_options", {})
+        (
+            resolved_options,
+            parameters_input,
+        ) = await self.parameter_resolver.resolve_and_build(
+            placeholder_id=placeholder_id,
+            user_options=options,
+            config_defaults=config.get("parameter_options", {}),
+            server_parameters=requested_identifier.get("parameters"),
+            apply_policy=options.get("apply_policy", False),
         )
-
-        # Apply provided options & policies to the requested identifier
-        if options.get("apply_policy", False):
-            options = await self._apply_policy(
-                requested_identifier.get("parameters"), options
-            )
 
         # Add a verification method to the initial state document & create preliminary doc
         preliminary_doc = await self._create_preliminary_doc(placeholder_id)
 
-        if options.get("didcomm", False):
+        if resolved_options.get("didcomm", False):
             preliminary_doc["service"].append(
                 self._create_didcomm_service(preliminary_doc)
             )
 
-        # Create update keys and set parameters
-        parameters_input = await self._set_parameters_input(placeholder_id, options)
-
         # Create and sign initial log entry
         initial_log_entry = await self._create_initial_log_entry(
-            preliminary_doc, parameters_input, options.get("version_time", None)
+            preliminary_doc, parameters_input, resolved_options.get("version_time", None)
         )
         return await self._sign_log_entry(initial_log_entry)
 
@@ -510,7 +305,7 @@ class ControllerManager:
 
         # Process prerotation
         if parameters.get("nextKeyHashes"):
-            update_key, next_key_hash = await self._rotate_update_key(did)
+            update_key, next_key_hash = await self.key_chain.rotate_update_key(did)
             params_update["updateKeys"] = [update_key]
             params_update["nextKeyHashes"] = [next_key_hash]
 
@@ -530,7 +325,7 @@ class ControllerManager:
 
         # Process prerotation
         if parameters.get("nextKeyHashes"):
-            update_key, next_key_hash = await self._rotate_update_key(did)
+            update_key, next_key_hash = await self.key_chain.rotate_update_key(did)
             params_update["nextKeyHashes"] = [next_key_hash]
 
         log_entry = document_state.create_next(
@@ -547,7 +342,7 @@ class ControllerManager:
 
         # Process witnessing
         did = log_entry.get("state", {}).get("id", None)
-        scid = itemgetter(2)(did.split(":"))
+        parsed = parse_webvh(did)
         document_state = DocumentState.load_history_line(
             log_entry, await self.server_client.fetch_document_state(did)
         )
@@ -555,7 +350,7 @@ class ControllerManager:
         if document_state.witness_rule:
             witness_request_id = str(uuid.uuid4())
             witness_signature = await self.witness.witness_log_entry(
-                scid, log_entry, witness_request_id
+                parsed.scid, log_entry, witness_request_id
             )
 
             if not isinstance(witness_signature, dict):
@@ -576,47 +371,32 @@ class ControllerManager:
     ):
         """Finish all DID operations."""
 
-        # Process witnessing states
-        if state == WitnessingState.ATTESTED.value:
-            await self._fire_attested_event(record_id, log_entry, witness_signature)
+        async def submit_handler(document, sig):
+            """Submit log entry to server."""
+            return await self.server_client.submit_log_entry(document, sig)
 
-            await asyncio.sleep(WITNESS_WAIT_TIMEOUT_SECONDS)
-            record_ids = await self.pending_log_entries.get_pending_record_ids(
-                self.profile
-            )
+        async def post_process_handler(did):
+            """Post-process after submission."""
+            # Process local did records
+            if log_entry.get("versionId")[0] == "1":
+                await self._save_local_did(did)
+                await add_scid_mapping(self.profile, did)
 
-            if record_id is None or record_id not in record_ids:
-                return
+            # Process watchers
+            if await notify_watchers(self.profile):
+                watchers = log_entry.get("parameters").get("watchers", [])
+                await self.watcher_client.notify_watchers(did, watchers)
 
-            await self.pending_log_entries.remove_pending_record_id(
-                self.profile, record_id
-            )
-
-        if state == WitnessingState.PENDING.value:
-            await self._fire_pending_event(log_entry, record_id)
-            return
-
-        # Publish log entry
-        response_json = await self.server_client.submit_log_entry(
-            log_entry, witness_signature
+        return await self.state_handler.process_state(
+            state=state,
+            record_id=record_id,
+            document=log_entry,
+            witness_signature=witness_signature,
+            pending_record_manager=self.pending_log_entries,
+            submit_handler=submit_handler,
+            document_type="log_entry",
+            post_process_handler=post_process_handler,
         )
-
-        # Process local did records
-        did = log_entry["state"]["id"]
-        if log_entry.get("versionId")[0] == "1":
-            await self._save_local_did(did)
-            await add_scid_mapping(self.profile, did)
-        else:
-            pass
-
-        await self._fire_post_attested_event(record_id, did)
-
-        # Process watchers
-        if await notify_watchers(self.profile):
-            watchers = log_entry.get("parameters").get("watchers", [])
-            await self.watcher_client.notify_watchers(did, watchers)
-
-        return response_json
 
     async def add_verification_method(
         self,
@@ -633,9 +413,9 @@ class ControllerManager:
         did_document = scid_info.value_json.get("didDocument")
         did = did_document.get("id")
         multikey = (
-            await find_multikey(self.profile, multikey)
+            await self.key_chain.find_multikey(multikey)
             if multikey
-            else await create_key(self.profile)
+            else await self.key_chain.create_key()
         )
         if key_type == "Multikey":
             verification_method = {
@@ -653,7 +433,9 @@ class ControllerManager:
                 "publicKeyJwk": jwk,
             }
 
-        await bind_key(multikey, verification_method["id"])
+        await self.key_chain.bind_verification_method(
+            did, verification_method["id"], multikey
+        )
         did_document["verificationMethod"].append(verification_method)
         for relationship in relationships:
             did_document[relationship].append(verification_method["id"])
@@ -663,35 +445,8 @@ class ControllerManager:
     async def remove_verification_method(self, scid: str, key_id: str):
         """Remove a verification method."""
         did = await did_from_scid(self.profile, scid)
-        key_id = f"{did}#{key_id}"
-        multikey = await find_key(self.profile, key_id)
-        await unbind_key(self.profile, multikey, key_id)
+        await self.key_chain.unbind_verification_method(did, key_id)
         return {"status": "ok"}
-
-    async def _rotate_update_key(self, did: str):
-        """Pre rotation."""
-        next_key_id = f"{did}#nextKey"
-        update_key_id = f"{did}#updateKey"
-
-        previous_next_key = await find_key(self.profile, next_key_id)
-        previous_update_key = await find_key(self.profile, update_key_id)
-
-        # Unbind previous update key
-        await unbind_key(self.profile, previous_update_key, update_key_id)
-
-        # Bind previous next key to new update key
-        await bind_key(self.profile, previous_next_key, update_key_id)
-
-        # Unbind previous next key
-        await unbind_key(self.profile, previous_next_key, next_key_id)
-
-        # Create and bind new next key
-        next_key = await create_key(self.profile, next_key_id)
-
-        # Find new update key
-        update_key = await find_key(self.profile, update_key_id)
-
-        return update_key, key_hash(next_key)
 
     async def update_whois(self, scid: str, presentation: dict, options: dict = {}):
         """Update WHOIS linked VP."""
@@ -728,69 +483,18 @@ class ControllerManager:
 
     async def upload_resource(self, attested_resource, state, record_id):
         """Upload an attested resource to the server."""
-        if state == WitnessingState.ATTESTED.value:
-            event_bus = self.profile.inject(EventBus)
-            await event_bus.notify(
-                self.profile,
-                Event(
-                    f"{WITNESS_EVENT}{record_id}",
-                    {
-                        "document": attested_resource,
-                        "metadata": {"state": WitnessingState.ATTESTED.value},
-                    },
-                ),
-            )
-            await asyncio.sleep(WITNESS_WAIT_TIMEOUT_SECONDS)
-            record_ids = await self.pending_attested_resource.get_pending_record_ids(
-                self.profile
-            )
-            if record_id is None or record_id not in record_ids:
-                return
-            await self.pending_attested_resource.remove_pending_record_id(
-                self.profile, record_id
-            )
 
-        if state == WitnessingState.PENDING.value:
-            event_bus = self.profile.inject(EventBus)
-            await event_bus.notify(
-                self.profile,
-                Event(
-                    f"{WITNESS_EVENT}{record_id}",
-                    {
-                        "document": attested_resource,
-                        "metadata": {
-                            "state": WitnessingState.PENDING.value,
-                        },
-                    },
-                ),
-            )
-            return
+        async def submit_handler(document, sig):
+            """Upload resource to server."""
+            await self.server_client.upload_attested_resource(document)
+            return {"status": "ok"}
 
-        await self.server_client.upload_attested_resource(attested_resource)
-
-    async def auto_setup(self, config: dict | None = None) -> None:
-        """Automatically set up the witness connection for controllers."""
-        if not await is_controller(self.profile):
-            return
-
-        # Get the witness connection is already set up
-        if await self._get_active_witness_connection():
-            LOGGER.info("Connected to witness from previous connection.")
-            return
-
-        config = config or await get_plugin_config(self.profile)
-        if not config.get("server_url"):
-            raise ConfigurationError("No server url configured.")
-
-        witness_id = config.get("witness_id")
-
-        if not witness_id:
-            LOGGER.info(
-                "No witness identifier, can't create connection automatically."
-            )
-            return
-
-        try:
-            await self.connect_to_witness(witness_id)
-        except OperationError as err:
-            LOGGER.info("Automatic witness connection failed: %s", err)
+        return await self.state_handler.process_state(
+            state=state,
+            record_id=record_id,
+            document=attested_resource,
+            witness_signature=None,
+            pending_record_manager=self.pending_attested_resource,
+            submit_handler=submit_handler,
+            document_type="attested_resource",
+        )

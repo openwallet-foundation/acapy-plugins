@@ -53,7 +53,10 @@ async def get_pending_witness_requests(request: web.BaseRequest):
     try:
         record_type = WitnessRecordType(record_type_str)
     except ValueError:
-        raise WitnessError(f"Invalid record type: {record_type_str}. Must be one of: {[e.value for e in WitnessRecordType]}")
+        raise WitnessError(
+            f"Invalid record type: {record_type_str}. "
+            f"Must be one of: {[e.value for e in WitnessRecordType]}"
+        )
     PENDING_RECORDS = RECORD_TYPES.get(record_type.value, None)
     if PENDING_RECORDS is None:
         raise WitnessError(f"Record type {record_type.value} not supported.")
@@ -97,7 +100,10 @@ async def approve_pending_witness_request(request: web.BaseRequest):
         try:
             record_type = WitnessRecordType(record_type_str)
         except ValueError:
-            raise WitnessError(f"Invalid record type: {record_type_str}. Must be one of: {[e.value for e in WitnessRecordType]}")
+            raise WitnessError(
+                f"Invalid record type: {record_type_str}. "
+                f"Must be one of: {[e.value for e in WitnessRecordType]}"
+            )
         PENDING_RECORDS = RECORD_TYPES.get(record_type.value, None)
         if PENDING_RECORDS is None:
             raise WitnessError(f"Record type {record_type.value} not supported.")
@@ -119,9 +125,7 @@ async def approve_pending_witness_request(request: web.BaseRequest):
 
         await PENDING_RECORDS.remove_pending_record(context.profile, record_id)
 
-        LOGGER.info(
-            f"Witness successful for {record_type.value} record {record_id}"
-        )
+        LOGGER.info(f"Witness successful for {record_type.value} record {record_id}")
         return web.json_response({"status": "success", "message": "Witness successful."})
 
     except WitnessError as err:
@@ -163,7 +167,10 @@ async def reject_pending_witness_request(request: web.BaseRequest):
         try:
             record_type = WitnessRecordType(record_type_str)
         except ValueError:
-            raise WitnessError(f"Invalid record type: {record_type_str}. Must be one of: {[e.value for e in WitnessRecordType]}")
+            raise WitnessError(
+                f"Invalid record type: {record_type_str}. "
+                f"Must be one of: {[e.value for e in WitnessRecordType]}"
+            )
         PENDING_RECORDS = RECORD_TYPES.get(record_type.value, None)
         if PENDING_RECORDS is None:
             raise WitnessError(f"Record type {record_type.value} not supported.")

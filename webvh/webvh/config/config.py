@@ -3,8 +3,6 @@
 import copy
 import json
 
-from operator import itemgetter
-
 from acapy_agent.core.profile import Profile
 from acapy_agent.storage.base import BaseStorage
 from acapy_agent.storage.error import StorageNotFoundError
@@ -137,7 +135,10 @@ async def use_strict_ssl(profile: Profile):
 
 async def add_scid_mapping(profile: Profile, did: str):
     """Add a scid mapping."""
-    scid = itemgetter(2)(did.split(":"))
+    from ..did.utils import parse_webvh
+
+    parsed = parse_webvh(did)
+    scid = parsed.scid
     async with profile.session() as session:
         storage = session.inject(BaseStorage)
         stored_config_record = await storage.get_record(

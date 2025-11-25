@@ -4,20 +4,13 @@ import copy
 import logging
 from typing import Optional
 
-from acapy_agent.connections.models.conn_record import ConnRecord
 from acapy_agent.core.profile import Profile
 from acapy_agent.messaging.responder import BaseResponder
-from acapy_agent.protocols.out_of_band.v1_0.manager import (
-    OutOfBandManager,
-    OutOfBandManagerError,
-)
-from acapy_agent.protocols.out_of_band.v1_0.messages.invitation import (
-    HSProto,
-)
 
 from ..config.config import get_plugin_config, set_config
 
-from .exceptions import WitnessError, ConfigurationError, OperationError
+from .utils import parse_did_key
+from .exceptions import WitnessError, ConfigurationError
 from ..protocols.attested_resource.record import PendingAttestedResourceRecord
 from ..protocols.attested_resource.messages import (
     WitnessRequest as AttestedResourceWitnessRequest,
@@ -30,7 +23,9 @@ from ..protocols.log_entry.messages import (
 )
 from ..protocols.states import WitnessingState
 from ..did.server_client import WebVHServerClient
-from ..did.utils import find_key, add_proof, create_key, url_to_domain, bind_key
+from ..did.utils import add_proof, url_to_domain, format_witness_ready_message
+from ..did.key_chain import KeyChainManager
+from ..did.connection import WebVHConnectionManager
 
 LOGGER = logging.getLogger(__name__)
 
@@ -42,66 +37,80 @@ class WitnessManager:
         """Initialize the witness manager."""
         self.profile = profile
         self.server_client = WebVHServerClient(profile)
+        self.key_chain = KeyChainManager(profile)
+        self.witness_connection = WebVHConnectionManager(profile)
         self.proof_options = {
             "type": "DataIntegrityProof",
             "cryptosuite": "eddsa-jcs-2022",
             "proofPurpose": "assertionMethod",
         }
 
-    async def configure(self, config: dict) -> dict:
+    async def configure(self, config: dict = None, log_message: bool = False) -> dict:
         """Configure this agent as a witness.
 
         This creates the witness key, invitation, and updates the config.
-        Same logic as auto_setup but called from the configuration endpoint.
+        Can be called from the configuration endpoint or during startup.
+
+        Args:
+            config: Configuration dict. If None, will be fetched from profile.
+            log_message: If True, log and print formatted witness ready message.
+
+        Returns:
+            Config dict with invitation_url (for API responses)
         """
+        if config is None:
+            config = await get_plugin_config(self.profile)
+
         if not config.get("witness", False):
+            if log_message:
+                LOGGER.debug("Skipping witness configuration - witness not enabled")
             return config
 
         config.setdefault("witnesses", [])
         key_alias = self.key_alias
-        
+
         # If witness_id is provided, try to use that key
         if witness_id := config.get("witness_id", None):
-            witness_key = witness_id.split(":")[-1]  # Extract key from did:key:xxx
-            await bind_key(self.profile, witness_key, key_alias)
+            parsed_key = parse_did_key(witness_id)
+            witness_key = parsed_key.key
+            await self.key_chain.bind_key(witness_key, key_alias)
+            if log_message:
+                LOGGER.info("Using configured witness_id: %s", witness_id)
         else:
             # Otherwise, find existing key or create new one
-            witness_key = await find_key(self.profile, key_alias)
+            witness_key = await self.key_chain.find_key(key_alias)
             if not witness_key:
                 LOGGER.info("Creating witness key for alias %s", key_alias)
-                witness_key = await create_key(self.profile, key_alias)
+                witness_key = await self.key_chain.create_key(key_alias)
             witness_id = f"did:key:{witness_key}"
+
+        # Store witness_id in config if not already set
+        if not config.get("witness_id"):
+            config["witness_id"] = witness_id
+            await set_config(self.profile, config)
 
         if witness_id not in config["witnesses"]:
             config["witnesses"].append(witness_id)
             await set_config(self.profile, config)
 
-        # Use the witness_key we already have instead of calling get_witness_key()
-        invitation_record = await self.create_invitation(
+        # Create witness invitation
+        invitation_record = await self.witness_connection.create_witness_invitation(
+            witness_key=witness_key,
             alias=None,
             label="Witness Service",
             multi_use=True,
-            witness_key=witness_key,
         )
-        invitation_url = None
-        if isinstance(invitation_record, dict):
-            invitation_url = invitation_record.get("invitation_url")
-        else:
-            invitation_url = getattr(invitation_record, "invitation_url", None)
-        
-        # Convert https:// URL to didcomm:// format
-        if invitation_url and invitation_url.startswith("http"):
-            from urllib.parse import urlparse, parse_qs
-            parsed = urlparse(invitation_url)
-            query = parse_qs(parsed.query)
-            if "oob" in query:
-                oob_param = query["oob"][0]
-                invitation_url = f"didcomm://?oob={oob_param}"
+        invitation_url = self.witness_connection.extract_invitation_url(invitation_record)
+        invitation_url = self.witness_connection.format_invitation_url(invitation_url)
 
-        # Store witness_id in config (but not invitation_url - it's generated on demand)
-        config["witness_id"] = witness_id
-        await set_config(self.profile, config)
-        
+        # Log and print formatted message if requested (for startup visibility)
+        if log_message:
+            message = format_witness_ready_message(witness_id, invitation_url)
+            # Log each line separately for better log parsing
+            for line in message.strip().split("\n"):
+                LOGGER.warning(line)
+            print(message, end="")
+
         # Return config with invitation_url for API response (but don't persist it)
         response_config = config.copy()
         response_config["invitation_url"] = invitation_url
@@ -117,130 +126,24 @@ class WitnessManager:
         domain = url_to_domain(server_url)
         return f"webvh:{domain}@witnessKey"
 
-    @property
-    def connection_alias(self) -> str:
-        """Derive witness connection alias."""
-        # Reuse key_alias domain logic to keep behavior consistent
-        alias = self.key_alias
-        return alias.replace("@witnessKey", "@witness")
+    async def sign(self, document: dict) -> dict:
+        """Sign a document with the witness key.
 
-    async def auto_setup(self, config: dict | None = None):
-        """Automatically ensure the witness configuration is ready."""
-        if config is None:
-            config = await get_plugin_config(self.profile)
+        Args:
+            document: The document to sign (dict)
 
-        if not config.get("witness", False):
-            LOGGER.debug("Skipping witness auto_setup - witness not configured")
-            return
-        
-        LOGGER.warning("=" * 70)
-        LOGGER.warning("Starting witness auto_setup")
-        LOGGER.warning("Witness auto_setup: config.witness = %s", config.get("witness"))
+        Returns:
+            The signed document with proof added
 
-        config.setdefault("witnesses", [])
-        key_alias = self.key_alias
-        LOGGER.warning("Witness auto_setup: key_alias = %s", key_alias)
-        witness_key = await find_key(self.profile, key_alias)
-        if not witness_key:
-            LOGGER.warning("Creating witness key for alias %s", key_alias)
-            witness_key = await create_key(self.profile, key_alias)
-            LOGGER.warning("Created witness key: %s", witness_key[:20] + "..." if witness_key else "None")
-
-        witness_id = f"did:key:{witness_key}"
-        if witness_id not in config["witnesses"]:
-            config["witnesses"].append(witness_id)
-            await set_config(self.profile, config)
-
-        # Use the witness_key we already have instead of calling get_witness_key()
-        invitation_record = await self.create_invitation(
-            alias=None,
-            label="Witness Service",
-            multi_use=True,
-            witness_key=witness_key,
+        Raises:
+            WitnessError: If witness key cannot be retrieved
+        """
+        witness_key = await self.key_chain.get_key(self.key_alias, WitnessError)
+        return await add_proof(
+            self.profile,
+            document,
+            f"did:key:{witness_key}#{witness_key}",
         )
-        invitation_url = None
-        if isinstance(invitation_record, dict):
-            invitation_url = invitation_record.get("invitation_url")
-        else:
-            invitation_url = getattr(invitation_record, "invitation_url", None)
-        
-        # Convert https:// URL to didcomm:// format
-        if invitation_url and invitation_url.startswith("http"):
-            from urllib.parse import urlparse, parse_qs
-            parsed = urlparse(invitation_url)
-            query = parse_qs(parsed.query)
-            if "oob" in query:
-                oob_param = query["oob"][0]
-                invitation_url = f"didcomm://?oob={oob_param}"
-
-        # Format the witness configuration message
-        invitation_display = invitation_url if invitation_url else "<not available>"
-        message = f"""
-{'=' * 70}
-✨{' ' * 20}WebVH Witness Ready!{' ' * 20}✨
-{'=' * 70}
-
-  🔑 Witness ID:
-     {witness_id}
-
-  📨 Invitation URL:
-     {invitation_display}
-
-{'=' * 70}
-"""
-        
-        # Log and print the same message
-        # Use WARNING level to ensure visibility in Docker logs
-        # Use multiple LOGGER.warning calls to ensure each line is logged separately
-        for line in message.strip().split('\n'):
-            LOGGER.warning(line)
-        print(message, end="")
-
-    async def create_invitation(self, alias=None, label=None, multi_use=False, witness_key=None) -> str:
-        """Create a witness invitation."""
-        if witness_key is None:
-            witness_key = await self.get_witness_key()
-        try:
-            invi_rec = await OutOfBandManager(self.profile).create_invitation(
-                hs_protos=[
-                    HSProto.get("https://didcomm.org/didexchange/1.0"),
-                    HSProto.get("https://didcomm.org/didexchange/1.1"),
-                ],
-                alias=alias,
-                my_label=label,
-                goal_code="witness-service",
-                goal=f"did:key:{witness_key}",
-                multi_use=multi_use,
-            )
-            return invi_rec.serialize()
-        except OutOfBandManagerError as e:
-            raise WitnessError(e)
-
-    async def _get_active_witness_connection(self) -> Optional[ConnRecord]:
-        """Find active witness connection."""
-        witness_alias = self.connection_alias
-        async with self.profile.session() as session:
-            connection_records = await ConnRecord.retrieve_by_alias(
-                session, witness_alias
-            )
-
-        active_connections = [
-            conn for conn in connection_records if conn.state == "active"
-        ]
-
-        if len(active_connections) > 0:
-            return active_connections[0]
-
-        return None
-
-    async def get_witness_key(self) -> str:
-        """Return the witness key."""
-        witness_alias = self.key_alias
-        witness_key = await find_key(self.profile, witness_alias)
-        if not witness_key:
-            raise WitnessError(f"Witness key [{witness_alias}] not found.")
-
-        return witness_key
 
     async def witness_log_entry(
         self,
@@ -255,7 +158,7 @@ class WitnessManager:
         if config.get("witness", False):
             record = PendingLogEntryRecord()
             if config.get("auto_attest", False):
-                return await self.sign_log_version(log_entry.get("versionId"))
+                return await self.sign({"versionId": log_entry.get("versionId")})
 
             await record.save_pending_record(
                 self.profile, scid, log_entry, witness_request_id
@@ -265,7 +168,9 @@ class WitnessManager:
         else:
             responder = self.profile.inject(BaseResponder)
 
-            witness_connection = await self._get_active_witness_connection()
+            witness_connection = await self.witness_connection.get_active_connection(
+                auto_connect=True
+            )
             if not witness_connection:
                 raise WitnessError("No active witness connection found.")
 
@@ -289,12 +194,7 @@ class WitnessManager:
         if config.get("witness", False):
             record = PendingAttestedResourceRecord()
             if config.get("auto_attest", False):
-                witness_key = await self.get_witness_key()
-                return await add_proof(
-                    self.profile,
-                    attested_resource,
-                    f"did:key:{witness_key}#{witness_key}",
-                )
+                return await self.sign(attested_resource)
             await record.save_pending_record(
                 self.profile,
                 scid,
@@ -306,7 +206,9 @@ class WitnessManager:
         else:
             responder = self.profile.inject(BaseResponder)
 
-            witness_connection = await self._get_active_witness_connection()
+            witness_connection = await self.witness_connection.get_active_connection(
+                auto_connect=True
+            )
             if not witness_connection:
                 raise WitnessError("No active witness connection found.")
 
@@ -317,16 +219,6 @@ class WitnessManager:
                 connection_id=witness_connection.connection_id,
             )
 
-    async def sign_log_version(self, version_id) -> dict:
-        """Sign a given log versionId with a DataIntegrityProof."""
-        witness_key = await self.get_witness_key()
-        witness_signature = await add_proof(
-            self.profile,
-            {"versionId": version_id},
-            f"did:key:{witness_key}#{witness_key}",
-        )
-        return witness_signature
-
     async def approve_log_entry(
         self, log_entry: dict, connection_id: str, request_id: str = None
     ) -> dict[str, str]:
@@ -335,12 +227,7 @@ class WitnessManager:
         if not log_entry.get("proof", None):
             raise WitnessError("No proof found in log entry. Cannot witness.")
 
-        witness_key = await self.get_witness_key()
-        witness_signature = await add_proof(
-            self.profile,
-            {"versionId": log_entry.get("versionId")},
-            f"did:key:{witness_key}#{witness_key}",
-        )
+        witness_signature = await self.sign({"versionId": log_entry.get("versionId")})
 
         if not connection_id:
             # NOTE: will have to review this behavior when witness threshold is > 1
@@ -371,21 +258,11 @@ class WitnessManager:
         if not attested_resource.get("proof", None):
             raise WitnessError("No proof found in log entry. Cannot witness.")
 
-        witness_key = await self.get_witness_key()
-        witnessed_resource = await add_proof(
-            self.profile,
-            copy.deepcopy(attested_resource),
-            f"did:key:{witness_key}#{witness_key}",
-        )
+        witnessed_resource = await self.sign(copy.deepcopy(attested_resource))
 
         if not connection_id:
             # Upload resource to server
-            author_id = attested_resource.get("id").split("/")[0]
-            namespace = author_id.split(":")[4]
-            identifier = author_id.split(":")[5]
-            await self.server_client.upload_attested_resource(
-                namespace, identifier, witnessed_resource
-            )
+            await self.server_client.upload_attested_resource(witnessed_resource)
             return attested_resource
         else:
             await self.profile.inject(BaseResponder).send(
