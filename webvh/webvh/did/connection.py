@@ -12,6 +12,7 @@ from acapy_agent.protocols.out_of_band.v1_0.manager import (
     OutOfBandManager,
     OutOfBandManagerError,
 )
+from acapy_agent.protocols.out_of_band.v1_0.models.oob_record import OobRecord
 from acapy_agent.protocols.out_of_band.v1_0.messages.invitation import (
     HSProto,
     InvitationMessage,
@@ -233,29 +234,32 @@ class WebVHConnectionManager:
         Raises:
             WitnessError: If invitation creation fails
         """
-        # Ensure the witness DID is in the wallet so we can use it as the invitation key
+        # Extract witness verkey to use as invitation key
+        parsed_key = parse_did_key(witness_id)
+        witness_verkey = parsed_key.key
+        
+        # Ensure the witness key is available as a signing key in the wallet
         async with self.profile.session() as session:
             wallet = session.inject(BaseWallet)
             try:
-                await wallet.get_local_did(witness_id)
+                # Check if the key exists as a signing key
+                await wallet.get_signing_key(witness_verkey)
             except WalletNotFoundError:
-                # Store the witness DID in the wallet if it's not already there
-                parsed_key = parse_did_key(witness_id)
-                witness_key = parsed_key.key
-                did_info = DIDInfo(
-                    did=witness_id,
-                    verkey=witness_key,
-                    metadata={},
-                    method=KEY,
-                    key_type=ED25519,
+                # The key should already be in the wallet from key_chain.bind_key(),
+                # but if not, we need to ensure it's there
+                # For now, we'll let the error propagate - the key should be there
+                LOGGER.warning(
+                    f"Witness key {witness_verkey} not found in wallet. "
+                    "Ensure the witness key is properly bound via key_chain.bind_key()"
                 )
-                try:
-                    await wallet.store_did(did_info)
-                    LOGGER.info(f"Stored witness DID {witness_id} in wallet")
-                except WalletDuplicateError:
-                    # If it's already there (race condition), that's fine
-                    LOGGER.debug(f"Witness DID {witness_id} already in wallet")
+                raise WitnessError(
+                    f"Witness key for {witness_id} not found in wallet. "
+                    "The key must be bound before creating invitations."
+                )
 
+        # Create invitation using legacy approach (without use_did)
+        # The invitation will use a new key, but we'll update the connection record
+        # to use the witness key as the invitation key after creation
         try:
             invi_rec = await OutOfBandManager(self.profile).create_invitation(
                 hs_protos=[
@@ -267,8 +271,28 @@ class WebVHConnectionManager:
                 goal_code="witness-service",
                 goal=witness_id,
                 multi_use=multi_use,
-                use_did=witness_id,  # Use the witness DID as the invitation key
+                # Don't use use_did - it requires services which did:key doesn't have
             )
+            
+            # Update the connection record to use the witness key as invitation key
+            if invi_rec.oob_id:
+                async with self.profile.session() as session:
+                    # Get the OOB record to find the connection
+                    oob_rec = await OobRecord.retrieve_by_id(session, invi_rec.oob_id)
+                    if oob_rec.connection_id:
+                        conn_rec = await ConnRecord.retrieve_by_id(
+                            session, oob_rec.connection_id
+                        )
+                        # Update the invitation_key to use the witness verkey
+                        conn_rec.invitation_key = witness_verkey
+                        await conn_rec.save(
+                            session, reason="Updated invitation key to witness key"
+                        )
+                        LOGGER.info(
+                            f"Updated connection {conn_rec.connection_id} "
+                            f"to use witness key as invitation key"
+                        )
+            
             return invi_rec.serialize()
         except OutOfBandManagerError as e:
             raise WitnessError(e)
