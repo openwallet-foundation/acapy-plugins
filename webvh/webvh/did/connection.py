@@ -7,6 +7,7 @@ from urllib.parse import urlparse
 
 from acapy_agent.connections.models.conn_record import ConnRecord
 from acapy_agent.core.profile import Profile
+from acapy_agent.did.did_key import DIDKey
 from acapy_agent.messaging.models.base import BaseModelError
 from acapy_agent.protocols.out_of_band.v1_0.manager import (
     OutOfBandManager,
@@ -17,6 +18,7 @@ from acapy_agent.protocols.out_of_band.v1_0.messages.invitation import (
     HSProto,
     InvitationMessage,
 )
+from acapy_agent.wallet.key_type import ED25519
 
 from ..config.config import (
     get_plugin_config,
@@ -230,10 +232,9 @@ class WebVHConnectionManager:
             WitnessError: If invitation creation fails
         """
         # Extract witness verkey to use as invitation key
-        # Note: We extract the verkey from the witness_id (did:key format)
-        # The verkey is the multibase-encoded key part after "did:key:"
-        parsed_key = parse_did_key(witness_id)
-        witness_verkey = parsed_key.key
+        # Convert did:key to base58-encoded verkey (invitation_key expects base58, not multibase)
+        did_key = DIDKey.from_did(witness_id)
+        witness_verkey = did_key.public_key_b58
         
         # Create invitation using legacy approach (without use_did)
         # The invitation will use a new key, but we'll update the connection record
