@@ -44,7 +44,7 @@ class WebVHServerClient:
             response = await session.get(
                 f"{await get_server_url(self.profile)}/.well-known/did.json"
             )
-        return response.json()
+            return await response.json()
 
     async def get_witness_services(self):
         """Get the witness services from the server document."""
@@ -72,8 +72,7 @@ class WebVHServerClient:
 
         async with ClientSession() as session:
             response = await session.get(invitation_url)
-
-        return response.json()
+            return await response.json()
 
     async def request_identifier(self, namespace, identifier) -> tuple:
         """Contact the webvh server to request an identifier."""

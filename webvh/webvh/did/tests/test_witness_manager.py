@@ -1,16 +1,12 @@
-import asyncio
 from unittest import IsolatedAsyncioTestCase
 
-from acapy_agent.connections.models.conn_record import ConnRecord
 from acapy_agent.messaging.responder import BaseResponder
 from acapy_agent.protocols.coordinate_mediation.v1_0.route_manager import RouteManager
-from acapy_agent.protocols.out_of_band.v1_0.manager import OutOfBandManager
 from acapy_agent.tests import mock
 from acapy_agent.utils.testing import create_test_profile
 from acapy_agent.wallet.key_type import KeyTypes
 from acapy_agent.wallet.keys.manager import MultikeyManager
 
-from ..exceptions import ConfigurationError
 from ..controller import ControllerManager
 from ..witness import WitnessManager
 from ..connection import WebVHConnectionManager

@@ -147,9 +147,7 @@ class WebVHConnectionManager:
             raise OperationError("Wrong invitation goal must match witness id.")
 
         # Check if already connected
-        if await self.get_active_connection(
-            server_url=server_url, witness_id=witness_id
-        ):
+        if await self.get_active_connection(server_url=server_url, witness_id=witness_id):
             LOGGER.info("Connected to witness from previous connection.")
             return witness_id
 

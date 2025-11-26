@@ -74,12 +74,12 @@ async def configure(request: web.BaseRequest):
         config["witness"] = options.get("witness", False)
         config["witness_id"] = options.get("witness_id", config.get("witness_id"))
         config["server_url"] = server_url.rstrip("/")
-        
+
         config["scids"] = config.get("scids", {})
         config["witnesses"] = config.get("witnesses", [])
         config["endorsement"] = options.get("endorsement", False)
         config["auto_attest"] = options.get("auto_attest", False)
-        
+
         config["parameter_options"] = options.get("parameter_options", {})
 
         await set_config(profile, config)
@@ -231,9 +231,7 @@ def register_events(event_bus: EventBus):
     ROOT_LOGGER.warning(f"[WebVH] {msg2}")
 
     # Subscribe to subwallet creation events
-    SUBWALLET_CREATED_PATTERN = re.compile(
-        "^acapy::multitenant::wallet::created::.*$"
-    )
+    SUBWALLET_CREATED_PATTERN = re.compile("^acapy::multitenant::wallet::created::.*$")
     event_bus.subscribe(SUBWALLET_CREATED_PATTERN, on_subwallet_created_event)
     msg3 = "WebVH subwallet creation event handler registered successfully"
     LOGGER.info(msg3)
@@ -244,11 +242,11 @@ async def on_startup_event(profile: Profile, event: Event):
     """Handle the plugin startup setup."""
 
     config = get_global_plugin_config(profile)
-    
+
     # Skip if multitenant enabled or auto_config disabled
     if profile.settings.get("multitenant.enabled"):
         return
-    
+
     if not config.pop("auto_config", False):
         return
 
@@ -276,10 +274,7 @@ async def on_subwallet_created_event(profile: Profile, event: Event):
     wallet_id = event.payload.get("wallet_id") if event.payload else None
     wallet_name = event.payload.get("wallet_name") if event.payload else None
 
-    msg = (
-        f"Subwallet created - wallet_id: {wallet_id}, "
-        f"wallet_name: {wallet_name}"
-    )
+    msg = f"Subwallet created - wallet_id: {wallet_id}, wallet_name: {wallet_name}"
     LOGGER.info(msg)
     ROOT_LOGGER.info(f"[WebVH] {msg}")
 

@@ -65,16 +65,16 @@ class WitnessManager:
 
         # Set up witness key and get witness_id
         config["witness_id"] = await self.key_setup(config.get("witness_id"))
-        
+
         config.setdefault("witnesses", [])
         if config["witness_id"] not in config["witnesses"]:
             config["witnesses"].append(config["witness_id"])
 
         # Create witness invitation
         config["invitation_url"] = await self.invitation_setup(config["witness_id"])
-        
+
         await set_config(self.profile, config)
-        
+
         return config
 
     async def key_setup(self, witness_id: str = None) -> str:
