@@ -122,7 +122,7 @@ async def test_icv1():
         )
         alice_cred_ex_id = alice_cred_ex.credential_exchange_id
 
-        alice_cred_ex = await alice.post(
+        await alice.post(
             f"/issue-credential/records/{alice_cred_ex_id}/issue",
             json={},
             response=ConnectionlessV10CredExRecord,
@@ -134,19 +134,19 @@ async def test_icv1():
             state="credential_received",
         )
 
-        bob_cred_ex = await bob.post(
+        await bob.post(
             f"/issue-credential/records/{bob_cred_ex_id}/store",
             json={},
             response=ConnectionlessV10CredExRecord,
         )
-        alice_cred_ex = await alice.event_with_values(
+        await alice.event_with_values(
             topic="issue_credential",
             event_type=ConnectionlessV10CredExRecord,
             credential_exchange_id=alice_cred_ex_id,
             state="credential_acked",
         )
 
-        bob_cred_ex = await bob.event_with_values(
+        await bob.event_with_values(
             topic="issue_credential",
             event_type=ConnectionlessV10CredExRecord,
             credential_exchange_id=bob_cred_ex_id,

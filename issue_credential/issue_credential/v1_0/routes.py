@@ -91,7 +91,7 @@ async def _patched_create_attachment(self, attachment: Mapping, pthid: str, sess
         except StorageNotFoundError:
             cred_ex_rec = await V20CredExRecord.retrieve_by_id(session, a_id)
             message = cred_ex_rec.cred_offer
-            
+
         message.assign_thread_id(pthid=pthid)
         return InvitationMessage.wrap_message(message.serialize())
     else:
@@ -1599,7 +1599,7 @@ async def register(app: web.Application):
         ]
     )
 
-    # OOB backwards compatability. This is needed for adding v1 attachments.
+    # OOB backwards compatibility. This is needed for adding v1 attachments.
     for r in app.router.routes():
         if r.resource and r.resource.canonical == "/out-of-band/create-invitation":
             LOGGER.info(
@@ -1650,4 +1650,5 @@ async def cred_revoked(profile: Profile, event: EventWithMetadata):
             await cred_ex_record.save(txn, reason="revoke credential")
             await txn.commit()
         except StorageNotFoundError:
+            # If the credential exchange record is not found, we can't do anything
             pass

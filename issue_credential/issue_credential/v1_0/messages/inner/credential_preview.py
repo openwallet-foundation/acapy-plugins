@@ -11,7 +11,7 @@ from ...message_types import CREDENTIAL_PREVIEW
 
 
 class CredAttrSpec(BaseModel):
-    """Class representing a preview of an attibute."""
+    """Class representing a preview of an attribute."""
 
     class Meta:
         """Attribute preview metadata."""
