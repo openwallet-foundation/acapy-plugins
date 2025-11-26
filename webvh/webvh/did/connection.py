@@ -17,11 +17,6 @@ from acapy_agent.protocols.out_of_band.v1_0.messages.invitation import (
     HSProto,
     InvitationMessage,
 )
-from acapy_agent.wallet.base import BaseWallet
-from acapy_agent.wallet.did_info import DIDInfo
-from acapy_agent.wallet.did_method import KEY
-from acapy_agent.wallet.error import WalletDuplicateError, WalletNotFoundError
-from acapy_agent.wallet.key_type import ED25519
 
 from ..config.config import (
     get_plugin_config,
@@ -235,28 +230,11 @@ class WebVHConnectionManager:
             WitnessError: If invitation creation fails
         """
         # Extract witness verkey to use as invitation key
+        # Note: We extract the verkey from the witness_id (did:key format)
+        # The verkey is the multibase-encoded key part after "did:key:"
         parsed_key = parse_did_key(witness_id)
         witness_verkey = parsed_key.key
         
-        # Ensure the witness key is available as a signing key in the wallet
-        async with self.profile.session() as session:
-            wallet = session.inject(BaseWallet)
-            try:
-                # Check if the key exists as a signing key
-                await wallet.get_signing_key(witness_verkey)
-            except WalletNotFoundError:
-                # The key should already be in the wallet from key_chain.bind_key(),
-                # but if not, we need to ensure it's there
-                # For now, we'll let the error propagate - the key should be there
-                LOGGER.warning(
-                    f"Witness key {witness_verkey} not found in wallet. "
-                    "Ensure the witness key is properly bound via key_chain.bind_key()"
-                )
-                raise WitnessError(
-                    f"Witness key for {witness_id} not found in wallet. "
-                    "The key must be bound before creating invitations."
-                )
-
         # Create invitation using legacy approach (without use_did)
         # The invitation will use a new key, but we'll update the connection record
         # to use the witness key as the invitation key after creation
