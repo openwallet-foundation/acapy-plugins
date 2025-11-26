@@ -153,6 +153,7 @@ class WebVHConnectionManager:
         LOGGER.info(f"Received invitation: {invitation.get('@id', 'unknown id')}")
 
         # Validate invitation
+        LOGGER.warning(invitation)
         if invitation.get("goal-code", None) != "witness-service":
             raise OperationError("Missing invitation goal-code and witness did.")
 
