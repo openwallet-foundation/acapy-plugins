@@ -71,7 +71,7 @@ class WebVHServerClient:
         invitation_url = witness_service.get("serviceEndpoint")
         LOGGER.info(f"Found witness service endpoint: {invitation_url}")
         parsed_key = parse_did_key(witness_id)
-        expected_url = f"{server_url}?_oobid={parsed_key.key}"
+        expected_url = f"{server_url}/api/invitations?_oobid={parsed_key.key}"
         if invitation_url != expected_url:
             LOGGER.error(
                 f"Witness service endpoint mismatch. "
