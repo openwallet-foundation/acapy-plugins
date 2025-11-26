@@ -91,7 +91,8 @@ async def _patched_create_attachment(self, attachment: Mapping, pthid: str, sess
         except StorageNotFoundError:
             cred_ex_rec = await V20CredExRecord.retrieve_by_id(session, a_id)
             message = cred_ex_rec.cred_offer
-            message.assign_thread_id(pthid=pthid)
+            
+        message.assign_thread_id(pthid=pthid)
         return InvitationMessage.wrap_message(message.serialize())
     else:
         return await _original_create_attachment(self, attachment, pthid, session)
