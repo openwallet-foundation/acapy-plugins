@@ -71,6 +71,7 @@ class WebVHConnectionManager:
         parsed_key = parse_did_key(witness_id)
         witness_key = parsed_key.key
         witness_alias = f"{server_url}@{witness_key}"
+        LOGGER.debug(f"Looking for active connection with alias: {witness_alias}")
         async with self.profile.session() as session:
             connection_records = await ConnRecord.retrieve_by_alias(
                 session, witness_alias
@@ -81,8 +82,13 @@ class WebVHConnectionManager:
         ]
 
         if len(active_connections) > 0:
+            LOGGER.info(
+                f"Found active connection to witness {witness_id} "
+                f"(connection_id: {active_connections[0].connection_id})"
+            )
             return active_connections[0]
 
+        LOGGER.debug(f"No active connection found for witness {witness_id}")
         return None
 
     async def connect(
@@ -133,11 +139,18 @@ class WebVHConnectionManager:
                 )
 
         # Fetch invitation from server
+        LOGGER.info(f"Fetching witness invitation for {witness_id} from server {server_url}")
         server_client = WebVHServerClient(self.profile)
-        invitation = await server_client.get_witness_invitation(witness_id)
+        try:
+            invitation = await server_client.get_witness_invitation(witness_id)
+        except Exception as e:
+            LOGGER.error(f"Failed to fetch witness invitation: {e}")
+            raise
 
         if not invitation:
             raise OperationError(f"Witness {witness_id} not listed by server document.")
+
+        LOGGER.info(f"Received invitation: {invitation.get('@id', 'unknown id')}")
 
         # Validate invitation
         if invitation.get("goal-code", None) != "witness-service":
@@ -157,12 +170,15 @@ class WebVHConnectionManager:
             parsed_key = parse_did_key(witness_id)
             witness_key = parsed_key.key
             witness_alias = f"{server_url}@{witness_key}"
+            LOGGER.info(f"Receiving invitation with alias: {witness_alias}")
             await OutOfBandManager(self.profile).receive_invitation(
                 invitation=invitation,
                 auto_accept=True,
                 alias=witness_alias,
             )
+            LOGGER.info(f"Invitation received successfully, waiting for connection...")
         except BaseModelError as err:
+            LOGGER.error(f"Error receiving witness invitation: {err}")
             raise OperationError(f"Error receiving witness invitation: {err}")
 
         # Wait for connection to become active (if requested)

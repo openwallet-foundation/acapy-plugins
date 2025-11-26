@@ -53,26 +53,41 @@ class WebVHServerClient:
 
     async def get_witness_invitation(self, witness_id: str):
         """Get the witness invitation from the server document."""
+        server_url = await get_server_url(self.profile)
+        LOGGER.info(f"Fetching witness services from server document at {server_url}")
         witness_services = await self.get_witness_services()
+        LOGGER.info(f"Found {len(witness_services)} witness service(s) in server document")
+        
         witness_service = next(
             (svc for svc in witness_services if svc.get("id") == witness_id), None
         )
         if not witness_service:
+            LOGGER.error(
+                f"Witness {witness_id} not found in server document. "
+                f"Available witness IDs: {[svc.get('id') for svc in witness_services]}"
+            )
             raise OperationError(f"Witness {witness_id} not listed by server document.")
 
         invitation_url = witness_service.get("serviceEndpoint")
+        LOGGER.info(f"Found witness service endpoint: {invitation_url}")
         parsed_key = parse_did_key(witness_id)
-        if (
-            invitation_url
-            != f"{await get_server_url(self.profile)}?_oobid={parsed_key.key}"
-        ):
+        expected_url = f"{server_url}?_oobid={parsed_key.key}"
+        if invitation_url != expected_url:
+            LOGGER.error(
+                f"Witness service endpoint mismatch. "
+                f"Expected: {expected_url}, Got: {invitation_url}"
+            )
             raise OperationError(
                 "Witness service endpoint does not match server document."
             )
 
+        LOGGER.info(f"Fetching invitation from {invitation_url}")
         async with ClientSession() as session:
             response = await session.get(invitation_url)
-            return await response.json()
+            response.raise_for_status()
+            invitation = await response.json()
+            LOGGER.info(f"Successfully fetched invitation (id: {invitation.get('@id', 'unknown')})")
+            return invitation
 
     async def request_identifier(self, namespace, identifier) -> tuple:
         """Contact the webvh server to request an identifier."""

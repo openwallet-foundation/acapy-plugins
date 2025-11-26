@@ -251,18 +251,53 @@ class ControllerManager:
         witness_id = config.get("witness_id")
         server_url = config.get("server_url")
         if witness_id and server_url:
+            LOGGER.warning(
+                f"Configuring controller: attempting to connect to witness {witness_id} "
+                f"at server {server_url}"
+            )
             # Check if already connected
             connection = await self.witness_connection.get_active_connection(
                 server_url=server_url, witness_id=witness_id
             )
-            if not connection:
+            if connection:
+                LOGGER.warning(
+                    f"Already connected to witness {witness_id} "
+                    f"(connection_id: {connection.connection_id})"
+                )
+            else:
                 try:
-                    await self.witness_connection.connect(
+                    LOGGER.warning(f"Connecting to witness {witness_id}...")
+                    connected_witness_id = await self.witness_connection.connect(
                         server_url=server_url, witness_id=witness_id
                     )
-                except (ConfigurationError, OperationError):
+                    LOGGER.info(
+                        f"Successfully connected to witness {connected_witness_id}"
+                    )
+                except ConfigurationError as e:
+                    LOGGER.error(
+                        f"Configuration error while connecting to witness {witness_id}: {e}"
+                    )
                     # Connection setup failed, but don't fail configuration
-                    pass
+                except OperationError as e:
+                    LOGGER.error(
+                        f"Operation error while connecting to witness {witness_id}: {e}"
+                    )
+                    # Connection setup failed, but don't fail configuration
+                except Exception as e:
+                    LOGGER.exception(
+                        f"Unexpected error while connecting to witness {witness_id}: {e}"
+                    )
+        else:
+            if not witness_id:
+                LOGGER.warning(
+                    "Controller configured without witness_id. "
+                    "No witness connection will be established."
+                )
+            if not server_url:
+                LOGGER.warning(
+                    "Controller configured without server_url. "
+                    "No witness connection will be established."
+                )
         return config
 
     async def create(self, options: dict):
