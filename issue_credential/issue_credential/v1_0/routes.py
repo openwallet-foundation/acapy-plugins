@@ -77,7 +77,8 @@ from .models.credential_exchange import V10CredentialExchange, V10CredentialExch
 
 LOGGER = logging.getLogger(__name__)
 
-non_patched_create_attachment = InvitationCreator.create_attachment
+# Monkey patch the create_attachment method to handle v1 credential-offer attachments
+_original_create_attachment = InvitationCreator.create_attachment
 
 
 async def _patched_create_attachment(self, attachment: Mapping, pthid: str, session):
@@ -91,9 +92,9 @@ async def _patched_create_attachment(self, attachment: Mapping, pthid: str, sess
             cred_ex_rec = await V20CredExRecord.retrieve_by_id(session, a_id)
             message = cred_ex_rec.cred_offer
             message.assign_thread_id(pthid=pthid)
-            return InvitationMessage.wrap_message(message.serialize())
+        return InvitationMessage.wrap_message(message.serialize())
     else:
-        return await non_patched_create_attachment(self, attachment, pthid, session)
+        return await _original_create_attachment(self, attachment, pthid, session)
 
 
 InvitationCreator.create_attachment = _patched_create_attachment

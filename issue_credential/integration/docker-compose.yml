@@ -21,14 +21,14 @@ services:
         --endpoint http://alice:3000
         --admin 0.0.0.0 3001
         --admin-insecure-mode
-        --tails-server-base-url http://tails:6543
         --genesis-url http://test.bcovrin.vonx.io/genesis
         --wallet-type askar
         --wallet-name alice
         --wallet-key insecure
         --auto-provision
         --log-level debug
-        --debug-webhooks
+        --auto-accept-invites
+        --plugin issue_credential.v1_0
     healthcheck:
       test: curl -s -o /dev/null -w '%{http_code}' "http://localhost:3001/status/live" | grep "200" > /dev/null
       start_period: 30s
@@ -53,15 +53,15 @@ services:
         --endpoint http://bob:3000
         --admin 0.0.0.0 3001
         --admin-insecure-mode
-        --tails-server-base-url http://tails:6543
         --genesis-url http://test.bcovrin.vonx.io/genesis
         --wallet-type askar
         --wallet-name bob
         --wallet-key insecure
         --auto-provision
-        --log-level debug
-        --debug-webhooks
+        --log-level info
         --monitor-revocation-notification
+        --auto-accept-invites
+        --plugin issue_credential.v1_0
     healthcheck:
       test: curl -s -o /dev/null -w '%{http_code}' "http://localhost:3001/status/live" | grep "200" > /dev/null
       start_period: 30s

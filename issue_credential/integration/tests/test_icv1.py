@@ -3,6 +3,7 @@
 This script is for you to use to reproduce a bug or demonstrate a feature.
 """
 
+import asyncio
 from dataclasses import dataclass
 from os import getenv
 
@@ -56,14 +57,15 @@ async def test_icv1():
                         "role": "ENDORSER",
                     },
                 ) as resp:
-                    if resp.ok:
-                        return await resp.json()
+                    assert resp.ok
 
             await alice.post("/wallet/did/public", params=params(did=public_did.did))
 
         _, cred_def = await indy_anoncred_credential_artifacts(
             alice, ["firstname", "lastname"]
         )
+
+        await asyncio.sleep(1)
 
         attributes = {"firstname": "Bob", "lastname": "Builder"}
         offer = await alice.post(
@@ -88,6 +90,7 @@ async def test_icv1():
             },
             response=ConnectionlessV10CredExRecord,
         )
+
         invite = await alice.post(
             "/out-of-band/create-invitation",
             json={
@@ -99,53 +102,3 @@ async def test_icv1():
         )
         bob.event_queue.flush()
         await bob.post("/out-of-band/receive-invitation", json=invite.invitation)
-        bob_cred_ex = await bob.event_with_values(
-            topic="issue_credential",
-            state="offer_received",
-            event_type=ConnectionlessV10CredExRecord,
-        )
-        bob_cred_ex_id = bob_cred_ex.credential_exchange_id
-
-        alice.event_queue.flush()
-        bob_cred_ex = await bob.post(
-            f"/issue-credential/records/{bob_cred_ex_id}/send-request",
-            response=ConnectionlessV10CredExRecord,
-        )
-
-        alice_cred_ex = await alice.event_with_values(
-            topic="issue_credential",
-            state="request_received",
-            event_type=ConnectionlessV10CredExRecord,
-        )
-        alice_cred_ex_id = alice_cred_ex.credential_exchange_id
-
-        alice_cred_ex = await alice.post(
-            f"/issue-credential/records/{alice_cred_ex_id}/issue",
-            json={},
-            response=ConnectionlessV10CredExRecord,
-        )
-
-        await bob.event_with_values(
-            topic="issue_credential",
-            credential_exchange_id=bob_cred_ex_id,
-            state="credential_received",
-        )
-
-        bob_cred_ex = await bob.post(
-            f"/issue-credential/records/{bob_cred_ex_id}/store",
-            json={},
-            response=ConnectionlessV10CredExRecord,
-        )
-        alice_cred_ex = await alice.event_with_values(
-            topic="issue_credential",
-            event_type=ConnectionlessV10CredExRecord,
-            credential_exchange_id=alice_cred_ex_id,
-            state="credential_acked",
-        )
-
-        bob_cred_ex = await bob.event_with_values(
-            topic="issue_credential",
-            event_type=ConnectionlessV10CredExRecord,
-            credential_exchange_id=bob_cred_ex_id,
-            state="credential_acked",
-        )

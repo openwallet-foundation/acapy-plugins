@@ -13,6 +13,14 @@
       "args": ["start", "--arg-file=${workspaceRoot}/docker/default.yml"]
     },
     {
+      "name": "Run/Debug Bob",
+      "type": "python",
+      "request": "launch",
+      "module": "acapy_agent",
+      "justMyCode": false,
+      "args": ["start", "--arg-file=${workspaceRoot}/docker/bob.yml"]
+    },
+    {
       "name": "ruff - issue_credential",
       "type": "python",
       "request": "launch",
