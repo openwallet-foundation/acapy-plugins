@@ -3,6 +3,7 @@
 import asyncio
 import logging
 from typing import Optional
+from urllib.parse import urlparse
 
 from acapy_agent.connections.models.conn_record import ConnRecord
 from acapy_agent.core.profile import Profile
@@ -15,6 +16,11 @@ from acapy_agent.protocols.out_of_band.v1_0.messages.invitation import (
     HSProto,
     InvitationMessage,
 )
+from acapy_agent.wallet.base import BaseWallet
+from acapy_agent.wallet.did_info import DIDInfo
+from acapy_agent.wallet.did_method import KEY
+from acapy_agent.wallet.error import WalletDuplicateError, WalletNotFoundError
+from acapy_agent.wallet.key_type import ED25519
 
 from ..config.config import (
     get_plugin_config,
@@ -73,7 +79,9 @@ class WebVHConnectionManager:
         # Build alias with witness_id
         parsed_key = parse_did_key(witness_id)
         witness_key = parsed_key.key
-        witness_alias = f"{server_url}@{witness_key}"
+        # Extract domain from server_url
+        domain = urlparse(server_url).netloc
+        witness_alias = f"webvh:{domain}@{witness_key}"
         LOGGER.debug(f"Looking for active connection with alias: {witness_alias}")
         async with self.profile.session() as session:
             connection_records = await ConnRecord.retrieve_by_alias(
@@ -172,7 +180,9 @@ class WebVHConnectionManager:
             # Extract key from witness_id for alias
             parsed_key = parse_did_key(witness_id)
             witness_key = parsed_key.key
-            witness_alias = f"{server_url}@{witness_key}"
+            # Extract domain from server_url
+            domain = urlparse(server_url).netloc
+            witness_alias = f"webvh:{domain}@{witness_key}"
             LOGGER.info(f"Receiving invitation with alias: {witness_alias}")
             await OutOfBandManager(self.profile).receive_invitation(
                 invitation=InvitationMessage.deserialize(invitation),
@@ -223,6 +233,29 @@ class WebVHConnectionManager:
         Raises:
             WitnessError: If invitation creation fails
         """
+        # Ensure the witness DID is in the wallet so we can use it as the invitation key
+        async with self.profile.session() as session:
+            wallet = session.inject(BaseWallet)
+            try:
+                await wallet.get_local_did(witness_id)
+            except WalletNotFoundError:
+                # Store the witness DID in the wallet if it's not already there
+                parsed_key = parse_did_key(witness_id)
+                witness_key = parsed_key.key
+                did_info = DIDInfo(
+                    did=witness_id,
+                    verkey=witness_key,
+                    metadata={},
+                    method=KEY,
+                    key_type=ED25519,
+                )
+                try:
+                    await wallet.store_did(did_info)
+                    LOGGER.info(f"Stored witness DID {witness_id} in wallet")
+                except WalletDuplicateError:
+                    # If it's already there (race condition), that's fine
+                    LOGGER.debug(f"Witness DID {witness_id} already in wallet")
+
         try:
             invi_rec = await OutOfBandManager(self.profile).create_invitation(
                 hs_protos=[
@@ -234,6 +267,7 @@ class WebVHConnectionManager:
                 goal_code="witness-service",
                 goal=witness_id,
                 multi_use=multi_use,
+                use_did=witness_id,  # Use the witness DID as the invitation key
             )
             return invi_rec.serialize()
         except OutOfBandManagerError as e:

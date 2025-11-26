@@ -257,8 +257,7 @@ async def on_startup_event(profile: Profile, event: Event):
             witness_config["witness_id"], witness_config.get("invitation_url")
         )
         for line in message.strip().split("\n"):
-            LOGGER.warning(line)
-            ROOT_LOGGER.warning(f"[WebVH] {line}")
+            LOGGER.info(line)
         print(message, end="")
     else:
         # Configure controller (sets up witness connection if witness_id is configured)
@@ -284,7 +283,6 @@ async def on_subwallet_created_event(profile: Profile, event: Event):
             "Configure WebVH settings via /did/webvh/configuration endpoint."
         )
         LOGGER.info(msg2)
-        ROOT_LOGGER.info(f"[WebVH] {msg2}")
 
 
 async def register(app: web.Application):
