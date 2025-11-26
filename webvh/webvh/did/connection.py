@@ -11,7 +11,10 @@ from acapy_agent.protocols.out_of_band.v1_0.manager import (
     OutOfBandManager,
     OutOfBandManagerError,
 )
-from acapy_agent.protocols.out_of_band.v1_0.messages.invitation import HSProto
+from acapy_agent.protocols.out_of_band.v1_0.messages.invitation import (
+    HSProto,
+    InvitationMessage,
+)
 
 from ..config.config import (
     get_plugin_config,
@@ -153,7 +156,6 @@ class WebVHConnectionManager:
         LOGGER.info(f"Received invitation: {invitation.get('@id', 'unknown id')}")
 
         # Validate invitation
-        LOGGER.warning(invitation)
         if invitation.get("goal_code", None) != "witness-service":
             raise OperationError("Missing invitation goal-code and witness did.")
 
@@ -173,7 +175,7 @@ class WebVHConnectionManager:
             witness_alias = f"{server_url}@{witness_key}"
             LOGGER.info(f"Receiving invitation with alias: {witness_alias}")
             await OutOfBandManager(self.profile).receive_invitation(
-                invitation=invitation,
+                invitation=InvitationMessage.deserialize(invitation),
                 auto_accept=True,
                 alias=witness_alias,
             )

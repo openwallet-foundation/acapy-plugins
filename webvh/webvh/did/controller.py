@@ -251,7 +251,7 @@ class ControllerManager:
         witness_id = config.get("witness_id")
         server_url = config.get("server_url")
         if witness_id and server_url:
-            LOGGER.warning(
+            LOGGER.info(
                 f"Configuring controller: attempting to connect to witness {witness_id} "
                 f"at server {server_url}"
             )
@@ -260,32 +260,22 @@ class ControllerManager:
                 server_url=server_url, witness_id=witness_id
             )
             if connection:
-                LOGGER.warning(
+                LOGGER.info(
                     f"Already connected to witness {witness_id} "
                     f"(connection_id: {connection.connection_id})"
                 )
             else:
                 try:
-                    LOGGER.warning(f"Connecting to witness {witness_id}...")
+                    LOGGER.info(f"Connecting to witness {witness_id}...")
                     connected_witness_id = await self.witness_connection.connect(
                         server_url=server_url, witness_id=witness_id
                     )
                     LOGGER.info(
                         f"Successfully connected to witness {connected_witness_id}"
                     )
-                except ConfigurationError as e:
+                except (ConfigurationError, OperationError, Exception) as e:
                     LOGGER.error(
-                        f"Configuration error while connecting to witness {witness_id}: {e}"
-                    )
-                    # Connection setup failed, but don't fail configuration
-                except OperationError as e:
-                    LOGGER.error(
-                        f"Operation error while connecting to witness {witness_id}: {e}"
-                    )
-                    # Connection setup failed, but don't fail configuration
-                except Exception as e:
-                    LOGGER.exception(
-                        f"Unexpected error while connecting to witness {witness_id}: {e}"
+                        f"Error while connecting to witness {witness_id}: {e}"
                     )
         else:
             if not witness_id:
