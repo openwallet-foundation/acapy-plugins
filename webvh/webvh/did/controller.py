@@ -6,7 +6,6 @@ import logging
 import re
 from uuid import uuid4
 from typing import Callable, Awaitable
-import uuid
 
 from acapy_agent.core.event_bus import EventBus
 from acapy_agent.core.profile import Profile
@@ -28,20 +27,24 @@ from ..config.config import (
 from ..protocols.attested_resource.record import PendingAttestedResourceRecord
 from ..protocols.log_entry.record import PendingLogEntryRecord
 from ..protocols.states import WitnessingState, WitnessingStateHandler
-from .witness import WitnessManager
 from ..protocols.events import WitnessEventManager
 from .connection import WebVHConnectionManager
-from .utils import parse_webvh
+from .exceptions import (
+    ConfigurationError,
+    DidCreationError,
+    OperationError,
+)
 from .key_chain import KeyChainManager
 from .parameters import ParameterResolver
-from .exceptions import DidCreationError
 from .server_client import WebVHServerClient, WebVHWatcherClient
 from .utils import (
-    multikey_to_jwk,
     add_proof,
-    verify_proof,
+    multikey_to_jwk,
+    parse_webvh,
     validate_did,
+    verify_proof,
 )
+from .witness import WitnessManager
 
 LOGGER = logging.getLogger(__name__)
 
@@ -242,12 +245,24 @@ class ControllerManager:
     async def configure(self, config: dict) -> dict:
         """Configure did controller.
 
-        This method only stores the configuration. Witness connection setup
-        is handled separately via WebVHConnectionManager.setup() or can be
-        done lazily when needed.
+        This sets up the witness connection if witness_id is configured.
         """
-        # Configuration is already stored by the route handler
-        # No need to establish witness connection here
+        # Set up witness connection if witness_id is provided
+        witness_id = config.get("witness_id")
+        server_url = config.get("server_url")
+        if witness_id and server_url:
+            # Check if already connected
+            connection = await self.witness_connection.get_active_connection(
+                server_url=server_url, witness_id=witness_id
+            )
+            if not connection:
+                try:
+                    await self.witness_connection.connect(
+                        server_url=server_url, witness_id=witness_id
+                    )
+                except (ConfigurationError, OperationError):
+                    # Connection setup failed, but don't fail configuration
+                    pass
         return config
 
     async def create(self, options: dict):
@@ -348,7 +363,7 @@ class ControllerManager:
         )
         witness_signature = None
         if document_state.witness_rule:
-            witness_request_id = str(uuid.uuid4())
+            witness_request_id = str(uuid4())
             witness_signature = await self.witness.witness_log_entry(
                 parsed.scid, log_entry, witness_request_id
             )

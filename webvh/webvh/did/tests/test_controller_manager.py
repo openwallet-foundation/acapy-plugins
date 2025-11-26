@@ -197,6 +197,10 @@ class TestOperationsManager(IsolatedAsyncioTestCase):
 
         mock_submit_log_entry.side_effect = mock_submit_log_entry_impl
 
+        # Mock witness connection setup to avoid connection attempts
+        mock_setup = mock.AsyncMock(return_value=None)
+        self.controller.witness_connection.setup = mock_setup
+
         # Configure witness key
         await self.controller.configure(config={"auto_attest": True, "witness": True})
 

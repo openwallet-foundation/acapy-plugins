@@ -13,9 +13,12 @@ from acapy_agent.wallet.keys.manager import MultikeyManagerError
 from aiohttp import web
 from aiohttp_apispec import docs, querystring_schema, request_schema, response_schema
 
-from .config.config import get_global_plugin_config, get_plugin_config, set_config
+from .config.config import (
+    get_global_plugin_config,
+    get_plugin_config,
+    set_config,
+)
 from .did.controller import ControllerManager
-from .did.connection import WebVHConnectionManager
 from .did.exceptions import (
     ConfigurationError,
     DidCreationError,
@@ -32,6 +35,7 @@ from .did.models.operations import (
     WebvhSCIDQueryStringSchema,
     WebvhUpdateWhoisSchema,
 )
+from .did.utils import format_witness_ready_message
 from .did.witness import WitnessManager
 from .protocols.routes import (
     get_pending_witness_requests,
@@ -64,29 +68,27 @@ async def configure(request: web.BaseRequest):
         options = request_json
         config = await get_plugin_config(profile)
 
-        config["server_url"] = options.get("server_url", config.get("server_url")).rstrip(
-            "/"
-        )
-
-        if not config.get("server_url"):
+        if not (server_url := options.get("server_url", config.get("server_url", None))):
             raise OperationError("No server url configured.")
 
+        config["witness"] = options.get("witness", False)
+        config["witness_id"] = options.get("witness_id", config.get("witness_id"))
+        config["server_url"] = server_url.rstrip("/")
+        
         config["scids"] = config.get("scids", {})
         config["witnesses"] = config.get("witnesses", [])
         config["endorsement"] = options.get("endorsement", False)
         config["auto_attest"] = options.get("auto_attest", False)
+        
         config["parameter_options"] = options.get("parameter_options", {})
-        config["witness_id"] = options.get("witness_id", config.get("witness_id"))
 
         await set_config(profile, config)
 
-        config["witness"] = options.get("witness", False)
         if config["witness"]:
-            return web.json_response(
-                await WitnessManager(profile).configure(config, log_message=False)
-            )
+            manager = WitnessManager(profile)
         else:
-            return web.json_response(await ControllerManager(profile).configure(config))
+            manager = ControllerManager(profile)
+        return web.json_response(await manager.configure(config))
 
     except (ConfigurationError, OperationError) as err:
         return web.json_response({"status": "error", "message": str(err)})
@@ -215,31 +217,6 @@ async def update_whois(request: web.BaseRequest):
         return web.json_response({"status": "error", "message": str(err)})
 
 
-async def on_subwallet_created_event(profile: Profile, event: Event):
-    """Handle subwallet creation event in multitenant mode.
-
-    This handler logs when a new subwallet is created but doesn't perform
-    any setup actions - subwallets need to be configured separately.
-    """
-    wallet_id = event.payload.get("wallet_id") if event.payload else None
-    wallet_name = event.payload.get("wallet_name") if event.payload else None
-
-    msg = (
-        f"Subwallet created - wallet_id: {wallet_id}, "
-        f"wallet_name: {wallet_name}"
-    )
-    LOGGER.info(msg)
-    ROOT_LOGGER.info(f"[WebVH] {msg}")
-
-    if wallet_id:
-        msg2 = (
-            f"Subwallet {wallet_id} created. "
-            "Configure WebVH settings via /did/webvh/configuration endpoint."
-        )
-        LOGGER.info(msg2)
-        ROOT_LOGGER.info(f"[WebVH] {msg2}")
-
-
 def register_events(event_bus: EventBus):
     """Register to the acapy startup event."""
     # Use both loggers to ensure visibility
@@ -265,56 +242,54 @@ def register_events(event_bus: EventBus):
 
 async def on_startup_event(profile: Profile, event: Event):
     """Handle the plugin startup setup."""
-    # Use both loggers to ensure visibility
-    LOGGER.warning("=" * 70)
-    ROOT_LOGGER.warning("[WebVH] " + "=" * 70)
-    msg = "WebVH startup event received"
-    LOGGER.warning(msg)
-    ROOT_LOGGER.warning(f"[WebVH] {msg}")
-    LOGGER.warning("=" * 70)
-    ROOT_LOGGER.warning("[WebVH] " + "=" * 70)
 
     config = get_global_plugin_config(profile)
-    LOGGER.warning("WebVH global config: %s", config)
-    ROOT_LOGGER.warning(f"[WebVH] global config: {config}")
-
+    
+    # Skip if multitenant enabled or auto_config disabled
     if profile.settings.get("multitenant.enabled"):
-        msg = "Skipping WebVH auto_config - multitenant enabled"
-        LOGGER.warning(msg)
-        ROOT_LOGGER.warning(f"[WebVH] {msg}")
         return
-
-    if not config.get("auto_config", False):
-        msg = "Skipping WebVH auto_config - auto_config not enabled in config"
-        LOGGER.warning(msg)
-        ROOT_LOGGER.warning(f"[WebVH] {msg}")
+    
+    if not config.pop("auto_config", False):
         return
-
-    msg = "WebVH auto_config enabled, proceeding with setup"
-    LOGGER.warning(msg)
-    ROOT_LOGGER.warning(f"[WebVH] {msg}")
-    msg2 = f"Witness mode: {config.get('witness', False)}"
-    LOGGER.warning(msg2)
-    ROOT_LOGGER.warning(f"[WebVH] {msg2}")
-
-    # Remove auto_config from config before passing to setup methods
-    # so it doesn't get persisted to stored config
-    # All other config values (including witness_id) are preserved
-    config_without_auto = {k: v for k, v in config.items() if k != "auto_config"}
 
     if config.get("witness", False):
-        await WitnessManager(profile).configure(config_without_auto, log_message=True)
-    else:
-        # Set up witness connection for controllers
-        witness_connection = WebVHConnectionManager(profile)
-        await witness_connection.setup(
-            config=config_without_auto, update_config=False, require_controller=True
+        # Configure witness and print information
+        witness_config = await WitnessManager(profile).configure(config)
+        message = format_witness_ready_message(
+            witness_config["witness_id"], witness_config.get("invitation_url")
         )
-        # Save witness_id to stored config if it's in the global config
-        if "witness_id" in config_without_auto:
-            stored_config = await get_plugin_config(profile)
-            stored_config["witness_id"] = config_without_auto["witness_id"]
-            await set_config(profile, stored_config)
+        for line in message.strip().split("\n"):
+            LOGGER.warning(line)
+            ROOT_LOGGER.warning(f"[WebVH] {line}")
+        print(message, end="")
+    else:
+        # Configure controller (sets up witness connection if witness_id is configured)
+        await ControllerManager(profile).configure(config)
+
+
+async def on_subwallet_created_event(profile: Profile, event: Event):
+    """Handle subwallet creation event in multitenant mode.
+
+    This handler logs when a new subwallet is created but doesn't perform
+    any setup actions - subwallets need to be configured separately.
+    """
+    wallet_id = event.payload.get("wallet_id") if event.payload else None
+    wallet_name = event.payload.get("wallet_name") if event.payload else None
+
+    msg = (
+        f"Subwallet created - wallet_id: {wallet_id}, "
+        f"wallet_name: {wallet_name}"
+    )
+    LOGGER.info(msg)
+    ROOT_LOGGER.info(f"[WebVH] {msg}")
+
+    if wallet_id:
+        msg2 = (
+            f"Subwallet {wallet_id} created. "
+            "Configure WebVH settings via /did/webvh/configuration endpoint."
+        )
+        LOGGER.info(msg2)
+        ROOT_LOGGER.info(f"[WebVH] {msg2}")
 
 
 async def register(app: web.Application):
