@@ -240,6 +240,9 @@ class WebVHConnectionManager:
         did_key = DIDKey.from_did(witness_id)
         witness_verkey = did_key.public_key_b58
 
+        # Get current ACA-Py endpoint to compare with existing invitation endpoint
+        current_endpoint = self.profile.settings.get("default_endpoint")
+
         # Check if there's already an existing invitation with this invitation_key
         async with self.profile.session() as session:
             # Query for connection records with this invitation_key
@@ -262,6 +265,24 @@ class WebVHConnectionManager:
                             # Construct InvitationRecord from OOB record
                             invitation_msg = oob_rec.invitation
                             if invitation_msg:
+                                # Check if endpoint has changed
+                                if current_endpoint and invitation_msg.services:
+                                    from acapy_agent.protocols.out_of_band.v1_0.messages.service import Service
+                                    # Find first Service object with service_endpoint
+                                    existing_endpoint = None
+                                    for service_item in invitation_msg.services:
+                                        if isinstance(service_item, Service) and service_item.service_endpoint:
+                                            existing_endpoint = service_item.service_endpoint
+                                            break
+                                    
+                                    # If endpoint has changed, create new invitation
+                                    if existing_endpoint and existing_endpoint != current_endpoint:
+                                        LOGGER.info(
+                                            f"Endpoint changed from {existing_endpoint} to "
+                                            f"{current_endpoint}. Creating new invitation."
+                                        )
+                                        break
+                                
                                 # Get invitation URL
                                 invitation_url = invitation_msg.to_url()
                                 invi_rec = InvitationRecord(
