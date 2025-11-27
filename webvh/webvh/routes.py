@@ -36,7 +36,6 @@ from .did.models.operations import (
     WebvhSCIDQueryStringSchema,
     WebvhUpdateWhoisSchema,
 )
-from .did.utils import format_witness_ready_message
 from .did.witness import WitnessManager
 from .protocols.routes import (
     get_pending_witness_requests,
@@ -248,18 +247,40 @@ async def on_startup_event(profile: Profile, event: Event):
         # Configure witness and print information
         LOGGER.info("Configuring witness service...")
         witness_config = await WitnessManager(profile).configure(config)
-        # Get server_url from config or profile
+        
+        # Transform invitation URL to didcomm:// format if it contains oob parameter
+        invitation_url = witness_config.get("invitation_url")
+        invitation_display = invitation_url if invitation_url else "<not available>"
+        if invitation_url and "oob=" in invitation_url:
+            from urllib.parse import urlparse, parse_qs
+            try:
+                parsed_url = urlparse(invitation_url)
+                query_params = parse_qs(parsed_url.query)
+                if "oob" in query_params:
+                    oob_value = query_params["oob"][0]
+                    invitation_display = f"didcomm://?oob={oob_value}"
+            except Exception:
+                # If transformation fails, use original URL
+                invitation_display = invitation_url
+        
+        # Build server invitation URL if server_url is available
+        server_invitation_display = "<not available>"
         try:
             server_url = await get_server_url(profile)
+            if server_url:
+                from .did.utils import parse_did_key
+                parsed_key = parse_did_key(witness_config["witness_id"])
+                witness_key = parsed_key.key
+                server_invitation_display = (
+                    f"{server_url}/api/invitations?_oobid={witness_key}"
+                )
         except ConfigurationError:
-            server_url = None
-        message = format_witness_ready_message(
-            witness_config["witness_id"],
-            witness_config.get("invitation_url"),
-            server_url=server_url,
-        )
-        # Log the entire banner as a single message
-        LOGGER.info(f"\n{message}")
+            pass
+        
+        # Log each value with label on same line (separated by newline)
+        LOGGER.info(f"Witness ID\n{witness_config['witness_id']}\n")
+        LOGGER.info(f"Invitation\n{invitation_display}\n")
+        LOGGER.info(f"Server Invitation\n{server_invitation_display}\n")
     else:
         # Configure controller (sets up witness connection if witness_id is configured)
         await ControllerManager(profile).configure(config)
