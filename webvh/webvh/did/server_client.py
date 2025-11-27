@@ -56,8 +56,10 @@ class WebVHServerClient:
         server_url = await get_server_url(self.profile)
         LOGGER.info(f"Fetching witness services from server document at {server_url}")
         witness_services = await self.get_witness_services()
-        LOGGER.info(f"Found {len(witness_services)} witness service(s) in server document")
-        
+        LOGGER.info(
+            f"Found {len(witness_services)} witness service(s) in server document"
+        )
+
         witness_service = next(
             (svc for svc in witness_services if svc.get("id") == witness_id), None
         )
@@ -86,7 +88,10 @@ class WebVHServerClient:
             response = await session.get(invitation_url)
             response.raise_for_status()
             invitation = await response.json()
-            LOGGER.info(f"Successfully fetched invitation (id: {invitation.get('@id', 'unknown')})")
+            LOGGER.info(
+                f"Successfully fetched invitation "
+                f"(id: {invitation.get('@id', 'unknown')})"
+            )
             return invitation
 
     async def request_identifier(self, namespace, identifier) -> tuple:

@@ -13,12 +13,13 @@ from acapy_agent.protocols.out_of_band.v1_0.manager import (
     OutOfBandManager,
     OutOfBandManagerError,
 )
+from acapy_agent.protocols.out_of_band.v1_0.models.invitation import InvitationRecord
 from acapy_agent.protocols.out_of_band.v1_0.models.oob_record import OobRecord
 from acapy_agent.protocols.out_of_band.v1_0.messages.invitation import (
     HSProto,
     InvitationMessage,
 )
-from acapy_agent.wallet.key_type import ED25519
+from acapy_agent.storage.error import StorageNotFoundError
 
 from ..config.config import (
     get_plugin_config,
@@ -148,7 +149,9 @@ class WebVHConnectionManager:
                 )
 
         # Fetch invitation from server
-        LOGGER.info(f"Fetching witness invitation for {witness_id} from server {server_url}")
+        LOGGER.info(
+            f"Fetching witness invitation for {witness_id} from server {server_url}"
+        )
         server_client = WebVHServerClient(self.profile)
         try:
             invitation = await server_client.get_witness_invitation(witness_id)
@@ -187,7 +190,7 @@ class WebVHConnectionManager:
                 auto_accept=True,
                 alias=witness_alias,
             )
-            LOGGER.info(f"Invitation received successfully, waiting for connection...")
+            LOGGER.info("Invitation received successfully, waiting for connection...")
         except BaseModelError as err:
             LOGGER.error(f"Error receiving witness invitation: {err}")
             raise OperationError(f"Error receiving witness invitation: {err}")
@@ -232,10 +235,52 @@ class WebVHConnectionManager:
             WitnessError: If invitation creation fails
         """
         # Extract witness verkey to use as invitation key
-        # Convert did:key to base58-encoded verkey (invitation_key expects base58, not multibase)
+        # Convert did:key to base58-encoded verkey
+        # (invitation_key expects base58, not multibase)
         did_key = DIDKey.from_did(witness_id)
         witness_verkey = did_key.public_key_b58
-        
+
+        # Check if there's already an existing invitation with this invitation_key
+        async with self.profile.session() as session:
+            # Query for connection records with this invitation_key
+            conn_records = await ConnRecord.query(
+                session,
+                tag_filter={"invitation_key": witness_verkey},
+            )
+
+            # Find the OOB record associated with any of these connections
+            for conn_rec in conn_records:
+                if conn_rec.invitation_msg_id:
+                    try:
+                        # Find OOB record by invitation message ID
+                        oob_records = await OobRecord.query(
+                            session,
+                            tag_filter={"invi_msg_id": conn_rec.invitation_msg_id},
+                        )
+                        if oob_records:
+                            oob_rec = oob_records[0]
+                            # Construct InvitationRecord from OOB record
+                            invitation_msg = oob_rec.invitation
+                            if invitation_msg:
+                                # Get invitation URL
+                                invitation_url = invitation_msg.to_url()
+                                invi_rec = InvitationRecord(
+                                    invitation_id=oob_rec.oob_id,
+                                    state=InvitationRecord.STATE_AWAIT_RESPONSE,
+                                    invi_msg_id=oob_rec.invi_msg_id,
+                                    invitation=invitation_msg,
+                                    invitation_url=invitation_url,
+                                    oob_id=oob_rec.oob_id,
+                                )
+                                LOGGER.info(
+                                    f"Reusing existing invitation for witness "
+                                    f"{witness_id} (oob_id: {oob_rec.oob_id})"
+                                )
+                                return invi_rec.serialize()
+                    except StorageNotFoundError:
+                        # Continue to next connection record
+                        continue
+
         # Create invitation using legacy approach (without use_did)
         # The invitation will use a new key, but we'll update the connection record
         # to use the witness key as the invitation key after creation
@@ -252,7 +297,7 @@ class WebVHConnectionManager:
                 multi_use=multi_use,
                 # Don't use use_did - it requires services which did:key doesn't have
             )
-            
+
             # Update the connection record to use the witness key as invitation key
             if invi_rec.oob_id:
                 async with self.profile.session() as session:
@@ -271,7 +316,7 @@ class WebVHConnectionManager:
                             f"Updated connection {conn_rec.connection_id} "
                             f"to use witness key as invitation key"
                         )
-            
+
             return invi_rec.serialize()
         except OutOfBandManagerError as e:
             raise WitnessError(e)

@@ -274,9 +274,7 @@ class ControllerManager:
                         f"Successfully connected to witness {connected_witness_id}"
                     )
                 except (ConfigurationError, OperationError, Exception) as e:
-                    LOGGER.error(
-                        f"Error while connecting to witness {witness_id}: {e}"
-                    )
+                    LOGGER.error(f"Error while connecting to witness {witness_id}: {e}")
         else:
             if not witness_id:
                 LOGGER.warning(

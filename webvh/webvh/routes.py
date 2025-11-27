@@ -16,6 +16,7 @@ from aiohttp_apispec import docs, querystring_schema, request_schema, response_s
 from .config.config import (
     get_global_plugin_config,
     get_plugin_config,
+    get_server_url,
     set_config,
 )
 from .did.controller import ControllerManager
@@ -44,9 +45,6 @@ from .protocols.routes import (
 )
 
 LOGGER = logging.getLogger(__name__)
-
-# Also log to root logger to ensure visibility
-ROOT_LOGGER = logging.getLogger()
 
 
 @docs(tags=["did-webvh"], summary="Get webvh plugin configuration")
@@ -219,23 +217,19 @@ async def update_whois(request: web.BaseRequest):
 
 def register_events(event_bus: EventBus):
     """Register to the acapy startup event."""
-    # Use both loggers to ensure visibility
     msg = "Registering WebVH startup event handler"
-    LOGGER.warning("=" * 70)
-    LOGGER.warning(msg)
-    ROOT_LOGGER.warning(f"[WebVH] {msg}")
-    LOGGER.warning("=" * 70)
+    LOGGER.info("=" * 70)
+    LOGGER.info(msg)
+    LOGGER.info("=" * 70)
     event_bus.subscribe(STARTUP_EVENT_PATTERN, on_startup_event)
     msg2 = "WebVH startup event handler registered successfully"
-    LOGGER.warning(msg2)
-    ROOT_LOGGER.warning(f"[WebVH] {msg2}")
+    LOGGER.info(msg2)
 
     # Subscribe to subwallet creation events
     SUBWALLET_CREATED_PATTERN = re.compile("^acapy::multitenant::wallet::created::.*$")
     event_bus.subscribe(SUBWALLET_CREATED_PATTERN, on_subwallet_created_event)
     msg3 = "WebVH subwallet creation event handler registered successfully"
     LOGGER.info(msg3)
-    ROOT_LOGGER.info(f"[WebVH] {msg3}")
 
 
 async def on_startup_event(profile: Profile, event: Event):
@@ -252,13 +246,20 @@ async def on_startup_event(profile: Profile, event: Event):
 
     if config.get("witness", False):
         # Configure witness and print information
+        LOGGER.info("Configuring witness service...")
         witness_config = await WitnessManager(profile).configure(config)
+        # Get server_url from config or profile
+        try:
+            server_url = await get_server_url(profile)
+        except ConfigurationError:
+            server_url = None
         message = format_witness_ready_message(
-            witness_config["witness_id"], witness_config.get("invitation_url")
+            witness_config["witness_id"],
+            witness_config.get("invitation_url"),
+            server_url=server_url,
         )
-        for line in message.strip().split("\n"):
-            LOGGER.info(line)
-        print(message, end="")
+        # Log the entire banner as a single message
+        LOGGER.info(f"\n{message}")
     else:
         # Configure controller (sets up witness connection if witness_id is configured)
         await ControllerManager(profile).configure(config)
@@ -275,7 +276,6 @@ async def on_subwallet_created_event(profile: Profile, event: Event):
 
     msg = f"Subwallet created - wallet_id: {wallet_id}, wallet_name: {wallet_name}"
     LOGGER.info(msg)
-    ROOT_LOGGER.info(f"[WebVH] {msg}")
 
     if wallet_id:
         msg2 = (
