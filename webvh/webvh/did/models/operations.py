@@ -34,13 +34,6 @@ class ConfigureWebvhSchema(OpenAPISchema):
         },
         default=False,
     )
-    witness_key = fields.Str(
-        required=False,
-        metadata={
-            "description": "Existing key to use as witness key",
-            "example": "z6MkgKA7yrw5kYSiDuQFcye4bMaJpcfHFry3Bx45pdWh3s8i",
-        },
-    )
     auto_attest = fields.Bool(
         required=False,
         metadata={
@@ -48,6 +41,14 @@ class ConfigureWebvhSchema(OpenAPISchema):
             "example": "false",
         },
         default=False,
+    )
+    auto_config = fields.Bool(
+        required=False,
+        metadata={
+            "description": "Automatically prepare controller and witness resources",
+            "example": "true",
+        },
+        default=True,
     )
     endorsement = fields.Bool(
         required=False,
@@ -57,11 +58,11 @@ class ConfigureWebvhSchema(OpenAPISchema):
         },
         default=False,
     )
-    witness_invitation = fields.Str(
+    witness_id = fields.Str(
         required=False,
         metadata={
-            "description": "An invitation from a witness, required for a controller",
-            "example": "http://localhost:3000?oob=eyJAdHlwZSI6ICJodHRwczovL2RpZGNvbW0ub3JnL291dC1vZi1iYW5kLzEuMS9pbnZpdGF0aW9uIiwgIkBpZCI6ICJlMzI5OGIyNS1mZjRlLTRhZmItOTI2Yi03ZDcyZmVlMjQ1ODgiLCAibGFiZWwiOiAid2VidmgtZW5kb3JzZXIiLCAiaGFuZHNoYWtlX3Byb3RvY29scyI6IFsiaHR0cHM6Ly9kaWRjb21tLm9yZy9kaWRleGNoYW5nZS8xLjAiXSwgInNlcnZpY2VzIjogW3siaWQiOiAiI2lubGluZSIsICJ0eXBlIjogImRpZC1jb21tdW5pY2F0aW9uIiwgInJlY2lwaWVudEtleXMiOiBbImRpZDprZXk6ejZNa3FDQ1pxNURSdkdMcDV5akhlZlZTa2JhN0tYWlQ1Nld2SlJacEQ2Z3RvRzU0I3o2TWtxQ0NacTVEUnZHTHA1eWpIZWZWU2tiYTdLWFpUNTZXdkpSWnBENmd0b0c1NCJdLCAic2VydmljZUVuZHBvaW50IjogImh0dHA6Ly9sb2NhbGhvc3Q6MzAwMCJ9XX0",
+            "description": "Preferred witness DID to connect with",
+            "example": "did:key:z6Mk....",
         },
     )
 
