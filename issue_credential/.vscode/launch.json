@@ -1,0 +1,46 @@
+{
+  // Use IntelliSense to learn about possible attributes.
+  // Hover to view descriptions of existing attributes.
+  // For more information, visit: https://go.microsoft.com/fwlink/?linkid=830387
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "name": "Run/Debug Plugin",
+      "type": "python",
+      "request": "launch",
+      "module": "acapy_agent",
+      "justMyCode": false,
+      "args": ["start", "--arg-file=${workspaceRoot}/docker/default.yml"]
+    },
+    {
+      "name": "Run/Debug Bob",
+      "type": "python",
+      "request": "launch",
+      "module": "acapy_agent",
+      "justMyCode": false,
+      "args": ["start", "--arg-file=${workspaceRoot}/docker/bob.yml"]
+    },
+    {
+      "name": "ruff - issue_credential",
+      "type": "python",
+      "request": "launch",
+      "module": "ruff",
+      "console": "integratedTerminal",
+      "sudo": true,
+      "justMyCode": true,
+      "cwd": "${workspaceFolder}/issue_credential",
+      "args": ["check", "."]
+    },
+    {
+      "name": "ruff fix - issue_credential",
+      "type": "python",
+      "request": "launch",
+      "module": "ruff",
+      "console": "integratedTerminal",
+      "sudo": true,
+      "justMyCode": true,
+      "cwd": "${workspaceFolder}/issue_credential",
+      "args": ["check", ".", "--fix"]
+    }
+  ]
+}
