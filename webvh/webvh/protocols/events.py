@@ -141,3 +141,4 @@ class WitnessEventManager:
             A regex pattern string for matching the event
         """
         return rf"^{WITNESS_EVENT_PREFIX}{record_id}$"
+

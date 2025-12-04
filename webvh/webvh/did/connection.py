@@ -234,77 +234,63 @@ class WebVHConnectionManager:
         Raises:
             WitnessError: If invitation creation fails
         """
-        # Extract witness verkey to use as invitation key
-        # Convert did:key to base58-encoded verkey
-        # (invitation_key expects base58, not multibase)
-        did_key = DIDKey.from_did(witness_id)
-        witness_verkey = did_key.public_key_b58
-
         # Get current ACA-Py endpoint to compare with existing invitation endpoint
         current_endpoint = self.profile.settings.get("default_endpoint")
 
-        # Check if there's already an existing invitation with this invitation_key
+        # Check if there's already an existing invitation for this witness
+        # Goal is stored in the invitation message, not as a tag, so we need to
+        # query all OOB records and filter by checking invitation.goal and serviceEndpoint
         async with self.profile.session() as session:
-            # Query for connection records with this invitation_key
-            conn_records = await ConnRecord.query(
+            # Query all OOB records (we'll filter by goal and endpoint in the invitation message)
+            oob_records = await OobRecord.query(
                 session,
-                tag_filter={"invitation_key": witness_verkey},
+                tag_filter={"role": OobRecord.ROLE_SENDER},
             )
 
-            # Find the OOB record associated with any of these connections
-            for conn_rec in conn_records:
-                if conn_rec.invitation_msg_id:
-                    try:
-                        # Find OOB record by invitation message ID
-                        oob_records = await OobRecord.query(
-                            session,
-                            tag_filter={"invi_msg_id": conn_rec.invitation_msg_id},
-                        )
-                        if oob_records:
-                            oob_rec = oob_records[0]
-                            # Construct InvitationRecord from OOB record
-                            invitation_msg = oob_rec.invitation
-                            if invitation_msg:
-                                # Check if endpoint has changed
-                                if current_endpoint and invitation_msg.services:
-                                    from acapy_agent.protocols.out_of_band.v1_0.messages.service import Service
-                                    # Find first Service object with service_endpoint
-                                    existing_endpoint = None
-                                    for service_item in invitation_msg.services:
-                                        if isinstance(service_item, Service) and service_item.service_endpoint:
-                                            existing_endpoint = service_item.service_endpoint
-                                            break
-                                    
-                                    # If endpoint has changed, create new invitation
-                                    if existing_endpoint and existing_endpoint != current_endpoint:
-                                        LOGGER.info(
-                                            f"Endpoint changed from {existing_endpoint} to "
-                                            f"{current_endpoint}. Creating new invitation."
-                                        )
-                                        break
-                                
-                                # Get invitation URL
-                                invitation_url = invitation_msg.to_url()
-                                invi_rec = InvitationRecord(
-                                    invitation_id=oob_rec.oob_id,
-                                    state=InvitationRecord.STATE_AWAIT_RESPONSE,
-                                    invi_msg_id=oob_rec.invi_msg_id,
-                                    invitation=invitation_msg,
-                                    invitation_url=invitation_url,
-                                    oob_id=oob_rec.oob_id,
-                                )
-                                LOGGER.info(
-                                    f"Reusing existing invitation for witness "
-                                    f"{witness_id} (oob_id: {oob_rec.oob_id})"
-                                )
-                                return invi_rec.serialize()
-                    except StorageNotFoundError:
-                        # Continue to next connection record
-                        continue
+            # Find an OOB record with matching goal and endpoint
+            from acapy_agent.protocols.out_of_band.v1_0.messages.service import Service
+            for oob_rec in oob_records:
+                invitation_msg = oob_rec.invitation
+                if not invitation_msg:
+                    continue
+                
+                # Check if goal matches
+                if invitation_msg.goal != witness_id:
+                    continue
+                
+                # Check if serviceEndpoint matches current endpoint
+                if not current_endpoint:
+                    continue
+                
+                # Find first Service object with service_endpoint
+                existing_endpoint = None
+                if invitation_msg.services:
+                    for service_item in invitation_msg.services:
+                        if isinstance(service_item, Service) and service_item.service_endpoint:
+                            existing_endpoint = service_item.service_endpoint
+                            break
+                
+                # Must have matching endpoint to reuse
+                if existing_endpoint != current_endpoint:
+                    continue
+                
+                # Found matching invitation with correct goal and endpoint
+                invitation_url = invitation_msg.to_url()
+                invi_rec = InvitationRecord(
+                    invitation_id=oob_rec.oob_id,
+                    state=InvitationRecord.STATE_AWAIT_RESPONSE,
+                    invi_msg_id=oob_rec.invi_msg_id,
+                    invitation=invitation_msg,
+                    invitation_url=invitation_url,
+                    oob_id=oob_rec.oob_id,
+                )
+                LOGGER.info(
+                    f"Reusing existing invitation for witness "
+                    f"{witness_id} (oob_id: {oob_rec.oob_id})"
+                )
+                return invi_rec.serialize()
 
-        # Create invitation using legacy approach (without use_did)
-        # The invitation will use a new key, but we'll update the connection record
-        # to use the witness key as the invitation key after creation
+        # Create new invitation if none found or endpoint changed
         try:
             invi_rec = await OutOfBandManager(self.profile).create_invitation(
                 hs_protos=[
@@ -318,25 +304,6 @@ class WebVHConnectionManager:
                 multi_use=multi_use,
                 # Don't use use_did - it requires services which did:key doesn't have
             )
-
-            # Update the connection record to use the witness key as invitation key
-            if invi_rec.oob_id:
-                async with self.profile.session() as session:
-                    # Get the OOB record to find the connection
-                    oob_rec = await OobRecord.retrieve_by_id(session, invi_rec.oob_id)
-                    if oob_rec.connection_id:
-                        conn_rec = await ConnRecord.retrieve_by_id(
-                            session, oob_rec.connection_id
-                        )
-                        # Update the invitation_key to use the witness verkey
-                        conn_rec.invitation_key = witness_verkey
-                        await conn_rec.save(
-                            session, reason="Updated invitation key to witness key"
-                        )
-                        LOGGER.info(
-                            f"Updated connection {conn_rec.connection_id} "
-                            f"to use witness key as invitation key"
-                        )
 
             return invi_rec.serialize()
         except OutOfBandManagerError as e:
