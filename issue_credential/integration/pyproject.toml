@@ -1,0 +1,21 @@
+[tool.poetry]
+name = "issue-credential-tests"
+version = "0.1.0"
+description = ""
+authors = []
+package-mode = false
+
+[tool.poetry.dependencies]
+python = "^3.12"
+pytest = "^8.3.5"
+pytest-asyncio = "^1.1.0"
+requests = "^2.32.0"
+acapy-controller = {git = "https://github.com/openwallet-foundation/acapy-minimal-example.git", rev = "main"}
+
+[tool.poetry.group.dev.dependencies]
+
+[tool.pytest.ini_options]
+
+[build-system]
+requires = ["poetry-core>=2.1"]
+build-backend = "poetry.core.masonry.api"
