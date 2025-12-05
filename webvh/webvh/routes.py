@@ -8,14 +8,18 @@ from acapy_agent.core.event_bus import Event, EventBus
 from acapy_agent.core.profile import Profile
 from acapy_agent.core.util import STARTUP_EVENT_PATTERN
 from acapy_agent.resolver.routes import ResolutionResultSchema
-from acapy_agent.storage.error import StorageNotFoundError
+import re
 from acapy_agent.wallet.keys.manager import MultikeyManagerError
 from aiohttp import web
 from aiohttp_apispec import docs, querystring_schema, request_schema, response_schema
-from marshmallow.exceptions import ValidationError
 
-from .config.config import get_plugin_config
-from .did.manager import ControllerManager
+from .config.config import (
+    get_global_plugin_config,
+    get_plugin_config,
+    get_server_url,
+    set_config,
+)
+from .did.controller import ControllerManager
 from .did.exceptions import (
     ConfigurationError,
     DidCreationError,
@@ -28,7 +32,6 @@ from .did.models.operations import (
     WebvhAddVMSchema,
     WebvhCreateSchema,
     WebvhUpdateSchema,
-    WebvhCreateWitnessInvitationSchema,
     WebvhDeactivateSchema,
     WebvhSCIDQueryStringSchema,
     WebvhUpdateWhoisSchema,
@@ -59,29 +62,33 @@ async def configure(request: web.BaseRequest):
     request_json = await request.json()
 
     try:
-        return web.json_response(await ControllerManager(profile).configure(request_json))
+        options = request_json
+        config = await get_plugin_config(profile)
+
+        if not (server_url := options.get("server_url", config.get("server_url", None))):
+            raise OperationError("No server url configured.")
+
+        config["witness"] = options.get("witness", False)
+        config["witness_id"] = options.get("witness_id", config.get("witness_id"))
+        config["server_url"] = server_url.rstrip("/")
+
+        config["scids"] = config.get("scids", {})
+        config["witnesses"] = config.get("witnesses", [])
+        config["endorsement"] = options.get("endorsement", False)
+        config["auto_attest"] = options.get("auto_attest", False)
+
+        config["parameter_options"] = options.get("parameter_options", {})
+
+        await set_config(profile, config)
+
+        if config["witness"]:
+            manager = WitnessManager(profile)
+        else:
+            manager = ControllerManager(profile)
+        return web.json_response(await manager.configure(config))
 
     except (ConfigurationError, OperationError) as err:
         return web.json_response({"status": "error", "message": str(err)})
-
-
-@docs(tags=["did-webvh"], summary="Create a witness invitation")
-@request_schema(WebvhCreateWitnessInvitationSchema)
-@tenant_authentication
-async def witness_create_invite(request: web.BaseRequest):
-    """Create a witness invitation."""
-    context: AdminRequestContext = request["context"]
-    request_json = await request.json()
-    try:
-        return web.json_response(
-            await WitnessManager(context.profile).create_invitation(
-                request_json.get("alias"),
-                request_json.get("label"),
-                request_json.get("multi"),
-            )
-        )
-    except (StorageNotFoundError, ValidationError, WitnessError) as e:
-        raise web.HTTPBadRequest(reason=e.roll_up)
 
 
 @docs(tags=["did-webvh"], summary="Create a did:webvh")
@@ -209,13 +216,94 @@ async def update_whois(request: web.BaseRequest):
 
 def register_events(event_bus: EventBus):
     """Register to the acapy startup event."""
+    msg = "Registering WebVH startup event handler"
+    LOGGER.info("=" * 70)
+    LOGGER.info(msg)
+    LOGGER.info("=" * 70)
     event_bus.subscribe(STARTUP_EVENT_PATTERN, on_startup_event)
+    msg2 = "WebVH startup event handler registered successfully"
+    LOGGER.info(msg2)
+
+    # Subscribe to subwallet creation events
+    SUBWALLET_CREATED_PATTERN = re.compile("^acapy::multitenant::wallet::created::.*$")
+    event_bus.subscribe(SUBWALLET_CREATED_PATTERN, on_subwallet_created_event)
+    msg3 = "WebVH subwallet creation event handler registered successfully"
+    LOGGER.info(msg3)
 
 
 async def on_startup_event(profile: Profile, event: Event):
-    """Handle the witness setup."""
-    if not profile.settings.get("multitenant.enabled"):
-        await ControllerManager(profile).auto_witness_setup()
+    """Handle the plugin startup setup."""
+
+    config = get_global_plugin_config(profile)
+
+    # Skip if multitenant enabled or auto_config disabled
+    if profile.settings.get("multitenant.enabled"):
+        return
+
+    if not config.pop("auto_config", False):
+        return
+
+    if config.get("witness", False):
+        # Configure witness and print information
+        LOGGER.info("Configuring witness service...")
+        witness_config = await WitnessManager(profile).configure(config)
+        
+        # Transform invitation URL to didcomm:// format if it contains oob parameter
+        invitation_url = witness_config.get("invitation_url")
+        invitation_display = invitation_url if invitation_url else "<not available>"
+        if invitation_url and "oob=" in invitation_url:
+            from urllib.parse import urlparse, parse_qs
+            try:
+                parsed_url = urlparse(invitation_url)
+                query_params = parse_qs(parsed_url.query)
+                if "oob" in query_params:
+                    oob_value = query_params["oob"][0]
+                    invitation_display = f"didcomm://?oob={oob_value}"
+            except Exception:
+                # If transformation fails, use original URL
+                invitation_display = invitation_url
+        
+        # Build server invitation URL if server_url is available
+        server_invitation_display = "<not available>"
+        try:
+            server_url = await get_server_url(profile)
+            if server_url:
+                from .did.utils import parse_did_key
+                parsed_key = parse_did_key(witness_config["witness_id"])
+                witness_key = parsed_key.key
+                server_invitation_display = (
+                    f"{server_url}/api/invitations?_oobid={witness_key}"
+                )
+        except ConfigurationError:
+            pass
+        
+        # Log each value with label on same line (separated by newline)
+        LOGGER.info(f"Witness ID\n{witness_config['witness_id']}\n")
+        LOGGER.info(f"Invitation\n{invitation_display}\n")
+        LOGGER.info(f"Server Invitation\n{server_invitation_display}\n")
+    else:
+        # Configure controller (sets up witness connection if witness_id is configured)
+        await ControllerManager(profile).configure(config)
+
+
+async def on_subwallet_created_event(profile: Profile, event: Event):
+    """Handle subwallet creation event in multitenant mode.
+
+    This handler logs when a new subwallet is created but doesn't perform
+    any setup actions - subwallets need to be configured separately.
+    """
+    wallet_id = event.payload.get("wallet_id") if event.payload else None
+    wallet_name = event.payload.get("wallet_name") if event.payload else None
+
+    msg = f"Subwallet created - wallet_id: {wallet_id}, wallet_name: {wallet_name}"
+    LOGGER.info(msg)
+
+    if wallet_id:
+        msg2 = (
+            f"Subwallet {wallet_id} created. "
+            "Configure WebVH settings via /did/webvh/configuration endpoint."
+        )
+        LOGGER.info(msg2)
 
 
 async def register(app: web.Application):
@@ -236,7 +324,6 @@ async def register(app: web.Application):
             #     delete_verification_method_request,
             # ),
             web.post("/did/webvh/whois", update_whois),
-            web.post("/did/webvh/witness-invitation", witness_create_invite),
             web.get(
                 "/did/webvh/witness-requests/{record_type}",
                 get_pending_witness_requests,
