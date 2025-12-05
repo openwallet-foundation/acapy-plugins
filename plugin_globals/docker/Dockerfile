@@ -1,4 +1,4 @@
-FROM python:3.12-bookworm AS base
+FROM python:3.12-slim-bookworm AS base
 WORKDIR /usr/src/app
 
 # Install and configure poetry
