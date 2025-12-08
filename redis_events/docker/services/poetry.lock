@@ -411,20 +411,20 @@ files = [
 
 [[package]]
 name = "fastapi-slim"
-version = "0.120.4"
+version = "0.124.0"
 description = "FastAPI framework, high performance, easy to learn, fast to code, ready for production"
 optional = false
 python-versions = ">=3.8"
 groups = ["main"]
 files = [
-    {file = "fastapi_slim-0.120.4-py3-none-any.whl", hash = "sha256:28d8cc5d32628863564aa5c3a0d185b4cc47fa02f4dbe67be350ce29eaed7cb7"},
-    {file = "fastapi_slim-0.120.4.tar.gz", hash = "sha256:e32edc6fa155b8c8788c269a125f36acac9071cdf061457a2bb7fac52de98681"},
+    {file = "fastapi_slim-0.124.0-py3-none-any.whl", hash = "sha256:62e3ccd2ed8b46e14d3cc21e350928fca5c8874f2fdf3a795c17b47d2a6fbe76"},
+    {file = "fastapi_slim-0.124.0.tar.gz", hash = "sha256:d83901e82b2c442451e29a0f661307073176eef5863b77fc7d826a2782814e9a"},
 ]
 
 [package.dependencies]
 annotated-doc = ">=0.0.2"
 pydantic = ">=1.7.4,<1.8 || >1.8,<1.8.1 || >1.8.1,<2.0.0 || >2.0.0,<2.0.1 || >2.0.1,<2.1.0 || >2.1.0,<3.0.0"
-starlette = ">=0.40.0,<0.50.0"
+starlette = ">=0.40.0,<0.51.0"
 typing-extensions = ">=4.8.0"
 
 [package.extras]
@@ -1553,4 +1553,4 @@ propcache = ">=0.2.0"
 [metadata]
 lock-version = "2.1"
 python-versions = "^3.12"
-content-hash = "08a7e2561a639e8e1eac9a8d5aa9c2bed61e93f3bda83a607c5b3e21063b00e1"
+content-hash = "4665dc60a768b8f7626fbf14fd76350a704393eb8721bf550456087b36143ab5"
