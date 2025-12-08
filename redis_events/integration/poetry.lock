@@ -380,14 +380,14 @@ files = [
 
 [[package]]
 name = "fastapi-slim"
-version = "0.123.0"
+version = "0.124.0"
 description = "FastAPI framework, high performance, easy to learn, fast to code, ready for production"
 optional = false
 python-versions = ">=3.8"
 groups = ["main"]
 files = [
-    {file = "fastapi_slim-0.123.0-py3-none-any.whl", hash = "sha256:9a1c698f345ed78c2624d6ff0545cc89e67fbd830eccf6f0249884924e366527"},
-    {file = "fastapi_slim-0.123.0.tar.gz", hash = "sha256:d567ebbc8f26779de170ad12ba6f960ada116d491c196d2dcc87ec77a871c3a4"},
+    {file = "fastapi_slim-0.124.0-py3-none-any.whl", hash = "sha256:62e3ccd2ed8b46e14d3cc21e350928fca5c8874f2fdf3a795c17b47d2a6fbe76"},
+    {file = "fastapi_slim-0.124.0.tar.gz", hash = "sha256:d83901e82b2c442451e29a0f661307073176eef5863b77fc7d826a2782814e9a"},
 ]
 
 [package.dependencies]
@@ -1124,21 +1124,21 @@ typing-extensions = ">=4.12.0"
 
 [[package]]
 name = "urllib3"
-version = "2.5.0"
+version = "2.6.1"
 description = "HTTP library with thread-safe connection pooling, file post, and more."
 optional = false
 python-versions = ">=3.9"
 groups = ["main"]
 files = [
-    {file = "urllib3-2.5.0-py3-none-any.whl", hash = "sha256:e6b01673c0fa6a13e374b50871808eb3bf7046c4b125b216f6bf1cc604cff0dc"},
-    {file = "urllib3-2.5.0.tar.gz", hash = "sha256:3fc47733c7e419d4bc3f6b3dc2b4f890bb743906a30d56ba4a5bfa4bbff92760"},
+    {file = "urllib3-2.6.1-py3-none-any.whl", hash = "sha256:e67d06fe947c36a7ca39f4994b08d73922d40e6cca949907be05efa6fd75110b"},
+    {file = "urllib3-2.6.1.tar.gz", hash = "sha256:5379eb6e1aba4088bae84f8242960017ec8d8e3decf30480b3a1abdaa9671a3f"},
 ]
 
 [package.extras]
-brotli = ["brotli (>=1.0.9) ; platform_python_implementation == \"CPython\"", "brotlicffi (>=0.8.0) ; platform_python_implementation != \"CPython\""]
+brotli = ["brotli (>=1.2.0) ; platform_python_implementation == \"CPython\"", "brotlicffi (>=1.2.0.0) ; platform_python_implementation != \"CPython\""]
 h2 = ["h2 (>=4,<5)"]
 socks = ["pysocks (>=1.5.6,!=1.5.7,<2.0)"]
-zstd = ["zstandard (>=0.18.0)"]
+zstd = ["backports-zstd (>=1.0.0) ; python_version < \"3.14\""]
 
 [[package]]
 name = "uvicorn"
@@ -1259,4 +1259,4 @@ propcache = ">=0.2.0"
 [metadata]
 lock-version = "2.1"
 python-versions = "^3.12"
-content-hash = "b6e4d47357b1d7fc96fba6e4ea9b60c489459661f2a3e5a11a2e18cb985f5461"
+content-hash = "6ff8fa953cfd939153684206dc08dd3bfddec10bf353ab009669bfe8537ec676"
