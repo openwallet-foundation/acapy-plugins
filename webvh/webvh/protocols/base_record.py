@@ -74,7 +74,7 @@ class BasePendingRecord:
         """Get all pending records."""
         async with profile.session() as session:
             entries = await session.handle.fetch_all(self.RECORD_TYPE)
-        return [entry.value_json for entry in entries]
+        return [entry.value_json for entry in list(entries)]
 
     async def get_pending_record(self, profile: Profile, record_id: str) -> set:
         """Get a pending record given a record_id."""
