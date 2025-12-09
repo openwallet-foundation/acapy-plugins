@@ -4,7 +4,7 @@ import pytest
 
 from acapy_agent.messaging.models.base import BaseModelError
 from acapy_agent.protocols.didcomm_prefix import DIDCommPrefix
-from ...message_types import PRESENTATION_PROBLEM_REPORT, PROTOCOL_PACKAGE
+from ...message_types import PRESENTATION_PROBLEM_REPORT
 from ..presentation_problem_report import PresentationProblemReport, PresentationProblemReportSchema, ProblemReportReason
 
 

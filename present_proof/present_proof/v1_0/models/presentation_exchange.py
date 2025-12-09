@@ -3,14 +3,17 @@
 import logging
 from typing import Any, Mapping, Optional, Union
 
-from marshmallow import fields, validate
-
 from acapy_agent.core.profile import ProfileSession
 from acapy_agent.indy.models.proof import IndyProof, IndyProofSchema
 from acapy_agent.indy.models.proof_request import IndyProofRequest, IndyProofRequestSchema
-from acapy_agent.messaging.models.base_record import BaseExchangeRecord, BaseExchangeSchema
+from acapy_agent.messaging.models.base_record import (
+    BaseExchangeRecord,
+    BaseExchangeSchema,
+)
 from acapy_agent.messaging.valid import UUID4_EXAMPLE
 from acapy_agent.storage.base import StorageError
+from marshmallow import fields, validate
+
 from ..messages.presentation_proposal import (
     PresentationProposal,
     PresentationProposalSchema,
@@ -252,7 +255,7 @@ class V10PresentationExchange(BaseExchangeRecord):
     def __eq__(self, other: Any) -> bool:
         """Comparison between records."""
         return super().__eq__(other)
-    
+
     def get_ac_proof_request(self) -> dict:
         """Retrieve indy proof request."""
         if not self._presentation_request:
