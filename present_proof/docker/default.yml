@@ -3,12 +3,11 @@ label: present_proof
 auto-provision: true
 
 admin: [0.0.0.0, 3001]
-admin-insecure-mode: false
-admin-api-key: change-me
+admin-insecure-mode: true
 
 inbound-transport:
   - [http, 0.0.0.0, 3000]
-  - [ws, 0.0.0.0, 3002]
+  
 outbound-transport: http
 endpoint:
   - http://host.docker.internal:3000
@@ -18,7 +17,7 @@ plugin:
 
 genesis-url: http://test.bcovrin.vonx.io/genesis
 
-log-level: info
+log-level: debug
 
 wallet-name: present_proof_wallet
 wallet-key: present_proof_wallet_key

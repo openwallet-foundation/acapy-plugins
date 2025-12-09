@@ -48,7 +48,7 @@ requests = "~2.32.3"
 rlp = "^4.1.0"
 sd-jwt = "^0.10.3"
 unflatten = "~0.2"
-uuid_utils = ">=0.10,<0.12"
+uuid_utils = ">=0.10,<0.13"
 
 [package.extras]
 bbs = ["ursa-bbs-signatures (>=1.0.1,<1.1.0)"]
@@ -59,7 +59,7 @@ sqlcipher = ["sqlcipher3-binary (>=0.5.4)"]
 type = "git"
 url = "https://github.com/jamshale/acapy.git"
 reference = "remove-present-proof-v1"
-resolved_reference = "51b63ff2e4605eafc319812951d3497ae534279c"
+resolved_reference = "73af7e329b17cb30c1b73d2a8e20c2e07b92350b"
 
 [[package]]
 name = "aiohappyeyeballs"
