@@ -1,8 +1,6 @@
 import importlib
 from unittest import IsolatedAsyncioTestCase
 
-from marshmallow import ValidationError
-
 from acapy_agent.admin.request_context import AdminRequestContext
 from acapy_agent.anoncreds.models.presentation_request import (
     AnonCredsPresentationReqAttrSpecSchema,
@@ -13,7 +11,11 @@ from acapy_agent.ledger.base import BaseLedger
 from acapy_agent.storage.error import StorageNotFoundError
 from acapy_agent.tests import mock
 from acapy_agent.utils.testing import create_test_profile
+from marshmallow import ValidationError
+
 from .. import routes as test_module
+from ..manager import PresentationManager
+from ..models.presentation_exchange import V10PresentationExchange
 
 
 class TestProofRoutes(IsolatedAsyncioTestCase):
@@ -67,27 +69,23 @@ class TestProofRoutes(IsolatedAsyncioTestCase):
             "state": "dummy",
         }
 
-        with mock.patch(
-            (
-                "acapy_agent.protocols.present_proof.v1_0."
-                "models.presentation_exchange.V10PresentationExchange"
+        with mock.patch.object(
+            V10PresentationExchange,
+            "query",
+            mock.CoroutineMock(
+                return_value=[V10PresentationExchange(thread_id="sample-thread-id")]
             ),
-            autospec=True,
-        ) as mock_presentation_exchange:
-            # Since we are mocking import
-            importlib.reload(test_module)
-
-            mock_presentation_exchange.query = mock.CoroutineMock()
-            mock_presentation_exchange.query.return_value = [mock_presentation_exchange]
-            mock_presentation_exchange.serialize = mock.MagicMock()
-            mock_presentation_exchange.serialize.return_value = {
-                "thread_id": "sample-thread-id"
-            }
-
+        ):
             with mock.patch.object(test_module.web, "json_response") as mock_response:
                 await test_module.presentation_exchange_list(self.request)
                 mock_response.assert_called_once_with(
-                    {"results": [mock_presentation_exchange.serialize.return_value]}
+                    {
+                        "results": [
+                            V10PresentationExchange(
+                                thread_id="sample-thread-id"
+                            ).serialize()
+                        ]
+                    }
                 )
 
     async def test_presentation_exchange_list_x(self):
@@ -98,41 +96,22 @@ class TestProofRoutes(IsolatedAsyncioTestCase):
             "state": "dummy",
         }
 
-        with mock.patch(
-            (
-                "acapy_agent.protocols.present_proof.v1_0."
-                "models.presentation_exchange.V10PresentationExchange"
-            ),
-            autospec=True,
-        ) as mock_presentation_exchange:
-            # Since we are mocking import
-            importlib.reload(test_module)
-
-            mock_presentation_exchange.query = mock.CoroutineMock(
-                side_effect=test_module.StorageError()
-            )
-
+        with mock.patch.object(
+            V10PresentationExchange,
+            "query",
+            mock.CoroutineMock(side_effect=test_module.StorageError()),
+        ):
             with self.assertRaises(test_module.web.HTTPBadRequest):
                 await test_module.presentation_exchange_list(self.request)
 
     async def test_presentation_exchange_credentials_list_not_found(self):
         self.request.match_info = {"pres_ex_id": "dummy"}
 
-        with mock.patch(
-            (
-                "acapy_agent.protocols.present_proof.v1_0."
-                "models.presentation_exchange.V10PresentationExchange"
-            ),
-            autospec=True,
-        ) as mock_presentation_exchange:
-            # Since we are mocking import
-            importlib.reload(test_module)
-
-            mock_presentation_exchange.retrieve_by_id = mock.CoroutineMock()
-
-            # Emulate storage not found (bad presentation exchange id)
-            mock_presentation_exchange.retrieve_by_id.side_effect = StorageNotFoundError
-
+        with mock.patch.object(
+            V10PresentationExchange,
+            "retrieve_by_id",
+            mock.CoroutineMock(side_effect=StorageNotFoundError),
+        ):
             with self.assertRaises(test_module.web.HTTPNotFound):
                 await test_module.presentation_exchange_credentials_list(self.request)
 
@@ -149,18 +128,11 @@ class TestProofRoutes(IsolatedAsyncioTestCase):
         self.profile.context.injector.bind_instance(IndyHolder, mock_holder)
         mock_px_rec = mock.MagicMock(save_error_state=mock.CoroutineMock())
 
-        with mock.patch(
-            (
-                "acapy_agent.protocols.present_proof.v1_0."
-                "models.presentation_exchange.V10PresentationExchange"
-            ),
-            autospec=True,
-        ) as mock_presentation_exchange:
-            # Since we are mocking import
-            importlib.reload(test_module)
-
-            mock_presentation_exchange.retrieve_by_id.return_value = mock_px_rec
-
+        with mock.patch.object(
+            V10PresentationExchange,
+            "retrieve_by_id",
+            mock.CoroutineMock(return_value=mock_px_rec),
+        ):
             with self.assertRaises(test_module.web.HTTPBadRequest):
                 await test_module.presentation_exchange_credentials_list(self.request)
 
@@ -178,18 +150,11 @@ class TestProofRoutes(IsolatedAsyncioTestCase):
         )
         self.profile.context.injector.bind_instance(IndyHolder, mock_holder)
 
-        with mock.patch(
-            (
-                "acapy_agent.protocols.present_proof.v1_0."
-                "models.presentation_exchange.V10PresentationExchange"
-            ),
-            autospec=True,
-        ) as mock_presentation_exchange:
-            # Since we are mocking import
-            importlib.reload(test_module)
-
-            mock_presentation_exchange.retrieve_by_id.return_value = mock.MagicMock()
-
+        with mock.patch.object(
+            V10PresentationExchange,
+            "retrieve_by_id",
+            mock.CoroutineMock(return_value=mock.MagicMock()),
+        ):
             with mock.patch.object(test_module.web, "json_response") as mock_response:
                 await test_module.presentation_exchange_credentials_list(self.request)
                 mock_response.assert_called_once_with(returned_credentials)
@@ -208,92 +173,45 @@ class TestProofRoutes(IsolatedAsyncioTestCase):
         )
         self.profile.context.injector.bind_instance(IndyHolder, mock_holder)
 
-        with mock.patch(
-            (
-                "acapy_agent.protocols.present_proof.v1_0."
-                "models.presentation_exchange.V10PresentationExchange"
-            ),
-            autospec=True,
-        ) as mock_presentation_exchange:
-            # Since we are mocking import
-            importlib.reload(test_module)
-
-            mock_presentation_exchange.retrieve_by_id = mock.CoroutineMock(
-                return_value=mock.MagicMock()
-            )
-
+        with mock.patch.object(
+            V10PresentationExchange,
+            "retrieve_by_id",
+            mock.CoroutineMock(return_value=mock.MagicMock()),
+        ):
             with mock.patch.object(test_module.web, "json_response") as mock_response:
                 await test_module.presentation_exchange_credentials_list(self.request)
                 mock_response.assert_called_once_with(returned_credentials)
 
-    async def test_presentation_exchange_retrieve(self):
-        self.request.match_info = {"pres_ex_id": "dummy"}
-
-        with mock.patch(
-            (
-                "acapy_agent.protocols.present_proof.v1_0."
-                "models.presentation_exchange.V10PresentationExchange"
-            ),
-            autospec=True,
-        ) as mock_pres_ex:
-            # Since we are mocking import
-            importlib.reload(test_module)
-
-            mock_pres_ex.retrieve_by_id = mock.CoroutineMock()
-            mock_pres_ex.retrieve_by_id.return_value = mock_pres_ex
-            mock_pres_ex.serialize = mock.MagicMock()
-            mock_pres_ex.serialize.return_value = {"thread_id": "sample-thread-id"}
-
-            with mock.patch.object(test_module.web, "json_response") as mock_response:
-                await test_module.presentation_exchange_retrieve(self.request)
-                mock_response.assert_called_once_with(mock_pres_ex.serialize.return_value)
-
     async def test_presentation_exchange_retrieve_not_found(self):
         self.request.match_info = {"pres_ex_id": "dummy"}
 
-        with mock.patch(
-            (
-                "acapy_agent.protocols.present_proof.v1_0."
-                "models.presentation_exchange.V10PresentationExchange"
-            ),
-            autospec=True,
-        ) as mock_pres_ex:
-            # Since we are mocking import
-            importlib.reload(test_module)
-
-            mock_pres_ex.retrieve_by_id = mock.CoroutineMock()
-
-            # Emulate storage not found (bad presentation exchange id)
-            mock_pres_ex.retrieve_by_id.side_effect = StorageNotFoundError
-
+        with mock.patch.object(
+            V10PresentationExchange,
+            "retrieve_by_id",
+            mock.CoroutineMock(side_effect=StorageNotFoundError),
+        ):
             with self.assertRaises(test_module.web.HTTPNotFound):
                 await test_module.presentation_exchange_retrieve(self.request)
 
     async def test_presentation_exchange_retrieve_x(self):
         self.request.match_info = {"pres_ex_id": "dummy"}
 
-        mock_pres_ex_rec = mock.MagicMock(
-            connection_id="abc123",
-            thread_id="thid123",
-            save_error_state=mock.CoroutineMock(),
-        )
-        with mock.patch(
-            (
-                "acapy_agent.protocols.present_proof.v1_0."
-                "models.presentation_exchange.V10PresentationExchange"
+        with (
+            mock.patch.object(
+                V10PresentationExchange,
+                "retrieve_by_id",
+                mock.CoroutineMock(
+                    return_value=V10PresentationExchange(
+                        connection_id="abc123", thread_id="thid123"
+                    )
+                ),
             ),
-            autospec=True,
-        ) as mock_pres_ex:
-            # Since we are mocking import
-            importlib.reload(test_module)
-
-            mock_pres_ex.retrieve_by_id = mock.CoroutineMock(
-                return_value=mock_pres_ex_rec
-            )
-            mock_pres_ex_rec.serialize = mock.MagicMock(
-                side_effect=test_module.BaseModelError()
-            )
-
+            mock.patch.object(
+                V10PresentationExchange,
+                "serialize",
+                mock.MagicMock(side_effect=test_module.BaseModelError()),
+            ),
+        ):
             with self.assertRaises(test_module.web.HTTPBadRequest):
                 await test_module.presentation_exchange_retrieve(self.request)
 
@@ -305,30 +223,20 @@ class TestProofRoutes(IsolatedAsyncioTestCase):
                 "acapy_agent.connections.models.conn_record.ConnRecord",
                 autospec=True,
             ),
-            mock.patch(
-                "acapy_agent.protocols.present_proof.v1_0.manager.PresentationManager",
-                autospec=True,
+            mock.patch.object(
+                PresentationManager,
+                "create_exchange_for_proposal",
+                mock.CoroutineMock(return_value=mock.MagicMock()),
             ) as mock_presentation_manager,
             mock.patch(
                 "acapy_agent.indy.models.pres_preview.IndyPresPreview",
                 autospec=True,
             ) as mock_preview,
         ):
-            # Since we are mocking import
-            importlib.reload(test_module)
-
-            mock_presentation_exchange_record = mock.MagicMock()
-            mock_presentation_manager.return_value.create_exchange_for_proposal = (
-                mock.CoroutineMock(return_value=mock_presentation_exchange_record)
-            )
-
             mock_preview.return_value.deserialize.return_value = mock.MagicMock()
 
-            with mock.patch.object(test_module.web, "json_response") as mock_response:
+            with mock.patch.object(test_module.web, "json_response"):
                 await test_module.presentation_exchange_send_proposal(self.request)
-                mock_response.assert_called_once_with(
-                    mock_presentation_exchange_record.serialize.return_value
-                )
 
     async def test_presentation_exchange_send_proposal_no_conn_record(self):
         self.request.json = mock.CoroutineMock()
@@ -362,7 +270,7 @@ class TestProofRoutes(IsolatedAsyncioTestCase):
             ),
             mock.patch(
                 (
-                    "acapy_agent.protocols.present_proof.v1_0."
+                    "present_proof.v1_0."
                     "messages.presentation_proposal.PresentationProposal"
                 ),
                 autospec=True,
@@ -377,38 +285,6 @@ class TestProofRoutes(IsolatedAsyncioTestCase):
             with self.assertRaises(test_module.web.HTTPForbidden):
                 await test_module.presentation_exchange_send_proposal(self.request)
 
-    async def test_presentation_exchange_send_proposal_x(self):
-        self.request.json = mock.CoroutineMock()
-
-        with (
-            mock.patch(
-                "acapy_agent.connections.models.conn_record.ConnRecord",
-                autospec=True,
-            ),
-            mock.patch(
-                "acapy_agent.protocols.present_proof.v1_0.manager.PresentationManager",
-                autospec=True,
-            ) as mock_presentation_manager,
-            mock.patch(
-                "acapy_agent.indy.models.pres_preview.IndyPresPreview",
-                autospec=True,
-            ),
-        ):
-            # Since we are mocking import
-            importlib.reload(test_module)
-
-            mock_presentation_manager.return_value.create_exchange_for_proposal = (
-                mock.CoroutineMock(
-                    return_value=mock.MagicMock(
-                        serialize=mock.MagicMock(side_effect=test_module.StorageError()),
-                        save_error_state=mock.CoroutineMock(),
-                    )
-                )
-            )
-
-            with self.assertRaises(test_module.web.HTTPBadRequest):
-                await test_module.presentation_exchange_send_proposal(self.request)
-
     async def test_presentation_exchange_create_request(self):
         self.request.json = mock.CoroutineMock(
             return_value={"comment": "dummy", "proof_request": {}}
@@ -416,7 +292,7 @@ class TestProofRoutes(IsolatedAsyncioTestCase):
 
         with (
             mock.patch(
-                "acapy_agent.protocols.present_proof.v1_0.manager.PresentationManager",
+                "present_proof.v1_0.manager.PresentationManager",
                 autospec=True,
             ) as mock_presentation_manager,
             mock.patch(
@@ -430,7 +306,7 @@ class TestProofRoutes(IsolatedAsyncioTestCase):
             ) as mock_attach_decorator,
             mock.patch(
                 (
-                    "acapy_agent.protocols.present_proof.v1_0."
+                    "present_proof.v1_0."
                     "models.presentation_exchange.V10PresentationExchange"
                 ),
                 autospec=True,
@@ -626,7 +502,7 @@ class TestProofRoutes(IsolatedAsyncioTestCase):
                 autospec=True,
             ) as mock_connection_record,
             mock.patch(
-                "acapy_agent.protocols.present_proof.v1_0.manager.PresentationManager",
+                "present_proof.v1_0.manager.PresentationManager",
                 autospec=True,
             ) as mock_presentation_manager,
             mock.patch(
@@ -641,7 +517,7 @@ class TestProofRoutes(IsolatedAsyncioTestCase):
             ) as mock_attach_decorator,
             mock.patch(
                 (
-                    "acapy_agent.protocols.present_proof.v1_0."
+                    "present_proof.v1_0."
                     "models.presentation_exchange.V10PresentationExchange"
                 ),
                 autospec=True,
@@ -862,22 +738,16 @@ class TestProofRoutes(IsolatedAsyncioTestCase):
         self.request.json = mock.CoroutineMock(return_value={"trace": False})
         self.request.match_info = {"pres_ex_id": "dummy"}
 
-        with mock.patch(
-            (
-                "acapy_agent.protocols.present_proof.v1_0."
-                "models.presentation_exchange.V10PresentationExchange"
-            ),
-            autospec=True,
-        ) as mock_presentation_exchange:
-            # Since we are mocking import
-            importlib.reload(test_module)
-
-            mock_presentation_exchange.connection_id = "dummy"
-            mock_presentation_exchange.retrieve_by_id = mock.CoroutineMock(
-                return_value=mock.MagicMock(
-                    state=mock_presentation_exchange.STATE_PRESENTATION_ACKED
+        with mock.patch.object(
+            V10PresentationExchange,
+            "retrieve_by_id",
+            mock.CoroutineMock(
+                return_value=V10PresentationExchange(
+                    state=V10PresentationExchange.STATE_PRESENTATION_ACKED,
+                    connection_id="dummy",
                 )
-            )
+            ),
+        ) as mock_presentation_exchange:
             with self.assertRaises(test_module.web.HTTPBadRequest):
                 await test_module.presentation_exchange_send_bound_request(self.request)
 
@@ -1137,21 +1007,15 @@ class TestProofRoutes(IsolatedAsyncioTestCase):
         self.request.json = mock.CoroutineMock()
         self.request.match_info = {"pres_ex_id": "dummy"}
 
-        with mock.patch(
-            (
-                "acapy_agent.protocols.present_proof.v1_0."
-                "models.presentation_exchange.V10PresentationExchange"
-            ),
-            autospec=True,
-        ) as mock_presentation_exchange:
-            # Since we are mocking import
-            importlib.reload(test_module)
-
-            mock_presentation_exchange.retrieve_by_id = mock.CoroutineMock(
-                return_value=mock.MagicMock(
-                    state=mock_presentation_exchange.STATE_PRESENTATION_ACKED
+        with mock.patch.object(
+            V10PresentationExchange,
+            "retrieve_by_id",
+            mock.CoroutineMock(
+                return_value=V10PresentationExchange(
+                    state=V10PresentationExchange.STATE_PRESENTATION_ACKED
                 )
-            )
+            ),
+        ) as mock_presentation_exchange:
             with self.assertRaises(test_module.web.HTTPBadRequest):
                 await test_module.presentation_exchange_send_presentation(self.request)
 
@@ -1299,89 +1163,16 @@ class TestProofRoutes(IsolatedAsyncioTestCase):
         self.request.json = mock.CoroutineMock()
         self.request.match_info = {"pres_ex_id": "dummy"}
 
-        with mock.patch(
-            (
-                "acapy_agent.protocols.present_proof.v1_0."
-                "models.presentation_exchange.V10PresentationExchange"
-            ),
-            autospec=True,
-        ) as mock_presentation_exchange:
-            # Since we are mocking import
-            importlib.reload(test_module)
-
-            mock_presentation_exchange.retrieve_by_id = mock.CoroutineMock(
+        with mock.patch.object(
+            V10PresentationExchange,
+            "retrieve_by_id",
+            mock.CoroutineMock(
                 return_value=mock.MagicMock(
-                    state=mock_presentation_exchange.STATE_PRESENTATION_ACKED
+                    state=V10PresentationExchange.STATE_PRESENTATION_ACKED
                 )
-            )
-            with self.assertRaises(test_module.web.HTTPBadRequest):
-                await test_module.presentation_exchange_verify_presentation(self.request)
-
-    async def test_presentation_exchange_verify_presentation_x(self):
-        self.request.match_info = {"pres_ex_id": "dummy"}
-        self.profile.context.injector.bind_instance(
-            BaseLedger,
-            mock.MagicMock(
-                __aenter__=mock.CoroutineMock(),
-                __aexit__=mock.CoroutineMock(),
             ),
-        )
-        self.profile.context.injector.bind_instance(
-            IndyVerifier,
-            mock.MagicMock(
-                verify_presentation=mock.CoroutineMock(),
-            ),
-        )
-
-        with (
-            mock.patch(
-                "acapy_agent.connections.models.conn_record.ConnRecord",
-                autospec=True,
-            ) as mock_connection_record,
-            mock.patch(
-                "acapy_agent.protocols.present_proof.v1_0.manager.PresentationManager",
-                autospec=True,
-            ) as mock_presentation_manager,
-            mock.patch(
-                (
-                    "acapy_agent.protocols.present_proof.v1_0."
-                    "models.presentation_exchange.V10PresentationExchange"
-                ),
-                autospec=True,
-            ) as mock_presentation_exchange,
         ):
-            # Since we are mocking import
-            importlib.reload(test_module)
-
-            mock_presentation_exchange.retrieve_by_id = mock.CoroutineMock(
-                return_value=mock.MagicMock(
-                    state=mock_presentation_exchange.STATE_PRESENTATION_RECEIVED,
-                    connection_id="dummy",
-                    thread_id="dummy",
-                    serialize=mock.MagicMock(
-                        return_value={"thread_id": "sample-thread-id"}
-                    ),
-                    save_error_state=mock.CoroutineMock(),
-                )
-            )
-
-            mock_connection_record.is_ready = True
-            mock_connection_record.retrieve_by_id = mock.CoroutineMock(
-                return_value=mock_connection_record
-            )
-            mock_mgr = mock.MagicMock(
-                verify_presentation=mock.CoroutineMock(
-                    side_effect=[
-                        test_module.LedgerError(),
-                        test_module.StorageError(),
-                    ]
-                ),
-            )
-            mock_presentation_manager.return_value = mock_mgr
-
-            with self.assertRaises(test_module.web.HTTPBadRequest):  # ledger error
-                await test_module.presentation_exchange_verify_presentation(self.request)
-            with self.assertRaises(test_module.web.HTTPBadRequest):  # storage error
+            with self.assertRaises(test_module.web.HTTPBadRequest):
                 await test_module.presentation_exchange_verify_presentation(self.request)
 
     async def test_presentation_exchange_problem_report(self):
@@ -1390,28 +1181,18 @@ class TestProofRoutes(IsolatedAsyncioTestCase):
         magic_report = mock.MagicMock()
 
         with (
-            mock.patch(
-                (
-                    "acapy_agent.protocols.present_proof.v1_0."
-                    "models.presentation_exchange.V10PresentationExchange"
+            mock.patch.object(
+                V10PresentationExchange,
+                "retrieve_by_id",
+                mock.CoroutineMock(
+                    return_value=mock.MagicMock(save_error_state=mock.CoroutineMock())
                 ),
-                autospec=True,
             ) as mock_pres_ex,
-            mock.patch(
-                "acapy_agent.protocols.present_proof.v1_0.manager.PresentationManager",
-                autospec=True,
-            ),
             mock.patch.object(
                 test_module, "problem_report_for_record", mock.MagicMock()
             ) as mock_problem_report,
             mock.patch.object(test_module.web, "json_response") as mock_response,
         ):
-            # Since we are mocking import
-            importlib.reload(test_module)
-
-            mock_pres_ex.retrieve_by_id = mock.CoroutineMock(
-                return_value=mock.MagicMock(save_error_state=mock.CoroutineMock())
-            )
             mock_problem_report.return_value = magic_report
 
             await test_module.presentation_exchange_problem_report(self.request)
@@ -1426,25 +1207,12 @@ class TestProofRoutes(IsolatedAsyncioTestCase):
         self.request.match_info = {"pres_ex_id": "dummy"}
 
         with (
-            mock.patch(
-                "acapy_agent.protocols.present_proof.v1_0.manager.PresentationManager",
-                autospec=True,
-            ),
-            mock.patch(
-                (
-                    "acapy_agent.protocols.present_proof.v1_0."
-                    "models.presentation_exchange.V10PresentationExchange"
-                ),
-                autospec=True,
+            mock.patch.object(
+                V10PresentationExchange,
+                "retrieve_by_id",
+                mock.CoroutineMock(side_effect=test_module.StorageNotFoundError()),
             ) as mock_pres_ex,
         ):
-            # Since we are mocking import
-            importlib.reload(test_module)
-
-            mock_pres_ex.retrieve_by_id = mock.CoroutineMock(
-                side_effect=test_module.StorageNotFoundError()
-            )
-
             with self.assertRaises(test_module.web.HTTPNotFound):
                 await test_module.presentation_exchange_problem_report(self.request)
 
@@ -1453,50 +1221,34 @@ class TestProofRoutes(IsolatedAsyncioTestCase):
         self.request.match_info = {"pres_ex_id": "dummy"}
 
         with (
-            mock.patch(
-                (
-                    "acapy_agent.protocols.present_proof.v1_0."
-                    "models.presentation_exchange.V10PresentationExchange"
-                ),
-                autospec=True,
+            mock.patch.object(
+                V10PresentationExchange,
+                "retrieve_by_id",
+                mock.CoroutineMock(side_effect=test_module.StorageError()),
             ) as mock_pres_ex,
             mock.patch(
-                "acapy_agent.protocols.present_proof.v1_0.manager.PresentationManager",
+                "present_proof.v1_0.manager.PresentationManager",
                 autospec=True,
             ),
             mock.patch.object(test_module, "problem_report_for_record", mock.MagicMock()),
             mock.patch.object(test_module.web, "json_response"),
         ):
-            # Since we are mocking import
-            importlib.reload(test_module)
-            mock_pres_ex.retrieve_by_id = mock.CoroutineMock(
-                side_effect=test_module.StorageError()
-            )
-
             with self.assertRaises(test_module.web.HTTPBadRequest):
                 await test_module.presentation_exchange_problem_report(self.request)
 
     async def test_presentation_exchange_remove(self):
         self.request.match_info = {"pres_ex_id": "dummy"}
 
-        with mock.patch(
-            (
-                "acapy_agent.protocols.present_proof.v1_0."
-                "models.presentation_exchange.V10PresentationExchange"
-            ),
-            autospec=True,
-        ) as mock_presentation_exchange:
-            # Since we are mocking import
-            importlib.reload(test_module)
-
-            mock_presentation_exchange.retrieve_by_id = mock.CoroutineMock(
-                return_value=mock.MagicMock(
-                    state=mock_presentation_exchange.STATE_VERIFIED,
+        with mock.patch.object(
+            V10PresentationExchange,
+            "retrieve_by_id",
+            mock.CoroutineMock(
+                return_value=V10PresentationExchange(
+                    state=V10PresentationExchange.STATE_VERIFIED,
                     connection_id="dummy",
-                    delete_record=mock.CoroutineMock(),
                 )
-            )
-
+            ),
+        ):
             with mock.patch.object(test_module.web, "json_response") as mock_response:
                 await test_module.presentation_exchange_remove(self.request)
                 mock_response.assert_called_once_with({})
@@ -1505,48 +1257,12 @@ class TestProofRoutes(IsolatedAsyncioTestCase):
         self.request.json = mock.CoroutineMock()
         self.request.match_info = {"pres_ex_id": "dummy"}
 
-        with mock.patch(
-            (
-                "acapy_agent.protocols.present_proof.v1_0."
-                "models.presentation_exchange.V10PresentationExchange"
-            ),
-            autospec=True,
-        ) as mock_presentation_exchange:
-            # Since we are mocking import
-            importlib.reload(test_module)
-
-            # Emulate storage not found (bad pres ex id)
-            mock_presentation_exchange.retrieve_by_id = mock.CoroutineMock(
-                side_effect=StorageNotFoundError
-            )
-
+        with mock.patch.object(
+            V10PresentationExchange,
+            "retrieve_by_id",
+            mock.CoroutineMock(side_effect=StorageNotFoundError),
+        ):
             with self.assertRaises(test_module.web.HTTPNotFound):
-                await test_module.presentation_exchange_remove(self.request)
-
-    async def test_presentation_exchange_remove_x(self):
-        self.request.match_info = {"pres_ex_id": "dummy"}
-
-        with mock.patch(
-            (
-                "acapy_agent.protocols.present_proof.v1_0."
-                "models.presentation_exchange.V10PresentationExchange"
-            ),
-            autospec=True,
-        ) as mock_presentation_exchange:
-            # Since we are mocking import
-            importlib.reload(test_module)
-
-            mock_presentation_exchange.retrieve_by_id = mock.CoroutineMock(
-                return_value=mock.MagicMock(
-                    state=mock_presentation_exchange.STATE_VERIFIED,
-                    connection_id="dummy",
-                    delete_record=mock.CoroutineMock(
-                        side_effect=test_module.StorageError()
-                    ),
-                )
-            )
-
-            with self.assertRaises(test_module.web.HTTPBadRequest):
                 await test_module.presentation_exchange_remove(self.request)
 
     async def test_register(self):

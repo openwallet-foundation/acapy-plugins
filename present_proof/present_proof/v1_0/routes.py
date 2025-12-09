@@ -1,17 +1,8 @@
 """Admin routes for presentations."""
 
 import json
-
-from aiohttp import web
-from aiohttp_apispec import (
-    docs,
-    match_info_schema,
-    querystring_schema,
-    request_schema,
-    response_schema,
-)
-from marshmallow import fields, validate
-from marshmallow.validate import Range
+import logging
+from typing import Mapping
 
 from acapy_agent.admin.decorators.auth import tenant_authentication
 from acapy_agent.admin.request_context import AdminRequestContext
@@ -40,10 +31,42 @@ from acapy_agent.messaging.valid import (
     UUID4_EXAMPLE,
     UUID4_VALIDATE,
 )
+from acapy_agent.protocols.issue_credential.v2_0.models.cred_ex_record import (
+    V20CredExRecord,
+)
+from acapy_agent.protocols.out_of_band.v1_0.manager import (
+    InvitationCreator,
+    OutOfBandManager,
+    OutOfBandManagerError,
+)
+from acapy_agent.protocols.out_of_band.v1_0.messages.invitation import (
+    HSProto,
+    InvitationMessage,
+)
+from acapy_agent.protocols.out_of_band.v1_0.routes import (
+    InvitationCreateQueryStringSchema,
+    InvitationCreateRequestSchema,
+    InvitationRecordSchema,
+)
+from acapy_agent.protocols.present_proof.v2_0.models.pres_exchange import (
+    V20PresExRecord,
+)
 from acapy_agent.storage.base import DEFAULT_PAGE_SIZE, MAXIMUM_PAGE_SIZE
 from acapy_agent.storage.error import StorageError, StorageNotFoundError
 from acapy_agent.utils.tracing import AdminAPIMessageTracingSchema, get_timer, trace_event
 from acapy_agent.wallet.error import WalletNotFoundError
+from aiohttp import web
+from aiohttp_apispec import (
+    docs,
+    match_info_schema,
+    querystring_schema,
+    request_schema,
+    response_schema,
+)
+from issue_credential.v1_0.models.credential_exchange import V10CredentialExchange
+from marshmallow import ValidationError, fields, validate
+from marshmallow.validate import Range
+
 from . import problem_report_for_record, report_problem
 from .manager import PresentationManager, PresentationManagerError
 from .message_types import ATTACH_DECO_IDS, PRESENTATION_REQUEST, SPEC_URI
@@ -54,6 +77,44 @@ from .models.presentation_exchange import (
     V10PresentationExchange,
     V10PresentationExchangeSchema,
 )
+
+LOGGER = logging.getLogger(__name__)
+
+# Monkey patch the create_attachment method to handle v1 credential-offer attachments
+_original_create_attachment = InvitationCreator.create_attachment
+
+
+async def _patched_create_attachment(self, attachment: Mapping, pthid: str, session):
+    a_type = attachment.get("type")
+    a_id = attachment.get("id")
+    if a_type == "credential-offer":
+        try:
+            cred_ex_rec = await V10CredentialExchange.retrieve_by_id(
+                session,
+                a_id,
+            )
+            message = cred_ex_rec.credential_offer_dict
+        except StorageNotFoundError:
+            cred_ex_rec = await V20CredExRecord.retrieve_by_id(
+                session,
+                a_id,
+            )
+            message = cred_ex_rec.cred_offer
+    if a_type == "present-proof":
+        try:
+            pres_ex_rec = await V10PresentationExchange.retrieve_by_id(session, a_id)
+            message = pres_ex_rec.presentation_request_dict
+        except StorageNotFoundError:
+            pres_ex_rec = await V20PresExRecord.retrieve_by_id(session, a_id)
+            message = pres_ex_rec.pres_request
+
+        message.assign_thread_id(pthid=pthid)
+        return InvitationMessage.wrap_message(message.serialize())
+    else:
+        return await _original_create_attachment(self, attachment, pthid, session)
+
+
+InvitationCreator.create_attachment = _patched_create_attachment
 
 
 class V10PresentProofModuleResponseSchema(OpenAPISchema):
@@ -1101,6 +1162,73 @@ async def presentation_exchange_remove(request: web.BaseRequest):
     return web.json_response({})
 
 
+@docs(
+    tags=["out-of-band"],
+    summary="Create a new connection invitation",
+)
+@querystring_schema(InvitationCreateQueryStringSchema())
+@request_schema(InvitationCreateRequestSchema())
+@response_schema(InvitationRecordSchema(), description="")
+@tenant_authentication
+async def invitation_create(request: web.BaseRequest):
+    """Request handler for creating a new connection invitation.
+
+    Args:
+        request: aiohttp request object
+
+    Returns:
+        The out of band invitation details
+
+    """
+    context: AdminRequestContext = request["context"]
+
+    body = await request.json() if request.body_exists else {}
+    attachments = body.get("attachments")
+    handshake_protocols = body.get("handshake_protocols", [])
+    service_accept = body.get("accept")
+    use_public_did = body.get("use_public_did", False)
+    use_did = body.get("use_did")
+    use_did_method = body.get("use_did_method")
+    metadata = body.get("metadata")
+    my_label = body.get("my_label")
+    alias = body.get("alias")
+    mediation_id = body.get("mediation_id")
+    protocol_version = body.get("protocol_version")
+    goal_code = body.get("goal_code")
+    goal = body.get("goal")
+
+    multi_use = json.loads(request.query.get("multi_use", "false"))
+    auto_accept = json.loads(request.query.get("auto_accept", "null"))
+    create_unique_did = json.loads(request.query.get("create_unique_did", "false"))
+
+    profile = context.profile
+
+    oob_mgr = OutOfBandManager(profile)
+    try:
+        invi_rec = await oob_mgr.create_invitation(
+            my_label=my_label,
+            auto_accept=auto_accept,
+            public=use_public_did,
+            use_did=use_did,
+            use_did_method=use_did_method,
+            hs_protos=[h for h in [HSProto.get(hsp) for hsp in handshake_protocols] if h],
+            multi_use=multi_use,
+            create_unique_did=create_unique_did,
+            attachments=attachments,
+            metadata=metadata,
+            alias=alias,
+            mediation_id=mediation_id,
+            service_accept=service_accept,
+            protocol_version=protocol_version,
+            goal_code=goal_code,
+            goal=goal,
+        )
+    except (StorageNotFoundError, ValidationError, OutOfBandManagerError) as e:
+        raise web.HTTPBadRequest(reason=e.roll_up)
+
+    return web.json_response(invi_rec.serialize())
+
+
 async def register(app: web.Application):
     """Register routes."""
     app.add_routes(
@@ -1154,6 +1282,14 @@ async def register(app: web.Application):
             ),
         ]
     )
+
+    # OOB backwards compatibility. This is needed for adding v1 attachments.
+    for r in app.router.routes():
+        if r.resource and r.resource.canonical == "/out-of-band/create-invitation":
+            LOGGER.info(
+                "Replacing /out-of-band/create-invitation route for v1.0 capability"
+            )
+            r._handler = invitation_create
 
 
 def post_process_routes(app: web.Application):

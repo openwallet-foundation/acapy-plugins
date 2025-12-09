@@ -252,6 +252,17 @@ class V10PresentationExchange(BaseExchangeRecord):
     def __eq__(self, other: Any) -> bool:
         """Comparison between records."""
         return super().__eq__(other)
+    
+    def get_ac_proof_request(self) -> dict:
+        """Retrieve indy proof request."""
+        if not self._presentation_request:
+            raise ValueError("No presentation request on this record")
+
+        proof_request = self._presentation_request.ser
+        if proof_request is None:
+            raise ValueError("No proof request on this record")
+
+        return proof_request
 
 
 class V10PresentationExchangeSchema(BaseExchangeSchema):
