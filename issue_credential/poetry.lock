@@ -48,7 +48,7 @@ requests = "~2.32.3"
 rlp = "^4.1.0"
 sd-jwt = "^0.10.3"
 unflatten = "~0.2"
-uuid_utils = ">=0.10,<0.12"
+uuid_utils = ">=0.10,<0.13"
 
 [package.extras]
 bbs = ["ursa-bbs-signatures (>=1.0.1,<1.1.0)"]
@@ -59,7 +59,7 @@ sqlcipher = ["sqlcipher3-binary (>=0.5.4)"]
 type = "git"
 url = "https://github.com/openwallet-foundation/acapy.git"
 reference = "main"
-resolved_reference = "7217343bee95105fac43d23ffdd498d0d49c007f"
+resolved_reference = "84006f65d2ae02bf28c405c2038bc8063fba7b1a"
 
 [[package]]
 name = "aiohappyeyeballs"
@@ -267,7 +267,6 @@ files = [
 
 [package.dependencies]
 frozenlist = ">=1.1.0"
-typing-extensions = {version = ">=4.2", markers = "python_version < \"3.13\""}
 
 [[package]]
 name = "annotated-types"
@@ -2125,16 +2124,16 @@ files = []
 develop = false
 
 [package.dependencies]
-issue-credential = {git = "https://github.com/jamshale/acapy-plugins.git", branch = "present-proof", subdirectory = "issue_credential"}
+issue-credential = {git = "https://github.com/openwallet-foundation/acapy-plugins.git", branch = "main", subdirectory = "issue_credential"}
 
 [package.extras]
 aca-py = ["acapy-agent @ git+https://github.com/jamshale/acapy.git@remove-present-proof-v1"]
 
 [package.source]
 type = "git"
-url = "https://github.com/openwallet-foundation/acapy-plugins.git"
-reference = "main"
-resolved_reference = "3fb3d940fb8884e0ed277f0d22031186408bb3cd"
+url = "https://github.com/jamshale/acapy-plugins.git"
+reference = "present-proof"
+resolved_reference = "985b1766582b68efaab99410a808ed3a20ba3cdc"
 subdirectory = "present_proof"
 
 [[package]]
@@ -2302,7 +2301,6 @@ files = [
 [package.dependencies]
 psycopg-binary = {version = "3.2.10", optional = true, markers = "implementation_name != \"pypy\" and extra == \"binary\""}
 psycopg-pool = {version = "*", optional = true, markers = "extra == \"pool\""}
-typing-extensions = {version = ">=4.6", markers = "python_version < \"3.13\""}
 tzdata = {version = "*", markers = "sys_platform == \"win32\""}
 
 [package.extras]
@@ -2729,7 +2727,6 @@ files = [
 
 [package.dependencies]
 pytest = ">=8.2,<10"
-typing-extensions = {version = ">=4.12", markers = "python_version < \"3.13\""}
 
 [package.extras]
 docs = ["sphinx (>=5.3)", "sphinx-rtd-theme (>=1)"]
@@ -3077,14 +3074,14 @@ files = [
 name = "typing-extensions"
 version = "4.15.0"
 description = "Backported and Experimental Type Hints for Python 3.9+"
-optional = false
+optional = true
 python-versions = ">=3.9"
-groups = ["main", "dev"]
+groups = ["main"]
+markers = "extra == \"aca-py\""
 files = [
     {file = "typing_extensions-4.15.0-py3-none-any.whl", hash = "sha256:f0fa19c6845758ab08074a0cfa8b7aecb71c999ca73d62883bc25cc018c4e548"},
     {file = "typing_extensions-4.15.0.tar.gz", hash = "sha256:0cea48d173cc12fa28ecabc3b837ea3cf6f38c6d1136f85cbaaf598984861466"},
 ]
-markers = {main = "extra == \"aca-py\"", dev = "python_version == \"3.12\""}
 
 [[package]]
 name = "typing-inspection"
@@ -3388,5 +3385,5 @@ aca-py = ["acapy-agent"]
 
 [metadata]
 lock-version = "2.1"
-python-versions = "^3.12"
-content-hash = "4d2af30d2de4425d762e306c3b7ab10c3c7c0f7993b3edd193ff629ccbbaf279"
+python-versions = "^3.13"
+content-hash = "df9cdb31e9fdc6a376141dcee5153a78a51895add39ab189bae28ae98df82637"
