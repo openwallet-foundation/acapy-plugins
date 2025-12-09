@@ -71,6 +71,7 @@ jobs:
           for dir in ${{ steps.changed-plugins.outputs.changed-plugins }}; do
             echo "Installing dependencies for $dir"
             cd $dir
+            echo "Installing dependencies for $dir"
             poetry install --no-interaction --no-root --all-extras
             cd ..
           done
