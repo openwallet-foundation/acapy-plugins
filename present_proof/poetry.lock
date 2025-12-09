@@ -59,7 +59,7 @@ sqlcipher = ["sqlcipher3-binary (>=0.5.4)"]
 type = "git"
 url = "https://github.com/jamshale/acapy.git"
 reference = "remove-present-proof-v1"
-resolved_reference = "ddad3ca2dee7e0faf28935c80f6ad855e24d1ccb"
+resolved_reference = "51b63ff2e4605eafc319812951d3497ae534279c"
 
 [[package]]
 name = "aiohappyeyeballs"
@@ -1493,6 +1493,26 @@ files = [
     {file = "iniconfig-2.3.0-py3-none-any.whl", hash = "sha256:f631c04d2c48c52b84d0d0549c99ff3859c98df65b3101406327ecc7d53fbf12"},
     {file = "iniconfig-2.3.0.tar.gz", hash = "sha256:c76315c77db068650d49c5b56314774a7804df16fee4402c1f19d6d15d8c4730"},
 ]
+
+[[package]]
+name = "issue-credential"
+version = "0.1.0"
+description = ""
+optional = false
+python-versions = "^3.12"
+groups = ["main"]
+files = []
+develop = false
+
+[package.extras]
+aca-py = ["acapy-agent @ git+https://github.com/openwallet-foundation/acapy.git@main"]
+
+[package.source]
+type = "git"
+url = "https://github.com/openwallet-foundation/acapy-plugins.git"
+reference = "main"
+resolved_reference = "de4fbcc363edeeef0b0659e7dda190f97c43cddb"
+subdirectory = "issue_credential"
 
 [[package]]
 name = "jinja2"
@@ -3489,4 +3509,4 @@ aca-py = ["acapy-agent"]
 [metadata]
 lock-version = "2.1"
 python-versions = "^3.12"
-content-hash = "2fa4debd2946f950d8e5e5b68cd1280ff65b7f28a91a4e96ccf40903f42c4832"
+content-hash = "b5e9f82403843154fa99623cf56b1ed6876ffaa9f3690df4ecbc2c84c5f80e47"
