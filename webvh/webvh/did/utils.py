@@ -3,6 +3,7 @@
 import base64
 import hashlib
 import json
+from dataclasses import dataclass
 
 import jcs
 from multiformats import multibase, multihash
@@ -17,7 +18,42 @@ ALIAS_PURPOSES = {
     "nextKey": "@nextKey",
     "updateKey": "@updateKey",
     "witnessKey": "@witnessKey",
+    "innkeeperKey": "@innkeeper",
 }
+
+
+@dataclass(frozen=True)
+class ParsedWebVHDID:
+    """Parsed WebVH DID components."""
+
+    did: str
+    method: str  # "webvh"
+    scid: str
+    domain: str
+    namespace: str
+    identifier: str
+
+    def __str__(self) -> str:
+        """Return the full DID string."""
+        return self.did
+
+    @property
+    def namespace_identifier(self) -> tuple[str, str]:
+        """Get namespace and identifier as a tuple."""
+        return (self.namespace, self.identifier)
+
+
+@dataclass(frozen=True)
+class ParsedDIDKey:
+    """Parsed did:key DID components."""
+
+    did: str
+    method: str  # "key"
+    key: str
+
+    def __str__(self) -> str:
+        """Return the full DID string."""
+        return self.did
 
 
 def url_to_domain(url: str):
@@ -67,15 +103,130 @@ def all_are_not_none(*args):
     return all(v is not None for v in args)
 
 
-def get_namespace_and_identifier_from_did(did: str):
-    """Extract namespace and identifier from a DID."""
+def parse_webvh(did: str) -> ParsedWebVHDID:
+    """Parse a WebVH DID into its components.
+
+    Expected format: did:webvh:{scid}:{domain}:{namespace}:{identifier}
+
+    Args:
+        did: The DID string to parse
+
+    Returns:
+        ParsedWebVHDID object with parsed components
+
+    Raises:
+        ValueError: If the DID format is invalid
+    """
     parts = did.split(":")
-    if len(parts) < 5:
+    if len(parts) < 6:
         raise ValueError(
-            "Invalid DID format. Expected 'did:webvh:<url>:<namespace>:<identifier>'"
+            "Invalid WebVH DID format. "
+            f"Expected 'did:webvh:{{scid}}:{{domain}}:{{namespace}}:{{identifier}}', "
+            f"got: {did}"
         )
 
-    return parts[4], parts[5]
+    if parts[0] != "did":
+        raise ValueError(f"Invalid DID format. Must start with 'did:', got: {did}")
+
+    if parts[1] != "webvh":
+        raise ValueError(f"Invalid DID method. Expected 'webvh', got: {parts[1]}")
+
+    return ParsedWebVHDID(
+        did=did,
+        method=parts[1],
+        scid=parts[2],
+        domain=parts[3],
+        namespace=parts[4],
+        identifier=parts[5],
+    )
+
+
+def parse_did_key(did: str) -> ParsedDIDKey:
+    """Parse a did:key DID into its components.
+
+    Expected format: did:key:{key}
+
+    Args:
+        did: The DID string to parse
+
+    Returns:
+        ParsedDIDKey object with parsed components
+
+    Raises:
+        ValueError: If the DID format is invalid
+    """
+    parts = did.split(":")
+    if len(parts) < 3:
+        raise ValueError(
+            f"Invalid did:key format. Expected 'did:key:{{key}}', got: {did}"
+        )
+
+    if parts[0] != "did":
+        raise ValueError(f"Invalid DID format. Must start with 'did:', got: {did}")
+
+    if parts[1] != "key":
+        raise ValueError(f"Invalid DID method. Expected 'key', got: {parts[1]}")
+
+    # The key is everything after "did:key:"
+    key = ":".join(parts[2:])
+
+    return ParsedDIDKey(did=did, method=parts[1], key=key)
+
+
+def parse_did(did: str) -> ParsedWebVHDID | ParsedDIDKey:
+    """Parse a DID, automatically detecting the format.
+
+    Args:
+        did: The DID string to parse
+
+    Returns:
+        ParsedWebVHDID or ParsedDIDKey object depending on DID method
+
+    Raises:
+        ValueError: If the DID format is invalid or unsupported
+    """
+    parts = did.split(":")
+    if len(parts) < 2:
+        raise ValueError(f"Invalid DID format: {did}")
+
+    method = parts[1]
+
+    if method == "webvh":
+        return parse_webvh(did)
+    elif method == "key":
+        return parse_did_key(did)
+    else:
+        raise ValueError(
+            f"Unsupported DID method: {method}. Supported methods: webvh, key"
+        )
+
+
+def extract_key_from_did_key(did: str) -> str:
+    """Extract the key from a did:key DID.
+
+    This is a convenience function for extracting just the key portion.
+
+    Args:
+        did: The did:key string
+
+    Returns:
+        The key portion of the DID
+
+    Raises:
+        ValueError: If the DID format is invalid
+    """
+    parsed = parse_did_key(did)
+    return parsed.key
+
+
+def get_namespace_and_identifier_from_did(did: str):
+    """Extract namespace and identifier from a DID.
+
+    This function is kept for backward compatibility.
+    Consider using parse_webvh() directly for new code.
+    """
+    parsed = parse_webvh(did)
+    return parsed.namespace_identifier
 
 
 async def create_key(profile, kid=None) -> str:
@@ -147,14 +298,34 @@ async def verify_proof(profile, document) -> bool:
     return verified
 
 
-def validate_did(did: str, domain: str, namespace: str, identifier: str) -> bool:
-    """Validate a did aginst the components."""
-    return (
-        True
-        if (
-            did.split(":")[3] == domain
-            and did.split(":")[4] == namespace
-            and did.split(":")[5] == identifier
+def validate_webvh_did(did: str, domain: str, namespace: str, identifier: str) -> bool:
+    """Validate a did against the components.
+
+    Args:
+        did: The DID string to validate
+        domain: Expected domain
+        namespace: Expected namespace
+        identifier: Expected identifier
+
+    Returns:
+        True if the DID matches the components, False otherwise
+    """
+    try:
+        parsed = parse_webvh(did)
+        return (
+            parsed.domain == domain
+            and parsed.namespace == namespace
+            and parsed.identifier == identifier
         )
-        else False
-    )
+    except ValueError:
+        return False
+
+
+def validate_did(did: str, domain: str, namespace: str, identifier: str) -> bool:
+    """Validate a did against the components.
+
+    This function is kept for backward compatibility.
+    Consider using validate_webvh_did() directly for new code.
+    """
+    return validate_webvh_did(did, domain, namespace, identifier)
+
