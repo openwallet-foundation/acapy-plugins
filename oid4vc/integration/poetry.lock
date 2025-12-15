@@ -208,20 +208,17 @@ files = [
 
 [[package]]
 name = "aries-askar"
-version = "0.3.2"
-description = ""
+version = "0.5.0"
+description = "Python wrapper for the Aries Askar cryptographic library"
 optional = false
-python-versions = ">=3.6.3"
+python-versions = "<4.0,>=3.10"
 groups = ["main"]
 files = [
-    {file = "aries_askar-0.3.2-py3-none-macosx_10_9_universal2.whl", hash = "sha256:02ddbe1773ce72c57edafff5777a1337d4a678da7484596712949170fb3ca1dc"},
-    {file = "aries_askar-0.3.2-py3-none-manylinux2014_aarch64.whl", hash = "sha256:176eebcf833bb9974a162fd931c8d67669e4f0145b351ce9cb1289fd2d5a345c"},
-    {file = "aries_askar-0.3.2-py3-none-manylinux2014_x86_64.whl", hash = "sha256:63f9ab97db4778ced830a6d1135e1f8bd1ca564de27218bd114f1cffbd31b04c"},
-    {file = "aries_askar-0.3.2-py3-none-win_amd64.whl", hash = "sha256:6b4253377d5ed167ed94790e49c58584b68f897d2541ac4bb18fd37e9264164b"},
+    {file = "aries_askar-0.5.0-py3-none-macosx_10_9_universal2.whl", hash = "sha256:03da20836bbc9cd4d6ad7c272d52caa7a9089fc754da58f849bfe4a81a0d27be"},
+    {file = "aries_askar-0.5.0-py3-none-manylinux2014_aarch64.whl", hash = "sha256:be5bc1c89d9633ec1d9e20222f97f4c78a345f675f825529bdc28103be29f6ba"},
+    {file = "aries_askar-0.5.0-py3-none-manylinux2014_x86_64.whl", hash = "sha256:ee736b24acf724b866bb1bd8b64b075806b39cf6a7ab35b668f12fbf7ffda077"},
+    {file = "aries_askar-0.5.0-py3-none-win_amd64.whl", hash = "sha256:1301e330c0dfb0fc81335a98e167671630d2eb47f536d8dc52b15ea738c973aa"},
 ]
-
-[package.dependencies]
-cached-property = ">=1.5.2,<1.6.0"
 
 [[package]]
 name = "async-selective-queue"
@@ -330,18 +327,6 @@ files = [
 
 [package.dependencies]
 six = "*"
-
-[[package]]
-name = "cached-property"
-version = "1.5.2"
-description = "A decorator for caching properties in classes."
-optional = false
-python-versions = "*"
-groups = ["main"]
-files = [
-    {file = "cached-property-1.5.2.tar.gz", hash = "sha256:9fa5755838eecbb2d234c3aa390bd80fbd3ac6b6869109bfc1b499f7bd89a130"},
-    {file = "cached_property-1.5.2-py2.py3-none-any.whl", hash = "sha256:df4f613cf7ad9a588cc381aaf4a512d26265ecebd5eb9e1ba12f1319eb85a6a0"},
-]
 
 [[package]]
 name = "certifi"
@@ -1290,4 +1275,4 @@ propcache = ">=0.2.0"
 [metadata]
 lock-version = "2.1"
 python-versions = "^3.12"
-content-hash = "22fe4fa4613eec01c7da39e3a5ee405bb1100785964532bc20110c1df3432786"
+content-hash = "bf734620480ea4e3c21f78e24a15ad423805bfc972874bcf80d09a38a98b8a90"
