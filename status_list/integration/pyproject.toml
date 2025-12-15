@@ -13,7 +13,7 @@ requests = "^2.32.0"
 
 [tool.poetry.group.dev.dependencies]
 black = "^24.4.2"
-ruff = "^0.14.8"
+ruff = "^0.14.9"
 
 [tool.pytest.ini_options]
 

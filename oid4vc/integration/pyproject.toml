@@ -12,7 +12,7 @@ python = "^3.12"
 pytest = "^8.3.5"
 pytest-asyncio = "^1.2.0"
 requests = "^2.32.0"
-aries-askar = "^0.3.0"
+aries-askar = "^0.5.0"
 did-peer-4 = "^0.1.4"
 aiohttp = "^3.9.5"
 acapy-controller = {git = "https://github.com/indicio-tech/acapy-minimal-example.git", python = ">=3.10,<4.0"}
@@ -21,7 +21,7 @@ pydantic = "~2.7.0"
 
 [tool.poetry.group.dev.dependencies]
 black = "^24.4.2"
-ruff = "^0.14.8"
+ruff = "^0.14.9"
 
 [tool.pytest.ini_options]
 addopts = "-m 'not interop'"

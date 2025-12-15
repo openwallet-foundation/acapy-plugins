@@ -70,6 +70,7 @@ jobs:
         if: steps.cached-poetry-dependencies.outputs.cache-hit != 'true'
         run: |
           for dir in ${{ steps.changed-plugins.outputs.changed-plugins }}; do
+            echo "Installing dependencies for $dir"
             cd $dir
             poetry install --no-interaction --no-root --all-extras
             cd ..
@@ -81,6 +82,7 @@ jobs:
         id: lint-plugins
         run: |
           for dir in ${{ steps.changed-plugins.outputs.changed-plugins }}; do
+            echo "Linting $dir"
             cd $dir
             poetry run ruff check .
             poetry run ruff format --check .
@@ -93,6 +95,7 @@ jobs:
         id: unit-tests
         run: |
           for dir in ${{ steps.changed-plugins.outputs.changed-plugins }}; do
+            echo "Running unit tests for $dir"
             cd $dir
             poetry run pytest
             cd ..
