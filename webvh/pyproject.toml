@@ -15,7 +15,7 @@ did-webvh = "1.0.0"
 jcs = "^0.2.1"
 multiformats = "^0.3.1.post4"
 bitstring = "^4.3.0"
-aries-askar = "^0.4.3"
+aries-askar = "^0.5.0"
 
 [tool.poetry.extras]
 aca-py = ["acapy-agent"]
