@@ -10,14 +10,15 @@ inbound-transport:
   
 outbound-transport: http
 endpoint:
-  - http://host.docker.internal:3000
+  - http://localhost:3000
 
 plugin:
   - present_proof.v1_0
+  - issue_credential.v1_0
 
-genesis-url: http://test.bcovrin.vonx.io/genesis
+genesis-url: https://test.bcovrin.vonx.io/genesis
 
-log-level: debug
+log-level: info
 
 wallet-name: present_proof_wallet
 wallet-key: present_proof_wallet_key
