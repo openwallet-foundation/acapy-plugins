@@ -10,7 +10,7 @@ python = "^3.12"
 # Define ACA-Py as an optional/extra dependency so it can be
 # explicitly installed with the plugin if desired.
 acapy-agent = { git = "https://github.com/jamshale/acapy.git", branch = "remove-present-proof-v1", optional = true }
-issue-credential = { git = "https://github.com/jamshale/acapy-plugins.git", branch = "present-proof-clone", subdirectory = "issue_credential" }
+issue-credential = { git = "https://github.com/jamshale/acapy-plugins.git", branch = "present-proof", subdirectory = "issue_credential" }
 
 
 [tool.poetry.extras]

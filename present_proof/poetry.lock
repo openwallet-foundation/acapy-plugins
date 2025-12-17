@@ -1513,8 +1513,8 @@ aca-py = ["acapy-agent @ git+https://github.com/openwallet-foundation/acapy.git@
 [package.source]
 type = "git"
 url = "https://github.com/jamshale/acapy-plugins.git"
-reference = "present-proof-clone"
-resolved_reference = "3d2babb23359428fe6a0698a89244a8effba3cf9"
+reference = "present-proof"
+resolved_reference = "5b33dc06cb9ebc2e66611f348a6a48fbfd1b43c0"
 subdirectory = "issue_credential"
 
 [[package]]
@@ -3512,4 +3512,4 @@ aca-py = ["acapy-agent"]
 [metadata]
 lock-version = "2.1"
 python-versions = "^3.12"
-content-hash = "68d3b769d54d4c9a7b35a240192f6983c5f5a08375ad6227e81d50b75c5d3209"
+content-hash = "e58931957cb754150bc982bde148e6916bfc6351044085db132bbc574e852574"
