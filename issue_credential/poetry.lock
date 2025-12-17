@@ -2115,6 +2115,29 @@ redis = ["redis"]
 tests = ["coverage-conditional-plugin (>=0.9.0)", "portalocker[redis]", "pytest (>=5.4.1)", "pytest-cov (>=2.8.1)", "pytest-mypy (>=0.8.0)", "pytest-rerunfailures (>=15.0)", "pytest-timeout (>=2.1.0)", "sphinx (>=6.0.0)", "types-pywin32 (>=310.0.0.20250429)", "types-redis"]
 
 [[package]]
+name = "present-proof"
+version = "0.1.0"
+description = ""
+optional = false
+python-versions = "^3.12"
+groups = ["main"]
+files = []
+develop = false
+
+[package.dependencies]
+issue-credential = {git = "https://github.com/jamshale/acapy-plugins.git", branch = "present-proof", subdirectory = "issue_credential"}
+
+[package.extras]
+aca-py = ["acapy-agent @ git+https://github.com/jamshale/acapy.git@remove-present-proof-v1"]
+
+[package.source]
+type = "git"
+url = "https://github.com/jamshale/acapy-plugins.git"
+reference = "present-proof"
+resolved_reference = "b48430e356fd376a6a843bb9f651ade6d68f9670"
+subdirectory = "present_proof"
+
+[[package]]
 name = "prompt-toolkit"
 version = "3.0.52"
 description = "Library for building powerful interactive command lines in Python"
@@ -3366,4 +3389,4 @@ aca-py = ["acapy-agent"]
 [metadata]
 lock-version = "2.1"
 python-versions = "^3.12"
-content-hash = "a487abff38865c6db9b6a37e619904208689b8e4c0cb89bed43673244a04c790"
+content-hash = "24bc47baf2e8178460505669601a60f3504606724e63dd02d8e6ae41681c0812"
