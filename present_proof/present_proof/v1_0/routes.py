@@ -364,7 +364,6 @@ class V10PresExIdMatchInfoSchema(OpenAPISchema):
 @docs(
     tags=["present-proof v1.0"],
     summary="Fetch all present-proof exchange records",
-    deprecated=True,
 )
 @querystring_schema(V10PresentationExchangeListQueryStringSchema)
 @response_schema(V10PresentationExchangeListSchema(), 200, description="")
@@ -412,7 +411,6 @@ async def presentation_exchange_list(request: web.BaseRequest):
 @docs(
     tags=["present-proof v1.0"],
     summary="Fetch a single presentation exchange record",
-    deprecated=True,
 )
 @match_info_schema(V10PresExIdMatchInfoSchema())
 @response_schema(V10PresentationExchangeSchema(), 200, description="")
@@ -461,7 +459,6 @@ async def presentation_exchange_retrieve(request: web.BaseRequest):
 @docs(
     tags=["present-proof v1.0"],
     summary="Fetch credentials for a presentation request from wallet",
-    deprecated=True,
 )
 @match_info_schema(V10PresExIdMatchInfoSchema())
 @querystring_schema(CredentialsFetchQueryStringSchema())
@@ -547,7 +544,6 @@ async def presentation_exchange_credentials_list(request: web.BaseRequest):
 @docs(
     tags=["present-proof v1.0"],
     summary="Sends a presentation proposal",
-    deprecated=True,
 )
 @request_schema(V10PresentationProposalRequestSchema())
 @response_schema(V10PresentationExchangeSchema(), 200, description="")
@@ -632,7 +628,6 @@ async def presentation_exchange_send_proposal(request: web.BaseRequest):
 @docs(
     tags=["present-proof v1.0"],
     summary="Creates a presentation request not bound to any proposal or connection",
-    deprecated=True,
 )
 @request_schema(V10PresentationCreateRequestRequestSchema())
 @response_schema(V10PresentationExchangeSchema(), 200, description="")
@@ -711,7 +706,6 @@ async def presentation_exchange_create_request(request: web.BaseRequest):
 @docs(
     tags=["present-proof v1.0"],
     summary="Sends a free presentation request not bound to any proposal",
-    deprecated=True,
 )
 @request_schema(V10PresentationSendRequestRequestSchema())
 @response_schema(V10PresentationExchangeSchema(), 200, description="")
@@ -800,7 +794,6 @@ async def presentation_exchange_send_free_request(request: web.BaseRequest):
 @docs(
     tags=["present-proof v1.0"],
     summary="Sends a presentation request in reference to a proposal",
-    deprecated=True,
 )
 @match_info_schema(V10PresExIdMatchInfoSchema())
 @request_schema(V10PresentationSendRequestToProposalSchema())
@@ -897,7 +890,6 @@ async def presentation_exchange_send_bound_request(request: web.BaseRequest):
 @docs(
     tags=["present-proof v1.0"],
     summary="Sends a proof presentation",
-    deprecated=True,
 )
 @match_info_schema(V10PresExIdMatchInfoSchema())
 @request_schema(V10PresentationSendRequestSchema())
@@ -1016,7 +1008,6 @@ async def presentation_exchange_send_presentation(request: web.BaseRequest):
 @docs(
     tags=["present-proof v1.0"],
     summary="Verify a received presentation",
-    deprecated=True,
 )
 @match_info_schema(V10PresExIdMatchInfoSchema())
 @response_schema(V10PresentationExchangeSchema(), description="")
@@ -1089,7 +1080,6 @@ async def presentation_exchange_verify_presentation(request: web.BaseRequest):
 @docs(
     tags=["present-proof v1.0"],
     summary="Send a problem report for presentation exchange",
-    deprecated=True,
 )
 @match_info_schema(V10PresExIdMatchInfoSchema())
 @request_schema(V10PresentationProblemReportRequestSchema())
@@ -1132,7 +1122,6 @@ async def presentation_exchange_problem_report(request: web.BaseRequest):
 @docs(
     tags=["present-proof v1.0"],
     summary="Remove an existing presentation exchange record",
-    deprecated=True,
 )
 @match_info_schema(V10PresExIdMatchInfoSchema())
 @response_schema(V10PresentProofModuleResponseSchema(), description="")
