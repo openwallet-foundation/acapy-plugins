@@ -1504,14 +1504,17 @@ groups = ["main"]
 files = []
 develop = false
 
+[package.dependencies]
+present-proof = {git = "https://github.com/jamshale/acapy-plugins.git", branch = "present-proof", subdirectory = "present_proof"}
+
 [package.extras]
 aca-py = ["acapy-agent @ git+https://github.com/openwallet-foundation/acapy.git@main"]
 
 [package.source]
 type = "git"
-url = "https://github.com/openwallet-foundation/acapy-plugins.git"
-reference = "main"
-resolved_reference = "de4fbcc363edeeef0b0659e7dda190f97c43cddb"
+url = "https://github.com/jamshale/acapy-plugins.git"
+reference = "present-proof"
+resolved_reference = "ceb55e19d3af0cd6b25c878c3a7ba4613aeb1142"
 subdirectory = "issue_credential"
 
 [[package]]
@@ -3509,4 +3512,4 @@ aca-py = ["acapy-agent"]
 [metadata]
 lock-version = "2.1"
 python-versions = "^3.12"
-content-hash = "b5e9f82403843154fa99623cf56b1ed6876ffaa9f3690df4ecbc2c84c5f80e47"
+content-hash = "e58931957cb754150bc982bde148e6916bfc6351044085db132bbc574e852574"
