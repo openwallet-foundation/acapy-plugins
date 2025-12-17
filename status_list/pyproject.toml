@@ -13,7 +13,7 @@ python = "^3.12"
 acapy-agent = { version = "~1.4.0", optional = true }
 
 bitarray = "^3.0.0"
-filelock = "^3.18.0"
+filelock = "^3.20.1"
 
 [tool.poetry.extras]
 aca-py = ["acapy-agent"]
