@@ -19,7 +19,9 @@ from acapy_agent.messaging.responder import BaseResponder, MockResponder
 from acapy_agent.tests import mock
 from acapy_agent.utils.testing import create_test_profile
 from acapy_agent.protocols.didcomm_prefix import DIDCommPrefix
-from acapy_agent.protocols.present_proof.indy import pres_exch_handler as test_indy_util_module
+from acapy_agent.protocols.present_proof.indy import (
+    pres_exch_handler as test_indy_util_module,
+)
 from .. import manager as test_module
 from ..manager import PresentationManager, PresentationManagerError
 from ..message_types import ATTACH_DECO_IDS, PRESENTATION, PRESENTATION_REQUEST

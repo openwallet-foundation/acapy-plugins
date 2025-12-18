@@ -5,7 +5,11 @@ import pytest
 from acapy_agent.messaging.models.base import BaseModelError
 from acapy_agent.protocols.didcomm_prefix import DIDCommPrefix
 from ...message_types import PRESENTATION_PROBLEM_REPORT
-from ..presentation_problem_report import PresentationProblemReport, PresentationProblemReportSchema, ProblemReportReason
+from ..presentation_problem_report import (
+    PresentationProblemReport,
+    PresentationProblemReportSchema,
+    ProblemReportReason,
+)
 
 
 class TestPresentationProblemReport(TestCase):
@@ -22,9 +26,7 @@ class TestPresentationProblemReport(TestCase):
         )
         assert prob._type == DIDCommPrefix.qualify_current(PRESENTATION_PROBLEM_REPORT)
 
-    @mock.patch.object(
-        PresentationProblemReportSchema, "load"
-    )
+    @mock.patch.object(PresentationProblemReportSchema, "load")
     def test_deserialize(self, mock_load):
         """Test deserialization."""
 
@@ -40,9 +42,7 @@ class TestPresentationProblemReport(TestCase):
 
         assert prob is mock_load.return_value
 
-    @mock.patch.object(
-        PresentationProblemReportSchema, "dump"
-    )
+    @mock.patch.object(PresentationProblemReportSchema, "dump")
     def test_serialize(self, mock_dump):
         """Test serialization."""
 

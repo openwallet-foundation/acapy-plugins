@@ -5,7 +5,10 @@ from acapy_agent.indy.models.pres_preview import (
     IndyPresPredSpec,
     IndyPresPreview,
 )
-from acapy_agent.messaging.models.base_record import BaseExchangeRecord, BaseExchangeSchema
+from acapy_agent.messaging.models.base_record import (
+    BaseExchangeRecord,
+    BaseExchangeSchema,
+)
 from acapy_agent.tests import mock
 from acapy_agent.utils.testing import create_test_profile
 from ...messages.presentation_proposal import PresentationProposal
