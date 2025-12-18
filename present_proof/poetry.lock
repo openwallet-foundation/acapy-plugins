@@ -59,7 +59,7 @@ sqlcipher = ["sqlcipher3-binary (>=0.5.4)"]
 type = "git"
 url = "https://github.com/jamshale/acapy.git"
 reference = "remove-present-proof-v1"
-resolved_reference = "73af7e329b17cb30c1b73d2a8e20c2e07b92350b"
+resolved_reference = "40f36ff16fa7d9fe8801ef9163fadaf0a98bd7f3"
 
 [[package]]
 name = "aiohappyeyeballs"
