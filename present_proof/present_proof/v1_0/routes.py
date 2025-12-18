@@ -100,6 +100,9 @@ async def _patched_create_attachment(self, attachment: Mapping, pthid: str, sess
                 a_id,
             )
             message = cred_ex_rec.cred_offer
+
+        message.assign_thread_id(pthid=pthid)
+        return InvitationMessage.wrap_message(message.serialize())
     if a_type == "present-proof":
         try:
             pres_ex_rec = await V10PresentationExchange.retrieve_by_id(session, a_id)
