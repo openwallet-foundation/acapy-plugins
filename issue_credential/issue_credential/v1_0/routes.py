@@ -18,51 +18,63 @@ from acapy_agent.messaging.credential_definitions.util import CRED_DEF_TAGS
 from acapy_agent.messaging.models.base import BaseModelError
 from acapy_agent.messaging.models.openapi import OpenAPISchema
 from acapy_agent.messaging.models.paginated_query import (
-    PaginatedQuerySchema, get_paginated_query_params)
-from acapy_agent.messaging.valid import (INDY_CRED_DEF_ID_EXAMPLE,
-                                         INDY_CRED_DEF_ID_VALIDATE,
-                                         INDY_DID_EXAMPLE, INDY_DID_VALIDATE,
-                                         INDY_SCHEMA_ID_EXAMPLE,
-                                         INDY_SCHEMA_ID_VALIDATE,
-                                         MAJOR_MINOR_VERSION_EXAMPLE,
-                                         MAJOR_MINOR_VERSION_VALIDATE,
-                                         UUID4_EXAMPLE, UUID4_VALIDATE)
-from acapy_agent.protocols.issue_credential.v2_0.models.cred_ex_record import \
-    V20CredExRecord
+    PaginatedQuerySchema,
+    get_paginated_query_params,
+)
+from acapy_agent.messaging.valid import (
+    INDY_CRED_DEF_ID_EXAMPLE,
+    INDY_CRED_DEF_ID_VALIDATE,
+    INDY_DID_EXAMPLE,
+    INDY_DID_VALIDATE,
+    INDY_SCHEMA_ID_EXAMPLE,
+    INDY_SCHEMA_ID_VALIDATE,
+    MAJOR_MINOR_VERSION_EXAMPLE,
+    MAJOR_MINOR_VERSION_VALIDATE,
+    UUID4_EXAMPLE,
+    UUID4_VALIDATE,
+)
+from acapy_agent.protocols.issue_credential.v2_0.models.cred_ex_record import (
+    V20CredExRecord,
+)
 from acapy_agent.protocols.out_of_band.v1_0.manager import (
-    InvitationCreator, OutOfBandManager, OutOfBandManagerError)
+    InvitationCreator,
+    OutOfBandManager,
+    OutOfBandManagerError,
+)
 from acapy_agent.protocols.out_of_band.v1_0.messages.invitation import (
-    HSProto, InvitationMessage)
+    HSProto,
+    InvitationMessage,
+)
 from acapy_agent.protocols.out_of_band.v1_0.models.oob_record import OobRecord
 from acapy_agent.protocols.out_of_band.v1_0.routes import (
-    InvitationCreateQueryStringSchema, InvitationCreateRequestSchema,
-    InvitationRecordSchema)
-from acapy_agent.protocols.present_proof.v2_0.models.pres_exchange import \
-    V20PresExRecord
-from acapy_agent.revocation.models.issuer_cred_rev_record import \
-    IssuerCredRevRecord
+    InvitationCreateQueryStringSchema,
+    InvitationCreateRequestSchema,
+    InvitationRecordSchema,
+)
+from acapy_agent.protocols.present_proof.v2_0.models.pres_exchange import V20PresExRecord
+from acapy_agent.revocation.models.issuer_cred_rev_record import IssuerCredRevRecord
 from acapy_agent.storage.error import StorageError, StorageNotFoundError
-from acapy_agent.utils.tracing import (AdminAPIMessageTracingSchema, get_timer,
-                                       trace_event)
+from acapy_agent.utils.tracing import AdminAPIMessageTracingSchema, get_timer, trace_event
 from acapy_agent.wallet.util import default_did_from_verkey
 from aiohttp import web
-from aiohttp_apispec import (docs, match_info_schema, querystring_schema,
-                             request_schema, response_schema)
+from aiohttp_apispec import (
+    docs,
+    match_info_schema,
+    querystring_schema,
+    request_schema,
+    response_schema,
+)
 from marshmallow import ValidationError, fields, validate
 
-from present_proof.v1_0.models.presentation_exchange import \
-    V10PresentationExchange
+from present_proof.v1_0.models.presentation_exchange import V10PresentationExchange
 
 from . import problem_report_for_record, report_problem
 from .manager import CredentialManager, CredentialManagerError
 from .message_types import SPEC_URI
 from .messages.credential_problem_report import ProblemReportReason
-from .messages.credential_proposal import (CredentialProposal,
-                                           CredentialProposalSchema)
-from .messages.inner.credential_preview import (CredentialPreview,
-                                                CredentialPreviewSchema)
-from .models.credential_exchange import (V10CredentialExchange,
-                                         V10CredentialExchangeSchema)
+from .messages.credential_proposal import CredentialProposal, CredentialProposalSchema
+from .messages.inner.credential_preview import CredentialPreview, CredentialPreviewSchema
+from .models.credential_exchange import V10CredentialExchange, V10CredentialExchangeSchema
 
 LOGGER = logging.getLogger(__name__)
 
@@ -86,7 +98,7 @@ async def _patched_create_attachment(self, attachment: Mapping, pthid: str, sess
                 a_id,
             )
             message = cred_ex_rec.cred_offer
-            
+
         message.assign_thread_id(pthid=pthid)
         return InvitationMessage.wrap_message(message.serialize())
     if a_type == "present-proof":
