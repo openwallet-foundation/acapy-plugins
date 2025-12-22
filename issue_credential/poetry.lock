@@ -59,7 +59,7 @@ sqlcipher = ["sqlcipher3-binary (>=0.5.4)"]
 type = "git"
 url = "https://github.com/openwallet-foundation/acapy.git"
 reference = "main"
-resolved_reference = "84006f65d2ae02bf28c405c2038bc8063fba7b1a"
+resolved_reference = "d0f9138cd0f4686fb21d55f9eac3c96a3e83616b"
 
 [[package]]
 name = "aiohappyeyeballs"
@@ -2114,6 +2114,29 @@ redis = ["redis"]
 tests = ["coverage-conditional-plugin (>=0.9.0)", "portalocker[redis]", "pytest (>=5.4.1)", "pytest-cov (>=2.8.1)", "pytest-mypy (>=0.8.0)", "pytest-rerunfailures (>=15.0)", "pytest-timeout (>=2.1.0)", "sphinx (>=6.0.0)", "types-pywin32 (>=310.0.0.20250429)", "types-redis"]
 
 [[package]]
+name = "present-proof"
+version = "0.1.0"
+description = ""
+optional = false
+python-versions = "^3.12"
+groups = ["main"]
+files = []
+develop = false
+
+[package.dependencies]
+issue-credential = {git = "https://github.com/openwallet-foundation/acapy-plugins.git", branch = "main", subdirectory = "issue_credential"}
+
+[package.extras]
+aca-py = ["acapy-agent @ git+https://github.com/openwallet-foundation/acapy.git@main"]
+
+[package.source]
+type = "git"
+url = "https://github.com/openwallet-foundation/acapy-plugins.git"
+reference = "main"
+resolved_reference = "4bf06bf2a747c7f9e15695312c33ae188105bf62"
+subdirectory = "present_proof"
+
+[[package]]
 name = "prompt-toolkit"
 version = "3.0.52"
 description = "Library for building powerful interactive command lines in Python"
@@ -3363,4 +3386,4 @@ aca-py = ["acapy-agent"]
 [metadata]
 lock-version = "2.1"
 python-versions = "^3.13"
-content-hash = "f0cd7df980fce3f8c10be773429ec1408f2dedcbeff0ad72be3d12cf8e9ecb85"
+content-hash = "dce1328d8fe2a368a425c33dccffcfb79ef27983c954f3b1d435abd9f64a3162"

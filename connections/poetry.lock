@@ -35,7 +35,6 @@ nest_asyncio = "~1.6.0"
 packaging = ">=24.2,<26.0"
 portalocker = "^3.1.1"
 prompt_toolkit = ">=3.0,<3.1"
-propcache = "^0.4.1"
 psycopg = {version = "^3.2.1", extras = ["binary", "pool"]}
 pydid = "^0.5.1"
 pyjwt = "~2.10.1"
@@ -60,7 +59,7 @@ sqlcipher = ["sqlcipher3-binary (>=0.5.4)"]
 type = "git"
 url = "https://github.com/jamshale/acapy.git"
 reference = "python-3.13"
-resolved_reference = "c0b884183f272e9a9170bca86c23055b7234d7e8"
+resolved_reference = "0a45bd42c5e29725b70ca86fbee6d93aac9267fa"
 
 [[package]]
 name = "aiohappyeyeballs"
