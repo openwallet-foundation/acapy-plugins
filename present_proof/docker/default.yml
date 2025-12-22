@@ -1,0 +1,27 @@
+label: present_proof
+
+auto-provision: true
+
+admin: [0.0.0.0, 3001]
+admin-insecure-mode: true
+
+inbound-transport:
+  - [http, 0.0.0.0, 3000]
+  
+outbound-transport: http
+endpoint:
+  - http://localhost:3000
+
+plugin:
+  - present_proof.v1_0
+  - issue_credential.v1_0
+
+genesis-url: https://test.bcovrin.vonx.io/genesis
+
+log-level: info
+
+wallet-name: present_proof_wallet
+wallet-key: present_proof_wallet_key
+
+auto-accept-invites: true
+auto-respond-messages: true

@@ -51,9 +51,8 @@ from acapy_agent.protocols.out_of_band.v1_0.routes import (
     InvitationCreateRequestSchema,
     InvitationRecordSchema,
 )
-from acapy_agent.revocation.models.issuer_cred_rev_record import (
-    IssuerCredRevRecord,
-)
+from acapy_agent.protocols.present_proof.v2_0.models.pres_exchange import V20PresExRecord
+from acapy_agent.revocation.models.issuer_cred_rev_record import IssuerCredRevRecord
 from acapy_agent.storage.error import StorageError, StorageNotFoundError
 from acapy_agent.utils.tracing import AdminAPIMessageTracingSchema, get_timer, trace_event
 from acapy_agent.wallet.util import default_did_from_verkey
@@ -66,6 +65,8 @@ from aiohttp_apispec import (
     response_schema,
 )
 from marshmallow import ValidationError, fields, validate
+
+from present_proof.v1_0.models.presentation_exchange import V10PresentationExchange
 
 from . import problem_report_for_record, report_problem
 from .manager import CredentialManager, CredentialManagerError
@@ -86,11 +87,27 @@ async def _patched_create_attachment(self, attachment: Mapping, pthid: str, sess
     a_id = attachment.get("id")
     if a_type == "credential-offer":
         try:
-            cred_ex_rec = await V10CredentialExchange.retrieve_by_id(session, a_id)
+            cred_ex_rec = await V10CredentialExchange.retrieve_by_id(
+                session,
+                a_id,
+            )
             message = cred_ex_rec.credential_offer_dict
         except StorageNotFoundError:
-            cred_ex_rec = await V20CredExRecord.retrieve_by_id(session, a_id)
+            cred_ex_rec = await V20CredExRecord.retrieve_by_id(
+                session,
+                a_id,
+            )
             message = cred_ex_rec.cred_offer
+
+        message.assign_thread_id(pthid=pthid)
+        return InvitationMessage.wrap_message(message.serialize())
+    if a_type == "present-proof":
+        try:
+            pres_ex_rec = await V10PresentationExchange.retrieve_by_id(session, a_id)
+            message = pres_ex_rec.presentation_request_dict
+        except StorageNotFoundError:
+            pres_ex_rec = await V20PresExRecord.retrieve_by_id(session, a_id)
+            message = pres_ex_rec.pres_request
 
         message.assign_thread_id(pthid=pthid)
         return InvitationMessage.wrap_message(message.serialize())
