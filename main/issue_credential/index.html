@@ -737,6 +737,27 @@
   
   
     <li class="md-nav__item">
+      <a href="../present_proof/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Present Proof Plugin
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
       <a href="../redis_events/" class="md-nav__link">
         
   
@@ -1036,11 +1057,14 @@
 
 <h1 id="issue-credential-plugin">Issue Credential Plugin<a class="headerlink" href="#issue-credential-plugin" title="Permanent link">&para;</a></h1>
 <h2 id="description">Description<a class="headerlink" href="#description" title="Permanent link">&para;</a></h2>
-<p>This plugin was produced to facilitate the issuance of verifiable credentials in a decentralized identity ecosystem. It provides features for creating, managing, and presenting credentials in compliance with the Aries RFCs.</p>
+<p>This plugin enable the v1 Issue Credential protocol for verifiable credentials.</p>
 <h2 id="configuration">Configuration<a class="headerlink" href="#configuration" title="Permanent link">&para;</a></h2>
-<p>To enable the Issue Credential plugin, add the following configuration to your <code>config.yml</code>:</p>
+<p><strong><em>Important</em></strong>: This plugin has a direct dependency with the present_proof plugin. If you are using present proof you should also enable present_proof. It will install present_proof if not already installed.</p>
+<p>This is done because each protocol will override the oob invitation handler and it isn't ensured which one will be the last to be registered. Also both protocols are often used together.</p>
+<p>To enable the present proof plugin, add the following to your <code>config.yml</code> file:</p>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="nt">plugins</span><span class="p">:</span>
-<a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a><span class="w">    </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">issue_credential</span>
+<a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a><span class="w">    </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">issue_credential.v1_0</span>
+<a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a><span class="w">    </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">present_proof.v1_0</span>
 </code></pre></div>
 
 

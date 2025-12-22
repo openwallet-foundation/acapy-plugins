@@ -9,10 +9,10 @@
       
       
       
-        <link rel="prev" href="../cheqd/">
+        <link rel="prev" href="../oid4vc/">
       
       
-        <link rel="next" href="../connections/">
+        <link rel="next" href="../redis_events/">
       
       
       <link rel="icon" href="https://raw.githubusercontent.com/hyperledger/aries-cloudagent-python/main/docs/assets/aries-favicon.png">
@@ -20,7 +20,7 @@
     
     
       
-        <title>Connection Update - ACA-Py Plugins</title>
+        <title>Present Proof Plugin - ACA-Py Plugins</title>
       
     
     
@@ -72,7 +72,7 @@
     <div data-md-component="skip">
       
         
-        <a href="#connection-update" class="md-skip">
+        <a href="#present-proof-plugin" class="md-skip">
           Skip to content
         </a>
       
@@ -111,7 +111,7 @@
         <div class="md-header__topic" data-md-component="header-topic">
           <span class="md-ellipsis">
             
-              Connection Update
+              Present Proof Plugin
             
           </span>
         </div>
@@ -529,30 +529,10 @@
                 
   
   
-    
   
   
-  
-    <li class="md-nav__item md-nav__item--active">
-      
-      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
-      
-      
-        
-      
-      
-        <label class="md-nav__link md-nav__link--active" for="__toc">
-          
-  
-  <span class="md-ellipsis">
-    Connection Update
-  </span>
-  
-
-          <span class="md-nav__icon md-icon"></span>
-        </label>
-      
-      <a href="./" class="md-nav__link md-nav__link--active">
+    <li class="md-nav__item">
+      <a href="../connection_update/" class="md-nav__link">
         
   
   <span class="md-ellipsis">
@@ -561,44 +541,6 @@
   
 
       </a>
-      
-        
-
-<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
-  
-  
-  
-    
-  
-  
-    <label class="md-nav__title" for="__toc">
-      <span class="md-nav__icon md-icon"></span>
-      Table of contents
-    </label>
-    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
-      
-        <li class="md-nav__item">
-  <a href="#description" class="md-nav__link">
-    <span class="md-ellipsis">
-      Description
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#configuration" class="md-nav__link">
-    <span class="md-ellipsis">
-      Configuration
-    </span>
-  </a>
-  
-</li>
-      
-    </ul>
-  
-</nav>
-      
     </li>
   
 
@@ -734,10 +676,30 @@
                 
   
   
+    
   
   
-    <li class="md-nav__item">
-      <a href="../present_proof/" class="md-nav__link">
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+      
+      
+        
+      
+      
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          
+  
+  <span class="md-ellipsis">
+    Present Proof Plugin
+  </span>
+  
+
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <a href="./" class="md-nav__link md-nav__link--active">
         
   
   <span class="md-ellipsis">
@@ -746,6 +708,44 @@
   
 
       </a>
+      
+        
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#description" class="md-nav__link">
+    <span class="md-ellipsis">
+      Description
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#configuration" class="md-nav__link">
+    <span class="md-ellipsis">
+      Configuration
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+      
     </li>
   
 
@@ -1055,18 +1055,20 @@
   
 
 
-<h1 id="connection-update">Connection Update<a class="headerlink" href="#connection-update" title="Permanent link">&para;</a></h1>
+<h1 id="present-proof-plugin">Present Proof Plugin<a class="headerlink" href="#present-proof-plugin" title="Permanent link">&para;</a></h1>
 <h2 id="description">Description<a class="headerlink" href="#description" title="Permanent link">&para;</a></h2>
-<ul>
-<li>v1_0<ul>
-<li>Creates a new endpoint PUT /connections/{conn_id} that allows a controller to update the connection alias label.</li>
-</ul>
-</li>
-</ul>
+<p>This plugin enable the v1 presentation exchange protocol for verifiable credentials.</p>
 <h2 id="configuration">Configuration<a class="headerlink" href="#configuration" title="Permanent link">&para;</a></h2>
-<ul>
-<li>No additional configuration required.</li>
-</ul>
+<p><strong><em>Important</em></strong>: This plugin has a direct dependency with the issue_credential plugin. If you are using present proof you should also enable issue_credential. It will install issue_credential if not already installed.</p>
+<p>This is done because each protocol will override the oob invitation handler and it isn't ensured which one will be the last to be registered. Also both protocols are often used together.</p>
+<p>To enable the present proof plugin, add the following to your <code>config.yml</code> file:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a>pip install git+https://github.com/openwallet-foundation/acapy-plugins@main#subdirectory=present_proof
+<a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a>pip install git+https://github.com/openwallet-foundation/acapy-plugins@main#subdirectory=issue_credential
+</code></pre></div>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a><span class="nt">plugin</span><span class="p">:</span>
+<a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a><span class="w">  </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">present_proof.v1_0</span>
+<a id="__codelineno-1-3" name="__codelineno-1-3" href="#__codelineno-1-3"></a><span class="w">  </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">issue_credential.v1_0</span>
+</code></pre></div>
 
 
 
@@ -1102,7 +1104,7 @@
       <nav class="md-footer__inner md-grid" aria-label="Footer" >
         
           
-          <a href="../cheqd/" class="md-footer__link md-footer__link--prev" aria-label="Previous: did:cheqd Plugin for ACA-Py">
+          <a href="../oid4vc/" class="md-footer__link md-footer__link--prev" aria-label="Previous: OpenID4VCI Plugin for ACA-Py">
             <div class="md-footer__button md-icon">
               
               <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11h12Z"/></svg>
@@ -1112,20 +1114,20 @@
                 Previous
               </span>
               <div class="md-ellipsis">
-                did:cheqd Plugin for ACA-Py
+                OpenID4VCI Plugin for ACA-Py
               </div>
             </div>
           </a>
         
         
           
-          <a href="../connections/" class="md-footer__link md-footer__link--next" aria-label="Next: Connection Protocol">
+          <a href="../redis_events/" class="md-footer__link md-footer__link--next" aria-label="Next: Redis Events">
             <div class="md-footer__title">
               <span class="md-footer__direction">
                 Next
               </span>
               <div class="md-ellipsis">
-                Connection Protocol
+                Redis Events
               </div>
             </div>
             <div class="md-footer__button md-icon">
