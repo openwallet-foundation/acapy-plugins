@@ -2132,9 +2132,9 @@ aca-py = ["acapy-agent @ git+https://github.com/jamshale/acapy.git@remove-presen
 
 [package.source]
 type = "git"
-url = "https://github.com/jamshale/acapy-plugins.git"
-reference = "present-proof"
-resolved_reference = "b48430e356fd376a6a843bb9f651ade6d68f9670"
+url = "https://github.com/openwallet-foundation/acapy-plugins.git"
+reference = "main"
+resolved_reference = "3fb3d940fb8884e0ed277f0d22031186408bb3cd"
 subdirectory = "present_proof"
 
 [[package]]
@@ -3389,4 +3389,4 @@ aca-py = ["acapy-agent"]
 [metadata]
 lock-version = "2.1"
 python-versions = "^3.12"
-content-hash = "24bc47baf2e8178460505669601a60f3504606724e63dd02d8e6ae41681c0812"
+content-hash = "4d2af30d2de4425d762e306c3b7ab10c3c7c0f7993b3edd193ff629ccbbaf279"
