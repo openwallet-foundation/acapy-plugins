@@ -10,6 +10,7 @@ from webvh.routes import (
     get_config,
     configure,
     create,
+    on_startup_event,
 )
 
 TEST_SERVER_URL = "https://sandbox.bcvh.vonx.io"
@@ -69,6 +70,7 @@ class TestWebvhRoutes(IsolatedAsyncioTestCase):
                     "server_url": TEST_SERVER_URL,
                     "witness": True,
                     "auto_attest": True,
+                    "auto_config": False,
                 }
             ),
             __getitem__=lambda _, k: self.request_dict[k],
@@ -91,6 +93,7 @@ class TestWebvhRoutes(IsolatedAsyncioTestCase):
                     "server_url": TEST_SERVER_URL,
                     "witness": False,
                     "witness_invitation": TEST_WITNESS_INVITATION_URL,
+                    "auto_config": True,
                 }
             ),
             __getitem__=lambda _, k: self.request_dict[k],
@@ -113,3 +116,62 @@ class TestWebvhRoutes(IsolatedAsyncioTestCase):
         )
 
         await create(self.request)
+
+    @mock.patch("webvh.routes.WitnessManager.configure", new_callable=mock.AsyncMock)
+    @mock.patch("webvh.routes.ControllerManager.configure", new_callable=mock.AsyncMock)
+    async def test_on_startup_event_skips_when_auto_setup_disabled(
+        self, mock_controller_configure, mock_witness_auto
+    ):
+        self.profile.settings.set_value("multitenant.enabled", False)
+        self.profile.settings.set_value(
+            "plugin_config",
+            {"webvh": {"server_url": TEST_SERVER_URL, "auto_config": False}},
+        )
+        await on_startup_event(self.profile, mock.MagicMock())
+        assert mock_controller_configure.await_count == 0
+        assert mock_witness_auto.await_count == 0
+
+    @mock.patch("webvh.routes.WitnessManager.configure", new_callable=mock.AsyncMock)
+    @mock.patch("webvh.routes.ControllerManager.configure", new_callable=mock.AsyncMock)
+    async def test_on_startup_event_runs_controller_auto_setup(
+        self, mock_controller_configure, mock_witness_auto
+    ):
+        self.profile.settings.set_value("multitenant.enabled", False)
+        self.profile.settings.set_value(
+            "plugin_config",
+            {
+                "webvh": {
+                    "server_url": TEST_SERVER_URL,
+                    "witness_id": TEST_WITNESS_INVITATION["goal"],
+                    "auto_config": True,
+                }
+            },
+        )
+        await on_startup_event(self.profile, mock.MagicMock())
+        mock_controller_configure.assert_awaited_once()
+        assert mock_witness_auto.await_count == 0
+
+    @mock.patch("webvh.routes.WitnessManager.configure", new_callable=mock.AsyncMock)
+    @mock.patch("webvh.routes.ControllerManager.configure", new_callable=mock.AsyncMock)
+    async def test_on_startup_event_runs_witness_auto_setup(
+        self, mock_controller_configure, mock_witness_auto
+    ):
+        self.profile.settings.set_value("multitenant.enabled", False)
+        self.profile.settings.set_value(
+            "plugin_config",
+            {
+                "webvh": {
+                    "server_url": TEST_SERVER_URL,
+                    "witness": True,
+                    "auto_config": True,
+                }
+            },
+        )
+        # Mock configure to return config with witness_id and invitation_url
+        mock_witness_auto.return_value = {
+            "witness_id": TEST_WITNESS_INVITATION["goal"],
+            "invitation_url": "https://example.com/invitation",
+        }
+        await on_startup_event(self.profile, mock.MagicMock())
+        assert mock_controller_configure.await_count == 0
+        mock_witness_auto.assert_awaited_once()
