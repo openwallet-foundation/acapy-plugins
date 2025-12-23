@@ -2118,7 +2118,7 @@ name = "present-proof"
 version = "0.1.0"
 description = ""
 optional = false
-python-versions = "^3.12"
+python-versions = "^3.13"
 groups = ["main"]
 files = []
 develop = false
@@ -2131,9 +2131,9 @@ aca-py = ["acapy-agent @ git+https://github.com/openwallet-foundation/acapy.git@
 
 [package.source]
 type = "git"
-url = "https://github.com/openwallet-foundation/acapy-plugins.git"
-reference = "main"
-resolved_reference = "4bf06bf2a747c7f9e15695312c33ae188105bf62"
+url = "https://github.com/jamshale/acapy-plugins.git"
+reference = "python3.13-upgrade"
+resolved_reference = "9ebd3a76524389c6364c700e09f936464cdca6cf"
 subdirectory = "present_proof"
 
 [[package]]
@@ -3386,4 +3386,4 @@ aca-py = ["acapy-agent"]
 [metadata]
 lock-version = "2.1"
 python-versions = "^3.13"
-content-hash = "dce1328d8fe2a368a425c33dccffcfb79ef27983c954f3b1d435abd9f64a3162"
+content-hash = "f650bc34388e75371f7d7d6e3699caa666222ebec2e2e501357097c3c43a454a"
