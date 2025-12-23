@@ -5,7 +5,7 @@ name = "acapy-agent"
 version = "1.4.0"
 description = "(ACA-Py) A Cloud Agent Python is a foundation for building decentralized identity applications and services running in non-mobile environments. "
 optional = true
-python-versions = "^3.12"
+python-versions = "^3.13"
 groups = ["main"]
 markers = "extra == \"aca-py\""
 files = []
@@ -59,7 +59,7 @@ sqlcipher = ["sqlcipher3-binary (>=0.5.4)"]
 type = "git"
 url = "https://github.com/openwallet-foundation/acapy.git"
 reference = "main"
-resolved_reference = "d0f9138cd0f4686fb21d55f9eac3c96a3e83616b"
+resolved_reference = "d7527214a44103325ff5a0331f9a4003d37edeba"
 
 [[package]]
 name = "aiohappyeyeballs"

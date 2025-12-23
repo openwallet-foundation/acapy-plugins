@@ -57,9 +57,9 @@ sqlcipher = ["sqlcipher3-binary (>=0.5.4)"]
 
 [package.source]
 type = "git"
-url = "https://github.com/jamshale/acapy.git"
-reference = "python-3.13"
-resolved_reference = "0a45bd42c5e29725b70ca86fbee6d93aac9267fa"
+url = "https://github.com/openwallet-foundation/acapy.git"
+reference = "main"
+resolved_reference = "d7527214a44103325ff5a0331f9a4003d37edeba"
 
 [[package]]
 name = "aiohappyeyeballs"
@@ -3658,4 +3658,4 @@ sd-jwt-vc = ["jsonpointer"]
 [metadata]
 lock-version = "2.1"
 python-versions = "^3.13"
-content-hash = "9c00c5bcddb86b04258c01a36d41212cdc3072129537e0de7f723518a82e5430"
+content-hash = "23a804da0cb513d39078d421e69655630e7d34d32b3faee0d7c44e93134d7e4d"

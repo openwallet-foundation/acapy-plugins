@@ -57,9 +57,9 @@ sqlcipher = ["sqlcipher3-binary (>=0.5.4)"]
 
 [package.source]
 type = "git"
-url = "https://github.com/jamshale/acapy.git"
-reference = "python-3.13"
-resolved_reference = "0a45bd42c5e29725b70ca86fbee6d93aac9267fa"
+url = "https://github.com/openwallet-foundation/acapy.git"
+reference = "main"
+resolved_reference = "d7527214a44103325ff5a0331f9a4003d37edeba"
 
 [[package]]
 name = "aiohappyeyeballs"
@@ -3055,4 +3055,4 @@ aca-py = ["acapy-agent"]
 [metadata]
 lock-version = "2.1"
 python-versions = "^3.13"
-content-hash = "c4cc6445618d49872798a1a692c025dab5c299b68fabdfdb4a0a78bf4d1097c6"
+content-hash = "f8a6d8c3d686c42d58b1a304c22c344a72d235eb94acc8c1deed656c1310af5e"

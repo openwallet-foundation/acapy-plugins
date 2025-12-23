@@ -22,7 +22,7 @@ python = "^3.13"
 
 # Define ACA-Py as an optional/extra dependency so it can be
 # explicitly installed with the plugin if desired.
-acapy-agent = { git = "https://github.com/jamshale/acapy.git", branch = "python-3.13", optional = true }
+acapy-agent = { git = "https://github.com/openwallet-foundation/acapy.git", branch = "main", optional = true }
 
 aiohttp = "^3.9.5"
 aries-askar = "~0.5.0"

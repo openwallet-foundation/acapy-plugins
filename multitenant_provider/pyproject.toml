@@ -9,7 +9,7 @@ python = "^3.13"
 
 # Define ACA-Py as an optional/extra dependency so it can be
 # explicitly installed with the plugin if desired.
-acapy-agent = { git = "https://github.com/jamshale/acapy.git", branch = "python-3.13", optional = true }
+acapy-agent = { git = "https://github.com/openwallet-foundation/acapy.git", branch = "main", optional = true }
 
 bcrypt = "4.2.1"
 mergedeep = "^1.3.4"
