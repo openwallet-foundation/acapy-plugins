@@ -6,7 +6,7 @@ authors = []
 package-mode = false
 
 [tool.poetry.dependencies]
-python = "^3.12"
+python = "^3.13"
 
 acapy-controller = {git = "https://github.com/openwallet-foundation/acapy-minimal-example.git", rev = "main"}
 pydantic = "^2.12.2"

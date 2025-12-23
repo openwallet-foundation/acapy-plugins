@@ -2,6 +2,7 @@
 Integration tests for the AnonCreds Registry.
 """
 
+import asyncio
 import urllib
 import uuid
 
@@ -40,9 +41,7 @@ async def create_did(agent):
 @pytest.mark.asyncio
 async def test_anoncreds():
     """Test Controller protocols."""
-    async with (
-        Controller(base_url=WITNESS) as agent,
-    ):
+    async with Controller(base_url=WITNESS) as agent:
         did = await create_did(agent)
 
         response = await agent.post(
@@ -95,6 +94,7 @@ async def test_anoncreds():
                 },
             },
         )
+        await asyncio.sleep(2)  # wait for registry to be created
         rev_reg_id = response["revocation_registry_definition_state"][
             "revocation_registry_definition_id"
         ]

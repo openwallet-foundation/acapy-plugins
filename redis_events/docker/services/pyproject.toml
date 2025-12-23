@@ -6,7 +6,7 @@ authors = ["Shaanjot Gill <gill.shaanjots@gmail.com>"]
 package-mode = false
 
 [tool.poetry.dependencies]
-python = "^3.12"
+python = "^3.13"
 redis = "^5.2.1"
 aiohttp = "^3.13.1"
 fastapi-slim = "^0.124.4"

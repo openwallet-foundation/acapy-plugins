@@ -5,12 +5,12 @@ description = ""
 authors = []
 
 [tool.poetry.dependencies]
-python = "^3.12"
+python = "^3.13"
 
 # Define ACA-Py as an optional/extra dependency so it can be
 # explicitly installed with the plugin if desired.
 acapy-agent = { git = "https://github.com/openwallet-foundation/acapy.git", branch = "main", optional = true }
-present-proof = { git = "https://github.com/openwallet-foundation/acapy-plugins.git", branch = "main", subdirectory = "present_proof" }
+present-proof = { git = "https://github.com/jamshale/acapy-plugins.git", branch = "python3.13-upgrade", subdirectory = "present_proof" }
 
 
 [tool.poetry.extras]

@@ -192,7 +192,6 @@ files = [
 
 [package.dependencies]
 frozenlist = ">=1.1.0"
-typing-extensions = {version = ">=4.2", markers = "python_version < \"3.13\""}
 
 [[package]]
 name = "annotated-types"
@@ -963,7 +962,6 @@ files = [
 
 [package.dependencies]
 pytest = ">=8.2,<9"
-typing-extensions = {version = ">=4.12", markers = "python_version < \"3.13\""}
 
 [package.extras]
 docs = ["sphinx (>=5.3)", "sphinx-rtd-theme (>=1)"]
@@ -1169,5 +1167,5 @@ propcache = ">=0.2.1"
 
 [metadata]
 lock-version = "2.1"
-python-versions = "^3.12"
-content-hash = "0c0194268fb527d475034eab1a443f09188553e95bbd080de2383f404cf544a6"
+python-versions = "^3.13"
+content-hash = "0841b02d9a8694740c971be1efccb8608bfa865242807b3bc9a16745bd92c0f2"

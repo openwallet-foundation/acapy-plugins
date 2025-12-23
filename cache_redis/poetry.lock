@@ -5,57 +5,61 @@ name = "acapy-agent"
 version = "1.4.0"
 description = "(ACA-Py) A Cloud Agent Python is a foundation for building decentralized identity applications and services running in non-mobile environments. "
 optional = true
-python-versions = "<4.0,>=3.12"
+python-versions = "^3.13"
 groups = ["main"]
 markers = "extra == \"aca-py\""
-files = [
-    {file = "acapy_agent-1.4.0-py3-none-any.whl", hash = "sha256:fa4475c908f96f90b80c7702661bc090ce4548987dc4eeb6903361b7cc8f442e"},
-    {file = "acapy_agent-1.4.0.tar.gz", hash = "sha256:96c425e5ac56b2f205d3203c5a2890debb30abc8d0a34d3e2321eca9ebe73bc8"},
-]
+files = []
+develop = false
 
 [package.dependencies]
 aiohttp = ">=3.11.16,<3.14.0"
-aiohttp-apispec-acapy = ">=3.0.3,<3.1.0"
+aiohttp-apispec-acapy = "~3.0.3"
 aiohttp-cors = ">=0.7,<0.9"
-anoncreds = ">=0.2.3,<0.3.0"
-apispec = ">=6.6.0,<7.0.0"
+anoncreds = "~0.2.3"
+apispec = "^6.6.0"
 aries-askar = ">=0.4.3"
-base58 = ">=2.1.0,<2.2.0"
-canonicaljson = ">=2.0.0,<3.0.0"
-ConfigArgParse = ">=1.7,<1.8"
-deepmerge = ">=2.0,<3.0"
-did-peer-2 = ">=0.1.2,<0.2.0"
-did-peer-4 = ">=0.1.4,<0.2.0"
+base58 = "~2.1.0"
+canonicaljson = "^2.0.0"
+ConfigArgParse = "~1.7"
+deepmerge = "^2.0"
+did-peer-2 = "^0.1.2"
+did-peer-4 = "^0.1.4"
 did-webvh = ">=1.0.0"
-indy-credx = ">=1.1.1,<1.2.0"
-indy-vdr = ">=0.4.0,<0.5.0"
-jsonpath-ng = ">=1.7.0,<2.0.0"
+indy-credx = "~1.1.1"
+indy-vdr = "~0.4.0"
+jsonpath-ng = "^1.7.0"
 Markdown = ">=3.7,<3.11"
-markupsafe = ">=3.0.2,<4.0.0"
-marshmallow = ">=3.26.1,<3.27.0"
-nest_asyncio = ">=1.6.0,<1.7.0"
+markupsafe = "^3.0.2"
+marshmallow = "~3.26.1"
+nest_asyncio = "~1.6.0"
 packaging = ">=24.2,<26.0"
-portalocker = ">=3.1.1,<4.0.0"
+portalocker = "^3.1.1"
 prompt_toolkit = ">=3.0,<3.1"
-psycopg = {version = ">=3.2.1,<4.0.0", extras = ["binary", "pool"]}
-pydid = ">=0.5.1,<0.6.0"
-pyjwt = ">=2.10.1,<2.11.0"
-pyld = ">=2.0.4,<3.0.0"
+psycopg = {version = "^3.2.1", extras = ["binary", "pool"]}
+pydid = "^0.5.1"
+pyjwt = "~2.10.1"
+pyld = "^2.0.4"
 pynacl = ">=1.5,<1.7"
-python-dateutil = ">=2.9.0,<3.0.0"
-python-json-logger = ">=3.2.1,<4.0.0"
-pyyaml = ">=6.0.2,<6.1.0"
-qrcode = {version = ">=8.1,<9.0", extras = ["pil"]}
-requests = ">=2.32.3,<2.33.0"
-rlp = ">=4.1.0,<5.0.0"
-sd-jwt = ">=0.10.3,<0.11.0"
-unflatten = ">=0.2,<0.3"
-uuid_utils = ">=0.10,<0.12"
+python-dateutil = "^2.9.0"
+python-json-logger = "^3.2.1"
+pyyaml = "~6.0.2"
+qrcode = {version = "^8.1", extras = ["pil"]}
+requests = "~2.32.3"
+rlp = "^4.1.0"
+sd-jwt = "^0.10.3"
+unflatten = "~0.2"
+uuid_utils = ">=0.10,<0.13"
 
 [package.extras]
 bbs = ["ursa-bbs-signatures (>=1.0.1,<1.1.0)"]
 didcommv2 = ["didcomm-messaging (>=0.1.1a0,<0.2.0)"]
 sqlcipher = ["sqlcipher3-binary (>=0.5.4)"]
+
+[package.source]
+type = "git"
+url = "https://github.com/openwallet-foundation/acapy.git"
+reference = "main"
+resolved_reference = "d7527214a44103325ff5a0331f9a4003d37edeba"
 
 [[package]]
 name = "aiohappyeyeballs"
@@ -263,7 +267,6 @@ files = [
 
 [package.dependencies]
 frozenlist = ">=1.1.0"
-typing-extensions = {version = ">=4.2", markers = "python_version < \"3.13\""}
 
 [[package]]
 name = "annotated-types"
@@ -2349,7 +2352,6 @@ files = [
 [package.dependencies]
 psycopg-binary = {version = "3.2.12", optional = true, markers = "implementation_name != \"pypy\" and extra == \"binary\""}
 psycopg-pool = {version = "*", optional = true, markers = "extra == \"pool\""}
-typing-extensions = {version = ">=4.6", markers = "python_version < \"3.13\""}
 tzdata = {version = "*", markers = "sys_platform == \"win32\""}
 
 [package.extras]
@@ -2760,7 +2762,6 @@ files = [
 
 [package.dependencies]
 pytest = ">=8.2,<10"
-typing-extensions = {version = ">=4.12", markers = "python_version < \"3.13\""}
 
 [package.extras]
 docs = ["sphinx (>=5.3)", "sphinx-rtd-theme (>=1)"]
@@ -3124,14 +3125,14 @@ files = [
 name = "typing-extensions"
 version = "4.15.0"
 description = "Backported and Experimental Type Hints for Python 3.9+"
-optional = false
+optional = true
 python-versions = ">=3.9"
-groups = ["main", "dev"]
+groups = ["main"]
+markers = "extra == \"aca-py\""
 files = [
     {file = "typing_extensions-4.15.0-py3-none-any.whl", hash = "sha256:f0fa19c6845758ab08074a0cfa8b7aecb71c999ca73d62883bc25cc018c4e548"},
     {file = "typing_extensions-4.15.0.tar.gz", hash = "sha256:0cea48d173cc12fa28ecabc3b837ea3cf6f38c6d1136f85cbaaf598984861466"},
 ]
-markers = {main = "extra == \"aca-py\"", dev = "python_version == \"3.12\""}
 
 [[package]]
 name = "typing-inspection"
@@ -3435,5 +3436,5 @@ aca-py = ["acapy-agent"]
 
 [metadata]
 lock-version = "2.1"
-python-versions = "^3.12"
-content-hash = "966bd0bb4bd10769115e78ad09ab8e90c9c4fe8098dda60e45e3485cb0f826c9"
+python-versions = "^3.13"
+content-hash = "8dac51ea7da2f8e92266689500b731b6fa4a25109cb93f9c56291920647d94f8"

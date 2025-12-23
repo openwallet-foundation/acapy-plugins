@@ -4,11 +4,11 @@ version = "0.1.0"
 description = "ACA-PY persisted events using Redis (Supported acapy-agent version: 1.4.0) "
 
 [tool.poetry.dependencies]
-python = "^3.12"
+python = "^3.13"
 
 # Define ACA-Py as an optional/extra dependency so it can be
 # explicitly installed with the plugin if desired.
-acapy-agent = { version = "~1.4.0", optional = true }
+acapy-agent = { git = "https://github.com/openwallet-foundation/acapy.git", branch = "main", optional = true }
 
 aiohttp = "^3.13.2"
 fastapi-slim = "^0.124.4"

@@ -24,13 +24,12 @@ jobs:
       #----------------------------------------------
       #       Install python and poetry with cache
       #----------------------------------------------
-      - name: Install poetry
-        run: pipx install poetry==2.1.2
-        id: setup-poetry
       - uses: actions/setup-python@v6
         with:
-          python-version: "3.12"
-          cache: "poetry"
+          python-version: "3.13"
+      - name: Install poetry
+        run: pipx install poetry==2.1.2 --python python3.13
+        id: setup-poetry
       #----------------------------------------------
       #       Get changed files
       #----------------------------------------------
@@ -72,6 +71,7 @@ jobs:
           for dir in ${{ steps.changed-plugins.outputs.changed-plugins }}; do
             echo "Installing dependencies for $dir"
             cd $dir
+            echo "Installing dependencies for $dir"
             poetry install --no-interaction --no-root --all-extras
             cd ..
           done
