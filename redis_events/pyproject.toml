@@ -10,7 +10,7 @@ python = "^3.13"
 # explicitly installed with the plugin if desired.
 acapy-agent = { git = "https://github.com/openwallet-foundation/acapy.git", branch = "main", optional = true }
 
-aiohttp = "^3.13.2"
+aiohttp = "^3.13.3"
 fastapi-slim = "^0.128.0"
 nest-asyncio = "^1.5.5"
 redis = "^5.2.1"
