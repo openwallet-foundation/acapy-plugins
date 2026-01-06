@@ -14,7 +14,7 @@ pytest-asyncio = "^1.2.0"
 requests = "^2.32.0"
 aries-askar = "^0.5.0"
 did-peer-4 = "^0.1.4"
-aiohttp = "^3.9.5"
+aiohttp = "^3.13.3"
 acapy-controller = {git = "https://github.com/indicio-tech/acapy-minimal-example.git", python = ">=3.10,<4.0"}
 jsonrpc-api-proxy-client = {git = "https://github.com/Indicio-tech/json-rpc-api-proxy.git", rev = "main", subdirectory = "clients/python"}
 pydantic = "~2.12.5"
