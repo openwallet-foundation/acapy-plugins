@@ -26,7 +26,7 @@ services:
         --wallet-name alice
         --wallet-key insecure
         --auto-provision
-        --log-level debug
+        --log-level info
         --auto-accept-invites
         --plugin issue_credential.v1_0
     healthcheck:
