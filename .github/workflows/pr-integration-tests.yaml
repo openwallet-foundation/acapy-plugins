@@ -125,6 +125,7 @@ jobs:
                 echo "❌ Tests failed for $dir - dumping logs:"
                 docker compose logs || true
                 docker compose down --remove-orphans
+                docker system prune -af --volumes
                 exit $TEST_EXIT
               fi
             else
@@ -133,11 +134,13 @@ jobs:
                 echo "❌ Tests failed for $dir - dumping logs:"
                 docker compose logs
                 docker compose down --remove-orphans
+                docker system prune -af --volumes
                 exit 1
               fi
             fi
 
             echo "✅ Tests passed for $dir"
             docker compose down --remove-orphans
+            docker system prune -af --volumes
             cd ../..
           done

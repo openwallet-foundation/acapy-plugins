@@ -27,7 +27,7 @@ debug-presentations: true
 auto-accept-invites: true
 auto-accept-requests: true
 connections-invite: true
-log-level: debug
+log-level: info
 
 plugin-config-value:
   - redis_cache.connection="redis://redis-host:6379/0"
