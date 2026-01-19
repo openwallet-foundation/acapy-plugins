@@ -13,7 +13,7 @@ acapy-agent = { git = "https://github.com/openwallet-foundation/acapy.git", bran
 
 marshmallow = "^3.23.3"
 google-auth = "^2.43.0"
-google-api-python-client = "^2.187.0"
+google-api-python-client = "^2.188.0"
 requests = "^2.31.0"
 protobuf = "6.33.2"
 

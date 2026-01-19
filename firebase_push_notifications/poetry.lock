@@ -4,7 +4,7 @@
 name = "acapy-agent"
 version = "1.4.0"
 description = "(ACA-Py) A Cloud Agent Python is a foundation for building decentralized identity applications and services running in non-mobile environments. "
-optional = true
+optional = false
 python-versions = "^3.13"
 groups = ["main"]
 markers = "extra == \"aca-py\""
@@ -65,7 +65,7 @@ resolved_reference = "d7527214a44103325ff5a0331f9a4003d37edeba"
 name = "aiohappyeyeballs"
 version = "2.6.1"
 description = "Happy Eyeballs for asyncio"
-optional = true
+optional = false
 python-versions = ">=3.9"
 groups = ["main"]
 markers = "extra == \"aca-py\""
@@ -78,7 +78,7 @@ files = [
 name = "aiohttp"
 version = "3.13.2"
 description = "Async http client/server framework (asyncio)"
-optional = true
+optional = false
 python-versions = ">=3.9"
 groups = ["main"]
 markers = "extra == \"aca-py\""
@@ -221,7 +221,7 @@ speedups = ["Brotli ; platform_python_implementation == \"CPython\"", "aiodns (>
 name = "aiohttp-apispec-acapy"
 version = "3.0.3"
 description = "Build and document REST APIs with aiohttp and apispec"
-optional = true
+optional = false
 python-versions = ">=3.9"
 groups = ["main"]
 markers = "extra == \"aca-py\""
@@ -240,7 +240,7 @@ webargs = ">=8.4.0"
 name = "aiohttp-cors"
 version = "0.7.0"
 description = "CORS support for aiohttp"
-optional = true
+optional = false
 python-versions = "*"
 groups = ["main"]
 markers = "extra == \"aca-py\""
@@ -256,7 +256,7 @@ aiohttp = ">=1.1"
 name = "aiosignal"
 version = "1.4.0"
 description = "aiosignal: a list of registered asynchronous callbacks"
-optional = true
+optional = false
 python-versions = ">=3.9"
 groups = ["main"]
 markers = "extra == \"aca-py\""
@@ -272,7 +272,7 @@ frozenlist = ">=1.1.0"
 name = "annotated-types"
 version = "0.7.0"
 description = "Reusable constraint types to use with typing.Annotated"
-optional = true
+optional = false
 python-versions = ">=3.8"
 groups = ["main"]
 markers = "extra == \"aca-py\""
@@ -299,7 +299,7 @@ files = [
 name = "apispec"
 version = "6.8.1"
 description = "A pluggable API specification generator. Currently supports the OpenAPI Specification (f.k.a. the Swagger specification)."
-optional = true
+optional = false
 python-versions = ">=3.9"
 groups = ["main"]
 markers = "extra == \"aca-py\""
@@ -336,7 +336,7 @@ files = [
 name = "attrs"
 version = "25.3.0"
 description = "Classes Without Boilerplate"
-optional = true
+optional = false
 python-versions = ">=3.8"
 groups = ["main"]
 markers = "extra == \"aca-py\""
@@ -373,7 +373,7 @@ tests = ["PyHamcrest (>=2.0.2)", "mypy", "pytest (>=4.6)", "pytest-benchmark", "
 name = "bases"
 version = "0.3.0"
 description = "Python library for general Base-N encodings."
-optional = true
+optional = false
 python-versions = ">=3.7"
 groups = ["main"]
 markers = "extra == \"aca-py\""
@@ -405,7 +405,7 @@ files = [
 name = "canonicaljson"
 version = "2.0.0"
 description = "Canonical JSON"
-optional = true
+optional = false
 python-versions = ">=3.7"
 groups = ["main"]
 markers = "extra == \"aca-py\""
@@ -430,7 +430,7 @@ files = [
 name = "cffi"
 version = "1.17.1"
 description = "Foreign Function Interface for Python calling C code."
-optional = true
+optional = false
 python-versions = ">=3.8"
 groups = ["main"]
 markers = "extra == \"aca-py\""
@@ -626,7 +626,7 @@ markers = {main = "extra == \"aca-py\" and sys_platform == \"win32\"", dev = "sy
 name = "configargparse"
 version = "1.7"
 description = "A drop-in replacement for argparse that allows options to also be set via config files and/or environment variables."
-optional = true
+optional = false
 python-versions = ">=3.5"
 groups = ["main"]
 markers = "extra == \"aca-py\""
@@ -719,7 +719,7 @@ toml = ["tomli ; python_full_version <= \"3.11.0a6\""]
 name = "cryptography"
 version = "44.0.2"
 description = "cryptography is a package which provides cryptographic recipes and primitives to Python developers."
-optional = true
+optional = false
 python-versions = "!=3.9.0,!=3.9.1,>=3.7"
 groups = ["main"]
 markers = "extra == \"aca-py\""
@@ -778,7 +778,7 @@ test-randomorder = ["pytest-randomly"]
 name = "cytoolz"
 version = "1.0.1"
 description = "Cython implementation of Toolz: High performance functional utilities"
-optional = true
+optional = false
 python-versions = ">=3.8"
 groups = ["main"]
 markers = "extra == \"aca-py\" and implementation_name == \"cpython\""
@@ -895,7 +895,7 @@ cython = ["cython"]
 name = "deepmerge"
 version = "2.0"
 description = "A toolset for deeply merging Python dictionaries."
-optional = true
+optional = false
 python-versions = ">=3.8"
 groups = ["main"]
 markers = "extra == \"aca-py\""
@@ -911,7 +911,7 @@ dev = ["black", "build", "mypy", "pytest", "pyupgrade", "twine", "validate-pypro
 name = "did-peer-2"
 version = "0.1.2"
 description = "An implementation of did:peer:2"
-optional = true
+optional = false
 python-versions = ">=3.9"
 groups = ["main"]
 markers = "extra == \"aca-py\""
@@ -927,7 +927,7 @@ base58 = ">=2.1.1"
 name = "did-peer-4"
 version = "0.1.4"
 description = "An implementation of did:peer:4"
-optional = true
+optional = false
 python-versions = ">=3.9"
 groups = ["main"]
 markers = "extra == \"aca-py\""
@@ -943,7 +943,7 @@ base58 = ">=2.1.1"
 name = "did-webvh"
 version = "1.0.0"
 description = "This repository includes Python libraries for working with `did:webvh` (did:web + Verified History) DID documents and the underlying log format."
-optional = true
+optional = false
 python-versions = "<4,>=3.10"
 groups = ["main"]
 markers = "extra == \"aca-py\""
@@ -963,7 +963,7 @@ multiformats = ">=0.3.1,<0.4.0"
 name = "eth-hash"
 version = "0.7.1"
 description = "eth-hash: The Ethereum hashing function, keccak256, sometimes (erroneously) called sha3"
-optional = true
+optional = false
 python-versions = "<4,>=3.8"
 groups = ["main"]
 markers = "extra == \"aca-py\""
@@ -983,7 +983,7 @@ test = ["pytest (>=7.0.0)", "pytest-xdist (>=2.4.0)"]
 name = "eth-typing"
 version = "5.2.0"
 description = "eth-typing: Common type annotations for ethereum python packages"
-optional = true
+optional = false
 python-versions = "<4,>=3.8"
 groups = ["main"]
 markers = "extra == \"aca-py\""
@@ -1004,7 +1004,7 @@ test = ["pytest (>=7.0.0)", "pytest-xdist (>=2.4.0)"]
 name = "eth-utils"
 version = "5.2.0"
 description = "eth-utils: Common utility functions for python code that interacts with Ethereum"
-optional = true
+optional = false
 python-versions = "<4,>=3.8"
 groups = ["main"]
 markers = "extra == \"aca-py\""
@@ -1028,7 +1028,7 @@ test = ["hypothesis (>=4.43.0)", "mypy (==1.10.0)", "pytest (>=7.0.0)", "pytest-
 name = "frozendict"
 version = "2.4.6"
 description = "A simple immutable dictionary"
-optional = true
+optional = false
 python-versions = ">=3.6"
 groups = ["main"]
 markers = "extra == \"aca-py\""
@@ -1078,7 +1078,7 @@ files = [
 name = "frozenlist"
 version = "1.5.0"
 description = "A list-like structure which implements collections.abc.MutableSequence"
-optional = true
+optional = false
 python-versions = ">=3.8"
 groups = ["main"]
 markers = "extra == \"aca-py\""
@@ -1204,14 +1204,14 @@ grpcio-gcp = ["grpcio-gcp (>=0.2.2,<1.0.dev0)"]
 
 [[package]]
 name = "google-api-python-client"
-version = "2.187.0"
+version = "2.188.0"
 description = "Google API Client Library for Python"
 optional = false
 python-versions = ">=3.7"
 groups = ["main"]
 files = [
-    {file = "google_api_python_client-2.187.0-py3-none-any.whl", hash = "sha256:d8d0f6d85d7d1d10bdab32e642312ed572bdc98919f72f831b44b9a9cebba32f"},
-    {file = "google_api_python_client-2.187.0.tar.gz", hash = "sha256:e98e8e8f49e1b5048c2f8276473d6485febc76c9c47892a8b4d1afa2c9ec8278"},
+    {file = "google_api_python_client-2.188.0-py3-none-any.whl", hash = "sha256:3cad1b68f9d48b82b93d77927e8370a6f43f33d97848242601f14a93a1c70ef5"},
+    {file = "google_api_python_client-2.188.0.tar.gz", hash = "sha256:5c469db6614f071009e3e5bb8b6aeeccae3beb3647fa9c6cd97f0d551edde0b6"},
 ]
 
 [package.dependencies]
@@ -1345,7 +1345,7 @@ files = [
 name = "inflection"
 version = "0.5.1"
 description = "A port of Ruby on Rails inflector to Python"
-optional = true
+optional = false
 python-versions = ">=3.5"
 groups = ["main"]
 markers = "extra == \"aca-py\""
@@ -1370,7 +1370,7 @@ files = [
 name = "jinja2"
 version = "3.1.6"
 description = "A very fast and expressive template engine."
-optional = true
+optional = false
 python-versions = ">=3.7"
 groups = ["main"]
 markers = "extra == \"aca-py\""
@@ -1389,7 +1389,7 @@ i18n = ["Babel (>=2.7)"]
 name = "jsoncanon"
 version = "0.2.3"
 description = "Typed Python implementation of JSON Canonicalization Scheme as described in RFC 8785. Currently lacks full floating point support"
-optional = true
+optional = false
 python-versions = ">=3.8,<4.0"
 groups = ["main"]
 markers = "extra == \"aca-py\""
@@ -1402,7 +1402,7 @@ files = [
 name = "jsonpath-ng"
 version = "1.7.0"
 description = "A final implementation of JSONPath for Python that aims to be standard compliant, including arithmetic and binary comparison operators and providing clear AST for metaprogramming."
-optional = true
+optional = false
 python-versions = "*"
 groups = ["main"]
 markers = "extra == \"aca-py\""
@@ -1419,7 +1419,7 @@ ply = "*"
 name = "jwcrypto"
 version = "1.5.6"
 description = "Implementation of JOSE Web standards"
-optional = true
+optional = false
 python-versions = ">= 3.8"
 groups = ["main"]
 markers = "extra == \"aca-py\""
@@ -1436,7 +1436,7 @@ typing-extensions = ">=4.5.0"
 name = "lxml"
 version = "5.3.1"
 description = "Powerful and Pythonic XML processing library combining libxml2/libxslt with the ElementTree API."
-optional = true
+optional = false
 python-versions = ">=3.6"
 groups = ["main"]
 markers = "extra == \"aca-py\""
@@ -1592,7 +1592,7 @@ source = ["Cython (>=3.0.11,<3.1.0)"]
 name = "markdown"
 version = "3.7"
 description = "Python implementation of John Gruber's Markdown."
-optional = true
+optional = false
 python-versions = ">=3.8"
 groups = ["main"]
 markers = "extra == \"aca-py\""
@@ -1609,7 +1609,7 @@ testing = ["coverage", "pyyaml"]
 name = "markupsafe"
 version = "3.0.2"
 description = "Safely add untrusted strings to HTML/XML markup."
-optional = true
+optional = false
 python-versions = ">=3.9"
 groups = ["main"]
 markers = "extra == \"aca-py\""
@@ -1701,7 +1701,7 @@ tests = ["pytest", "simplejson"]
 name = "multidict"
 version = "6.2.0"
 description = "multidict implementation"
-optional = true
+optional = false
 python-versions = ">=3.9"
 groups = ["main"]
 markers = "extra == \"aca-py\""
@@ -1804,7 +1804,7 @@ files = [
 name = "multiformats"
 version = "0.3.1.post4"
 description = "Python implementation of multiformats protocols."
-optional = true
+optional = false
 python-versions = ">=3.7"
 groups = ["main"]
 markers = "extra == \"aca-py\""
@@ -1827,7 +1827,7 @@ full = ["blake3", "mmh3", "pycryptodomex", "pyskein", "rich"]
 name = "multiformats-config"
 version = "0.3.1"
 description = "Pre-loading configuration module for the 'multiformats' package."
-optional = true
+optional = false
 python-versions = ">=3.7"
 groups = ["main"]
 markers = "extra == \"aca-py\""
@@ -1846,7 +1846,7 @@ dev = ["mypy", "pylint", "pytest", "pytest-cov"]
 name = "nest-asyncio"
 version = "1.6.0"
 description = "Patch asyncio to allow nested event loops"
-optional = true
+optional = false
 python-versions = ">=3.5"
 groups = ["main"]
 markers = "extra == \"aca-py\""
@@ -1871,7 +1871,7 @@ files = [
 name = "pillow"
 version = "11.1.0"
 description = "Python Imaging Library (Fork)"
-optional = true
+optional = false
 python-versions = ">=3.9"
 groups = ["main"]
 markers = "extra == \"aca-py\""
@@ -1977,7 +1977,7 @@ testing = ["pytest", "pytest-benchmark"]
 name = "ply"
 version = "3.11"
 description = "Python Lex & Yacc"
-optional = true
+optional = false
 python-versions = "*"
 groups = ["main"]
 markers = "extra == \"aca-py\""
@@ -1990,7 +1990,7 @@ files = [
 name = "portalocker"
 version = "3.1.1"
 description = "Wraps the portalocker recipe for easy usage"
-optional = true
+optional = false
 python-versions = ">=3.9"
 groups = ["main"]
 markers = "extra == \"aca-py\""
@@ -2011,7 +2011,7 @@ tests = ["pytest (>=5.4.1)", "pytest-cov (>=2.8.1)", "pytest-mypy (>=0.8.0)", "p
 name = "prompt-toolkit"
 version = "3.0.51"
 description = "Library for building powerful interactive command lines in Python"
-optional = true
+optional = false
 python-versions = ">=3.8"
 groups = ["main"]
 markers = "extra == \"aca-py\""
@@ -2027,7 +2027,7 @@ wcwidth = "*"
 name = "propcache"
 version = "0.4.1"
 description = "Accelerated property cache"
-optional = true
+optional = false
 python-versions = ">=3.9"
 groups = ["main"]
 markers = "extra == \"aca-py\""
@@ -2198,7 +2198,7 @@ files = [
 name = "psycopg"
 version = "3.2.12"
 description = "PostgreSQL database adapter for Python"
-optional = true
+optional = false
 python-versions = ">=3.8"
 groups = ["main"]
 markers = "extra == \"aca-py\""
@@ -2224,7 +2224,7 @@ test = ["anyio (>=4.0)", "mypy (>=1.14)", "pproxy (>=2.7)", "pytest (>=6.2.5)", 
 name = "psycopg-binary"
 version = "3.2.12"
 description = "PostgreSQL database adapter for Python -- C optimisation distribution"
-optional = true
+optional = false
 python-versions = ">=3.8"
 groups = ["main"]
 markers = "extra == \"aca-py\" and implementation_name != \"pypy\""
@@ -2297,7 +2297,7 @@ files = [
 name = "psycopg-pool"
 version = "3.2.7"
 description = "Connection Pool for Psycopg"
-optional = true
+optional = false
 python-versions = ">=3.8"
 groups = ["main"]
 markers = "extra == \"aca-py\""
@@ -2340,7 +2340,7 @@ pyasn1 = ">=0.4.6,<0.7.0"
 name = "pycparser"
 version = "2.22"
 description = "C parser in Python"
-optional = true
+optional = false
 python-versions = ">=3.8"
 groups = ["main"]
 markers = "extra == \"aca-py\""
@@ -2353,7 +2353,7 @@ files = [
 name = "pydantic"
 version = "2.12.5"
 description = "Data validation using Python type hints"
-optional = true
+optional = false
 python-versions = ">=3.9"
 groups = ["main"]
 markers = "extra == \"aca-py\""
@@ -2376,7 +2376,7 @@ timezone = ["tzdata ; python_version >= \"3.9\" and platform_system == \"Windows
 name = "pydantic-core"
 version = "2.41.5"
 description = "Core functionality for Pydantic validation and serialization"
-optional = true
+optional = false
 python-versions = ">=3.9"
 groups = ["main"]
 markers = "extra == \"aca-py\""
@@ -2511,7 +2511,7 @@ typing-extensions = ">=4.14.1"
 name = "pydid"
 version = "0.5.2"
 description = "Python library for validating, constructing, and representing DIDs and DID Documents"
-optional = true
+optional = false
 python-versions = "<4.0.0,>=3.9.0"
 groups = ["main"]
 markers = "extra == \"aca-py\""
@@ -2544,7 +2544,7 @@ windows-terminal = ["colorama (>=0.4.6)"]
 name = "pyjwt"
 version = "2.10.1"
 description = "JSON Web Token implementation in Python"
-optional = true
+optional = false
 python-versions = ">=3.9"
 groups = ["main"]
 markers = "extra == \"aca-py\""
@@ -2563,7 +2563,7 @@ tests = ["coverage[toml] (==5.0.4)", "pytest (>=6.0.0,<7.0.0)"]
 name = "pyld"
 version = "2.0.4"
 description = "Python implementation of the JSON-LD API"
-optional = true
+optional = false
 python-versions = "*"
 groups = ["main"]
 markers = "extra == \"aca-py\""
@@ -2587,7 +2587,7 @@ requests = ["requests"]
 name = "pynacl"
 version = "1.5.0"
 description = "Python binding to the Networking and Cryptography (NaCl) library"
-optional = true
+optional = false
 python-versions = ">=3.6"
 groups = ["main"]
 markers = "extra == \"aca-py\""
@@ -2706,7 +2706,7 @@ ruff = ">=0.0.242"
 name = "python-dateutil"
 version = "2.9.0.post0"
 description = "Extensions to the standard Python datetime module"
-optional = true
+optional = false
 python-versions = "!=3.0.*,!=3.1.*,!=3.2.*,>=2.7"
 groups = ["main"]
 markers = "extra == \"aca-py\""
@@ -2722,7 +2722,7 @@ six = ">=1.5"
 name = "python-json-logger"
 version = "3.3.0"
 description = "JSON Log Formatter for the Python Logging Package"
-optional = true
+optional = false
 python-versions = ">=3.8"
 groups = ["main"]
 markers = "extra == \"aca-py\""
@@ -2755,7 +2755,7 @@ test = ["base58", "pytest (<3.7)", "pytest-asyncio (==0.10.0)"]
 name = "pywin32"
 version = "310"
 description = "Python for Window Extensions"
-optional = true
+optional = false
 python-versions = "*"
 groups = ["main"]
 markers = "extra == \"aca-py\" and platform_system == \"Windows\""
@@ -2782,7 +2782,7 @@ files = [
 name = "pyyaml"
 version = "6.0.2"
 description = "YAML parser and emitter for Python"
-optional = true
+optional = false
 python-versions = ">=3.8"
 groups = ["main"]
 markers = "extra == \"aca-py\""
@@ -2846,7 +2846,7 @@ files = [
 name = "qrcode"
 version = "8.2"
 description = "QR Code image generator"
-optional = true
+optional = false
 python-versions = "<4.0,>=3.9"
 groups = ["main"]
 markers = "extra == \"aca-py\""
@@ -2890,7 +2890,7 @@ use-chardet-on-py3 = ["chardet (>=3.0.2,<6)"]
 name = "rlp"
 version = "4.1.0"
 description = "rlp: A package for Recursive Length Prefix encoding and decoding"
-optional = true
+optional = false
 python-versions = "<4,>=3.8"
 groups = ["main"]
 markers = "extra == \"aca-py\""
@@ -2956,7 +2956,7 @@ files = [
 name = "sd-jwt"
 version = "0.10.4"
 description = "The reference implementation of the IETF SD-JWT specification."
-optional = true
+optional = false
 python-versions = ">=3.8,<4.0"
 groups = ["main"]
 markers = "extra == \"aca-py\""
@@ -2973,7 +2973,7 @@ pyyaml = ">=5.4"
 name = "six"
 version = "1.17.0"
 description = "Python 2 and 3 compatibility utilities"
-optional = true
+optional = false
 python-versions = "!=3.0.*,!=3.1.*,!=3.2.*,>=2.7"
 groups = ["main"]
 markers = "extra == \"aca-py\""
@@ -2986,7 +2986,7 @@ files = [
 name = "toolz"
 version = "1.0.0"
 description = "List processing tools and functional utilities"
-optional = true
+optional = false
 python-versions = ">=3.8"
 groups = ["main"]
 markers = "extra == \"aca-py\" and (implementation_name == \"cpython\" or implementation_name == \"pypy\")"
@@ -2999,7 +2999,7 @@ files = [
 name = "typing-extensions"
 version = "4.15.0"
 description = "Backported and Experimental Type Hints for Python 3.9+"
-optional = true
+optional = false
 python-versions = ">=3.9"
 groups = ["main"]
 markers = "extra == \"aca-py\""
@@ -3012,7 +3012,7 @@ files = [
 name = "typing-inspection"
 version = "0.4.2"
 description = "Runtime typing introspection tools"
-optional = true
+optional = false
 python-versions = ">=3.9"
 groups = ["main"]
 markers = "extra == \"aca-py\""
@@ -3028,7 +3028,7 @@ typing-extensions = ">=4.12.0"
 name = "typing-validation"
 version = "1.2.12"
 description = "A simple library for runtime type-checking."
-optional = true
+optional = false
 python-versions = ">=3.7"
 groups = ["main"]
 markers = "extra == \"aca-py\""
@@ -3044,7 +3044,7 @@ dev = ["mypy", "pylint", "pytest", "pytest-cov", "rich"]
 name = "tzdata"
 version = "2025.2"
 description = "Provider of IANA time zone data"
-optional = true
+optional = false
 python-versions = ">=2"
 groups = ["main"]
 markers = "extra == \"aca-py\" and sys_platform == \"win32\""
@@ -3057,7 +3057,7 @@ files = [
 name = "unflatten"
 version = "0.2.0"
 description = "Unflatten dict to dict with nested dict/arrays"
-optional = true
+optional = false
 python-versions = "*"
 groups = ["main"]
 markers = "extra == \"aca-py\""
@@ -3100,7 +3100,7 @@ zstd = ["backports-zstd (>=1.0.0) ; python_version < \"3.14\""]
 name = "uuid-utils"
 version = "0.10.0"
 description = "Drop-in replacement for Python UUID in Rust"
-optional = true
+optional = false
 python-versions = ">=3.9"
 groups = ["main"]
 markers = "extra == \"aca-py\""
@@ -3138,7 +3138,7 @@ files = [
 name = "wcwidth"
 version = "0.2.13"
 description = "Measures the displayed width of unicode strings in a terminal"
-optional = true
+optional = false
 python-versions = "*"
 groups = ["main"]
 markers = "extra == \"aca-py\""
@@ -3151,7 +3151,7 @@ files = [
 name = "webargs"
 version = "8.6.0"
 description = "Declarative parsing and validation of HTTP request objects, with built-in support for popular web frameworks, including Flask, Django, Bottle, Tornado, Pyramid, Falcon, and aiohttp."
-optional = true
+optional = false
 python-versions = ">=3.8"
 groups = ["main"]
 markers = "extra == \"aca-py\""
@@ -3174,7 +3174,7 @@ tests = ["pytest", "pytest-aiohttp (>=0.3.0)", "pytest-asyncio", "webargs[framew
 name = "yarl"
 version = "1.18.3"
 description = "Yet another URL library"
-optional = true
+optional = false
 python-versions = ">=3.9"
 groups = ["main"]
 markers = "extra == \"aca-py\""
@@ -3274,4 +3274,4 @@ aca-py = ["acapy-agent"]
 [metadata]
 lock-version = "2.1"
 python-versions = "^3.13"
-content-hash = "fa18aa920e13133bd35767c5eb30c6983b6150263e7147131850a6447350be54"
+content-hash = "150ba995ac50f3ad7bb55845d9e4f8d745d1ab585699af962689318e0275880d"
