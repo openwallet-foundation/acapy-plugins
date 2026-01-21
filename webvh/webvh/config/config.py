@@ -3,8 +3,6 @@
 import copy
 import json
 
-from operator import itemgetter
-
 from acapy_agent.core.profile import Profile
 from acapy_agent.storage.base import BaseStorage
 from acapy_agent.storage.error import StorageNotFoundError
@@ -20,6 +18,11 @@ WALLET_NAME = "wallet.name"
 def _get_wallet_identifier(profile: Profile):
     """Get the wallet identifier."""
     return profile.settings.get(WALLET_ID) or profile.settings.get(WALLET_NAME)
+
+
+def get_global_plugin_config(profile: Profile):
+    """Get the global plugin settings."""
+    return copy.deepcopy(profile.settings.get("plugin_config", {}).get("webvh", {}))
 
 
 async def get_plugin_config(profile: Profile):
@@ -38,9 +41,14 @@ async def get_plugin_config(profile: Profile):
             pass
 
     if stored_config_record:
-        return json.loads(stored_config_record.value)["config"]
+        config = json.loads(stored_config_record.value)["config"]
+    else:
+        config = get_global_plugin_config(profile)
 
-    return copy.deepcopy(profile.settings.get("plugin_config", {}).get("webvh", {}))
+    if config is None:
+        config = {}
+
+    return config
 
 
 async def set_config(profile: Profile, config: dict):
@@ -127,7 +135,10 @@ async def use_strict_ssl(profile: Profile):
 
 async def add_scid_mapping(profile: Profile, did: str):
     """Add a scid mapping."""
-    scid = itemgetter(2)(did.split(":"))
+    from ..did.utils import parse_webvh
+
+    parsed = parse_webvh(did)
+    scid = parsed.scid
     async with profile.session() as session:
         storage = session.inject(BaseStorage)
         stored_config_record = await storage.get_record(

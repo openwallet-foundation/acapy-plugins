@@ -6,7 +6,7 @@ from acapy_agent.messaging.base_handler import BaseHandler
 from acapy_agent.messaging.request_context import RequestContext
 from acapy_agent.messaging.responder import BaseResponder
 
-from ...did.manager import ControllerManager
+from ...did.controller import ControllerManager
 from ...did.witness import WitnessManager
 
 from ...config.config import get_plugin_config
@@ -40,7 +40,9 @@ class WitnessRequestHandler(BaseHandler):
         config = await get_plugin_config(context.profile)
         connection_id = context.connection_record.connection_id
         if config.get("auto_attest", False):
-            witness_signature = await witness.sign_log_version(log_entry.get("versionId"))
+            witness_signature = await witness.sign(
+                {"versionId": log_entry.get("versionId")}
+            )
             await responder.send(
                 message=WitnessResponse(
                     state=WitnessingState.ATTESTED.value,

@@ -18,6 +18,9 @@ LOGGER = logging.getLogger(__name__)
 async def setup(context: InjectionContext):
     """Setup."""
     LOGGER.info("webvh plugin setup...")
+    LOGGER.warning("=" * 70)
+    LOGGER.warning("WebVH Plugin: Starting setup")
+    LOGGER.warning("=" * 70)
 
     # AnonCreds Registry
     anoncreds_registry = context.inject_or(AnonCredsRegistry)

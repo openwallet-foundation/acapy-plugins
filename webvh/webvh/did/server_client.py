@@ -4,13 +4,12 @@ import http
 import json
 import logging
 
-from operator import itemgetter
-
 from acapy_agent.core.profile import Profile
 from aiohttp import ClientConnectionError, ClientResponseError, ClientSession
 from did_webvh.core.state import DocumentState
 
 from ..config.config import get_server_url, use_strict_ssl
+from .utils import parse_did_key, parse_webvh
 from .exceptions import DidCreationError, OperationError
 from .utils import all_are_not_none
 
@@ -38,6 +37,62 @@ class WebVHServerClient:
     def __init__(self, profile: Profile):
         """Initialize the WebVHServerClient with a profile."""
         self.profile = profile
+
+    async def get_document(self):
+        """Get the server document."""
+        async with ClientSession() as session:
+            response = await session.get(
+                f"{await get_server_url(self.profile)}/.well-known/did.json"
+            )
+            return await response.json()
+
+    async def get_witness_services(self):
+        """Get the witness services from the server document."""
+        document = await self.get_document()
+        return document.get("service", [])
+
+    async def get_witness_invitation(self, witness_id: str):
+        """Get the witness invitation from the server document."""
+        server_url = await get_server_url(self.profile)
+        LOGGER.info(f"Fetching witness services from server document at {server_url}")
+        witness_services = await self.get_witness_services()
+        LOGGER.info(
+            f"Found {len(witness_services)} witness service(s) in server document"
+        )
+
+        witness_service = next(
+            (svc for svc in witness_services if svc.get("id") == witness_id), None
+        )
+        if not witness_service:
+            LOGGER.error(
+                f"Witness {witness_id} not found in server document. "
+                f"Available witness IDs: {[svc.get('id') for svc in witness_services]}"
+            )
+            raise OperationError(f"Witness {witness_id} not listed by server document.")
+
+        invitation_url = witness_service.get("serviceEndpoint")
+        LOGGER.info(f"Found witness service endpoint: {invitation_url}")
+        parsed_key = parse_did_key(witness_id)
+        expected_url = f"{server_url}/api/invitations?_oobid={parsed_key.key}"
+        if invitation_url != expected_url:
+            LOGGER.error(
+                f"Witness service endpoint mismatch. "
+                f"Expected: {expected_url}, Got: {invitation_url}"
+            )
+            raise OperationError(
+                "Witness service endpoint does not match server document."
+            )
+
+        LOGGER.info(f"Fetching invitation from {invitation_url}")
+        async with ClientSession() as session:
+            response = await session.get(invitation_url)
+            response.raise_for_status()
+            invitation = await response.json()
+            LOGGER.info(
+                f"Successfully fetched invitation "
+                f"(id: {invitation.get('@id', 'unknown')})"
+            )
+            return invitation
 
     async def request_identifier(self, namespace, identifier) -> tuple:
         """Contact the webvh server to request an identifier."""
@@ -79,10 +134,11 @@ class WebVHServerClient:
     async def submit_log_entry(self, log_entry, witness_signature):
         """Submit a log entry to the WebVH server."""
         did = log_entry.get("state", {}).get("id")
-        namespace, identifier = itemgetter(4, 5)(did.split(":"))
+        parsed = parse_webvh(did)
         async with ClientSession() as session:
+            server_url = await get_server_url(self.profile)
             response = await session.post(
-                f"{await get_server_url(self.profile)}/{namespace}/{identifier}",
+                f"{server_url}/{parsed.namespace}/{parsed.identifier}",
                 json={"logEntry": log_entry, "witnessSignature": witness_signature},
                 ssl=(await use_strict_ssl(self.profile)),
             )
@@ -102,10 +158,11 @@ class WebVHServerClient:
 
     async def fetch_jsonl(self, did: str):
         """Fetch a JSONL file from the given URL."""
-        namespace, identifier = itemgetter(4, 5)(did.split(":"))
+        parsed = parse_webvh(did)
         async with ClientSession() as session:
+            server_url = await get_server_url(self.profile)
             async with session.get(
-                f"{await get_server_url(self.profile)}/{namespace}/{identifier}/did.jsonl"
+                f"{server_url}/{parsed.namespace}/{parsed.identifier}/did.jsonl"
             ) as response:
                 # Check if the response is OK
                 response.raise_for_status()
@@ -131,12 +188,13 @@ class WebVHServerClient:
     async def submit_whois(self, vp: dict):
         """Submit a whois Verifiable Presentation for a given identifier."""
         holder_id = vp.get("holder")
-        namespace, identifier = itemgetter(4, 5)(holder_id.split(":"))
+        parsed = parse_webvh(holder_id)
         async with ClientSession() as http_session:
             try:
+                server_url = await get_server_url(self.profile)
                 response = await http_session.post(
                     f"""
-                    {await get_server_url(self.profile)}/{namespace}/{identifier}/whois
+                    {server_url}/{parsed.namespace}/{parsed.identifier}/whois
                     """,
                     json={"verifiablePresentation": vp},
                 )
@@ -149,11 +207,11 @@ class WebVHServerClient:
         """Submit a whois Verifiable Presentation for a given identifier."""
         author_id = resource.get("id").split("/")[0]
         server_url = await get_server_url(self.profile)
-        namespace, identifier = itemgetter(4, 5)(author_id.split(":"))
+        parsed = parse_webvh(author_id)
         async with ClientSession() as http_session:
             try:
                 response = await http_session.post(
-                    f"{server_url}/{namespace}/{identifier}/resources",
+                    f"{server_url}/{parsed.namespace}/{parsed.identifier}/resources",
                     json={"attestedResource": resource},
                 )
             except ClientConnectionError as err:

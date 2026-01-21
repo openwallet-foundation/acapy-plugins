@@ -1,18 +1,16 @@
-import asyncio
 from unittest import IsolatedAsyncioTestCase
 
-from acapy_agent.connections.models.conn_record import ConnRecord
 from acapy_agent.messaging.responder import BaseResponder
 from acapy_agent.protocols.coordinate_mediation.v1_0.route_manager import RouteManager
-from acapy_agent.protocols.out_of_band.v1_0.manager import OutOfBandManager
 from acapy_agent.tests import mock
 from acapy_agent.utils.testing import create_test_profile
 from acapy_agent.wallet.key_type import KeyTypes
 from acapy_agent.wallet.keys.manager import MultikeyManager
 
-from ..exceptions import ConfigurationError
-from ..manager import ControllerManager
+from ..controller import ControllerManager
 from ..witness import WitnessManager
+from ..connection import WebVHConnectionManager
+from ...config.config import get_plugin_config
 from ...protocols.log_entry.record import PendingLogEntryRecord
 
 PENDING_DOCUMENT_TABLE_NAME = PendingLogEntryRecord().RECORD_TYPE
@@ -50,104 +48,72 @@ class TestWitnessManager(IsolatedAsyncioTestCase):
             )
 
     async def test_witness_key_alias(self):
-        assert await self.witness.key_alias()
+        assert self.witness.key_alias
 
-    async def test_witness_connection_alias(self):
-        assert await self.witness.connection_alias()
+    # Tests for setup() method removed - connection setup now happens in controller.configure()
 
-    @mock.patch.object(WitnessManager, "_get_active_witness_connection")
-    async def test_auto_witness_setup_as_witness(
-        self, mock_get_active_witness_connection
+    async def test_witness_auto_setup_skips_when_not_configured(self):
+        self.profile.settings.set_value(
+            "plugin_config",
+            {
+                "webvh": {
+                    "witness": False,
+                    "server_url": SERVER_URL,
+                }
+            },
+        )
+        await self.witness.configure()
+        config = await get_plugin_config(self.profile)
+        assert "witnesses" not in config
+
+    async def test_witness_auto_setup_creates_key_and_updates_config(self):
+        profile = await create_test_profile(
+            {
+                "wallet.type": "askar-anoncreds",
+                "default_label": "TestWitness",
+                "default_endpoint": "https://example.com",
+            }
+        )
+        profile.settings.set_value(
+            "plugin_config",
+            {
+                "webvh": {
+                    "witness": True,
+                    "server_url": SERVER_URL,
+                }
+            },
+        )
+        profile.context.injector.bind_instance(KeyTypes, KeyTypes())
+        profile.context.injector.bind_instance(
+            RouteManager, mock.AsyncMock(RouteManager, autospec=True)
+        )
+        witness = WitnessManager(profile)
+        with mock.patch.object(
+            witness.witness_connection,
+            "create_witness_invitation",
+            new=mock.AsyncMock(return_value={"invitation_url": "https://example.com"}),
+        ):
+            await witness.configure()
+
+        config = await get_plugin_config(profile)
+        assert config.get("witnesses")
+        assert len(config["witnesses"]) == 1
+        # Ensure the witness key exists and can be retrieved
+        assert await witness.key_chain.get_key(witness.key_alias)
+
+    @mock.patch.object(WebVHConnectionManager, "create_witness_invitation")
+    async def test_witness_configure_delegates_to_controller(
+        self, mock_create_invitation
     ):
-        self.profile.settings.set_value(
-            "plugin_config",
-            {"webvh": {"witness": True, "server_url": SERVER_URL}},
-        )
-        await self.controller.auto_witness_setup()
-        assert not mock_get_active_witness_connection.called
+        """Test that witness.configure() works independently (it doesn't delegate to controller)."""
+        # Mock the invitation creation
+        mock_create_invitation.return_value = {
+            "invitation_url": "https://example.com?oob=test123"
+        }
 
-    async def test_auto_witness_setup_as_controller_no_server_url(self):
-        self.profile.settings.set_value(
-            "plugin_config",
-            {"webvh": {"witness": False}},
-        )
-        with self.assertRaises(ConfigurationError):
-            await self.controller.auto_witness_setup()
-
-    async def test_auto_witness_setup_as_controller_with_previous_connection(self):
-        self.profile.settings.set_value(
-            "plugin_config",
-            {
-                "webvh": {
-                    "witness": False,
-                    "server_url": SERVER_URL,
-                }
-            },
-        )
-        async with self.profile.session() as session:
-            record = ConnRecord(
-                alias=f"{SERVER_URL}@Witness",
-                state="active",
-            )
-            await record.save(session)
-        await self.controller.auto_witness_setup()
-
-    async def test_auto_witness_setup_as_controller_no_witness_invitation(self):
-        self.profile.settings.set_value(
-            "plugin_config",
-            {
-                "webvh": {
-                    "witness": False,
-                    "server_url": SERVER_URL,
-                }
-            },
-        )
-        await self.controller.auto_witness_setup()
-
-    @mock.patch.object(OutOfBandManager, "receive_invitation")
-    @mock.patch.object(asyncio, "sleep")
-    async def test_auto_witness_setup_as_controller_no_active_connection(self, *_):
-        self.profile.settings.set_value("plugin_config.webvh.witness", False)
-        self.profile.settings.set_value(
-            "plugin_config",
-            {
-                "webvh": {
-                    "witness": False,
-                    "server_url": SERVER_URL,
-                    "witness_invitation": "http://witness:9050?oob=eyJAdHlwZSI6ICJodHRwczovL2RpZGNvbW0ub3JnL291dC1vZi1iYW5kLzEuMS9pbnZpdGF0aW9uIiwgIkBpZCI6ICIwZDkwMGVjMC0wYzE3LTRmMTYtOTg1ZC1mYzU5MzVlYThjYTkiLCAibGFiZWwiOiAidGR3LWVuZG9yc2VyIiwgImhhbmRzaGFrZV9wcm90b2NvbHMiOiBbImh0dHBzOi8vZGlkY29tbS5vcmcvZGlkZXhjaGFuZ2UvMS4wIl0sICJzZXJ2aWNlcyI6IFt7ImlkIjogIiNpbmxpbmUiLCAidHlwZSI6ICJkaWQtY29tbXVuaWNhdGlvbiIsICJyZWNpcGllbnRLZXlzIjogWyJkaWQ6a2V5Ono2TWt0bXJUQURBWWRlc2Ftb3F1ZVV4NHNWM0g1Mms5b2ZoQXZRZVFaUG9vdTE3ZSN6Nk1rdG1yVEFEQVlkZXNhbW9xdWVVeDRzVjNINTJrOW9maEF2UWVRWlBvb3UxN2UiXSwgInNlcnZpY2VFbmRwb2ludCI6ICJodHRwOi8vbG9jYWxob3N0OjkwNTAifV19",
-                }
-            },
-        )
-        self.profile.context.injector.bind_instance(
-            RouteManager, mock.AsyncMock(RouteManager, autospec=True)
-        )
-        await self.controller.auto_witness_setup()
-
-    @mock.patch.object(OutOfBandManager, "receive_invitation")
-    async def test_auto_witness_setup_as_controller_conn_becomes_active(self, *_):
-        self.profile.settings.set_value("plugin_config.webvh.witness", False)
-        self.profile.settings.set_value(
-            "plugin_config",
-            {
-                "webvh": {
-                    "witness": False,
-                    "server_url": SERVER_URL,
-                    "witness_invitation": "http://witness:9050?oob=eyJAdHlwZSI6ICJodHRwczovL2RpZGNvbW0ub3JnL291dC1vZi1iYW5kLzEuMS9pbnZpdGF0aW9uIiwgIkBpZCI6ICIwZDkwMGVjMC0wYzE3LTRmMTYtOTg1ZC1mYzU5MzVlYThjYTkiLCAibGFiZWwiOiAidGR3LWVuZG9yc2VyIiwgImhhbmRzaGFrZV9wcm90b2NvbHMiOiBbImh0dHBzOi8vZGlkY29tbS5vcmcvZGlkZXhjaGFuZ2UvMS4wIl0sICJzZXJ2aWNlcyI6IFt7ImlkIjogIiNpbmxpbmUiLCAidHlwZSI6ICJkaWQtY29tbXVuaWNhdGlvbiIsICJyZWNpcGllbnRLZXlzIjogWyJkaWQ6a2V5Ono2TWt0bXJUQURBWWRlc2Ftb3F1ZVV4NHNWM0g1Mms5b2ZoQXZRZVFaUG9vdTE3ZSN6Nk1rdG1yVEFEQVlkZXNhbW9xdWVVeDRzVjNINTJrOW9maEF2UWVRWlBvb3UxN2UiXSwgInNlcnZpY2VFbmRwb2ludCI6ICJodHRwOi8vbG9jYWxob3N0OjkwNTAifV19",
-                }
-            },
-        )
-        self.profile.context.injector.bind_instance(
-            RouteManager, mock.AsyncMock(RouteManager, autospec=True)
-        )
-
-        async def _create_connection():
-            await asyncio.sleep(1)
-            async with self.profile.session() as session:
-                record = ConnRecord(
-                    alias=f"{SERVER_URL}@Witness",
-                    state="active",
-                )
-                await record.save(session)
-
-        asyncio.create_task(_create_connection())
-        await self.controller.auto_witness_setup()
+        options = {"server_url": SERVER_URL, "auto_attest": True, "witness": True}
+        # Witness.configure() doesn't delegate to ControllerManager.configure()
+        # It handles witness configuration independently
+        result = await self.witness.configure(options)
+        assert result.get("witness_id") is not None
+        assert result.get("witnesses") is not None
