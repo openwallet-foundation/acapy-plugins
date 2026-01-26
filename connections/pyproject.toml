@@ -16,7 +16,7 @@ acapy-agent = { git = "https://github.com/openwallet-foundation/acapy.git", bran
 aca-py = ["acapy-agent"]
 
 [tool.poetry.group.dev.dependencies]
-ruff = "^0.14.9"
+ruff = "^0.14.14"
 pytest = "^8.3.5"
 pytest-asyncio = "^1.2.0"
 pytest-cov = "^5.0.0"
