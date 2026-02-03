@@ -10,7 +10,8 @@ authors = [
 ]
 dependencies = [
     "did-indy-py[client,demo,driver] @ git+https://github.com/Indicio-tech/did-indy-py.git@0ed4aea1fa4ed4fe47b6672964ee9581da634d14",
-    "pytest>=8.4.0"
+    "pytest>=8.4.0",
+    "ruff>=0.12.3",
 ]
 requires-python = ">=3.12"
 readme = "README.md"

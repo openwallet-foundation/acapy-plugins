@@ -67,6 +67,7 @@ source = { editable = "." }
 dependencies = [
     { name = "did-indy-py", extra = ["client", "demo", "driver"] },
     { name = "pytest" },
+    { name = "ruff" },
 ]
 
 [package.dev-dependencies]
@@ -89,6 +90,7 @@ did-web-server = [
 requires-dist = [
     { name = "did-indy-py", extras = ["client", "demo", "driver"], git = "https://github.com/Indicio-tech/did-indy-py.git?rev=0ed4aea1fa4ed4fe47b6672964ee9581da634d14" },
     { name = "pytest", specifier = ">=8.4.0" },
+    { name = "ruff", specifier = ">=0.12.3" },
 ]
 
 [package.metadata.requires-dev]
@@ -872,6 +874,7 @@ version = "0.4.2"
 source = { registry = "https://pypi.org/simple" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/59/a3/cae5acba2e9155ff651321b0b1a359a66d94e26ad2f219c692644b7ba8cc/indy_vdr-0.4.2-py3-none-macosx_10_9_universal2.whl", hash = "sha256:21e4cc22bdb1de581e4abe00e2201d970f46e05d2420437fe023052614867553", size = 4616181, upload-time = "2024-04-23T21:43:15.986Z" },
+    { url = "https://files.pythonhosted.org/packages/03/43/ed664d866579f2b19f63f5b45cea976413bb3b5eb27e9174f61d2312ef09/indy_vdr-0.4.2-py3-none-macosx_14_0_universal2.whl", hash = "sha256:87c6ce352e87950e322c48341bd2d7e4e6899dd989484972ce24d20c761c6656", size = 4618464, upload-time = "2025-11-21T08:56:56.8Z" },
     { url = "https://files.pythonhosted.org/packages/0c/20/e6b04e85aaf5a6540575627e0bb738e8fe7bb20d819a9e4ac4e32fccae34/indy_vdr-0.4.2-py3-none-manylinux2014_aarch64.whl", hash = "sha256:9dc8e16e8a0c4666c1a9f0a3e9967cb3dace92975b8dbb9b0aa2c7785ac5e12b", size = 3392696, upload-time = "2024-04-23T21:42:58.707Z" },
     { url = "https://files.pythonhosted.org/packages/db/2c/6c770659ae5522f6d60e30dc270b44b0ec9abfb54224fbe4637acdd4e072/indy_vdr-0.4.2-py3-none-manylinux2014_x86_64.whl", hash = "sha256:b1390ee6cbf47967c565b16b7b672969ee54485dd16963ecdd451dc128aff7c1", size = 3483598, upload-time = "2024-04-23T21:43:10.144Z" },
     { url = "https://files.pythonhosted.org/packages/cc/c9/6ec09c94baf68f250162d4e72330bc2f70316d0a2ffa9ce24de4fc060c5a/indy_vdr-0.4.2-py3-none-win_amd64.whl", hash = "sha256:abb70e9dc46d59a6be1ac1a9b3530732c5dc8afe67f5aacba20bc7404c7d3317", size = 2246372, upload-time = "2024-04-23T21:43:37.965Z" },
