@@ -2,7 +2,7 @@ FROM python:3.12-slim-bookworm AS base
 WORKDIR /usr/src/app
 
 RUN apt-get update && apt-get install -y curl && apt-get clean
-ENV PDM_VERSION=2.15.4
+ENV PDM_VERSION=2.22.4
 ENV PDM_HOME=/opt/pdm
 RUN curl -sSL https://pdm-project.org/install-pdm.py | python3 -
 

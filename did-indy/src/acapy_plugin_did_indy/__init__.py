@@ -57,7 +57,7 @@ async def get_ledgers(
             ) from e
         else:
             LOGGER.warning(
-                f"Could not fetch namespaces from driver: {e}. Since `ledgers_from_driver` is false, using namespaces from acapy-did-indy plugin."
+                f"Could not fetch namespaces from driver: {e}. Since `ledgers_from_driver` is false, using namespaces from acapy-plugin-did-indy plugin."
             )
             LOGGER.warning("ACA-Py can only support did-indy resolution.")
             driver_ledgers = None
@@ -108,8 +108,8 @@ The plugin and did-indy driver use different namespaces. Using the driver's conf
 
 
 async def setup(context: InjectionContext):
-    LOGGER.debug("Starting setup for acapy_did_indy plugin")
-    plugin_settings = context.settings.for_plugin("acapy_did_indy")
+    LOGGER.debug("Starting setup for acapy_plugin_did_indy plugin")
+    plugin_settings = context.settings.for_plugin("acapy_plugin_did_indy")
 
     registry = context.inject_or(AnonCredsRegistry)
     if not registry:
@@ -133,6 +133,7 @@ async def setup(context: InjectionContext):
         ledgers = await get_ledgers(plugin_settings, client)
     except LedgerError as e:
         LOGGER.error(f"Ledger setup failed: {e}.")
+        LOGGER.exception(e)
         return
 
     LOGGER.debug("Using namespaces %s", list(ledgers.ledgers.keys()))
@@ -197,4 +198,4 @@ async def setup(context: InjectionContext):
     resolver.register_resolver(indy_resolver)
     registry.register(indy_registry)
 
-    LOGGER.debug("acapy_did_indy plugin setup complete")
+    LOGGER.debug("acapy_plugin_did_indy plugin setup complete")

@@ -1,4 +1,4 @@
-# acapy-did-indy
+# acapy-plugin-did-indy
 
 ## Overview
 
@@ -72,8 +72,8 @@ agent:
         --admin 0.0.0.0 3001
         --admin-insecure-mode
         # ...
-        --plugin acapy_did_indy
-        --plugin-config-value acapy_did_indy.driver_uri=http://driver
+        --plugin acapy_plugin_did_indy
+        --plugin-config-value acapy_plugin_did_indy.driver_uri=http://driver
 ```
 
 #### Authorization
@@ -103,9 +103,9 @@ agent:
         --admin 0.0.0.0 3001
         --admin-insecure-mode
         # ...
-        --plugin acapy_did_indy
-        --plugin-config-value acapy_did_indy.driver_uri=http://driver
-        --plugin-config-value acapy_did_indy.api_key=<YOUR-API-KEY>
+        --plugin acapy_plugin_did_indy
+        --plugin-config-value acapy_plugin_did_indy.driver_uri=http://driver
+        --plugin-config-value acapy_plugin_did_indy.api_key=<YOUR-API-KEY>
 ```
 
 #### Driver Ledgers
@@ -156,10 +156,10 @@ Additionally, a namespace mapping must be provided. This mapping informs the res
 aca-py start \
     -it http 0.0.0.0 3000
     # etc etc ...
-    --plugin acapy_did_indy
-    --plugin-config-value acapy_did_indy.ledgers_from_driver=False
-    --plugin-config-value acapy_did_indy.ledgers."indicio:test"=https://...
-    --plugin-config-value acapy_did_indy.ledgers."indicio:demo"=https://...
+    --plugin acapy_plugin_did_indy
+    --plugin-config-value acapy_plugin_did_indy.ledgers_from_driver=False
+    --plugin-config-value acapy_plugin_did_indy.ledgers."indicio:test"=https://...
+    --plugin-config-value acapy_plugin_did_indy.ledgers."indicio:demo"=https://...
 ```
 
 ### Providing Ledger Configuration for the Plugin
@@ -174,10 +174,10 @@ To configure the plugin with these parameters, there are three potential paths:
 aca-py start
     -it http 0.0.0.0 3000
     # etc etc ...
-    --plugin acapy_did_indy  # load the plugin itself
-    --plugin-config-value acapy_did_indy.ledgers_from_driver=False
-    --plugin-config-value acapy_did_indy.ledgers."indicio:test"=https://raw.githubusercontent.com/Indicio-tech/indicio-network/main/genesis_files/pool_transactions_testnet_genesis
-    --plugin-config-value acapy_did_indy.ledgers."indicio:demo"=https://raw.githubusercontent.com/Indicio-tech/indicio-network/main/genesis_files/pool_transactions_demonet_genesis
+    --plugin acapy_plugin_did_indy  # load the plugin itself
+    --plugin-config-value acapy_plugin_did_indy.ledgers_from_driver=False
+    --plugin-config-value acapy_plugin_did_indy.ledgers."indicio:test"=https://raw.githubusercontent.com/Indicio-tech/indicio-network/main/genesis_files/pool_transactions_testnet_genesis
+    --plugin-config-value acapy_plugin_did_indy.ledgers."indicio:demo"=https://raw.githubusercontent.com/Indicio-tech/indicio-network/main/genesis_files/pool_transactions_demonet_genesis
 ```
 
 Or, the shorthand:
@@ -186,10 +186,10 @@ Or, the shorthand:
 aca-py start \
     -it http 0.0.0.0 3000
     # etc etc ...
-    --plugin acapy_did_indy  # load the plugin itself
-    -o acapy_did_indy.ledgers_from_driver=False
-    -o acapy_did_indy.ledgers."indicio:test"=https://raw.githubusercontent.com/Indicio-tech/indicio-network/main/genesis_files/pool_transactions_testnet_genesis
-    -o acapy_did_indy.ledgers."indicio:demo"=https://raw.githubusercontent.com/Indicio-tech/indicio-network/main/genesis_files/pool_transactions_demonet_genesis
+    --plugin acapy_plugin_did_indy  # load the plugin itself
+    -o acapy_plugin_did_indy.ledgers_from_driver=False
+    -o acapy_plugin_did_indy.ledgers."indicio:test"=https://raw.githubusercontent.com/Indicio-tech/indicio-network/main/genesis_files/pool_transactions_testnet_genesis
+    -o acapy_plugin_did_indy.ledgers."indicio:demo"=https://raw.githubusercontent.com/Indicio-tech/indicio-network/main/genesis_files/pool_transactions_demonet_genesis
 ```
 
 
@@ -200,7 +200,7 @@ A separate plugin config file may be used:
 ```yaml
 # my-plugin-config.yaml
 
-acapy-did-indy:
+acapy-plugin-did-indy:
     ledgers:
         indicio:test: https://raw.githubusercontent.com/Indicio-tech/indicio-network/main/genesis_files/pool_transactions_testnet_genesis
         indicio:demo: https://raw.githubusercontent.com/Indicio-tech/indicio-network/main/genesis_files/pool_transactions_demonet_genesis
@@ -214,6 +214,6 @@ And then loaded into ACA-Py on startup:
 aca-py start
     -it http 0.0.0.0 3000
     # Other args etc etc ...
-    --plugin acapy_did_indy  # load the plugin itself
+    --plugin acapy_plugin_did_indy  # load the plugin itself
     --plugin-config my-plugin-config.yaml
 ```

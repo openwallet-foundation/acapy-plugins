@@ -17,6 +17,26 @@ CREDO_PORT = int(getenv("CREDO_PORT", "3000"))
 async def controller():
     """Connect to Issuer."""
     controller = Controller(ISSUER_ADMIN_ENDPOINT)
+    taa_info = await controller.post(
+        "/did/indy/taa",
+        json={
+            "namespace": "indicio:test",
+        },
+    )
+
+    taa_acceptance = await controller.post(
+        "/did/indy/taa/accept",
+        json={
+            # "taa_info": {
+            #     "namespace": "indicio:test",
+            #     "version": taa_info["version"],
+            #     "text": taa_info["text"],
+            # },
+            "taa_info": taa_info["taa"],
+            "mechanism": "on_file",
+            "namespace": "indicio:test",
+        },
+    )
     async with controller:
         yield controller
 
@@ -30,8 +50,9 @@ async def sov_did(controller: Controller):
 @pytest_asyncio.fixture
 async def indy_did(controller: Controller, sov_did: str):
     did_indy_result = await controller.post(
-        "/did/indy/from-nym",
+        "/did/indy/new-did",
         json={
+            "namespace": "indicio:test",
             "ldp_vc": True,
             "didcomm": True,
         },

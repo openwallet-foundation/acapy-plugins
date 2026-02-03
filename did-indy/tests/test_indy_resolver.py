@@ -2,7 +2,7 @@
 
 import pytest
 
-from acapy_did_indy.resolver import INDY_DID_PATTERN
+from acapy_plugin_did_indy.resolver import INDY_DID_PATTERN
 
 
 @pytest.mark.parametrize(
