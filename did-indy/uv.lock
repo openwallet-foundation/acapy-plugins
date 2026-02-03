@@ -61,7 +61,7 @@ dependencies = [
 ]
 
 [[package]]
-name = "acapy-did-indy"
+name = "acapy-plugin-did-indy"
 version = "0.1.0"
 source = { editable = "." }
 dependencies = [
