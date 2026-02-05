@@ -8,7 +8,7 @@ python = "^3.13"
 
 # Define ACA-Py as an optional/extra dependency so it can be
 # explicitly installed with the plugin if desired.
-acapy-agent = { git = "https://github.com/openwallet-foundation/acapy.git", branch = "main", optional = true }
+acapy-agent = { version = "~1.5.0", optional = true }
 
 aiohttp = "^3.13.3"
 fastapi-slim = "^0.128.0"
@@ -21,7 +21,7 @@ pydantic = "^2.12.5"
 aca-py = ["acapy-agent"]
 
 [tool.poetry.group.dev.dependencies]
-ruff = "^0.14.9"
+ruff = "^0.14.14"
 pytest = "^8.3.5"
 pytest-asyncio = "^1.2.0"
 pytest-cov = "^5.0.0"
