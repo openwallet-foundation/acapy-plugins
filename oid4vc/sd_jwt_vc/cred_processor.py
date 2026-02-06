@@ -118,14 +118,14 @@ class SdJwtCredIssueProcessor(Issuer, CredVerifier, PresVerifier):
             )
         ):
             claims["status"] = credential_status
-            LOGGER.debug("credential with status: %s", claims)
+            LOGGER.info("credential with status: %s", claims)
 
         profile = context.profile
         did = ex_record.issuer_id
         ver_method = ex_record.verification_method
         try:
             cred = await sd_jwt_sign(sd_list, claims, headers, profile, did, ver_method)
-            LOGGER.debug("SD JWT VC CREDENTIAL: %s", cred)
+            LOGGER.info("SD JWT VC CREDENTIAL: %s", cred)
             return cred
         except SDJWTError as error:
             raise CredProcessorError("Could not sign SD-JWT VC") from error

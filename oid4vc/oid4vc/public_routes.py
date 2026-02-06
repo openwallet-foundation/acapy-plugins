@@ -114,6 +114,10 @@ class CredentialIssuerMetadataSchema(OpenAPISchema):
         required=True,
         metadata={"description": "The credential endpoint."},
     )
+    token_endpoint = fields.Str(
+        required=False,
+        metadata={"description": "The token endpoint."},
+    )
     nonce_endpoint = fields.Str(
         required=False,
         metadata={"description": "The nonce endpoint."},
@@ -151,6 +155,7 @@ async def credential_issuer_metadata(request: web.Request):
             ]
         metadata["credential_endpoint"] = f"{public_url}{subpath}/credential"
         metadata["notification_endpoint"] = f"{public_url}{subpath}/notification"
+        metadata["token_endpoint"] = f"{public_url}{subpath}/token"
         metadata["credential_configurations_supported"] = {
             supported.identifier: supported.to_issuer_metadata()
             for supported in credentials_supported
@@ -513,10 +518,11 @@ async def issue_cred(request: web.Request):
         raise web.HTTPBadRequest(
             reason="Invalid exchange; no offer created for this request"
         )
-
-    if supported.format_data is None:
-        LOGGER.error(f"No format_data for supported credential {supported.format}.")
-        raise web.HTTPInternalServerError()
+# TEMP UNDOING LOGIC FOR format_data
+#    if supported.format_data is None:
+#        LOGGER.error(f"No format_data for supported credential {supported.format}.")
+#        raise web.HTTPInternalServerError()
+    LOGGER.debug(f"Supported credential format_data: {supported.format_data}")
 
     if "proof" not in body:
         raise web.HTTPBadRequest(reason=f"proof is required for {supported.format}")
@@ -526,13 +532,13 @@ async def issue_cred(request: web.Request):
     if not pop.verified:
         raise web.HTTPBadRequest(reason="Invalid proof")
 
-    try:
-        processors = context.inject(CredProcessors)
-        processor = processors.issuer_for_format(supported.format)
+   # try:
+    processors = context.inject(CredProcessors)
+    processor = processors.issuer_for_format(supported.format)
 
-        credential = await processor.issue(body, supported, ex_record, pop, context)
-    except CredProcessorError as e:
-        raise web.HTTPBadRequest(reason=e.message)
+    credential = await processor.issue(body, supported, ex_record, pop, context)
+   # except CredProcessorError as e:
+   #     raise web.HTTPBadRequest(reason=e.message)
 
     async with context.session() as session:
         ex_record.state = OID4VCIExchangeRecord.STATE_ISSUED
@@ -547,6 +553,8 @@ async def issue_cred(request: web.Request):
         "credential": credential,
         "notification_id": ex_record.notification_id,
     }
+
+    LOGGER.debug(f"Credential issued: {credential}")
     if is_offer:
         cred_response["refresh_id"] = ex_record.refresh_id
 

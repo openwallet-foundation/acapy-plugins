@@ -1,5 +1,6 @@
 """MsoIssuer helper class to issue a mso."""
 
+from binascii import hexlify
 from typing import Union
 import logging
 from datetime import datetime, timedelta, timezone
@@ -85,36 +86,41 @@ class MsoIssuer:
         utcnow = datetime.now(timezone.utc)
         exp = utcnow + timedelta(hours=(24 * 365))
 
+       # This is a test. No method in pycose to serialize COSE_Key to CBOR bytes directly?
+        device_key_dict = {
+            1: 1,  # kty: OKP
+            3: -8, # alg: EdDSA
+            -1: 6, # crv: Ed25519
+            -2: device_key.x,  # public key bytes
+            # -4: device_key.d,  # private key bytes, if needed (usually not included)
+        }
+
         payload = {
             "version": "1.0",
             "digestAlgorithm": self.digest_alg,
             "valueDigests": self.hash_map,
-            "deviceKeyInfo": {"deviceKey": device_key},
+            "deviceKeyInfo": {"deviceKey": device_key_dict},
             "docType": doctype or list(self.hash_map)[0],
             "validityInfo": {
-                "signed": cbor2.dumps(
-                    cbor2.CBORTag(0, self.format_datetime_repr(utcnow))
-                ),
-                "validFrom": cbor2.dumps(
-                    cbor2.CBORTag(0, self.format_datetime_repr(valid_from or utcnow))
-                ),
-                "validUntil": cbor2.dumps(
-                    cbor2.CBORTag(0, self.format_datetime_repr(exp))
-                ),
+                "signed": cbor2.CBORTag(0, self.format_datetime_repr(utcnow)),
+                "validFrom": cbor2.CBORTag(0, self.format_datetime_repr(valid_from or utcnow)),
+                "validUntil": cbor2.CBORTag(0, self.format_datetime_repr(exp)),
             },
         }
+
         mso = Sign1Message(
             phdr={
                 Algorithm: self.private_key.alg,
-                KID: self.private_key.kid,
-                33: self.x509_cert,
+               # KID: self.private_key.kid,
+               # 33: self.x509_cert,
             },
             # TODO: x509 (cbor2.CBORTag(33)) and federation trust_chain support
             # (cbor2.CBORTag(27?)) here
             # 33 means x509chain standing to rfc9360
             # in both protected and unprotected for interop purpose .. for now.
             uhdr={33: self.x509_cert},
-            payload=cbor2.dumps(payload),
+            payload=cbor2.dumps(payload)
         )
-        mso.key = self.private_key
+        mso.key = self.private_key  #signed in mdoc issuer - see https://share.google/aimode/XiHFf55UJByrdpvqN
+       
         return mso

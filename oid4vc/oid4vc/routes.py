@@ -578,6 +578,7 @@ class SupportedCredCreateRequestSchema(OpenAPISchema):
     """Schema for SupportedCredCreateRequestSchema."""
 
     format = fields.Str(required=True, metadata={"example": "jwt_vc_json"})
+    doctype = fields.Str(required=False, metadata={"example": "org.iso.18013.5.1.mDL"})
     identifier = fields.Str(
         data_key="id", required=True, metadata={"example": "UniversityDegreeCredential"}
     )
@@ -685,6 +686,10 @@ async def supported_credential_create(request: web.Request):
             "`vct` is for SD JWT and `type` is for JWT VC"
         )
 
+    if format_data.get("doctype") is not None:
+        body["doctype"] = format_data["doctype"]
+        
+    LOGGER.info(f"body: {body}")
     record = SupportedCredential(
         **body,
     )

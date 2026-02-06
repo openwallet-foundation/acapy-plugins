@@ -1,10 +1,12 @@
 """Supported Credential Record."""
 
+import logging
 from typing import Dict, List, Optional
 
 from acapy_agent.messaging.models.base_record import BaseRecord, BaseRecordSchema
 from marshmallow import fields
 
+LOGGER = logging.getLogger(__name__)
 
 class SupportedCredential(BaseRecord):
     """Supported Credential Record."""
@@ -25,6 +27,7 @@ class SupportedCredential(BaseRecord):
         *,
         supported_cred_id: Optional[str] = None,
         format: Optional[str] = None,
+        doctype: Optional[str] = None,
         identifier: Optional[str] = None,
         cryptographic_binding_methods_supported: Optional[List[str]] = None,
         cryptographic_suites_supported: Optional[List[str]] = None,
@@ -41,6 +44,7 @@ class SupportedCredential(BaseRecord):
                 purely a record identifier; it does NOT correspond to anything in
                 the spec.
             format (Optional[str]): Format identifier of the credential. e.g. jwt_vc_json
+            doctype (Optional[str]): Document type identifier. e.g. org.iso.18013.5.1.mDL
             identifier (Optional[str]): Identifier of the supported credential
                 metadata. This is the `id` from the spec (NOT a record identifier).
             cryptographic_binding_methods_supported (Optional[List[str]]): A
@@ -57,6 +61,7 @@ class SupportedCredential(BaseRecord):
         """
         super().__init__(supported_cred_id, **kwargs)
         self.format = format
+        self.doctype = doctype
         self.identifier = identifier
         self.cryptographic_binding_methods_supported = (
             cryptographic_binding_methods_supported
@@ -79,6 +84,7 @@ class SupportedCredential(BaseRecord):
             prop: getattr(self, prop)
             for prop in (
                 "format",
+                "doctype",
                 "identifier",
                 "cryptographic_binding_methods_supported",
                 "cryptographic_suites_supported",
@@ -100,6 +106,7 @@ class SupportedCredential(BaseRecord):
             prop: value
             for prop in (
                 "format",
+                "doctype",
                 "cryptographic_binding_methods_supported",
                 "cryptographic_suites_supported",
                 "proof_types_supported",
@@ -111,17 +118,22 @@ class SupportedCredential(BaseRecord):
         if alg_supported:
             issuer_metadata["credential_signing_alg_values_supported"] = alg_supported
         issuer_metadata["id"] = self.identifier
-        issuer_metadata["credential_definition"] = (
-            self.format_data if self.format_data else {}
-        )
-        context = issuer_metadata["credential_definition"].pop("context", None)
-        if context:
-            issuer_metadata["credential_definition"]["@context"] = context
-        issuer_metadata["credential_definition"] = {
-            k: v
-            for k, v in issuer_metadata["credential_definition"].items()
-            if v is not None
-        }
+#        issuer_metadata["credential_definition"] = (
+#            self.format_data if self.format_data else {}
+#        )
+        if self.format_data:
+            issuer_metadata.update(self.format_data)
+            LOGGER.debug(f"VC format data: {self.format_data}")
+            LOGGER.debug(f"VC ISSUER METADATA: {issuer_metadata}")
+        #context = issuer_metadata["credential_definition"].pop("context", None)
+        #if context:
+        #    issuer_metadata["credential_definition"]["@context"] = context
+        #issuer_metadata["credential_definition"] = {
+        #    k: v
+        #    for k, v in issuer_metadata["credential_definition"].items()
+        #    if v is not None
+        #}
+        LOGGER.debug(f"VC ISSUER METADATA after cleanup: {issuer_metadata}")
         return issuer_metadata
 
 
@@ -138,6 +150,7 @@ class SupportedCredentialSchema(BaseRecordSchema):
         description="supported credential identifier",
     )
     format = fields.Str(required=True, metadata={"example": "jwt_vc_json"})
+    doctype = fields.Str(required=False, metadata={"example": "org.iso.18013.5.1.mDL"})
     identifier = fields.Str(
         required=True, metadata={"example": "UniversityDegreeCredential"}
     )

@@ -3,6 +3,7 @@
 import json
 import logging
 import re
+import base64
 from typing import Any
 
 from acapy_agent.admin.request_context import AdminRequestContext
@@ -28,14 +29,15 @@ class MsoMdocCredProcessor(Issuer):
         pop: PopResult,
         context: AdminRequestContext,
     ):
+        LOGGER.debug("supported credential: %s", supported)
         """Return signed credential in COBR format."""
-        assert supported.format_data
-        if body.get("doctype") != supported.format_data.get("doctype"):
+        assert supported.doctype
+        if body.get("doctype") != supported.doctype:
             raise CredProcessorError("Requested doctype does not match offer.")
 
         try:
             headers = {
-                "doctype": supported.format_data.get("doctype"),
+                "doctype": supported.doctype,
                 "deviceKey": re.sub(
                     "did:(.+?):(.+?)#(.*)",
                     "\\2",
@@ -52,7 +54,9 @@ class MsoMdocCredProcessor(Issuer):
         except Exception as ex:
             raise CredProcessorError("Failed to issue credential") from ex
 
-        return mso_mdoc
+        binary = bytes.fromhex(mso_mdoc)
+        mso_mdoc_base64url = base64.urlsafe_b64encode(binary).rstrip(b'=').decode('ascii')    
+        return mso_mdoc_base64url
 
     def validate_credential_subject(self, supported: SupportedCredential, subject: dict):
         """Validate the credential subject."""
