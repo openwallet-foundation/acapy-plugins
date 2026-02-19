@@ -9,19 +9,19 @@ python = "^3.13"
 
 # Define ACA-Py as an optional/extra dependency so it can be
 # explicitly installed with the plugin if desired.
-acapy-agent = { git = "https://github.com/openwallet-foundation/acapy.git", branch = "main", optional = true }
+acapy-agent = { version = "~1.5.0", optional = true }
 
 marshmallow = "^3.23.3"
-google-auth = "^2.43.0"
-google-api-python-client = "^2.187.0"
+google-auth = "^2.48.0"
+google-api-python-client = "^2.189.0"
 requests = "^2.31.0"
-protobuf = "6.33.2"
+protobuf = "6.33.5"
 
 [tool.poetry.extras]
 aca-py = ["acapy-agent"]
 
 [tool.poetry.group.dev.dependencies]
-ruff = "^0.14.9"
+ruff = "^0.14.14"
 pytest = "^8.3.5"
 pytest-asyncio = "^1.2.0"
 pytest-cov = "^5.0.0"

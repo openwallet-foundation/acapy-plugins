@@ -1,4 +1,38 @@
 # Plugin Release Status
+## ACA-Py Release 1.5.0
+
+| Plugin Name | Supported ACA-Py Release |
+| --- | --- |
+|basicmessage_storage | 1.5.0|
+|cache_redis | 1.5.0|
+|cheqd | 1.5.0|
+|connection_update | 1.5.0|
+|connections | 1.5.0|
+|issue_credential | 1.5.0|
+|firebase_push_notifications | 1.5.0|
+|hedera | 1.5.0|
+|multitenant_provider | 1.5.0|
+|oid4vc | 1.5.0|
+|present_proof | 1.5.0|
+|redis_events | 1.5.0|
+|rpc | 1.5.0|
+|status_list | 1.5.0|
+
+### Plugins Upgraded For ACA-Py Release 1.5.0 
+ - basicmessage_storage
+ - cache_redis
+ - cheqd
+ - connection_update
+ - connections
+ - issue_credential
+ - firebase_push_notifications
+ - hedera
+ - multitenant_provider
+ - oid4vc
+ - present_proof
+ - redis_events
+ - rpc
+ - status_list 
 ## ACA-Py Release 1.4.0
 
 | Plugin Name | Supported ACA-Py Release |
