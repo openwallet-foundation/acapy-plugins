@@ -21,6 +21,14 @@ from .config import MultitenantProviderConfig
 from .models import WalletTokenRecord
 
 
+BCRYPT_MAX_PASSWORD_BYTES = 72
+
+
+def _bcrypt_encode(key: str) -> bytes:
+    """Encode a key for bcrypt, truncating to 72 bytes (bcrypt limit)."""
+    return key.encode("utf-8")[:BCRYPT_MAX_PASSWORD_BYTES]
+
+
 class WalletKeyMismatchError(BaseError):
     """Wallet key mismatch exception."""
 
@@ -58,7 +66,7 @@ class MulittokenHandler:
                 # hash and salt...
                 wallet_key_salt = bcrypt.gensalt()
                 wallet_key_hash = bcrypt.hashpw(
-                    token_key.encode("utf-8"), wallet_key_salt
+                    _bcrypt_encode(token_key), wallet_key_salt
                 )
                 # save the hash and salt for security checks.
                 wallet_token_record = WalletTokenRecord(
@@ -74,19 +82,20 @@ class MulittokenHandler:
     def check_wallet_key(self, wallet_token_record: WalletTokenRecord, wallet_key: str):
         """Check the wallet key against the saved hash and salt."""
         # make a hash from passed in value with saved salt...
+        wallet_key_bytes = _bcrypt_encode(wallet_key)
         wallet_key_token = bcrypt.hashpw(
-            wallet_key.encode("utf-8"),
+            wallet_key_bytes,
             wallet_token_record.wallet_key_salt.encode("utf-8"),
         )
         # check the passed in value/hash against the calculated hash.
-        check_input = bcrypt.checkpw(wallet_key.encode("utf-8"), wallet_key_token)
+        check_input = bcrypt.checkpw(wallet_key_bytes, wallet_key_token)
         self.logger.debug(
             f"bcrypt.checkpw(wallet_key.encode('utf-8'), wallet_key_token) = {check_input}"  # noqa E501
         )
 
         # check the passed in value against the saved hash
         check_saved = bcrypt.checkpw(
-            wallet_key.encode("utf-8"),
+            wallet_key_bytes,
             wallet_token_record.wallet_key_hash.encode("utf-8"),
         )
         self.logger.debug(
