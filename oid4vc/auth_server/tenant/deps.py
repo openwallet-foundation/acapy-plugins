@@ -23,11 +23,13 @@ _TTL = settings.CONTEXT_CACHE_TTL
     base_delay=0.2,
     max_delay=2.0,
     retry_on=(httpx.RequestError, httpx.HTTPStatusError),
-    should_retry=lambda e: isinstance(e, httpx.RequestError)
-    or (
-        isinstance(e, httpx.HTTPStatusError)
-        and getattr(e, "response", None) is not None
-        and e.response.status_code >= 500
+    should_retry=lambda e: (
+        isinstance(e, httpx.RequestError)
+        or (
+            isinstance(e, httpx.HTTPStatusError)
+            and getattr(e, "response", None) is not None
+            and e.response.status_code >= 500
+        )
     ),
 )
 async def _get_admin_json(client: httpx.AsyncClient, url: str, headers: dict) -> dict:
