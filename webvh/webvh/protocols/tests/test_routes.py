@@ -1,3 +1,5 @@
+import json
+import uuid
 from unittest import IsolatedAsyncioTestCase
 
 from acapy_agent.admin.request_context import AdminRequestContext
@@ -19,6 +21,8 @@ from ..routes import (
     approve_pending_witness_request,
     reject_pending_witness_request,
 )
+from ...config.config import set_config
+from ...did.manager import ControllerManager
 
 
 class TestProtocolRoutesLogEntry(IsolatedAsyncioTestCase):
@@ -51,6 +55,35 @@ class TestProtocolRoutesLogEntry(IsolatedAsyncioTestCase):
 
         response = await get_pending_witness_requests(self.request)
         assert isinstance(response, Response)
+
+    @mock.patch("webvh.did.manager.is_witness", mock.AsyncMock(return_value=True))
+    async def test_controller_request_visible_via_route(self):
+        """Verify controller-saved request is retrievable via GET /requests."""
+        await set_config(self.profile, {"server_url": f"https://{TEST_DOMAIN}"})
+        controller = ControllerManager(self.profile)
+
+        request_id = str(uuid.uuid4())
+        await controller._request_witness_signature(
+            request_id,
+            log_entry=TEST_LOG_ENTRY_RECORD,
+            scid=TEST_SCID,
+        )
+
+        self.request = mock.MagicMock(
+            app={},
+            match_info={"record_type": "log-entry"},
+            query={},
+            __getitem__=lambda _, k: self.request_dict[k],
+        )
+        response = await get_pending_witness_requests(self.request)
+
+        assert isinstance(response, Response)
+        assert response.status == 200
+        body = json.loads(response.body) if response.body else {}
+        results = body.get("results", [])
+        assert any(r.get("record_id") == request_id for r in results)
+
+        await self.record.remove_pending_record(self.profile, request_id)
 
     async def test_approve_pending_log_entry(self):
         await self.record.save_pending_record(

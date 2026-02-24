@@ -35,7 +35,7 @@ async def test_create_operation():
             "options": {
                 "namespace": TEST_NAMESPACE,
                 "identifier": identifier,
-                "witnessThreshold": 1,
+                "witness_threshold": 1,
             }
         },
     )
@@ -72,7 +72,7 @@ async def test_update_operation():
             "options": {
                 "namespace": TEST_NAMESPACE,
                 "identifier": identifier,
-                "witnessThreshold": 1,
+                "witness_threshold": 1,
             }
         },
     )
@@ -119,7 +119,7 @@ async def test_deactivate_operation():
             "options": {
                 "namespace": TEST_NAMESPACE,
                 "identifier": identifier,
-                "witnessThreshold": 1,
+                "witness_threshold": 1,
             }
         },
     )

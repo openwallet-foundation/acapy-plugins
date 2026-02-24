@@ -7,9 +7,13 @@ authors = []
 [tool.poetry.dependencies]
 python = "^3.13"
 
+# Override yanked transitive dependencies from acapy-agent
+configargparse = ">=1.7.1"
+aiohttp-cors = ">=0.8.1"
+
 # Define ACA-Py as an optional/extra dependency so it can be
 # explicitly installed with the plugin if desired.
-acapy-agent = { version = "~1.5.0", optional = true }
+acapy-agent = { version = ">=1.5.1rc0,<1.6", optional = true }
 
 did-webvh = "1.0.0"
 jcs = "^0.2.1"

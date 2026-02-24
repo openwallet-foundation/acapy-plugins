@@ -88,7 +88,7 @@ class WitnessManager:
         self,
         scid: str,
         log_entry: dict,
-        witness_request_id: str,
+        request_id: str,
     ) -> Optional[dict]:
         """Witness the document with the given parameters."""
         config = await get_plugin_config(self.profile)
@@ -99,8 +99,14 @@ class WitnessManager:
             if config.get("auto_attest", False):
                 return await self.sign_log_version(log_entry.get("versionId"))
 
+            # Self-witnessing: no connection_id, role is self-witness
             await record.save_pending_record(
-                self.profile, scid, log_entry, witness_request_id
+                self.profile,
+                scid,
+                log_entry,
+                request_id,
+                connection_id="",
+                role="self-witness",
             )
 
         # Need proof from witness agent
@@ -112,9 +118,7 @@ class WitnessManager:
                 raise WitnessError("No active witness connection found.")
 
             await responder.send(
-                message=LogEntryWitnessRequest(
-                    document=log_entry, request_id=witness_request_id
-                ),
+                message=LogEntryWitnessRequest(document=log_entry, request_id=request_id),
                 connection_id=witness_connection.connection_id,
             )
 
@@ -122,7 +126,7 @@ class WitnessManager:
         self,
         scid: str,
         attested_resource: dict,
-        witness_request_id: str,
+        request_id: str,
     ) -> Optional[dict]:
         """Witness the document with the given parameters."""
         config = await get_plugin_config(self.profile)
@@ -137,11 +141,14 @@ class WitnessManager:
                     attested_resource,
                     f"did:key:{witness_key}#{witness_key}",
                 )
+            # Self-witnessing: no connection_id, role is self-witness
             await record.save_pending_record(
                 self.profile,
                 scid,
                 attested_resource,
-                witness_request_id,
+                request_id,
+                connection_id="",
+                role="self-witness",
             )
 
         # Need proof from witness agent
@@ -154,7 +161,7 @@ class WitnessManager:
 
             await responder.send(
                 message=AttestedResourceWitnessRequest(
-                    document=attested_resource, request_id=witness_request_id
+                    document=attested_resource, request_id=request_id
                 ),
                 connection_id=witness_connection.connection_id,
             )
