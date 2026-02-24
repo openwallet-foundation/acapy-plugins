@@ -669,7 +669,19 @@ class ControllerManager:
             await self._save_local_did(did)
             await add_scid_mapping(self.profile, did)
 
-        await self._fire_post_attested_event(record_id, did)
+        # Notify waiter (e.g. _wait_for_log_entry) with server response so client gets state.id
+        if record_id is not None:
+            event_bus = self.profile.inject(EventBus)
+            await event_bus.notify(
+                self.profile,
+                Event(
+                    f"{WITNESS_EVENT}{record_id}",
+                    {
+                        "document": response_json,
+                        "metadata": {"state": WitnessingState.ATTESTED.value},
+                    },
+                ),
+            )
 
         # Process watchers
         if await notify_watchers(self.profile):
