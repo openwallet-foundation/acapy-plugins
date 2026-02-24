@@ -669,7 +669,7 @@ class ControllerManager:
             await self._save_local_did(did)
             await add_scid_mapping(self.profile, did)
 
-        # Notify waiter (e.g. _wait_for_log_entry) with server response so client gets state.id
+        # Notify waiter with server response so client gets state.id
         if record_id is not None:
             event_bus = self.profile.inject(EventBus)
             await event_bus.notify(
