@@ -182,9 +182,7 @@ def _cred_def_id_encoded(cred_def_id: str) -> str:
 
 async def _get_active_rev_reg_id(agent, cred_def_id: str) -> str:
     """GET active revocation registry for cred def; return rev_reg_def id."""
-    path = (
-        f"/anoncreds/revocation/active-registry/{_cred_def_id_encoded(cred_def_id)}"
-    )
+    path = f"/anoncreds/revocation/active-registry/{_cred_def_id_encoded(cred_def_id)}"
     response = await agent.get(path)
     assert "result" in response, response
     # IssuerRevRegRecord.serialize() uses revoc_reg_id
@@ -193,9 +191,7 @@ async def _get_active_rev_reg_id(agent, cred_def_id: str) -> str:
 
 async def _wait_for_active_registry(agent, cred_def_id: str) -> str:
     """Poll until active registry is available; return its rev_reg_def id."""
-    path = (
-        f"/anoncreds/revocation/active-registry/{_cred_def_id_encoded(cred_def_id)}"
-    )
+    path = f"/anoncreds/revocation/active-registry/{_cred_def_id_encoded(cred_def_id)}"
     for _ in range(ACTIVE_REGISTRY_WAIT // ACTIVE_REGISTRY_POLL_INTERVAL):
         try:
             response = await agent.get(path)
@@ -316,9 +312,9 @@ async def _run_full_anoncreds_flow(
     # 9. Get new active rev reg and ensure it has rotated
     new_active_rev_reg_id = await _get_active_rev_reg_id(agent, cred_def_id)
     assert new_active_rev_reg_id, "No active registry after rotate"
-    assert (
-        new_active_rev_reg_id != old_active_rev_reg_id
-    ), "Active revocation registry did not change after rotate"
+    assert new_active_rev_reg_id != old_active_rev_reg_id, (
+        "Active revocation registry did not change after rotate"
+    )
 
 
 @pytest.mark.asyncio
@@ -374,6 +370,7 @@ async def test_anoncreds_did_schema_cred_def_rev_reg_active_rotate(scenario):
                 controller_agent, did, wait_after_create_seconds=10
             )
         else:
+
             async def approve_pending():
                 await _drain_pending_attested_resources(witness_agent)
 
@@ -444,7 +441,5 @@ async def test_anoncreds():
         ]
         assert rev_reg_id
         rev_reg_id_encoded = urllib.parse.quote_plus(rev_reg_id)
-        response = await agent.get(
-            f"/anoncreds/revocation/registry/{rev_reg_id_encoded}"
-        )
+        response = await agent.get(f"/anoncreds/revocation/registry/{rev_reg_id_encoded}")
         assert response["result"]
