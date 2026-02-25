@@ -3,6 +3,7 @@
 import logging
 from typing import Any, List, Optional
 
+from aries_askar import AskarError, AskarErrorCode
 from acapy_agent.core.profile import Profile
 from .states import WitnessingState
 
@@ -45,7 +46,9 @@ class BasePendingRecord:
                     value_json=record_ids,
                     tags={},
                 )
-            except Exception:
+            except AskarError as err:
+                if err.code != AskarErrorCode.NOT_FOUND:
+                    raise
                 await session.handle.insert(
                     self.RECORD_TYPE,
                     INDEX_RECORD_ID,
@@ -149,7 +152,9 @@ class BasePendingRecord:
                     value_json=pending_record,
                     tags={"connection_id": connection_id or "", "role": role_value},
                 )
-            except Exception:
+            except AskarError as err:
+                if err.code != AskarErrorCode.DUPLICATE:
+                    raise
                 # Record may already exist (e.g., witness saved first in shared storage)
                 await session.handle.replace(
                     self.RECORD_TYPE,

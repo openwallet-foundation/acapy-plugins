@@ -38,6 +38,11 @@ from acapy_agent.anoncreds.constants import (
     STATE_FINISHED,
 )
 from acapy_agent.anoncreds.events import CredDefFinishedEvent, RevRegDefFinishedEvent
+from acapy_agent.anoncreds.issuer import AnonCredsIssuer
+from acapy_agent.anoncreds.revocation import (
+    AnonCredsRevocation,
+    AnonCredsRevocationError,
+)
 from acapy_agent.anoncreds.models.schema import (
     AnonCredsSchema,
     GetSchemaResult,
@@ -194,7 +199,7 @@ class DIDWebVHRegistry(BaseAnonCredsResolver, BaseAnonCredsRegistrar):
 
         schema_state = (
             SchemaState.STATE_WAIT
-            if pub_state == "pending"
+            if pub_state == SchemaState.STATE_WAIT
             else SchemaState.STATE_FINISHED
         )
         return SchemaResult(
@@ -254,7 +259,7 @@ class DIDWebVHRegistry(BaseAnonCredsResolver, BaseAnonCredsRegistrar):
 
         cred_def_state = (
             CredDefState.STATE_WAIT
-            if pub_state == "pending"
+            if pub_state == CredDefState.STATE_WAIT
             else CredDefState.STATE_FINISHED
         )
         return CredDefResult(
@@ -315,7 +320,7 @@ class DIDWebVHRegistry(BaseAnonCredsResolver, BaseAnonCredsRegistrar):
 
         rev_reg_def_state = (
             RevRegDefState.STATE_WAIT
-            if pub_state == "pending"
+            if pub_state == RevRegDefState.STATE_WAIT
             else RevRegDefState.STATE_FINISHED
         )
 
@@ -399,11 +404,11 @@ class DIDWebVHRegistry(BaseAnonCredsResolver, BaseAnonCredsRegistrar):
 
         rev_list_state = (
             RevListState.STATE_WAIT
-            if pub_state == "pending"
+            if pub_state == RevListState.STATE_WAIT
             else RevListState.STATE_FINISHED
         )
 
-        if pub_state == "pending":
+        if pub_state == RevListState.STATE_WAIT:
             # Do not update rev_reg_def with link until witness approves
             return RevListResult(
                 job_id=None,
@@ -473,11 +478,11 @@ class DIDWebVHRegistry(BaseAnonCredsResolver, BaseAnonCredsRegistrar):
 
         rev_list_state = (
             RevListState.STATE_WAIT
-            if pub_state == "pending"
+            if pub_state == RevListState.STATE_WAIT
             else RevListState.STATE_FINISHED
         )
 
-        if pub_state == "pending":
+        if pub_state == RevListState.STATE_WAIT:
             return RevListResult(
                 job_id=None,
                 revocation_list_state=RevListState(
@@ -744,6 +749,29 @@ class DIDWebVHRegistry(BaseAnonCredsResolver, BaseAnonCredsRegistrar):
         elif resource_type == "anonCredsStatusList":
             await self.add_revocation_list_link(profile, attested_resource)
 
+    async def _update_schema_state_to_finished(
+        self, profile: Profile, schema_id: str
+    ) -> bool:
+        """Update existing schema record state to STATE_FINISHED (e.g. after witness)."""
+        try:
+            async with profile.session() as session:
+                entry = await session.handle.fetch(CATEGORY_SCHEMA, schema_id)
+                if not entry:
+                    return False
+                tags = dict(entry.tags) if entry.tags else {}
+                tags["state"] = STATE_FINISHED
+                await session.handle.replace(
+                    CATEGORY_SCHEMA,
+                    schema_id,
+                    entry.value,
+                    tags,
+                )
+                LOGGER.debug("Updated schema state to finished locally: %s", schema_id)
+                return True
+        except Exception as e:
+            LOGGER.warning("Could not update schema state to finished: %s", e)
+            return False
+
     async def _store_schema_after_attestation(
         self, profile: Profile, attested_resource: dict
     ) -> None:
@@ -775,32 +803,61 @@ class DIDWebVHRegistry(BaseAnonCredsResolver, BaseAnonCredsRegistrar):
             registration_metadata={},
         )
         try:
-            from acapy_agent.anoncreds.issuer import AnonCredsIssuer
-
             issuer = profile.inject(AnonCredsIssuer)
             await issuer.store_schema(result)
             LOGGER.debug("Stored schema locally: %s", schema_id)
         except Exception as e:
             # Record may already exist (stored with STATE_WAIT); update state to FINISHED
-            try:
-                async with profile.session() as session:
-                    entry = await session.handle.fetch(CATEGORY_SCHEMA, schema_id)
-                    if entry:
-                        tags = dict(entry.tags) if entry.tags else {}
-                        tags["state"] = STATE_FINISHED
-                        await session.handle.replace(
-                            CATEGORY_SCHEMA,
-                            schema_id,
-                            entry.value,
-                            tags,
-                        )
-                        LOGGER.debug(
-                            "Updated schema state to finished locally: %s", schema_id
-                        )
-            except Exception as update_err:
-                LOGGER.warning(
-                    "Could not store or update schema locally: %s; %s", e, update_err
-                )
+            if not await self._update_schema_state_to_finished(profile, schema_id):
+                LOGGER.warning("Could not store or update schema locally: %s", e)
+
+    async def _emit_cred_def_finished_for_revocation(
+        self,
+        profile: Profile,
+        tags: dict,
+        cred_def_id: str,
+        attested_resource: dict,
+    ) -> None:
+        """Emit CredDefFinishedEvent when tags indicate support_revocation.
+
+        Logs and returns without raising if required tags are missing or notify fails.
+        """
+        if tags.get("support_revocation", "False") != "True":
+            return
+        schema_id = tags.get("schema_id")
+        issuer_id = tags.get("issuer_id")
+        if not schema_id or not issuer_id:
+            LOGGER.warning(
+                "Cred def %s has support_revocation but missing "
+                "schema_id or issuer_id in tags; skipping CredDefFinishedEvent",
+                cred_def_id,
+            )
+            return
+        try:
+            max_cred_num = int(tags.get("max_cred_num", "0"))
+            tag = attested_resource.get("content", {}).get("tag") or tags.get(
+                "tag", "default"
+            )
+            event_bus = profile.inject(EventBus)
+            await event_bus.notify(
+                profile,
+                CredDefFinishedEvent.with_payload(
+                    schema_id=schema_id,
+                    cred_def_id=cred_def_id,
+                    issuer_id=issuer_id,
+                    support_revocation=True,
+                    max_cred_num=max_cred_num,
+                    tag=str(tag) if tag is not None else "default",
+                    options={},
+                ),
+            )
+            LOGGER.debug(
+                "Emitted CredDefFinishedEvent for cred_def_id=%s "
+                "to trigger revocation setup",
+                cred_def_id,
+            )
+        except Exception as e:
+            LOGGER.warning("Could not emit CredDefFinishedEvent for rev setup: %s", e)
 
     async def _store_cred_def_after_attestation(
         self, profile: Profile, attested_resource: dict
@@ -819,58 +876,55 @@ class DIDWebVHRegistry(BaseAnonCredsResolver, BaseAnonCredsRegistrar):
         try:
             async with profile.session() as session:
                 entry = await session.handle.fetch(CATEGORY_CRED_DEF, cred_def_id)
-                if entry:
-                    tags = dict(entry.tags) if entry.tags else {}
-                    tags["state"] = STATE_FINISHED
-                    await session.handle.replace(
-                        CATEGORY_CRED_DEF,
-                        cred_def_id,
-                        entry.value,
-                        tags,
-                    )
-                    LOGGER.debug(
-                        "Updated cred def state to finished locally: %s", cred_def_id
-                    )
-                    # Emit CredDefFinishedEvent so revocation setup runs
-                    if tags.get("support_revocation", "False") == "True":
-                        try:
-                            schema_id = tags.get("schema_id", "")
-                            issuer_id = tags.get("issuer_id", "")
-                            support_revocation = True
-                            max_cred_num = int(tags.get("max_cred_num", "0"))
-                            tag = attested_resource.get("content", {}).get(
-                                "tag"
-                            ) or tags.get("tag", "default")
-                            event_bus = profile.inject(EventBus)
-                            await event_bus.notify(
-                                profile,
-                                CredDefFinishedEvent.with_payload(
-                                    schema_id=schema_id,
-                                    cred_def_id=cred_def_id,
-                                    issuer_id=issuer_id,
-                                    support_revocation=support_revocation,
-                                    max_cred_num=max_cred_num,
-                                    tag=str(tag) if tag is not None else "default",
-                                    options={},
-                                ),
-                            )
-                            LOGGER.debug(
-                                "Emitted CredDefFinishedEvent for cred_def_id=%s "
-                                "to trigger revocation setup",
-                                cred_def_id,
-                            )
-                        except Exception as evt_err:
-                            LOGGER.warning(
-                                "Could not emit CredDefFinishedEvent for rev setup: %s",
-                                evt_err,
-                            )
-                else:
+                if not entry:
                     LOGGER.warning(
                         "No local cred def record for %s; issuer may not have stored it",
                         cred_def_id,
                     )
+                    return
+                tags = dict(entry.tags) if entry.tags else {}
+                tags["state"] = STATE_FINISHED
+                await session.handle.replace(
+                    CATEGORY_CRED_DEF,
+                    cred_def_id,
+                    entry.value,
+                    tags,
+                )
+                LOGGER.debug(
+                    "Updated cred def state to finished locally: %s", cred_def_id
+                )
+                await self._emit_cred_def_finished_for_revocation(
+                    profile, tags, cred_def_id, attested_resource
+                )
         except Exception as e:
             LOGGER.warning("Could not update cred def state to finished: %s", e)
+
+    async def _create_revocation_list_after_rev_reg_def(
+        self,
+        profile: Profile,
+        resource_id: str,
+        rev_reg_def: RevRegDef,
+        tag: str,
+    ) -> None:
+        """Create and register revocation list after rev reg def is finished.
+
+        Logs and returns without raising on failure (e.g. tails upload error).
+        """
+        try:
+            revoc = AnonCredsRevocation(profile)
+            opts = {}
+            try:
+                await revoc.upload_tails_file(rev_reg_def)
+            except AnonCredsRevocationError:
+                opts["failed_to_upload"] = True
+            await revoc.create_and_register_revocation_list(resource_id, opts)
+            LOGGER.info(
+                "Created revocation list for rev_reg_def_id=%s tag=%s",
+                resource_id,
+                tag,
+            )
+        except Exception as e:
+            LOGGER.warning("Revocation list setup failed for %s: %s", resource_id, e)
 
     async def _store_rev_reg_def_after_attestation(
         self, profile: Profile, attested_resource: dict
@@ -973,28 +1027,9 @@ class DIDWebVHRegistry(BaseAnonCredsResolver, BaseAnonCredsRegistrar):
                     options={},
                 ),
             )
-            try:
-                from acapy_agent.anoncreds.revocation import (
-                    AnonCredsRevocation,
-                    AnonCredsRevocationError,
-                )
-
-                revoc = AnonCredsRevocation(profile)
-                opts = {}
-                try:
-                    await revoc.upload_tails_file(rev_reg_def)
-                except AnonCredsRevocationError:
-                    opts["failed_to_upload"] = True
-                await revoc.create_and_register_revocation_list(resource_id, opts)
-                LOGGER.info(
-                    "Created revocation list for rev_reg_def_id=%s tag=%s",
-                    resource_id,
-                    tag,
-                )
-                # Rely on ACA-Py revocation setup event chain to set active registry
-                # when first_registry (tag "0"); avoid double activation.
-            except (ImportError, Exception) as e:
-                LOGGER.warning("Revocation list setup failed for %s: %s", resource_id, e)
+            await self._create_revocation_list_after_rev_reg_def(
+                profile, resource_id, rev_reg_def, tag
+            )
         except Exception as e:
             LOGGER.warning("Rev reg def store failed for %s: %s", resource_id, e)
 
@@ -1074,7 +1109,7 @@ class DIDWebVHRegistry(BaseAnonCredsResolver, BaseAnonCredsRegistrar):
                     # Return the resource from the pending record (actually uploaded)
                     return (
                         pending_record.get("record", secured_resource),
-                        "finished",
+                        STATE_FINISHED,
                     )
                 except asyncio.TimeoutError:
                     raise AnonCredsRegistrationError(
@@ -1115,15 +1150,15 @@ class DIDWebVHRegistry(BaseAnonCredsResolver, BaseAnonCredsRegistrar):
                     role=role,
                 )
 
-                # Return immediately with "pending" (Indy-style) so acapy_agent stores
-                # the rev_reg_def before set_active_registry runs during rotation.
+                # Return immediately with STATE_WAIT so acapy_agent stores the
+                # rev_reg_def before set_active_registry runs during rotation.
                 # When the witness approves, the handler will update the record.
-                return (secured_resource, "pending")
+                return (secured_resource, SchemaState.STATE_WAIT)
             else:
                 # Upload resource to server
                 await server.upload_attested_resource(endorsed_resource)
-                return (endorsed_resource, "finished")
+                return (endorsed_resource, STATE_FINISHED)
         else:
             # Upload resource to server
             await server.upload_attested_resource(secured_resource)
-            return (secured_resource, "finished")
+            return (secured_resource, STATE_FINISHED)
