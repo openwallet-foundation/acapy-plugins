@@ -1,7 +1,7 @@
 [tool.poetry]
 name = "status_list"
 version = "0.1.0"
-description = "Status List plugin for ACA-Py (Supported acapy-agent version: 1.4.0) "
+description = "Status List plugin for ACA-Py (Supported acapy-agent version: 1.5.0) "
 authors = ["Ivan Wei <ivan.wei@ontario.ca>"]
 readme = "README.md"
 

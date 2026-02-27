@@ -1,6 +1,6 @@
 [project]
 name = "acapy-plugins-bundle"
-version = "1.4.0"
+version = "1.5.0"
 description = "ACA-Py plugins bundle with all available plugins"
 authors = [
     {name = "PatStLouis", email = "patrick.st-louis@opsecid.ca"}

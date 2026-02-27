@@ -122,9 +122,9 @@ class ControllerManager:
 
         # Witness
         # https://identity.foundation/didwebvh/next/#did-witnesses
-        if options.get("witnessThreshold", 0):
+        if options.get("witness_threshold", 0):
             parameters["witness"] = {
-                "threshold": options.get("witnessThreshold"),
+                "threshold": options.get("witness_threshold"),
                 "witnesses": [
                     {"id": witness} for witness in await get_witnesses(self.profile)
                 ],
@@ -148,17 +148,53 @@ class ControllerManager:
 
         return parameters
 
-    async def _request_witness_signature(self, request_id):
+    async def _request_witness_signature(self, request_id, log_entry=None, scid=None):
+        # Save pending record first so controller can track it via GET /requests
+        # Do this before any other operations - use defaults if connection lookup fails
+        connection_id = ""
+        role = "controller"
+        if log_entry and scid:
+            try:
+                witness_connection = await self._get_active_witness_connection()
+                if witness_connection:
+                    connection_id = witness_connection.connection_id
+                else:
+                    role = "self-witness"
+                await self.pending_log_entries.save_pending_record(
+                    self.profile, scid, log_entry, request_id, connection_id, role=role
+                )
+            except Exception as e:
+                LOGGER.warning("Failed to save pending record for controller: %s", str(e))
+
         if await is_witness(self.profile):
             return PENDING_MESSAGE
 
+        witness_connection = await self._get_active_witness_connection()
+        connection_id = witness_connection.connection_id if witness_connection else ""
+
         try:
-            await self.pending_log_entries.set_pending_record_id(self.profile, request_id)
             return await asyncio.wait_for(
                 self._wait_for_log_entry(request_id),
                 WITNESS_WAIT_TIMEOUT_SECONDS,
             )
         except asyncio.TimeoutError:
+            # Update record state to pending
+            try:
+                record, _ = await self.pending_log_entries.get_pending_record(
+                    self.profile, request_id
+                )
+                if record:
+                    record["state"] = WitnessingState.PENDING.value
+                    async with self.profile.session() as session:
+                        await session.handle.replace(
+                            self.pending_log_entries.RECORD_TYPE,
+                            request_id,
+                            value_json=record,
+                            tags={"connection_id": connection_id},
+                        )
+            except Exception:
+                pass  # If record doesn't exist, that's okay
+
             return {
                 "status": "unknown",
                 "message": "No immediate response from witness agent.",
@@ -314,16 +350,21 @@ class ControllerManager:
                 == WitnessingState.PENDING.value
             ):
                 return PENDING_MESSAGE
-            else:
-                await self.pending_log_entries.remove_pending_record_id(
+            try:
+                await self.pending_log_entries.remove_pending_record(
                     self.profile, record_id
                 )
-                return await self.finish_did_operation(
-                    event.payload.get("document"),
-                    event.payload.get("witness_signature", None),
-                    state=WitnessingState.FINISHED.value,
-                    record_id=record_id,
-                )
+            except Exception:
+                pass
+            # Handler already submitted and saved when it received ATTESTED
+            if event.payload.get("witness_signature") is None:
+                return event.payload.get("document")
+            return await self.finish_did_operation(
+                event.payload.get("document"),
+                event.payload.get("witness_signature"),
+                state=WitnessingState.FINISHED.value,
+                record_id=record_id,
+            )
 
     async def _wait_for_resource(self, record_id: str):
         event_bus = self.profile.inject(EventBus)
@@ -337,9 +378,12 @@ class ControllerManager:
             ):
                 return PENDING_MESSAGE
             else:
-                await self.pending_attested_resource.remove_pending_record_id(
-                    self.profile, record_id
-                )
+                try:
+                    await self.pending_attested_resource.remove_pending_record(
+                        self.profile, record_id
+                    )
+                except Exception:
+                    pass
                 document = event.payload.get("document")
                 await self.upload_resource(
                     document, state=WitnessingState.FINISHED.value, record_id=record_id
@@ -578,13 +622,15 @@ class ControllerManager:
         )
         witness_signature = None
         if document_state.witness_rule:
-            witness_request_id = str(uuid.uuid4())
+            request_id = str(uuid.uuid4())
             witness_signature = await self.witness.witness_log_entry(
-                scid, log_entry, witness_request_id
+                scid, log_entry, request_id
             )
 
             if not isinstance(witness_signature, dict):
-                return await self._request_witness_signature(witness_request_id)
+                return await self._request_witness_signature(
+                    request_id, log_entry=log_entry, scid=scid
+                )
 
         return await self.finish_did_operation(
             log_entry,
@@ -604,18 +650,8 @@ class ControllerManager:
         # Process witnessing states
         if state == WitnessingState.ATTESTED.value:
             await self._fire_attested_event(record_id, log_entry, witness_signature)
-
             await asyncio.sleep(WITNESS_WAIT_TIMEOUT_SECONDS)
-            record_ids = await self.pending_log_entries.get_pending_record_ids(
-                self.profile
-            )
-
-            if record_id is None or record_id not in record_ids:
-                return
-
-            await self.pending_log_entries.remove_pending_record_id(
-                self.profile, record_id
-            )
+            return
 
         if state == WitnessingState.PENDING.value:
             await self._fire_pending_event(log_entry, record_id)
@@ -626,15 +662,26 @@ class ControllerManager:
             log_entry, witness_signature
         )
 
-        # Process local did records
+        # Process local did records (save DID and scid mapping for initial creation only)
         did = log_entry["state"]["id"]
-        if log_entry.get("versionId")[0] == "1":
+        version_id = log_entry.get("versionId")
+        if version_id is not None and str(version_id).startswith("1"):
             await self._save_local_did(did)
             await add_scid_mapping(self.profile, did)
-        else:
-            pass
 
-        await self._fire_post_attested_event(record_id, did)
+        # Notify waiter with server response so client gets state.id
+        if record_id is not None:
+            event_bus = self.profile.inject(EventBus)
+            await event_bus.notify(
+                self.profile,
+                Event(
+                    f"{WITNESS_EVENT}{record_id}",
+                    {
+                        "document": response_json,
+                        "metadata": {"state": WitnessingState.ATTESTED.value},
+                    },
+                ),
+            )
 
         # Process watchers
         if await notify_watchers(self.profile):
@@ -754,6 +801,8 @@ class ControllerManager:
     async def upload_resource(self, attested_resource, state, record_id):
         """Upload an attested resource to the server."""
         if state == WitnessingState.ATTESTED.value:
+            # Upload so resource is on server even if no one is waiting (e.g. late)
+            await self.server_client.upload_attested_resource(attested_resource)
             event_bus = self.profile.inject(EventBus)
             await event_bus.notify(
                 self.profile,
@@ -766,14 +815,7 @@ class ControllerManager:
                 ),
             )
             await asyncio.sleep(WITNESS_WAIT_TIMEOUT_SECONDS)
-            record_ids = await self.pending_attested_resource.get_pending_record_ids(
-                self.profile
-            )
-            if record_id is None or record_id not in record_ids:
-                return
-            await self.pending_attested_resource.remove_pending_record_id(
-                self.profile, record_id
-            )
+            return
 
         if state == WitnessingState.PENDING.value:
             event_bus = self.profile.inject(EventBus)
@@ -791,6 +833,9 @@ class ControllerManager:
             )
             return
 
+        # FINISHED: resource already uploaded when we received ATTESTED
+        if state == WitnessingState.FINISHED.value:
+            return
         await self.server_client.upload_attested_resource(attested_resource)
 
     async def auto_witness_setup(self) -> None:

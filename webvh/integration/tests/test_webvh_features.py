@@ -234,7 +234,7 @@ async def test_witness():
             "options": {
                 "namespace": TEST_NAMESPACE,
                 "identifier": identifier,
-                "witnessThreshold": 1,
+                "witness_threshold": 1,
             }
         },
     )
