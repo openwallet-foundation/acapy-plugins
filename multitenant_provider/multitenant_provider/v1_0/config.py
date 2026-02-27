@@ -68,7 +68,7 @@ class TokenExpiryConfig(BaseModel):
     @classmethod
     def default(cls):
         """Return default configuration."""
-        return cls(units="weeks", quantity=52)
+        return cls(units="weeks", amount=52)
 
     def get_token_expiry_delta(self) -> timedelta:
         """Return a timedelta representing the token expiry."""
