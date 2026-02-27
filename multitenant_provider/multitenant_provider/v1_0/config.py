@@ -5,7 +5,7 @@ from datetime import timedelta
 from typing import Any, Mapping, Optional
 
 from mergedeep import merge
-from pydantic import BaseModel
+from pydantic import BaseModel, ConfigDict
 
 LOGGER = logging.getLogger(__name__)
 
@@ -17,14 +17,10 @@ def _alias_generator(key: str) -> str:
 class ManagerConfig(BaseModel):
     """Configuration for the multitenant manager."""
 
+    model_config = ConfigDict(alias_generator=_alias_generator, populate_by_name=True)
+
     class_name: Optional[str]  # real world, this is a UUID
     always_check_provided_wallet_key: bool = False
-
-    class Config:
-        """Inner class for configuration."""
-
-        alias_generator = _alias_generator
-        populate_by_name = True
 
     @classmethod
     def default(cls):
@@ -39,13 +35,9 @@ class ManagerConfig(BaseModel):
 class ErrorsConfig(BaseModel):
     """Configuration for error handling."""
 
+    model_config = ConfigDict(alias_generator=_alias_generator, populate_by_name=True)
+
     on_unneeded_wallet_key: bool = True
-
-    class Config:
-        """Inner class for configuration."""
-
-        alias_generator = _alias_generator
-        populate_by_name = True
 
     @classmethod
     def default(cls):
@@ -56,14 +48,10 @@ class ErrorsConfig(BaseModel):
 class TokenExpiryConfig(BaseModel):
     """Configuration for token expiry."""
 
+    model_config = ConfigDict(alias_generator=_alias_generator, populate_by_name=True)
+
     units: Optional[str] = "weeks"  # weeks, days, hours, minutes
     amount: int = 52
-
-    class Config:
-        """Inner class for configuration."""
-
-        alias_generator = _alias_generator
-        populate_by_name = True
 
     @classmethod
     def default(cls):
