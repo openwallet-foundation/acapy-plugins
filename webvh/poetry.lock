@@ -2,15 +2,15 @@
 
 [[package]]
 name = "acapy-agent"
-version = "1.5.1rc0"
+version = "1.5.1"
 description = "(ACA-Py) A Cloud Agent Python is a foundation for building decentralized identity applications and services running in non-mobile environments. "
 optional = true
 python-versions = "<4.0,>=3.13"
 groups = ["main"]
 markers = "extra == \"aca-py\""
 files = [
-    {file = "acapy_agent-1.5.1rc0-py3-none-any.whl", hash = "sha256:ed7398af6e1bcfcc955f214734051217f3d61c80a3b5efaa6229e9d826f66742"},
-    {file = "acapy_agent-1.5.1rc0.tar.gz", hash = "sha256:4dfb68183fb61239b81c6594519be8128dbf0879f8c7320f3f74504a4519df4b"},
+    {file = "acapy_agent-1.5.1-py3-none-any.whl", hash = "sha256:fb091da05ee78a9ec583d5663ff6ec71dda4c6df0f0804f2b2feb6187bb0c819"},
+    {file = "acapy_agent-1.5.1.tar.gz", hash = "sha256:9e10678ddebad8d1d7760d0ccb51f8c033c3495e579a28a5a9913274d2227c34"},
 ]
 
 [package.dependencies]
@@ -3252,4 +3252,4 @@ aca-py = ["acapy-agent"]
 [metadata]
 lock-version = "2.1"
 python-versions = "^3.13"
-content-hash = "1196efd14de144d02679fba1f096c461f0963efcba5499224189296d680c8af5"
+content-hash = "896d60b318386f677ef18944549b6acfc8dbe8408105e8564a743b9e9eeb8e9e"
