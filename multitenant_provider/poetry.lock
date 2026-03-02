@@ -2,15 +2,15 @@
 
 [[package]]
 name = "acapy-agent"
-version = "1.5.0"
+version = "1.5.1"
 description = "(ACA-Py) A Cloud Agent Python is a foundation for building decentralized identity applications and services running in non-mobile environments. "
 optional = true
 python-versions = "<4.0,>=3.13"
 groups = ["main"]
 markers = "extra == \"aca-py\""
 files = [
-    {file = "acapy_agent-1.5.0-py3-none-any.whl", hash = "sha256:2ec2c1ead6f826ac04df5daed9c4d447276ff3d76d994bb8cc9f653abbd0016c"},
-    {file = "acapy_agent-1.5.0.tar.gz", hash = "sha256:271caa0679ede758b89652dd1de45803b10c44d67ac2fd14bef208d50f08e0ec"},
+    {file = "acapy_agent-1.5.1-py3-none-any.whl", hash = "sha256:fb091da05ee78a9ec583d5663ff6ec71dda4c6df0f0804f2b2feb6187bb0c819"},
+    {file = "acapy_agent-1.5.1.tar.gz", hash = "sha256:9e10678ddebad8d1d7760d0ccb51f8c033c3495e579a28a5a9913274d2227c34"},
 ]
 
 [package.dependencies]
@@ -39,7 +39,7 @@ portalocker = ">=3.1.1,<4.0.0"
 prompt_toolkit = ">=3.0,<3.1"
 psycopg = {version = ">=3.2.1,<4.0.0", extras = ["binary", "pool"]}
 pydid = ">=0.5.1,<0.6.0"
-pyjwt = ">=2.10.1,<2.11.0"
+pyjwt = ">=2.10.1,<2.12.0"
 pyld = ">=2.0.4,<3.0.0"
 pynacl = ">=1.5,<1.7"
 python-dateutil = ">=2.9.0,<3.0.0"
@@ -3188,4 +3188,4 @@ aca-py = ["acapy-agent"]
 [metadata]
 lock-version = "2.1"
 python-versions = "^3.13"
-content-hash = "d591e8e003881fb104b4ee193b9bd891f2892bf50960d49662f51957eeb15611"
+content-hash = "781aa656fe93a75842b4e6890de4706083782228278629b374d84368e45b9d3e"
