@@ -30,9 +30,10 @@ def is_internal_request(request: Request) -> bool:
     return any(ip_obj in net for net in _TRUSTED_NETWORKS)
 
 
-def build_openid_configuration(uid: str, request: Request) -> dict:
+def build_oauth_auth_server(uid: str, request: Request) -> dict:
     """Build OIDC discovery for a tenant."""
     base_url = settings.ISSUER_BASE_URL + f"/tenants/{uid}"
+    well_known_base_url = settings.ISSUER_BASE_URL + "/.well-known"
 
     doc = {
         "issuer": base_url,
@@ -43,7 +44,7 @@ def build_openid_configuration(uid: str, request: Request) -> dict:
             OAuth2GrantType.REFRESH_TOKEN,
         ],
         "authorization_details_types_supported": ["openid_credential"],
-        "jwks_uri": f"{base_url}/.well-known/jwks.json",
+        "jwks_uri": f"{well_known_base_url}/jwks.json/tenants/{uid}",
     }
 
     if is_internal_request(request):

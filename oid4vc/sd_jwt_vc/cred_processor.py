@@ -55,9 +55,10 @@ class SDJWTError(BaseException):
 class ClaimMetadata:
     """Claim metadata."""
 
-    mandatory: bool = False
-    value_type: Optional[str] = None
+    path: List[str] = None
     display: Optional[dict] = None
+    mandatory: Optional[bool] = False
+    value_type: Optional[str] = None  # Deprecated since v1.0
 
 
 class SdJwtCredIssueProcessor(Issuer, CredVerifier, PresVerifier):
@@ -72,13 +73,15 @@ class SdJwtCredIssueProcessor(Issuer, CredVerifier, PresVerifier):
         context: AdminRequestContext,
     ) -> Any:
         """Return a signed credential in SD-JWT format."""
-        assert supported.format_data
         assert supported.vc_additional_data
 
         sd_list = supported.vc_additional_data.get("sd_list") or []
         assert isinstance(sd_list, list)
 
-        if body.get("vct") != supported.format_data.get("vct"):
+        vct = supported.vc_additional_data.get("vct") or supported.format_data.get("vct")
+        assert vct
+
+        if body.get("credential_configuration_id") != vct:
             raise CredProcessorError("Requested vct does not match offer.")
 
         current_time = int(time.time())
@@ -106,7 +109,7 @@ class SdJwtCredIssueProcessor(Issuer, CredVerifier, PresVerifier):
 
         claims = {
             **claims,
-            "vct": supported.format_data["vct"],
+            "vct": vct,
             "iss": ex_record.issuer_id,
             "iat": current_time,
         }
@@ -168,16 +171,18 @@ class SdJwtCredIssueProcessor(Issuer, CredVerifier, PresVerifier):
     def validate_supported_credential(self, supported: SupportedCredential):
         """Validate a supported SD JWT VC Credential."""
 
-        format_data = supported.format_data
-        vc_additional = supported.vc_additional_data
-        if not format_data:
-            raise ValueError("SD-JWT VC needs format_data")
-        if not format_data.get("vct"):
-            raise ValueError('SD-JWT VC needs format_data["vct"]')
-        if not vc_additional:
+        credential_metadata = supported.credential_metadata or supported.format_data or {}
+        if not credential_metadata:
+            raise ValueError("SD-JWT VC needs credential_metadata")
+
+        vc_additional_data = supported.vc_additional_data or {}
+        if not vc_additional_data:
             raise ValueError("SD-JWT VC needs vc_additional_data")
 
-        sd_list = vc_additional.get("sd_list") or []
+        if not (vc_additional_data.get("vct") or supported.format_data.get("vct")):
+            raise ValueError("SD-JWT VC needs 'vct'")
+
+        sd_list = vc_additional_data.get("sd_list") or []
 
         bad_claims = []
         for sd in sd_list:
@@ -235,6 +240,26 @@ class SdJwtCredIssueProcessor(Issuer, CredVerifier, PresVerifier):
 
         result = await sd_jwt_verify(profile, credential)
         return VerifyResult(result.verified, result.payload)
+
+    def credential_metadata(self, supported_cred: dict) -> dict:
+        """Transform and return metadata for a supported SD-JWT credential."""
+
+        cred_metadata = supported_cred.get("credential_metadata", {})
+        vc_additional_data = supported_cred.get("vc_additional_data", {})
+        vct = vc_additional_data.pop("vct", None) or cred_metadata.pop("vct", None)
+
+        # Convert map-style legacy claims metadata into claims list format
+        claim_map = cred_metadata.get("claims")
+        if claim_map and isinstance(claim_map, dict):
+            cred_metadata["claims"] = [
+                {"path": [key], **value} if isinstance(value, dict) else {"path": [key]}
+                for key, value in claim_map.items()
+            ]
+
+        return {
+            "vct": vct,
+            **supported_cred,
+        }
 
 
 class SDJWTIssuerACAPy(SDJWTIssuer):

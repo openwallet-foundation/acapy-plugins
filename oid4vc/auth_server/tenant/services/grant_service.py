@@ -48,8 +48,7 @@ async def create_pre_authorized_code(
     db: AsyncSession,
     subject_id: str | None,
     subject_metadata: dict | None,
-    user_pin_required: bool,
-    user_pin: str | None,
+    tx_code: str | None,
     authorization_details: list | None,
     ttl_seconds: int | None,
 ) -> PreAuthCode:
@@ -65,8 +64,7 @@ async def create_pre_authorized_code(
     pac = await repo.create_pre_auth_code(
         subject_id=sid,
         code=new_code(),
-        user_pin=user_pin,
-        user_pin_required=bool(user_pin_required),
+        tx_code=tx_code,
         authorization_details=authorization_details_dict,
         issued_at=now,
         expires_at=now + timedelta(seconds=ttl),

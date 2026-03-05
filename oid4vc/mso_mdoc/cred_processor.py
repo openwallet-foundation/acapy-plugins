@@ -29,15 +29,20 @@ class MsoMdocCredProcessor(Issuer):
         pop: PopResult,
         context: AdminRequestContext,
     ):
-        LOGGER.debug("supported credential: %s", supported)
         """Return signed credential in COBR format."""
-        assert supported.doctype
-        if body.get("doctype") != supported.doctype:
+        LOGGER.debug("supported credential: %s", supported)
+        doctype = (
+            supported.vc_additional_data.get("doctype")
+            if supported.vc_additional_data
+            else None
+        )
+        assert doctype
+        if body.get("doctype") != doctype:
             raise CredProcessorError("Requested doctype does not match offer.")
 
         try:
             headers = {
-                "doctype": supported.doctype,
+                "doctype": doctype,
                 "deviceKey": re.sub(
                     "did:(.+?):(.+?)#(.*)",
                     "\\2",
@@ -52,10 +57,12 @@ class MsoMdocCredProcessor(Issuer):
             )
             mso_mdoc = mso_mdoc[2:-1] if mso_mdoc.startswith("b'") else None
         except Exception as ex:
-            raise CredProcessorError("Failed to issue credential") from ex
+            raise CredProcessorError(f"Failed to issue credential: {ex}") from ex
 
         binary = bytes.fromhex(mso_mdoc)
-        mso_mdoc_base64url = base64.urlsafe_b64encode(binary).rstrip(b'=').decode('ascii')    
+        mso_mdoc_base64url = base64.urlsafe_b64encode(binary).rstrip(b"=").decode("ascii")
+        LOGGER.debug("mso_mdoc credential: %s", mso_mdoc_base64url)
+
         return mso_mdoc_base64url
 
     def validate_credential_subject(self, supported: SupportedCredential, subject: dict):
@@ -65,3 +72,13 @@ class MsoMdocCredProcessor(Issuer):
     def validate_supported_credential(self, supported: SupportedCredential):
         """Validate a supported MSO MDOC Credential."""
         pass
+
+    def credential_metadata(self, supported_cred: dict) -> dict:
+        """Transform and return metadata for a supported SD-JWT credential."""
+
+        vc_additional_data = supported_cred.pop("vc_additional_data", None) or {}
+
+        return {
+            "doctype": vc_additional_data.get("doctype"),
+            **supported_cred,
+        }

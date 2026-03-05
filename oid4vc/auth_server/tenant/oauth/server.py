@@ -40,7 +40,7 @@ def get_authorization_server() -> AuthorizationServer:
         try:
             if flow == OAuth2Flow.PRE_AUTH_CODE:
                 code = ctx.get("code") or ""
-                user_pin = ctx.get("user_pin")
+                tx_code = ctx.get("tx_code")
                 (
                     access_token,
                     refresh_token,
@@ -50,7 +50,7 @@ def get_authorization_server() -> AuthorizationServer:
                     uid=uid,
                     code=code,
                     realm=realm,
-                    user_pin=user_pin,
+                    tx_code=tx_code,
                 )
                 token.update(
                     {

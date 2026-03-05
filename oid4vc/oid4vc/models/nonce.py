@@ -16,7 +16,7 @@ class Nonce(BaseRecord):
     RECORD_TOPIC = "oid4vci"
     RECORD_TYPE = "nonce"
     RECORD_ID_NAME = "id"
-    TAG_NAMES = {"nonce_value", "used"}
+    TAG_NAMES = {"nonce_value"}
 
     class Meta:
         """Nonce Metadata."""
@@ -65,16 +65,16 @@ class Nonce(BaseRecord):
             return None
 
         record = await cls.retrieve_by_tag_filter(
-            session, {"nonce_value": nonce_value, "used": False}, for_update=True
+            session, {"nonce_value": nonce_value}, for_update=True
         )
-        if record:
+        if record and not record.used:
             expires_after = datetime_now()
             expires_at = str_to_datetime(record.expires_at)
             if not expires_at or expires_at <= expires_after:
                 return None
-        record.used = True
-        await record.save(session, reason="mark nonce used")
-        return record
+            record.used = True
+            await record.save(session, reason="mark nonce used")
+        return None
 
 
 class NonceSchema(BaseRecordSchema):

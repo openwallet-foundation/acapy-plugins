@@ -37,7 +37,6 @@ class JwtVcJsonCredProcessor(Issuer, CredVerifier, PresVerifier):
         context: AdminRequestContext,
     ) -> Any:
         """Return signed credential in JWT format."""
-        assert supported.format_data
 
         current_time = datetime.datetime.now(datetime.timezone.utc)
         current_time_unix_timestamp = int(current_time.timestamp())
@@ -120,3 +119,43 @@ class JwtVcJsonCredProcessor(Issuer, CredVerifier, PresVerifier):
     ) -> VerifyResult:
         """Verify a presentation in JWT VP format."""
         return await self.verify(profile, presentation)
+
+    def credential_metadata(self, supported_cred: dict) -> dict:
+        """Transform and return metadata for a supported SD-JWT credential."""
+
+        cred_metadata = supported_cred.get("credential_metadata", {})
+        credential_definition = {}
+
+        if "claims" not in cred_metadata:
+            if cred_sub := cred_metadata.pop("credentialSubject", None):
+                if isinstance(cred_sub, dict):
+                    cred_metadata["claims"] = [
+                        {"path": [key], **value}
+                        if isinstance(value, dict)
+                        else {"path": [key]}
+                        for key, value in cred_sub.items()
+                    ]
+                else:
+                    cred_metadata["claims"] = [cred_sub]
+
+        cred_type = cred_metadata.get("type") or cred_metadata.get("types")
+        if cred_type:
+            credential_definition["type"] = cred_type
+            cred_metadata.pop("type", None)
+            cred_metadata.pop("types", None)
+        if context := cred_metadata.pop("context", None):
+            credential_definition["@context"] = context
+
+        vc_additional_data = supported_cred.get("vc_additional_data")
+        if vc_additional_data:
+            credential_definition = {**vc_additional_data, **credential_definition}
+            del supported_cred["vc_additional_data"]
+
+        supported_cred["credential_definition"] = credential_definition
+
+        cred_metadata.pop("context", None)
+        cred_metadata.pop("order", None)
+
+        return {
+            **supported_cred,
+        }

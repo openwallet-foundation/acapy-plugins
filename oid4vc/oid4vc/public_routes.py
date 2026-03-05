@@ -43,6 +43,7 @@ from oid4vc.dcql import DCQLQueryEvaluator
 from oid4vc.jwk import DID_JWK
 from oid4vc.jwt import jwt_sign, jwt_verify, key_material_for_kid, JWTVerifyResult
 from oid4vc.models.dcql_query import DCQLQuery
+from oid4vc.models.issuer_config import IssuerConfiguration
 from oid4vc.models.presentation import OID4VPPresentation
 from oid4vc.models.presentation_definition import OID4VPPresDef
 from oid4vc.models.request import OID4VPRequest
@@ -54,7 +55,7 @@ from oid4vc.pex import (
 
 from .app_resources import AppResources
 from .config import Config
-from .cred_processor import CredProcessorError, CredProcessors
+from .cred_processor import CredProcessors
 from .models.exchange import OID4VCIExchangeRecord
 from .models.nonce import Nonce
 from .models.supported_cred import SupportedCredential
@@ -142,24 +143,32 @@ async def credential_issuer_metadata(request: web.Request):
     public_url = config.endpoint
 
     async with context.session() as session:
-        # TODO If there's a lot, this will be a problem
-        credentials_supported = await SupportedCredential.query(session)
+        supported_creds = await SupportedCredential.query(session)
+
+        registered_processors = context.inject(CredProcessors)
+        cred_config_supported = {}
+        for supported in supported_creds:
+            processor = registered_processors.issuer_for_format(supported.format)
+            raw_metadata = supported.metadata()
+            cred_metadata = processor.credential_metadata(raw_metadata)
+            cred_config_supported[supported.identifier] = cred_metadata
 
         wallet_id = request.match_info.get("wallet_id")
         subpath = f"/tenant/{wallet_id}" if wallet_id else ""
-        metadata: dict[str, Any] = {"credential_issuer": f"{public_url}{subpath}"}
-        if config.auth_server_url:
-            auth_tenant_subpath = get_tenant_subpath(context.profile)
-            metadata["authorization_servers"] = [
-                f"{config.auth_server_url}{auth_tenant_subpath}"
-            ]
-        metadata["credential_endpoint"] = f"{public_url}{subpath}/credential"
-        metadata["notification_endpoint"] = f"{public_url}{subpath}/notification"
-        metadata["token_endpoint"] = f"{public_url}{subpath}/token"
-        metadata["credential_configurations_supported"] = {
-            supported.identifier: supported.to_issuer_metadata()
-            for supported in credentials_supported
-        }
+        issuer_config = await IssuerConfiguration.retrieve_by_id(
+            session, wallet_id or "default-wallet"
+        )
+        metadata = issuer_config.issuer_metadata(f"{public_url}{subpath}")
+        metadata["credential_configurations_supported"] = cred_config_supported
+
+        # Local testing
+        identifier = "OntarioTestBusinessCard_sdjwt"  # sdjwt
+        # identifier = "DriverLicenceCredential"  # mdoc
+        # identifier = "BusinessCredential"  # jwt_vc_json
+        if identifier:
+            supported = metadata["credential_configurations_supported"].get(identifier)
+            if supported:
+                metadata["credential_configurations_supported"] = {identifier: supported}
 
     LOGGER.debug("METADATA: %s", metadata)
 
@@ -177,20 +186,23 @@ async def create_nonce(profile: Profile, nbytes: int, ttl: int) -> Nonce:
     if issued_at_str is None or expires_at_str is None:
         raise web.HTTPInternalServerError(reason="Could not generate timestamps")
 
-    nonce_record = Nonce(
-        nonce_value=nonce,
-        used=False,
-        issued_at=issued_at_str,
-        expires_at=expires_at_str,
-    )
-    async with profile.session() as session:
-        await nonce_record.save(session=session, reason="Created new nonce")
+    try:
+        nonce_record = Nonce(
+            nonce_value=nonce,
+            used=False,
+            issued_at=issued_at_str,
+            expires_at=expires_at_str,
+        )
+        async with profile.session() as session:
+            await nonce_record.save(session, reason="Created new nonce")
 
-    return nonce_record
+        return nonce_record
+    except StorageError as err:
+        raise web.HTTPInternalServerError(reason="Could not store nonce") from err
 
 
 @docs(tags=["oid4vci"], summary="Get a fresh nonce for proof of possession")
-async def get_nonce(request: web.Request):
+async def request_nonce(request: web.Request):
     """Get a fresh nonce for proof of possession."""
     context: AdminRequestContext = request["context"]
     nonce = await create_nonce(context.profile, NONCE_BYTES, EXPIRES_IN)
@@ -199,7 +211,8 @@ async def get_nonce(request: web.Request):
         {
             "c_nonce": nonce.nonce_value,
             "expires_in": EXPIRES_IN,
-        }
+        },
+        headers={"Cache-Control": "no-store"},
     )
 
 
@@ -283,7 +296,7 @@ async def token(request: web.Request):
     if config.auth_server_url:
         subpath = get_tenant_subpath(context.profile)
         token_url = f"{config.auth_server_url}{subpath}/token"
-        raise web.HTTPFound(location=token_url)
+        raise web.HTTPTemporaryRedirect(location=token_url)
 
     context: AdminRequestContext = request["context"]
     form = await request.post()
@@ -397,7 +410,7 @@ async def handle_proof_of_posession(
     profile: Profile, proof: Dict[str, Any], c_nonce: str | None = None
 ):
     """Handle proof of posession."""
-    encoded_headers, encoded_payload, encoded_signature = proof["jwt"].split(".", 3)
+    encoded_headers, encoded_payload, encoded_signature = proof["jwt"][0].split(".", 3)
     headers = b64_to_dict(encoded_headers)
 
     if headers.get("typ") != "openid4vci-proof+jwt":
@@ -452,7 +465,7 @@ def types_are_subset(request: Optional[List[str]], supported: Optional[List[str]
 class IssueCredentialRequestSchema(OpenAPISchema):
     """Request schema for the /credential endpoint."""
 
-    format = fields.Str(
+    credential_configuration_id = fields.Str(
         required=True,
         metadata={"description": "The client ID for the token request.", "example": ""},
     )
@@ -460,7 +473,7 @@ class IssueCredentialRequestSchema(OpenAPISchema):
         fields.Str(),
         metadata={"description": ""},
     )
-    proof = fields.Dict(metadata={"description": ""})
+    proofs = fields.Dict(metadata={"description": ""})
 
 
 @docs(tags=["oid4vc"], summary="Issue a credential")
@@ -482,11 +495,6 @@ async def issue_cred(request: web.Request):
             )
             if not ex_record:
                 raise StorageNotFoundError("No exchange record found")
-            is_offer = (
-                True
-                if ex_record.state == OID4VCIExchangeRecord.STATE_OFFER_CREATED
-                else False
-            )
             supported = await SupportedCredential.retrieve_by_id(
                 session, ex_record.supported_cred_id
             )
@@ -498,8 +506,8 @@ async def issue_cred(request: web.Request):
     if not supported.format:
         raise web.HTTPBadRequest(reason="SupportedCredential missing format identifier.")
 
-    if supported.format != body.get("format"):
-        raise web.HTTPBadRequest(reason="Requested format does not match offer.")
+    # if supported.format != body.get("format"):
+    #     raise web.HTTPBadRequest(reason="Requested format does not match offer.")
 
     authorization_details = token_result.payload.get("authorization_details", None)
     if authorization_details:
@@ -518,27 +526,27 @@ async def issue_cred(request: web.Request):
         raise web.HTTPBadRequest(
             reason="Invalid exchange; no offer created for this request"
         )
-# TEMP UNDOING LOGIC FOR format_data
-#    if supported.format_data is None:
-#        LOGGER.error(f"No format_data for supported credential {supported.format}.")
-#        raise web.HTTPInternalServerError()
+    # TEMP UNDOING LOGIC FOR format_data
+    #    if supported.format_data is None:
+    #        LOGGER.error(f"No format_data for supported credential {supported.format}.")
+    #        raise web.HTTPInternalServerError()
     LOGGER.debug(f"Supported credential format_data: {supported.format_data}")
 
-    if "proof" not in body:
+    if "proofs" not in body:
         raise web.HTTPBadRequest(reason=f"proof is required for {supported.format}")
 
-    pop = await handle_proof_of_posession(context.profile, body["proof"], c_nonce)
+    pop = await handle_proof_of_posession(context.profile, body["proofs"], c_nonce)
 
     if not pop.verified:
         raise web.HTTPBadRequest(reason="Invalid proof")
 
-   # try:
+    # try:
     processors = context.inject(CredProcessors)
     processor = processors.issuer_for_format(supported.format)
 
     credential = await processor.issue(body, supported, ex_record, pop, context)
-   # except CredProcessorError as e:
-   #     raise web.HTTPBadRequest(reason=e.message)
+    # except CredProcessorError as e:
+    #     raise web.HTTPBadRequest(reason=e.message)
 
     async with context.session() as session:
         ex_record.state = OID4VCIExchangeRecord.STATE_ISSUED
@@ -550,13 +558,9 @@ async def issue_cred(request: web.Request):
 
     cred_response = {
         "format": supported.format,
-        "credential": credential,
+        "credentials": [credential],
         "notification_id": ex_record.notification_id,
     }
-
-    LOGGER.debug(f"Credential issued: {credential}")
-    if is_offer:
-        cred_response["refresh_id"] = ex_record.refresh_id
 
     return web.json_response(cred_response)
 
@@ -918,7 +922,7 @@ async def get_status_list(request: web.Request):
     status_handler = context.inject_or(StatusHandler)
     if status_handler:
         status_list = await status_handler.get_status_list(context, list_number)
-        return web.Response(text=status_list)
+        return web.Response(text=status_list, content_type="application/statuslist+jwt")
     raise web.HTTPNotFound(reason="Status handler not available")
 
 
@@ -935,13 +939,14 @@ async def register(app: web.Application, multitenant: bool, context: InjectionCo
             allow_head=False,
         ),
         web.get(
-            f"{subpath}/.well-known/openid-credential-issuer",
+            f"/.well-known/openid-credential-issuer{subpath}",
             credential_issuer_metadata,
             allow_head=False,
         ),
         # TODO Add .well-known/did-configuration.json
         # Spec: https://identity.foundation/.well-known/resources/did-configuration/
         web.post(f"{subpath}/token", token),
+        web.post(f"{subpath}/nonce", request_nonce),
         web.post(f"{subpath}/notification", receive_notification),
         web.post(f"{subpath}/credential", issue_cred),
         web.get(f"{subpath}/oid4vp/request/{{request_id}}", get_request),

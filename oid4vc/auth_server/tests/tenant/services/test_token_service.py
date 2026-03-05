@@ -25,8 +25,7 @@ async def test_issue_by_pre_auth_code_excludes_realm_from_claims(monkeypatch):
 
     pac = SimpleNamespace(
         id=1,
-        user_pin_required=False,
-        user_pin=None,
+        tx_code=None,
         subject=SimpleNamespace(uid="sub-123"),
         subject_id=10,
         authorization_details=[{"type": "openid_credential", "format": "mso_mdoc"}],
@@ -275,8 +274,7 @@ async def test_issue_by_pre_auth_code_includes_nonce_when_enabled(monkeypatch):
 
     pac = SimpleNamespace(
         id=5,
-        user_pin_required=False,
-        user_pin=None,
+        tx_code=None,
         subject=SimpleNamespace(uid="sub-789"),
         subject_id=77,
         authorization_details=None,
