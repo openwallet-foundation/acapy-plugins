@@ -1,4 +1,5 @@
 from typing import Any
+from unittest.mock import AsyncMock, patch
 
 import pytest
 from acapy_agent.admin.request_context import AdminRequestContext
@@ -25,7 +26,11 @@ class TestCredentialProcessor:
 
         cred_processor = JwtVcJsonCredProcessor()
 
-        jws = cred_processor.issue(body, supported, ex_record, pop, context)
+        with patch(
+            "jwt_vc_json.cred_processor.jwt_sign",
+            AsyncMock(return_value="signed-jwt"),
+        ):
+            jws = await cred_processor.issue(body, supported, ex_record, pop, context)
 
         assert jws
 

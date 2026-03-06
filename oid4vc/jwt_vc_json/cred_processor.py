@@ -137,6 +137,14 @@ class JwtVcJsonCredProcessor(Issuer, CredVerifier, PresVerifier):
                     ]
                 else:
                     cred_metadata["claims"] = [cred_sub]
+        elif isinstance(cred_metadata.get("claims"), dict):
+            claims = cred_metadata["claims"]
+            cred_metadata["claims"] = [
+                {"path": [key], **value}
+                if isinstance(value, dict)
+                else {"path": [key]}
+                for key, value in claims.items()
+            ]
 
         cred_type = cred_metadata.get("type") or cred_metadata.get("types")
         if cred_type:
