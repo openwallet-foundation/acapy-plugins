@@ -140,9 +140,7 @@ class JwtVcJsonCredProcessor(Issuer, CredVerifier, PresVerifier):
         elif isinstance(cred_metadata.get("claims"), dict):
             claims = cred_metadata["claims"]
             cred_metadata["claims"] = [
-                {"path": [key], **value}
-                if isinstance(value, dict)
-                else {"path": [key]}
+                {"path": [key], **value} if isinstance(value, dict) else {"path": [key]}
                 for key, value in claims.items()
             ]
 
