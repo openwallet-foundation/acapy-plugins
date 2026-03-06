@@ -1,4 +1,7 @@
+import asyncio
+import uuid
 from unittest import IsolatedAsyncioTestCase
+from unittest.mock import AsyncMock, patch
 
 import pytest
 from acapy_agent.anoncreds.models.credential_definition import (
@@ -28,6 +31,8 @@ from acapy_agent.utils.testing import create_test_profile
 from acapy_agent.wallet.key_type import KeyTypes
 from acapy_agent.wallet.keys.manager import MultikeyManager
 
+from ...config.config import get_plugin_config, set_config
+from ...protocols.attested_resource.record import PendingAttestedResourceRecord
 from ...tests.fixtures import (
     TEST_DOMAIN,
     TEST_NAMESPACE,
@@ -37,6 +42,7 @@ from ...tests.fixtures import (
 )
 from ...did.manager import ControllerManager
 from ..registry import DIDWebVHRegistry
+from acapy_agent.anoncreds.base import AnonCredsRegistrationError
 
 test_domain = "sandbox.bcvh.vonx.io"
 test_server = "https://sandbox.bcvh.vonx.io"
@@ -271,3 +277,63 @@ class TestAnonCredsRegistry(IsolatedAsyncioTestCase):
         )
         assert isinstance(result, RevListResult)
         assert result.revocation_list_state.state == "finished"
+
+    async def test_register_revocation_list_no_duplicate_request_when_pending(self):
+        """Retry does not send new witness request when one is already pending."""
+        # Create schema, cred_def, rev_reg_def with original config (self-witnessing)
+        schema_id = (await self._create_schema()).schema_state.schema_id
+        cred_def_id = (
+            await self._create_cred_def(schema_id)
+        ).credential_definition_state.credential_definition_id
+        rev_reg_def_id = (
+            await self._create_rev_reg_def(cred_def_id)
+        ).revocation_registry_definition_state.revocation_registry_definition_id
+
+        # Now configure as controller (endorsement=True, witness=False)
+        config = await get_plugin_config(self.profile)
+        config["endorsement"] = True
+        config["witness"] = False
+        config["auto_attest"] = False
+        config["server_url"] = config.get("server_url", TEST_SERVER_URL)
+        await set_config(self.profile, config)
+
+        # Simulate first call that timed out: save pending record for this rev_reg
+        scid = self.issuer_id.split(":")[2]
+        pending_resource = {
+            "id": f"{self.issuer_id}/resources/digest1",
+            "content": {"rev_reg_def_id": rev_reg_def_id, "timestamp": 1000},
+            "metadata": {"resourceType": "anonCredsStatusList"},
+        }
+        request_id = str(uuid.uuid4())
+        await PendingAttestedResourceRecord().save_pending_record(
+            self.profile, scid, pending_resource, request_id, "", role="controller"
+        )
+
+        # Patch _wait_for_resource to timeout immediately (no 2s wait)
+        witness_attested = AsyncMock()
+        with (
+            patch.object(
+                ControllerManager,
+                "_wait_for_resource",
+                new_callable=AsyncMock,
+                side_effect=asyncio.TimeoutError,
+            ),
+            patch(
+                "webvh.anoncreds.registry.WitnessManager.witness_attested_resource",
+                witness_attested,
+            ),
+        ):
+            with self.assertRaises(AnonCredsRegistrationError) as ctx:
+                await self._create_rev_reg_list(cred_def_id, rev_reg_def_id)
+
+            self.assertIn(
+                "Witness approval pending for this resource",
+                str(ctx.exception),
+            )
+            # No new witness request was sent (found existing pending instead)
+            witness_attested.assert_not_called()
+
+        # Cleanup
+        await PendingAttestedResourceRecord().remove_pending_record(
+            self.profile, request_id
+        )

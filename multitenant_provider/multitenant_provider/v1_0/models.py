@@ -107,12 +107,16 @@ class WalletTokenRecordSchema(BaseRecordSchema):
 
     wallet_token_id = fields.Str(
         required=True,
-        description="Wallet Token Record identifier",
-        example=UUIDFour.EXAMPLE,
+        metadata={
+            "description": "Wallet Token Record identifier",
+            "example": UUIDFour.EXAMPLE,
+        },
     )
 
     wallet_id = fields.Str(
         required=False,
-        description="Wallet Record identifier",
-        example=UUIDFour.EXAMPLE,
+        metadata={
+            "description": "Wallet Record identifier",
+            "example": UUIDFour.EXAMPLE,
+        },
     )

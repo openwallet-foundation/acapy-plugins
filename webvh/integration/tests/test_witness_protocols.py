@@ -46,7 +46,7 @@ async def test_self_witness_auto():
             "options": {
                 "namespace": TEST_NAMESPACE,
                 "identifier": identifier,
-                "witnessThreshold": 1,
+                "witness_threshold": 1,
             }
         },
     )
@@ -55,7 +55,7 @@ async def test_self_witness_auto():
     assert identifier in did
 
     # Ensure no pending log entry is stored
-    pending_log_entries = await witness.get("/did/webvh/witness-requests/log-entry")
+    pending_log_entries = await witness.get("/did/webvh/requests/log-entry")
     assert not pending_log_entries.get("results")
 
     # Confirm DID is published
@@ -95,19 +95,19 @@ async def test_self_witness_manual():
             "options": {
                 "namespace": TEST_NAMESPACE,
                 "identifier": identifier,
-                "witnessThreshold": 1,
+                "witness_threshold": 1,
             }
         },
     )
 
     assert create_response.get("status") == "pending"
 
-    pending_log_entries = await witness.get("/did/webvh/witness-requests/log-entry")
+    pending_log_entries = await witness.get("/did/webvh/requests/log-entry")
     log_entry = pending_log_entries.get("results", []).pop()
     assert isinstance(log_entry, dict)
 
     record_id = log_entry.get("record_id")
-    await witness.post(f"/did/webvh/witness-requests/log-entry/{record_id}")
+    await witness.post(f"/did/webvh/requests/log-entry/{record_id}")
     await asyncio.sleep(3)
 
     # Confirm DID is published
@@ -174,7 +174,7 @@ async def test_remote_witness_auto():
             "options": {
                 "namespace": TEST_NAMESPACE,
                 "identifier": identifier,
-                "witnessThreshold": 1,
+                "witness_threshold": 1,
             }
         },
     )
@@ -185,7 +185,7 @@ async def test_remote_witness_auto():
     await asyncio.sleep(3)
 
     # Ensure no pending log entry is stored
-    response = await witness.get("/did/webvh/witness-requests/log-entry")
+    response = await witness.get("/did/webvh/requests/log-entry")
     assert not response.get("results")
 
     # Confirm DID is published
@@ -251,19 +251,19 @@ async def test_remote_witness_manual():
             "options": {
                 "namespace": TEST_NAMESPACE,
                 "identifier": identifier,
-                "witnessThreshold": 1,
+                "witness_threshold": 1,
             }
         },
     )
 
     await asyncio.sleep(3)
 
-    pending_log_entries = await witness.get("/did/webvh/witness-requests/log-entry")
+    pending_log_entries = await witness.get("/did/webvh/requests/log-entry")
     log_entry = pending_log_entries.get("results", []).pop()
     assert isinstance(log_entry, dict)
 
     record_id = log_entry.get("record_id")
-    await witness.post(f"/did/webvh/witness-requests/log-entry/{record_id}")
+    await witness.post(f"/did/webvh/requests/log-entry/{record_id}")
     await asyncio.sleep(3)
 
     # Confirm DID is published

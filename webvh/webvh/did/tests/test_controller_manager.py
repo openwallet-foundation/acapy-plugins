@@ -181,10 +181,6 @@ class TestOperationsManager(IsolatedAsyncioTestCase):
         await PendingLogEntryRecord().save_pending_record(
             self.profile, TEST_SCID, TEST_LOG_ENTRY, record_id
         )
-        await PendingLogEntryRecord().set_pending_record_id(
-            self.profile,
-            record_id,
-        )
 
         witness_signature = await self.witness.sign_log_version(
             TEST_LOG_ENTRY.get("versionId")
@@ -195,6 +191,28 @@ class TestOperationsManager(IsolatedAsyncioTestCase):
             state=WitnessingState.ATTESTED.value,
             record_id=record_id,
         )
-        assert record_id not in (
-            await PendingLogEntryRecord().get_pending_record_ids(self.profile)
+        # Record is removed by handler; verify we can clean up
+        await PendingLogEntryRecord().remove_pending_record(self.profile, record_id)
+        results = await PendingLogEntryRecord().get_pending_records(self.profile)
+        assert not any(r.get("record_id") == record_id for r in results)
+
+    @mock.patch("webvh.did.manager.is_witness", mock.AsyncMock(return_value=True))
+    async def test_controller_saves_request_on_witness_signature(self):
+        """Verify controller saves pending request in _request_witness_signature."""
+        await set_config(self.profile, {"server_url": f"https://{TEST_DOMAIN}"})
+
+        request_id = str(uuid.uuid4())
+        result = await self.controller._request_witness_signature(
+            request_id, log_entry=TEST_LOG_ENTRY, scid=TEST_SCID
         )
+
+        assert result.get("status") == WitnessingState.PENDING.value
+
+        results = await PendingLogEntryRecord().get_pending_records(self.profile)
+        assert any(r.get("record_id") == request_id for r in results)
+        record = next(r for r in results if r.get("record_id") == request_id)
+        assert record.get("scid") == TEST_SCID
+        assert record.get("role") == "self-witness"
+        assert record.get("state") == WitnessingState.PENDING.value
+
+        await PendingLogEntryRecord().remove_pending_record(self.profile, request_id)

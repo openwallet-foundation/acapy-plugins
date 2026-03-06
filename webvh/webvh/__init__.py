@@ -5,6 +5,7 @@ from acapy_agent.config.injection_context import InjectionContext
 from acapy_agent.config.provider import ClassProvider
 from acapy_agent.core.protocol_registry import ProtocolRegistry
 
+from . import event_bus_patch  # noqa: F401 - applies EventBus.wait_for_event patch on import
 from .protocols.attested_resource.message_types import (
     MESSAGE_TYPES as ATTESTED_RESOURCE_MESSAGE_TYPES,
 )
@@ -13,6 +14,9 @@ from .protocols.log_entry.message_types import (
 )
 
 LOGGER = logging.getLogger(__name__)
+
+# EventBus is patched when .event_bus_patch is imported above
+# (apply_event_bus_patch at module level).
 
 
 async def setup(context: InjectionContext):

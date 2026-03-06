@@ -10,6 +10,7 @@ SERVER_URL = f"https://{WEBVH_DOMAIN}"
 
 WITNESS = getenv("WITNESS", "http://witness:3001")
 CONTROLLER_ENV = getenv("CONTROLLER", "http://controller:3001")
+NO_WITNESS = getenv("NO_WITNESS", "http://no_witness:3001")
 
 TEST_TAG = "test"
 TEST_SIZE = 4

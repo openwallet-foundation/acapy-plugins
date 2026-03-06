@@ -1,13 +1,13 @@
 [project]
 name = "acapy-plugins-bundle"
-version = "1.4.0"
+version = "1.5.1"
 description = "ACA-Py plugins bundle with all available plugins"
 authors = [
     {name = "PatStLouis", email = "patrick.st-louis@opsecid.ca"}
 ]
 requires-python = ">=3.13"
 dependencies = [
-    "acapy-agent"
+    "acapy-agent>=1.5.1,<1.6"
 ]
 
 # Explicitly set no packages to avoid discovery issues

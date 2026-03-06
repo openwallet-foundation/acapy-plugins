@@ -145,18 +145,65 @@ class WebVHServerClient:
 
             return await response.json()
 
+    def _derive_update_url(self, server_url: str, resource_id: str) -> str:
+        """Derive full URL for updating an existing resource. Uses server_url as base."""
+        parts = resource_id.split(":")
+        namespace = parts[4] if len(parts) > 4 else ""
+        identifier_part = parts[5] if len(parts) > 5 else ""
+        identifier = (
+            identifier_part.split("/")[0] if "/" in identifier_part else identifier_part
+        )
+        digest = resource_id.split("/")[-1] if "/" in resource_id else ""
+        base = server_url.rstrip("/")
+        return f"{base}/{namespace}/{identifier}/resources/{digest}"
+
     async def upload_attested_resource(self, resource: dict):
-        """Submit a whois Verifiable Presentation for a given identifier."""
-        author_id = resource.get("id").split("/")[0]
-        server_url = await get_server_url(self.profile)
+        """Upload an attested resource.
+
+        PUT for rev reg def updates (has links), else POST. Retries with PUT if POST
+        returns 500 (resource may already exist).
+        """
+        resource_id = resource.get("id", "")
+        author_id = resource_id.split("/")[0]
+        server_url = (await get_server_url(self.profile)).rstrip("/")
         namespace, identifier = itemgetter(4, 5)(author_id.split(":"))
+        metadata = resource.get("metadata", {})
+        use_put = metadata.get("resourceType") == "anonCredsRevocRegDef" and bool(
+            resource.get("links")
+        )
+        put_url = self._derive_update_url(server_url, resource_id)
+        put_payload = {
+            "attestedResource": resource,
+            "options": {
+                "resourceId": metadata.get("resourceId"),
+                "resourceType": metadata.get("resourceType"),
+            },
+        }
+        post_url = f"{server_url}/{namespace}/{identifier}/resources"
+
         async with ClientSession() as http_session:
             try:
-                response = await http_session.post(
-                    f"{server_url}/{namespace}/{identifier}/resources",
-                    json={"attestedResource": resource},
-                )
+                if use_put:
+                    response = await http_session.put(put_url, json=put_payload)
+                else:
+                    response = await http_session.post(
+                        post_url, json={"attestedResource": resource}
+                    )
+                    if response.status == 500:
+                        response = await http_session.put(put_url, json=put_payload)
             except ClientConnectionError as err:
                 raise OperationError(f"Failed to connect to Webvh server: {err}")
 
-            return await response.json()
+            if response.status >= 400:
+                body = await response.text()
+                try:
+                    if "application/json" in response.headers.get("Content-Type", ""):
+                        body = json.loads(body)
+                except (json.JSONDecodeError, TypeError):
+                    pass
+                raise OperationError(
+                    f"WebVH server error uploading attested resource: "
+                    f"status={response.status} body={body}"
+                )
+            ct = response.headers.get("Content-Type", "")
+            return await response.json() if "application/json" in ct else {}

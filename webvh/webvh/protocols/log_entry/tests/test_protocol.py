@@ -62,21 +62,20 @@ class TestLogEntryProtocol(IsolatedAsyncioTestCase):
             )
 
     async def test_record(self):
-        await record.set_pending_record_id(self.profile, TEST_RECORD_ID)
-        await record.get_pending_record_ids(self.profile)
-        await record.remove_pending_record_id(self.profile, TEST_RECORD_ID)
-        await record.get_pending_record_ids(self.profile)
-
         await record.save_pending_record(
             self.profile, TEST_SCID, TEST_RECORD, TEST_RECORD_ID
         )
-        await record.get_pending_records(self.profile)
-        await record.get_pending_record(self.profile, TEST_RECORD_ID)
+        records = await record.get_pending_records(self.profile)
+        self.assertEqual(len(records), 1)
+        rec, conn_id = await record.get_pending_record(self.profile, TEST_RECORD_ID)
+        self.assertIsNotNone(rec)
         await record.remove_pending_record(self.profile, TEST_RECORD_ID)
 
-        with self.assertRaises(AttributeError):
-            await record.get_pending_records(self.profile)
-            await record.get_pending_record(self.profile, TEST_RECORD_ID)
+        records = await record.get_pending_records(self.profile)
+        self.assertEqual(records, [])
+        rec, conn_id = await record.get_pending_record(self.profile, TEST_RECORD_ID)
+        self.assertIsNone(rec)
+        self.assertIsNone(conn_id)
 
     @mock.patch(
         "aiohttp.ClientSession.post",
