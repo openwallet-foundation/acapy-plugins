@@ -7,8 +7,8 @@ services:
     # DOCKER_DEFAULT_PLATFORM=linux/amd64 docker build -f ./docker/Dockerfile --tag oid4vci .
     image: oid4vc
     build:
-      dockerfile: docker/Dockerfile
-      context: ..
+      dockerfile: oid4vc/docker/Dockerfile
+      context: ../..
     ports:
       - "3000:3000"
       - "3001:3001"
@@ -20,6 +20,12 @@ services:
       TUNNEL_ENDPOINT: http://ngrok:4040
       OID4VCI_HOST: 0.0.0.0
       OID4VCI_PORT: 8082
+      OID4VCI_STATUS_HANDLER: status_list.v1_0.status_handler
+      STATUS_LIST_SIZE: 131072
+      STATUS_LIST_SHARD_SIZE: 131072
+      STATUS_LIST_PUBLIC_URI: https://localhost:8082/tenant/{tenant_id}/status/{list_number}
+      STATUS_LIST_FILE_PATH: /tmp/bitstring/{tenant_id}/{list_number}
+      #STATUS_LIST_PUBLIC_URI: http://ngrok:4040/tenant/{tenant_id}/status/{list_number} Set in entrypoint.sh
     entrypoint: >
       /bin/sh -c '/entrypoint.sh aca-py "$$@"' --
     command: >
@@ -38,11 +44,12 @@ services:
         --wallet-name issuer
         --wallet-key insecure
         --auto-provision
-        --log-level info
+        --log-level DEBUG
         --debug-webhooks
         --plugin oid4vc
         --plugin sd_jwt_vc
         --plugin mso_mdoc
+        --plugin status_list.v1_0
         --multitenant
         --multitenant-admin
         --jwt-secret insecure

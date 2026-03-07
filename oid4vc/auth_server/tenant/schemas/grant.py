@@ -28,8 +28,7 @@ class PreAuthGrantIn(BaseModel):
             {"given_name": "Test", "family_name": "User", "email": "test@example.com"}
         ],
     )
-    user_pin_required: bool = False
-    user_pin: str | None = None
+    tx_code: str | None = None
     authorization_details: list[AuthorizationDetails] | None = Field(
         default=None,
         description="Saved to pre_auth_code.authorization_details",
@@ -58,6 +57,5 @@ class PreAuthGrantOut(BaseModel):
     """Output for creating a pre-authorized code."""
 
     pre_authorized_code: str
-    user_pin_required: bool
-    user_pin: str | None = None
+    tx_code: str | None = None
     subject_id: str

@@ -38,7 +38,7 @@ class TokenService:
         uid: str,
         code: str,
         realm: str,
-        user_pin: str | None = None,
+        tx_code: str | None = None,
     ):
         """Issue access+refresh from a pre-auth code."""
         grant_repo = GrantRepository(db)
@@ -53,7 +53,7 @@ class TokenService:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST, detail="invalid_grant"
             )
-        if pac.user_pin_required and (not user_pin or user_pin != (pac.user_pin or "")):
+        if pac.tx_code and tx_code != pac.tx_code:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST, detail="invalid_grant"
             )

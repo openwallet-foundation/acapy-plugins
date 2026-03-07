@@ -5,15 +5,15 @@ from fastapi.responses import ORJSONResponse
 
 from tenant.config import settings
 from tenant.services.well_known_service import (
-    build_openid_configuration,
+    build_oauth_auth_server,
     load_tenant_jwks,
 )
 
-router = APIRouter(prefix="/tenants/{uid}")
+router = APIRouter(prefix="/.well-known")
 
 
 @router.get(
-    "/.well-known/openid-configuration",
+    "/oauth-authorization-server/tenants/{uid}",
     response_class=ORJSONResponse,
     tags=["public"],
 )
@@ -21,14 +21,14 @@ async def openid_configuration(
     request: Request, response: Response, uid: str = Path(...)
 ):
     """Return OIDC discovery for the tenant."""
-    payload = build_openid_configuration(uid, request)
+    payload = build_oauth_auth_server(uid, request)
     ttl = settings.CONTEXT_CACHE_TTL
     response.headers["Cache-Control"] = f"public, max-age={ttl}"
     return payload
 
 
 @router.get(
-    "/.well-known/jwks.json",
+    "/jwks.json/tenants/{uid}",
     response_class=ORJSONResponse,
     tags=["public"],
 )

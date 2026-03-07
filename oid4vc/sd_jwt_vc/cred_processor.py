@@ -55,9 +55,10 @@ class SDJWTError(BaseException):
 class ClaimMetadata:
     """Claim metadata."""
 
-    mandatory: bool = False
-    value_type: Optional[str] = None
+    path: List[str] = None
     display: Optional[dict] = None
+    mandatory: Optional[bool] = False
+    value_type: Optional[str] = None  # Deprecated since v1.0
 
 
 class SdJwtCredIssueProcessor(Issuer, CredVerifier, PresVerifier):
@@ -72,14 +73,13 @@ class SdJwtCredIssueProcessor(Issuer, CredVerifier, PresVerifier):
         context: AdminRequestContext,
     ) -> Any:
         """Return a signed credential in SD-JWT format."""
-        assert supported.format_data
         assert supported.vc_additional_data
 
         sd_list = supported.vc_additional_data.get("sd_list") or []
         assert isinstance(sd_list, list)
 
-        if body.get("vct") != supported.format_data.get("vct"):
-            raise CredProcessorError("Requested vct does not match offer.")
+        vct = supported.vc_additional_data.get("vct") or supported.format_data.get("vct")
+        assert vct
 
         current_time = int(time.time())
         claims = deepcopy(ex_record.credential_subject)
@@ -106,7 +106,7 @@ class SdJwtCredIssueProcessor(Issuer, CredVerifier, PresVerifier):
 
         claims = {
             **claims,
-            "vct": supported.format_data["vct"],
+            "vct": vct,
             "iss": ex_record.issuer_id,
             "iat": current_time,
         }
@@ -118,14 +118,14 @@ class SdJwtCredIssueProcessor(Issuer, CredVerifier, PresVerifier):
             )
         ):
             claims["status"] = credential_status
-            LOGGER.debug("credential with status: %s", claims)
+            LOGGER.info("credential with status: %s", claims)
 
         profile = context.profile
         did = ex_record.issuer_id
         ver_method = ex_record.verification_method
         try:
             cred = await sd_jwt_sign(sd_list, claims, headers, profile, did, ver_method)
-            LOGGER.debug("SD JWT VC CREDENTIAL: %s", cred)
+            LOGGER.info("SD JWT VC CREDENTIAL: %s", cred)
             return cred
         except SDJWTError as error:
             raise CredProcessorError("Could not sign SD-JWT VC") from error
@@ -168,16 +168,18 @@ class SdJwtCredIssueProcessor(Issuer, CredVerifier, PresVerifier):
     def validate_supported_credential(self, supported: SupportedCredential):
         """Validate a supported SD JWT VC Credential."""
 
-        format_data = supported.format_data
-        vc_additional = supported.vc_additional_data
-        if not format_data:
-            raise ValueError("SD-JWT VC needs format_data")
-        if not format_data.get("vct"):
-            raise ValueError('SD-JWT VC needs format_data["vct"]')
-        if not vc_additional:
+        credential_metadata = supported.credential_metadata or supported.format_data or {}
+        if not credential_metadata:
+            raise ValueError("SD-JWT VC needs credential_metadata")
+
+        vc_additional_data = supported.vc_additional_data or {}
+        if not vc_additional_data:
             raise ValueError("SD-JWT VC needs vc_additional_data")
 
-        sd_list = vc_additional.get("sd_list") or []
+        if not (vc_additional_data.get("vct") or supported.format_data.get("vct")):
+            raise ValueError("SD-JWT VC needs 'vct'")
+
+        sd_list = vc_additional_data.get("sd_list") or []
 
         bad_claims = []
         for sd in sd_list:
@@ -235,6 +237,50 @@ class SdJwtCredIssueProcessor(Issuer, CredVerifier, PresVerifier):
 
         result = await sd_jwt_verify(profile, credential)
         return VerifyResult(result.verified, result.payload)
+
+    def credential_metadata(self, supported_cred: dict) -> dict:
+        """Transform and return metadata for a supported SD-JWT credential."""
+
+        cred_metadata = supported_cred.get("credential_metadata", {})
+        vc_additional_data = supported_cred.get("vc_additional_data", {})
+        vct = vc_additional_data.pop("vct", None) or cred_metadata.pop("vct", None)
+
+        # Convert map-style legacy claims metadata into claims list format
+        claim_map = cred_metadata.get("claims")
+        if claim_map and isinstance(claim_map, dict):
+            allowed_claim_keys = ("mandatory", "display")
+            claims = []
+            for key, value in claim_map.items():
+                claim = {"path": [key]}
+                if isinstance(value, dict):
+                    claim.update(
+                        {
+                            field: value[field]
+                            for field in allowed_claim_keys
+                            if field in value
+                        }
+                    )
+                claims.append(claim)
+
+            cred_metadata["claims"] = claims
+        elif claim_map and isinstance(claim_map, list):
+            cred_metadata["claims"] = [
+                {
+                    "path": claim.get("path"),
+                    **{
+                        field: claim[field]
+                        for field in ("mandatory", "display")
+                        if field in claim
+                    },
+                }
+                for claim in claim_map
+                if isinstance(claim, dict) and "path" in claim
+            ]
+
+        return {
+            "vct": vct,
+            **supported_cred,
+        }
 
 
 class SDJWTIssuerACAPy(SDJWTIssuer):

@@ -54,6 +54,7 @@ from oid4vc.models.request import OID4VPRequest, OID4VPRequestSchema
 
 from .app_resources import AppResources
 from .config import Config
+from .models.issuer_config import IssuerConfiguration
 from .models.exchange import OID4VCIExchangeRecord, OID4VCIExchangeRecordSchema
 from .models.supported_cred import SupportedCredential, SupportedCredentialSchema
 from .utils import get_auth_header, get_tenant_subpath
@@ -307,6 +308,7 @@ async def credential_refresh(request: web.Request):
                         existing.state = OID4VCIExchangeRecord.STATE_SUPERCEDED
                         await existing.save(session, reason="Superceded by new request.")
             except StorageNotFoundError:
+                # we should allow refresh when all previous records were deleted
                 pass
         record = await create_exchange(request, refresh_id)
         return web.json_response(record.serialize())
@@ -455,13 +457,11 @@ async def _create_pre_auth_code(
         auth_header = await get_auth_header(
             profile, config, issuer_server_url, grants_endpoint
         )
-        user_pin_required = user_pin is not None
         resp = await AppResources.get_http_client().post(
             grants_endpoint,
             json={
                 "subject_id": subject_id,
-                "user_pin_required": user_pin_required,
-                "user_pin": user_pin,
+                "txt_code": user_pin,
                 "authorization_details": [
                     {
                         "type": "openid_credential",
@@ -502,21 +502,20 @@ async def _parse_cred_offer(context: AdminRequestContext, exchange_id: str) -> d
     except (StorageError, BaseModelError) as err:
         raise web.HTTPBadRequest(reason=err.roll_up) from err
 
-    user_pin_required: bool = record.pin is not None
     wallet_id = (
         context.profile.settings.get("wallet.id")
         if context.profile.settings.get("multitenant.enabled")
         else None
     )
     subpath = f"/tenant/{wallet_id}" if wallet_id else ""
+    pre_auth_code_grant = {"pre-authorized_code": record.code}
+    if record.pin:
+        pre_auth_code_grant["tx_code"] = record.pin
     return {
         "credential_issuer": f"{config.endpoint}{subpath}",
-        "credentials": [supported.identifier],
+        "credential_configuration_ids": [supported.identifier],
         "grants": {
-            "urn:ietf:params:oauth:grant-type:pre-authorized_code": {
-                "pre-authorized_code": record.code,
-                "user_pin_required": user_pin_required,
-            }
+            "urn:ietf:params:oauth:grant-type:pre-authorized_code": pre_auth_code_grant
         },
     }
 
@@ -578,6 +577,7 @@ class SupportedCredCreateRequestSchema(OpenAPISchema):
     """Schema for SupportedCredCreateRequestSchema."""
 
     format = fields.Str(required=True, metadata={"example": "jwt_vc_json"})
+    doctype = fields.Str(required=False, metadata={"example": "org.iso.18013.5.1.mDL"})
     identifier = fields.Str(
         data_key="id", required=True, metadata={"example": "UniversityDegreeCredential"}
     )
@@ -658,191 +658,6 @@ async def supported_cred_is_unique(identifier: str, profile: Profile):
     if len(records) > 0:
         return False
     return True
-
-
-@docs(tags=["oid4vci"], summary="Register a Oid4vci credential")
-@request_schema(SupportedCredCreateRequestSchema())
-@response_schema(SupportedCredentialSchema())
-@tenant_authentication
-async def supported_credential_create(request: web.Request):
-    """Request handler for creating a credential supported record."""
-    context: AdminRequestContext = request["context"]
-    profile = context.profile
-
-    body: Dict[str, Any] = await request.json()
-    LOGGER.info(f"body: {body}")
-
-    if not await supported_cred_is_unique(body["id"], profile):
-        raise web.HTTPBadRequest(
-            reason=f"Record with identifier {body['id']} already exists."
-        )
-    body["identifier"] = body.pop("id")
-
-    format_data: dict = body.get("format_data", {})
-    if format_data.get("vct") and format_data.get("type"):
-        raise web.HTTPBadRequest(
-            reason="Cannot have both `vct` and `type`. "
-            "`vct` is for SD JWT and `type` is for JWT VC"
-        )
-
-    record = SupportedCredential(
-        **body,
-    )
-
-    registered_processors = context.inject(CredProcessors)
-    if record.format not in registered_processors.issuers:
-        raise web.HTTPBadRequest(
-            reason=f"Format {record.format} is not supported by"
-            " currently registered processors"
-        )
-
-    processor = registered_processors.issuer_for_format(record.format)
-    try:
-        processor.validate_supported_credential(record)
-    except ValueError as err:
-        raise web.HTTPBadRequest(reason=str(err)) from err
-
-    async with profile.session() as session:
-        await record.save(session, reason="Save credential supported record.")
-
-    return web.json_response(record.serialize())
-
-
-class JwtSupportedCredCreateRequestSchema(OpenAPISchema):
-    """Schema for SupportedCredCreateRequestSchema."""
-
-    format = fields.Str(required=True, metadata={"example": "jwt_vc_json"})
-    identifier = fields.Str(
-        data_key="id", required=True, metadata={"example": "UniversityDegreeCredential"}
-    )
-    cryptographic_binding_methods_supported = fields.List(
-        fields.Str(), metadata={"example": ["did"]}
-    )
-    cryptographic_suites_supported = fields.List(
-        fields.Str(), metadata={"example": ["ES256K"]}
-    )
-    proof_types_supported = fields.Dict(
-        required=False,
-        metadata={"example": {"jwt": {"proof_signing_alg_values_supported": ["ES256"]}}},
-    )
-    display = fields.List(
-        fields.Dict(),
-        metadata={
-            "example": [
-                {
-                    "name": "University Credential",
-                    "locale": "en-US",
-                    "logo": {
-                        "url": "https://w3c-ccg.github.io/vc-ed/plugfest-1-2022/images/JFF_LogoLockup.png",
-                        "alt_text": "a square logo of a university",
-                    },
-                    "background_color": "#12107c",
-                    "text_color": "#FFFFFF",
-                }
-            ]
-        },
-    )
-    type = fields.List(
-        fields.Str,
-        required=True,
-        metadata={
-            "description": "List of credential types supported.",
-            "example": ["VerifiableCredential", "UniversityDegreeCredential"],
-        },
-    )
-    credential_subject = fields.Dict(
-        keys=fields.Str,
-        data_key="credentialSubject",
-        required=False,
-        metadata={
-            "description": "Metadata about the Credential Subject to help with display.",
-            "example": {
-                "given_name": {"display": [{"name": "Given Name", "locale": "en-US"}]},
-                "last_name": {"display": [{"name": "Surname", "locale": "en-US"}]},
-                "degree": {},
-                "gpa": {"display": [{"name": "GPA"}]},
-            },
-        },
-    )
-    order = fields.List(
-        fields.Str,
-        required=False,
-        metadata={
-            "description": (
-                "The order in which claims should be displayed. This is not well defined "
-                "by the spec right now. Best to omit for now."
-            )
-        },
-    )
-    context = fields.List(
-        fields.Raw,
-        data_key="@context",
-        required=True,
-        metadata={
-            "example": [
-                "https://www.w3.org/2018/credentials/v1",
-                "https://www.w3.org/2018/credentials/examples/v1",
-            ],
-        },
-    )
-
-
-@docs(
-    tags=["oid4vci"],
-    summary="Register a configuration for a supported JWT VC credential",
-)
-@request_schema(JwtSupportedCredCreateRequestSchema())
-@response_schema(SupportedCredentialSchema())
-@tenant_authentication
-async def supported_credential_create_jwt(request: web.Request):
-    """Request handler for creating a credential supported record."""
-    context = request["context"]
-    assert isinstance(context, AdminRequestContext)
-    profile = context.profile
-
-    body: Dict[str, Any] = await request.json()
-
-    if not await supported_cred_is_unique(body["id"], profile):
-        raise web.HTTPBadRequest(
-            reason=f"Record with identifier {body['id']} already exists."
-        )
-
-    LOGGER.info(f"body: {body}")
-    body["identifier"] = body.pop("id")
-    format_data = {}
-    format_data["type"] = body.pop("type")
-    format_data["credentialSubject"] = body.pop("credentialSubject", None)
-    format_data["context"] = body.pop("@context")
-    format_data["order"] = body.pop("order", None)
-    vc_additional_data = {}
-    vc_additional_data["@context"] = format_data["context"]
-    # type vs types is deliberate; OID4VCI spec is inconsistent with VCDM
-    # ~ in Draft 11, fixed in later drafts
-    vc_additional_data["type"] = format_data["type"]
-
-    record = SupportedCredential(
-        **body,
-        format_data=format_data,
-        vc_additional_data=vc_additional_data,
-    )
-
-    registered_processors = context.inject(CredProcessors)
-    if record.format not in registered_processors.issuers:
-        raise web.HTTPBadRequest(
-            reason=f"Format {record.format} is not supported by"
-            " currently registered processors"
-        )
-
-    processor = registered_processors.issuer_for_format(record.format)
-    try:
-        processor.validate_supported_credential(record)
-    except ValueError as err:
-        raise web.HTTPBadRequest(reason=str(err)) from err
-
-    async with profile.session() as session:
-        await record.save(session, reason="Save credential supported record.")
-
-    return web.json_response(record.serialize())
 
 
 class SupportedCredentialQuerySchema(OpenAPISchema):
@@ -938,103 +753,6 @@ async def get_supported_credential_by_id(request: web.Request):
         raise web.HTTPNotFound(reason=err.roll_up) from err
     except (StorageError, BaseModelError) as err:
         raise web.HTTPBadRequest(reason=err.roll_up) from err
-
-    return web.json_response(record.serialize())
-
-
-class UpdateJwtSupportedCredentialResponseSchema(OpenAPISchema):
-    """Response schema for updating an OID4VP PresDef."""
-
-    supported_cred = fields.Dict(
-        required=True,
-        metadata={"descripton": "The updated Supported Credential"},
-    )
-
-    supported_cred_id = fields.Str(
-        required=True,
-        metadata={
-            "description": "Supported Credential identifier",
-        },
-    )
-
-
-async def jwt_supported_cred_update_helper(
-    record: SupportedCredential,
-    body: Dict[str, Any],
-    session: AskarProfileSession,
-) -> SupportedCredential:
-    """Helper method for updating a JWT Supported Credential Record."""
-    format_data = {}
-    vc_additional_data = {}
-
-    format_data["type"] = body.get("type")
-    format_data["credentialSubject"] = body.get("credentialSubject", None)
-    format_data["context"] = body.get("@context")
-    format_data["order"] = body.get("order", None)
-    vc_additional_data["@context"] = format_data["context"]
-    # type vs types is deliberate; OID4VCI spec is inconsistent with VCDM
-    # ~ as of Draft 11, fixed in later drafts
-    vc_additional_data["type"] = format_data["type"]
-
-    record.identifier = body["id"]
-    record.format = body["format"]
-    record.cryptographic_binding_methods_supported = body.get(
-        "cryptographic_binding_methods_supported", None
-    )
-    record.cryptographic_suites_supported = body.get(
-        "cryptographic_suites_supported", None
-    )
-    record.proof_types_supported = body.get("proof_types_supported", None)
-    record.display = body.get("display", None)
-    record.format_data = format_data
-    record.vc_additional_data = vc_additional_data
-
-    await record.save(session)
-    return record
-
-
-@docs(
-    tags=["oid4vci"],
-    summary="Update a Supported Credential. "
-    "Expected to be a complete replacement of a JWT Supported Credential record, "
-    "i.e., optional values that aren't supplied will be `None`, rather than retaining "
-    "their original value.",
-)
-@match_info_schema(SupportedCredentialMatchSchema())
-@request_schema(JwtSupportedCredCreateRequestSchema())
-@response_schema(SupportedCredentialSchema())
-async def update_supported_credential_jwt_vc(request: web.Request):
-    """Update a JWT Supported Credential record."""
-
-    context: AdminRequestContext = request["context"]
-    body: Dict[str, Any] = await request.json()
-    supported_cred_id = request.match_info["supported_cred_id"]
-
-    LOGGER.info(f"body: {body}")
-    try:
-        async with context.session() as session:
-            record = await SupportedCredential.retrieve_by_id(session, supported_cred_id)
-
-            assert isinstance(session, AskarProfileSession)
-            record = await jwt_supported_cred_update_helper(record, body, session)
-
-    except StorageNotFoundError as err:
-        raise web.HTTPNotFound(reason=err.roll_up) from err
-    except (StorageError, BaseModelError) as err:
-        raise web.HTTPBadRequest(reason=err.roll_up) from err
-
-    registered_processors = context.inject(CredProcessors)
-    if record.format not in registered_processors.issuers:
-        raise web.HTTPBadRequest(
-            reason=f"Format {record.format} is not supported by"
-            " currently registered processors"
-        )
-
-    processor = registered_processors.issuer_for_format(record.format)
-    try:
-        processor.validate_supported_credential(record)
-    except ValueError as err:
-        raise web.HTTPBadRequest(reason=str(err)) from err
 
     return web.json_response(record.serialize())
 
@@ -1898,6 +1616,158 @@ async def create_did_jwk(request: web.Request):
         return web.json_response({"did": did})
 
 
+class IssuerConfigInfoSchema(OpenAPISchema):
+    """Schema for Issuer Configuration."""
+
+    credential_issuer = fields.Str(required=False, description="credential issuer")
+    authorization_servers = fields.List(
+        fields.Dict(),
+        metadata={
+            "example": [
+                {
+                    "public_url": "https://auth.example.com",
+                    "private_url": "https://intra.example.com",
+                    "auth_type": "client_secret_basic",
+                    "client_credentials": {
+                        "client_id": "abc123",
+                        "client_secret": "xyz456",
+                    },
+                },
+                {
+                    "public_url": "https://auth.example.com",
+                    "private_url": "https://intra.example.com",
+                    "auth_type": "private_key_jwt",
+                    "client_credentials": {
+                        "client_id": "abc123",
+                        "did": "wV6ydFNQYCdo2mfzvPBbF",
+                    },
+                },
+            ]
+        },
+    )
+    credential_endpoint = fields.Str(required=False, description="credential endpoint")
+    nonce_endpoint = fields.Str(required=False, description="nonce endpoint")
+    deferred_credential_endpoint = fields.Str(
+        required=False, description="deferred credential endpoint"
+    )
+    notification_endpoint = fields.Str(
+        required=False, description="notification endpoint"
+    )
+    credential_request_encryption = fields.Dict(
+        required=False,
+        metadata={
+            "example": {
+                "keys": [
+                    {
+                        "kty": "EC",
+                        "crv": "P-256",
+                        "x": "f83OJ3D2xF4Jqk8rVqYf5UEoR2L7iB42t1R6kzjzA6o",
+                        "y": "x_FEzRu9yQ1rZtQxCkVwYg1oHc3mG5m0kYqf9u0Qf6A",
+                        "use": "enc",
+                        "alg": "ECDH-ES",
+                        "key_ops": ["deriveKey", "deriveBits"],
+                        "kid": "ec-p256-enc-1",
+                    }
+                ]
+            },
+            "enc_values_supported": ["A256GCM", "A128GCM", "A128CBC-HS256"],
+            "zip_values_supported": ["DEF"],
+            "encryption_required": True,
+        },
+    )
+    credential_response_encryption = fields.Dict(
+        required=False,
+        metadata={
+            "example": {
+                "alg_values_supported": [
+                    "ECDH-ES",
+                    "ECDH-ES+A256KW",
+                    "RSA-OAEP-256",
+                    "RSA-OAEP",
+                ],
+                "enc_values_supported": ["A256GCM", "A128GCM", "A128CBC-HS256"],
+                "zip_values_supported": ["DEF"],
+                "encryption_required": True,
+            },
+        },
+    )
+    batch_credential_issuance = fields.Dict(
+        required=False,
+        metadata={
+            "example": {"batch_size": 100},
+        },
+    )
+    display = fields.List(
+        fields.Dict(),
+        metadata={
+            "example": [
+                {
+                    "name": "University Credential",
+                    "locale": "en-US",
+                    "logo": {
+                        "uri": "https://exampleuniversity.com/public/logo.png",
+                        "alt_text": "a square logo of a university",
+                    },
+                }
+            ]
+        },
+    )
+
+
+@docs(
+    tags=["oid4vci"],
+    summary="Retrieve issuer configuration information",
+)
+@response_schema(IssuerConfigInfoSchema(), 200)
+@tenant_authentication
+async def get_issuer_config(request: web.BaseRequest):
+    """Request handler for retrieving issuer configuration."""
+    context = request["context"]
+    wallet_id = (
+        context.profile.settings.get("wallet.id")
+        if context.profile.settings.get("multitenant.enabled")
+        else "default-wallet"
+    )
+    async with context.profile.session() as session:
+        config = await IssuerConfiguration.retrieve_by_id(session, wallet_id)
+        if config:
+            return web.json_response(config.serialize())
+        return web.json_response({}, status=404)
+
+
+@docs(
+    tags=["oid4vci"],
+    summary="Upsert issuer configuration information",
+)
+@request_schema(IssuerConfigInfoSchema())
+@response_schema(IssuerConfigInfoSchema(), 200)
+@tenant_authentication
+async def upsert_issuer_config(request: web.BaseRequest):
+    """Request handler for upserting issuer configuration."""
+    context = request["context"]
+    wallet_id = (
+        context.profile.settings.get("wallet.id")
+        if context.profile.settings.get("multitenant.enabled")
+        else "default-wallet"
+    )
+    body = await request.json()
+    # Remove configuration_id from body to prevent override
+    body.pop("configuration_id", None)
+    async with context.profile.session() as session:
+        try:
+            config = await IssuerConfiguration.retrieve_by_id(session, wallet_id)
+            if config:
+                for attr in IssuerConfiguration.ISSUER_ATTRS:
+                    setattr(config, attr, body[attr] if attr in body else None)
+                await config.save(session)
+        except StorageNotFoundError:
+            config = IssuerConfiguration(
+                configuration_id=wallet_id, new_with_id=True, **body
+            )
+            await config.save(session)
+    return web.json_response(config.serialize())
+
+
 async def register(app: web.Application):
     """Register routes."""
     app.add_routes(
@@ -1921,11 +1791,6 @@ async def register(app: web.Application):
                 allow_head=False,
             ),
             web.delete("/oid4vci/exchange/records/{exchange_id}", exchange_delete),
-            web.post("/oid4vci/credential-supported/create", supported_credential_create),
-            web.post(
-                "/oid4vci/credential-supported/create/jwt",
-                supported_credential_create_jwt,
-            ),
             web.get(
                 "/oid4vci/credential-supported/records",
                 supported_credential_list,
@@ -1936,12 +1801,8 @@ async def register(app: web.Application):
                 get_supported_credential_by_id,
                 allow_head=False,
             ),
-            web.put(
-                "/oid4vci/credential-supported/records/jwt/{supported_cred_id}",
-                update_supported_credential_jwt_vc,
-            ),
             web.delete(
-                "/oid4vci/credential-supported/records/jwt/{supported_cred_id}",
+                "/oid4vci/credential-supported/records/{supported_cred_id}",
                 supported_credential_remove,
             ),
             web.post("/oid4vp/request", create_oid4vp_request),
@@ -1967,6 +1828,8 @@ async def register(app: web.Application):
             web.get("/oid4vp/dcql/query/{dcql_query_id}", get_dcql_query_by_id),
             web.delete("/oid4vp/dcql/query/{dcql_query_id}", dcql_query_remove),
             web.post("/did/jwk/create", create_did_jwk),
+            web.get("/oid4vci/issuer/configuration", get_issuer_config, allow_head=False),
+            web.put("/oid4vci/issuer/configuration", upsert_issuer_config),
         ]
     )
 

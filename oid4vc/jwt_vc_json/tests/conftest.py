@@ -59,4 +59,6 @@ def pop():
 @pytest.fixture
 def context():
     """Test AdminRequestContext."""
-    yield AdminRequestContext.test_context()
+    context = AdminRequestContext.test_context({}, MagicMock())
+    context.inject_or = MagicMock(return_value=None)
+    yield context

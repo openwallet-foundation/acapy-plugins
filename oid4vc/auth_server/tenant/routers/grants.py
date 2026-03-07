@@ -30,8 +30,7 @@ async def issue_pre_authorized_code(
         db=db,
         subject_id=body.subject_id,
         subject_metadata=body.subject_metadata,
-        user_pin_required=body.user_pin_required,
-        user_pin=body.user_pin,
+        tx_code=body.tx_code,
         authorization_details=body.authorization_details,
         ttl_seconds=body.ttl_seconds,
     )
@@ -43,7 +42,6 @@ async def issue_pre_authorized_code(
 
     return PreAuthGrantOut(
         pre_authorized_code=pac.code,
-        user_pin_required=pac.user_pin_required,
-        user_pin=pac.user_pin,
+        tx_code=pac.tx_code,
         subject_id=pac.subject.uid,
     )

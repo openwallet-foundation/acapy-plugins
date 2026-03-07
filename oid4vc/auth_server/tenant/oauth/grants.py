@@ -27,7 +27,7 @@ class PreAuthorizedCodeGrant(_BaseTenantGrant):
     """OID4VCI pre-authorized_code grant."""
 
     _code: str | None = None
-    _user_pin: str | None = None
+    _tx_code: str | None = None
 
     async def validate_token_request(self):  # type: ignore[override]
         """Validate pre-authorized_code request."""
@@ -37,7 +37,7 @@ class PreAuthorizedCodeGrant(_BaseTenantGrant):
         if not code:
             raise InvalidRequestError(description="missing pre-authorized_code")
         self._code = str(code)
-        self._user_pin = data.get("user_pin") or None
+        self._tx_code = data.get("tx_code") or None
 
     async def create_token_response(self):  # type: ignore[override]
         """Create token response for pre-authorized_code."""
@@ -64,7 +64,7 @@ class PreAuthorizedCodeGrant(_BaseTenantGrant):
                 "flow": OAuth2Flow.PRE_AUTH_CODE,
                 "uid": uid,
                 "code": self._code or "",
-                "user_pin": self._user_pin,
+                "tx_code": self._tx_code,
                 "realm": uid,
             },
         )

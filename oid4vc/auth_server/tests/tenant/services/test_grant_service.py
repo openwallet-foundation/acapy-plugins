@@ -133,8 +133,7 @@ async def test_create_pre_authorized_code_success(monkeypatch):
         db=session,
         subject_id=None,
         subject_metadata={"extra": True},
-        user_pin_required=True,
-        user_pin="1234",
+        tx_code="1234",
         authorization_details=auth_details,
         ttl_seconds=None,
     )
@@ -146,8 +145,7 @@ async def test_create_pre_authorized_code_success(monkeypatch):
     repo_kwargs = capture["repo_kwargs"]
     assert repo_kwargs["subject_id"] == 11
     assert repo_kwargs["code"] == "code-xyz"
-    assert repo_kwargs["user_pin"] == "1234"
-    assert repo_kwargs["user_pin_required"] is True
+    assert repo_kwargs["tx_code"] == "1234"
     assert repo_kwargs["authorization_details"] == [{"type": "openid_credential"}]
     assert repo_kwargs["issued_at"] == fixed_now
     assert repo_kwargs["expires_at"] == fixed_now + timedelta(seconds=120)
