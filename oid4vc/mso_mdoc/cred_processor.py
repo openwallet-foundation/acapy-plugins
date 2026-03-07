@@ -37,8 +37,6 @@ class MsoMdocCredProcessor(Issuer):
             else None
         )
         assert doctype
-        if body.get("doctype") != doctype:
-            raise CredProcessorError("Requested doctype does not match offer.")
 
         try:
             headers = {

@@ -209,6 +209,7 @@ async def supported_cred_update_helper(
         "credential_signing_alg_values_supported", None
     )
     record.proof_types_supported = body.get("proof_types_supported", None)
+    record.credential_metadata = body.get("credential_metadata", None)
     record.vc_additional_data = {
         "vct": body.get("vct", None),
         "sd_list": body.get("sd_list", None),

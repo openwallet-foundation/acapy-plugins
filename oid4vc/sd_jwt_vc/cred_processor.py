@@ -81,9 +81,6 @@ class SdJwtCredIssueProcessor(Issuer, CredVerifier, PresVerifier):
         vct = supported.vc_additional_data.get("vct") or supported.format_data.get("vct")
         assert vct
 
-        if body.get("credential_configuration_id") != vct:
-            raise CredProcessorError("Requested vct does not match offer.")
-
         current_time = int(time.time())
         claims = deepcopy(ex_record.credential_subject)
 
@@ -251,9 +248,33 @@ class SdJwtCredIssueProcessor(Issuer, CredVerifier, PresVerifier):
         # Convert map-style legacy claims metadata into claims list format
         claim_map = cred_metadata.get("claims")
         if claim_map and isinstance(claim_map, dict):
+            allowed_claim_keys = ("mandatory", "display")
+            claims = []
+            for key, value in claim_map.items():
+                claim = {"path": [key]}
+                if isinstance(value, dict):
+                    claim.update(
+                        {
+                            field: value[field]
+                            for field in allowed_claim_keys
+                            if field in value
+                        }
+                    )
+                claims.append(claim)
+
+            cred_metadata["claims"] = claims
+        elif claim_map and isinstance(claim_map, list):
             cred_metadata["claims"] = [
-                {"path": [key], **value} if isinstance(value, dict) else {"path": [key]}
-                for key, value in claim_map.items()
+                {
+                    "path": claim.get("path"),
+                    **{
+                        field: claim[field]
+                        for field in ("mandatory", "display")
+                        if field in claim
+                    },
+                }
+                for claim in claim_map
+                if isinstance(claim, dict) and "path" in claim
             ]
 
         return {

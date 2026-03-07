@@ -161,15 +161,6 @@ async def credential_issuer_metadata(request: web.Request):
         metadata = issuer_config.issuer_metadata(f"{public_url}{subpath}")
         metadata["credential_configurations_supported"] = cred_config_supported
 
-        # Local testing
-        identifier = "OntarioTestBusinessCard_sdjwt"  # sdjwt
-        # identifier = "DriverLicenceCredential"  # mdoc
-        # identifier = "BusinessCredential"  # jwt_vc_json
-        if identifier:
-            supported = metadata["credential_configurations_supported"].get(identifier)
-            if supported:
-                metadata["credential_configurations_supported"] = {identifier: supported}
-
     LOGGER.debug("METADATA: %s", metadata)
 
     return web.json_response(metadata)
@@ -557,7 +548,6 @@ async def issue_cred(request: web.Request):
         # await ex_record.delete_record(session)
 
     cred_response = {
-        "format": supported.format,
         "credentials": [credential],
         "notification_id": ex_record.notification_id,
     }

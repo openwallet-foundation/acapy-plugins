@@ -303,5 +303,4 @@ async def test_issue_cred(monkeypatch, context, dummy_request):
 
     # Parse the JSON response body
     data = json.loads(resp.text)
-    assert data["format"] == "jwt_vc_json"
     assert "credentials" in data
