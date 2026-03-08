@@ -70,8 +70,9 @@ async def startup(profile: Profile, event: Event):
     await oid4vci.start()
 
 
-async def shutdown(context: InjectionContext):
+async def shutdown(profile: Profile, event: Event):
     """Teardown the plugin."""
+    context = profile.context
     oid4vci = context.inject(Oid4vciServer)
     await oid4vci.stop()
     await AppResources.shutdown()

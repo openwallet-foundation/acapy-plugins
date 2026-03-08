@@ -1,8 +1,9 @@
+import asyncio
 from os import getenv
 from uuid import uuid4
 
-from acapy_controller.controller import Controller
-from aiohttp import ClientSession
+from acapy_controller.controller import Controller, ControllerError
+from aiohttp import ClientError, ClientSession
 from urllib.parse import urlparse, parse_qs
 
 import pytest
@@ -11,14 +12,25 @@ import pytest_asyncio
 from oid4vci_client.client import OpenID4VCIClient
 
 ISSUER_ADMIN_ENDPOINT = getenv("ISSUER_ADMIN_ENDPOINT", "http://localhost:3001")
+CONTROLLER_CONNECT_ATTEMPTS = 5
+CONTROLLER_CONNECT_DELAY_SECONDS = 1
 
 
 @pytest_asyncio.fixture(scope="session")
 async def controller():
     """Connect to Issuer."""
-    controller = Controller(ISSUER_ADMIN_ENDPOINT)
-    async with controller:
-        yield controller
+    for attempt in range(CONTROLLER_CONNECT_ATTEMPTS):
+        controller = Controller(ISSUER_ADMIN_ENDPOINT)
+        try:
+            await controller.get("/status/config")
+            yield controller
+            return
+        except (ClientError, ControllerError, asyncio.TimeoutError):
+            is_last_attempt = attempt == CONTROLLER_CONNECT_ATTEMPTS - 1
+            if is_last_attempt:
+                raise
+            # ACA-Py may report healthy before all admin routes are ready.
+            await asyncio.sleep(CONTROLLER_CONNECT_DELAY_SECONDS)
 
 
 @pytest.fixture
@@ -41,21 +53,29 @@ async def issuer_did(controller: Controller):
 
 
 @pytest_asyncio.fixture(scope="session")
-async def supported_cred_id(controller: Controller, issuer_did: str):
+async def issuer_config(controller: Controller):
+    """Ensure issuer configuration exists for public metadata endpoints."""
+    await controller.put("/oid4vci/issuer/configuration", json={})
+    yield
+
+
+@pytest_asyncio.fixture(scope="session")
+async def supported_cred_id(controller: Controller, issuer_did: str, issuer_config: None):
     """Create a supported credential."""
     supported = await controller.post(
         "/oid4vci/credential-supported/create/jwt",
         json={
             "cryptographic_binding_methods_supported": ["did"],
-            "cryptographic_suites_supported": ["ES256"],
+            "credential_signing_alg_values_supported": ["ES256"],
             "format": "jwt_vc_json",
-            "id": "UniversityDegreeCredential",
-            # "types": ["VerifiableCredential", "UniversityDegreeCredential"],
-            "@context": [
-                "https://www.w3.org/2018/credentials/v1",
-                "https://www.w3.org/2018/credentials/examples/v1",
-            ],
-            "type": ["VerifiableCredential", "UniversityDegreeCredential"],
+            "id": f"UniversityDegreeCredential-{uuid4()}",
+            "credential_definition": {
+                "@context": [
+                    "https://www.w3.org/2018/credentials/v1",
+                    "https://www.w3.org/2018/credentials/examples/v1",
+                ],
+                "type": ["VerifiableCredential", "UniversityDegreeCredential"],
+            },
         },
     )
     yield supported["supported_cred_id"]

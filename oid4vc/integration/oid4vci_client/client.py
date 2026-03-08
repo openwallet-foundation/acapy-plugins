@@ -39,6 +39,7 @@ class CredentialOffer:
     """Credential Offer."""
 
     credential_issuer: str
+    credential_configuration_ids: List[str]
     credentials: List[str]
     authorization_code: Optional[dict] = None
     pre_authorized_code: Optional[CredentialGrantPreAuth] = None
@@ -47,9 +48,13 @@ class CredentialOffer:
     def from_dict(cls, value: dict):
         """Parse from dict."""
         offer = value["offer"]
+        cred_config_ids = offer.get("credential_configuration_ids") or []
+        credentials = offer.get("credentials") or []
+
         return cls(
             offer["credential_issuer"],
-            offer["credentials"],
+            cred_config_ids,
+            credentials,
             offer.get("grants", {}).get("authorization_code"),
             CredentialGrantPreAuth.from_grants(offer.get("grants", {})),
         )
@@ -93,7 +98,7 @@ class OpenID4VCIClient:
             ) as resp:
                 metadata = await resp.json()
 
-        token_endpoint = issuer_url + "/token"
+        token_endpoint = metadata.get("token_endpoint") or issuer_url + "/token"
         authorization_server = metadata.get("authorization_server")
         if authorization_server:
             token_endpoint = authorization_server + "/token"
@@ -118,6 +123,7 @@ class OpenID4VCIClient:
                 },
             ) as resp:
                 token = await resp.json()
+
         return TokenParams(
             token["access_token"],
             token["c_nonce"],
@@ -138,13 +144,27 @@ class OpenID4VCIClient:
         if not key:
             raise ValueError(f"No key for DID {holder_did}")
 
+        credential_configuration_id = (
+            offer.credential_configuration_ids[0]
+            if offer.credential_configuration_ids
+            else next(iter(metadata.credential_configurations_supported), None)
+        )
+        if credential_configuration_id is None:
+            raise ValueError("No credential_configuration_id in offer or metadata")
+
+        proofs = await crypto.proof_of_possession(
+            key, offer.credential_issuer, token.nonce
+        )
+        if isinstance(proofs.get("jwt"), str):
+            proofs["jwt"] = [proofs["jwt"]]
+
         request = {
-            "format": "jwt_vc_json",
-            "types": offer.credentials,
-            "proof": await crypto.proof_of_possession(
-                key, offer.credential_issuer, token.nonce
-            ),
+            "credential_configuration_id": credential_configuration_id,
+            "proofs": proofs,
         }
+        if offer.credentials:
+            request["type"] = offer.credentials
+
         async with ClientSession() as session:
             async with session.post(
                 metadata.credential_endpoint,
