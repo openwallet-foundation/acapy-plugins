@@ -129,7 +129,7 @@ class SdJwtSupportedCredCreateReq(OpenAPISchema):
     This endpoint feeds into the Credential Issuer Metadata reported by the Issuer to its clients.
 
     See the SD-JWT VC profile for more details on these properties:
-    https://openid.net/specs/openid-4-verifiable-credential-issuance-1_0-ID1.html#name-credential-issuer-metadata-6
+    https://openid.net/specs/openid-4-verifiable-credential-issuance-1_0.html
     """),  # noqa
 )
 @request_schema(SdJwtSupportedCredCreateReq())
@@ -152,7 +152,10 @@ async def supported_credential_create(request: web.Request):
             reason=f"Record with identifier {body['identifier']} already exists."
         )
 
-    LOGGER.info(f"body: {body}")
+    LOGGER.debug(
+        "Creating SD-JWT VC supported credential from request payload: %s",
+        body,
+    )
 
     vc_additional_data = {
         "vct": body.pop("vct", None),
@@ -198,7 +201,7 @@ async def supported_cred_update_helper(
     body: Dict[str, Any],
     session: AskarProfileSession,
 ) -> SupportedCredential:
-    """Helper method for updating a JWT Supported Credential Record."""
+    """Helper method for updating an SD-JWT VC Supported Credential Record."""
 
     record.identifier = body.get("identifier", None)
     record.format = body.get("format", None)
@@ -230,7 +233,7 @@ async def supported_cred_update_helper(
 @request_schema(SdJwtSupportedCredCreateReq())
 @response_schema(SupportedCredentialSchema())
 async def update_supported_credential_sd_jwt(request: web.Request):
-    """Update a JWT Supported Credential record."""
+    """Update an SD-JWT VC Supported Credential record."""
 
     context: AdminRequestContext = request["context"]
     supported_cred_id = request.match_info["supported_cred_id"]
@@ -240,7 +243,11 @@ async def update_supported_credential_sd_jwt(request: web.Request):
     except ValidationError as err:
         raise web.HTTPBadRequest(reason=str(err.messages)) from err
 
-    LOGGER.info(f"body: {body}")
+    LOGGER.debug(
+        "Updating SD-JWT VC supported credential %s with request payload: %s",
+        supported_cred_id,
+        body,
+    )
 
     try:
         async with context.session() as session:

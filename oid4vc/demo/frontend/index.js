@@ -549,7 +549,7 @@ async function issue_mdoc_credential(req, res) {
   };
 
   // 1. Create supported credential for mso_mdoc
-  const createCredentialSupportedUrl = `${API_BASE_URL}/oid4vci/credential-supported/create`;
+  const createCredentialSupportedUrl = `${API_BASE_URL}/oid4vci/credential-supported/create/mso-mdoc`;
   const createCredentialSupportedOptions = {
     method: "POST",
     headers: commonHeaders,

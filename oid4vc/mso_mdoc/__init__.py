@@ -1,4 +1,4 @@
-"""MSO_MDOC Crendential Handler Plugin."""
+"""MSO_MDOC Credential Handler Plugin."""
 
 from importlib.util import find_spec
 

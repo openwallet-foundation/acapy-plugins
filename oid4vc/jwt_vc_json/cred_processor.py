@@ -121,7 +121,7 @@ class JwtVcJsonCredProcessor(Issuer, CredVerifier, PresVerifier):
         return await self.verify(profile, presentation)
 
     def credential_metadata(self, supported_cred: dict) -> dict:
-        """Transform and return metadata for a supported SD-JWT credential."""
+        """Transform and return metadata for a supported JWT VC credential."""
 
         cred_metadata = supported_cred.get("credential_metadata", {})
         credential_definition = {}

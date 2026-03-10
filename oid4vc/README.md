@@ -1,6 +1,10 @@
 # OpenID4VCI Plugin for ACA-Py
 
-This plugin implements [OpenID4VCI (Draft 11)][oid4vci]. The OpenID4VCI specification is in active development, as is this plugin. Consider this plugin experimental; endpoints and records may change to reflect upstream changes in the specification.
+This plugin implements [OpenID4VCI v1.0][oid4vci].
+
+> [!WARNING]
+> This plugin is under active development.
+> Treat it as experimental; endpoints and records may change as implementation details evolve.
 
 ## OpenID4VCI Plugin Demo with Sphereon Wallet
 
@@ -411,4 +415,4 @@ For Apple Silicon, the `DOCKER_DEFAULT_PLATFORM=linux/amd64` environment variabl
 - Batch Credential Issuance
 - We're limited to DID Methods that ACA-Py supports for issuance (more can be added by Plugin, e.g. DID Web); `did:sov`, `did:key`
 
-[oid4vci]: https://openid.net/specs/openid-4-verifiable-credential-issuance-1_0-11.html
+[oid4vci]: https://openid.net/specs/openid-4-verifiable-credential-issuance-1_0.html

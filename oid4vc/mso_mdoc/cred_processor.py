@@ -72,7 +72,7 @@ class MsoMdocCredProcessor(Issuer):
         pass
 
     def credential_metadata(self, supported_cred: dict) -> dict:
-        """Transform and return metadata for a supported SD-JWT credential."""
+        """Transform and return metadata for a supported MSO mdoc credential."""
 
         vc_additional_data = supported_cred.pop("vc_additional_data", None) or {}
 

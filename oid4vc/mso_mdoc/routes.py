@@ -122,7 +122,10 @@ async def supported_credential_create_mdoc(request: web.Request):
             reason=f"Record with identifier {body['identifier']} already exists."
         )
 
-    LOGGER.info(f"body: {body}")
+    LOGGER.debug(
+        "Creating mdoc supported credential from request payload: %s",
+        body,
+    )
 
     vc_additional_data = {"doctype": body.pop("doctype", None)}
     record = SupportedCredential(**body, vc_additional_data=vc_additional_data)
@@ -192,7 +195,11 @@ async def update_supported_credential_mdoc(request: web.Request):
     except ValidationError as err:
         raise web.HTTPBadRequest(reason=str(err.messages)) from err
 
-    LOGGER.info(f"body: {body}")
+    LOGGER.debug(
+        "Updating mdoc supported credential %s with request payload: %s",
+        supported_cred_id,
+        body,
+    )
 
     try:
         async with context.session() as session:

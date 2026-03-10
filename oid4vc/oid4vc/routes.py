@@ -59,10 +59,8 @@ from .models.exchange import OID4VCIExchangeRecord, OID4VCIExchangeRecordSchema
 from .models.supported_cred import SupportedCredential, SupportedCredentialSchema
 from .utils import get_auth_header, get_tenant_subpath
 
-VCI_SPEC_URI = (
-    "https://openid.net/specs/openid-4-verifiable-credential-issuance-1_0-13.html"
-)
-VP_SPEC_URI = "https://openid.net/specs/openid-4-verifiable-presentations-1_0-ID2.html"
+VCI_SPEC_URI = "https://openid.net/specs/openid-4-verifiable-credential-issuance-1_0.html"
+VP_SPEC_URI = "https://openid.net/specs/openid-4-verifiable-presentations-1_0.html"
 LOGGER = logging.getLogger(__name__)
 CODE_BYTES = 16
 
