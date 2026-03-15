@@ -19,6 +19,7 @@ RUN mkdir oid4vc && touch oid4vc/__init__.py
 RUN mkdir jwt_vc_json && touch jwt_vc_json/__init__.py
 RUN mkdir sd_jwt_vc && touch sd_jwt_vc/__init__.py
 RUN mkdir mso_mdoc && touch mso_mdoc/__init__.py
+RUN mkdir status_list && touch status_list/__init__.py
 COPY pyproject.toml poetry.lock README.md ./
 RUN poetry install --without dev --all-extras
 USER $user
@@ -33,6 +34,7 @@ COPY jwt_vc_json/ jwt_vc_json/
 COPY mso_mdoc/ mso_mdoc/
 COPY sd_jwt_vc/ sd_jwt_vc/
 COPY oid4vc/ oid4vc/
+ADD https://github.com/openwallet-foundation/acapy-plugins.git#main:status_list/status_list/ status_list/
 COPY docker/*.yml ./
 
 ENTRYPOINT ["/bin/bash", "-c", "aca-py \"$@\"", "--"]

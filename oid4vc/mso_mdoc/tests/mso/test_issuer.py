@@ -24,9 +24,18 @@ def test_mso_sign(jwk, headers, payload):
     }
     cose_key = CoseKey.from_dict(pk_dict)
     x509_cert = selfsigned_x509cert(private_key=cose_key)
+    device_key = CoseKey.from_dict(
+        {
+            "KTY": jwk.get("kty") or "",
+            "CURVE": jwk.get("crv") or "",
+            "ALG": "EdDSA" if jwk.get("kty") == "OKP" else "ES256",
+            "X": b64_to_bytes(jwk.get("x") or "", True),
+            "Y": b64_to_bytes(jwk.get("y") or "", True),
+        }
+    )
 
     msoi = MsoIssuer(data=payload, private_key=cose_key, x509_cert=x509_cert)
-    mso = msoi.sign(device_key=(headers.get("deviceKey") or ""), doctype=MDOC_TYPE)
+    mso = msoi.sign(device_key=device_key, doctype=MDOC_TYPE)
     mso_signature = hexlify(mso.encode())
 
     assert mso_signature

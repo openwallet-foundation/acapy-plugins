@@ -1,3 +1,5 @@
+import json
+
 import pytest
 from acapy_agent.admin.request_context import AdminRequestContext
 
@@ -79,7 +81,13 @@ def did():
 def headers():
     yield {
         "doctype": "org.iso.18013.5.1.mDL",
-        "deviceKey": "12345678123456781234567812345678",
+        "deviceKey": json.dumps(
+            {
+                "kty": "OKP",
+                "crv": "Ed25519",
+                "x": "cavH81X96jQL8vj3gbLQBkeE7p9cyVu8MJcC5N6lXOU=",
+            }
+        ),
     }
 
 

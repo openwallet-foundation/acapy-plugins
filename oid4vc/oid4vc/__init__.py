@@ -9,7 +9,6 @@ from acapy_agent.core.util import SHUTDOWN_EVENT_PATTERN, STARTUP_EVENT_PATTERN
 from acapy_agent.resolver.did_resolver import DIDResolver
 from acapy_agent.wallet.did_method import DIDMethods
 
-from jwt_vc_json.cred_processor import JwtVcJsonCredProcessor
 from oid4vc.cred_processor import CredProcessors
 
 from .app_resources import AppResources
@@ -34,15 +33,16 @@ async def setup(context: InjectionContext):
     methods = context.inject(DIDMethods)
     methods.register(DID_JWK)
 
-    # Include jwt_vc_json by default
-    jwt_vc_json = JwtVcJsonCredProcessor()
     processors = CredProcessors()
-    processors.register_issuer("jwt_vc_json", jwt_vc_json)
-    processors.register_issuer("jwt_vc", jwt_vc_json)
-    processors.register_cred_verifier("jwt_vc_json", jwt_vc_json)
-    processors.register_cred_verifier("jwt_vc", jwt_vc_json)
-    processors.register_pres_verifier("jwt_vp_json", jwt_vc_json)
-    processors.register_pres_verifier("jwt_vp", jwt_vc_json)
+
+    # Include jwt_vc_json by default
+    # jwt_vc_json = JwtVcJsonCredProcessor()
+    # processors.register_issuer("jwt_vc_json", jwt_vc_json)
+    # processors.register_issuer("jwt_vc", jwt_vc_json)
+    # processors.register_cred_verifier("jwt_vc_json", jwt_vc_json)
+    # processors.register_cred_verifier("jwt_vc", jwt_vc_json)
+    # processors.register_pres_verifier("jwt_vp_json", jwt_vc_json)
+    # processors.register_pres_verifier("jwt_vp", jwt_vc_json)
 
     context.injector.bind_instance(CredProcessors, processors)
 
@@ -70,8 +70,9 @@ async def startup(profile: Profile, event: Event):
     await oid4vci.start()
 
 
-async def shutdown(context: InjectionContext):
+async def shutdown(profile: Profile, event: Event):
     """Teardown the plugin."""
+    context = profile.context
     oid4vci = context.inject(Oid4vciServer)
     await oid4vci.stop()
     await AppResources.shutdown()

@@ -32,7 +32,7 @@ class MsoIssuer:
         data: dict,
         private_key: CoseKey,
         x509_cert: str,
-        digest_alg: str = "sha256",
+        digest_alg: str = "SHA-256",
     ):
         """Constructor."""
 
@@ -43,7 +43,7 @@ class MsoIssuer:
         self.private_key: CoseKey = private_key
         self.x509_cert = x509_cert
 
-        hashfunc = getattr(hashlib, self.digest_alg)
+        hashfunc = getattr(hashlib, "sha256" if digest_alg == "SHA-256" else digest_alg)
 
         digest_cnt = 0
         for ns, values in data.items():
@@ -66,7 +66,11 @@ class MsoIssuer:
                     "elementValue": v,
                 }
                 self.hash_map[ns][digest_cnt] = hashfunc(
-                    cbor2.dumps(cbor2.CBORTag(24, self.disclosure_map[ns][digest_cnt]))
+                    cbor2.dumps(
+                        cbor2.CBORTag(
+                            24, cbor2.dumps(self.disclosure_map[ns][digest_cnt])
+                        )
+                    )
                 ).digest()
 
                 digest_cnt += 1
@@ -82,39 +86,60 @@ class MsoIssuer:
         doctype: str = None,
     ) -> Sign1Message:
         """Sign a mso and returns it in Sign1Message type."""
+        if device_key is None:
+            raise ValueError("device_key is required")
+
         utcnow = datetime.now(timezone.utc)
         exp = utcnow + timedelta(hours=(24 * 365))
+
+        if getattr(device_key, "y", None) is not None:
+            device_key_dict = {
+                1: 2,  # kty: EC2
+                3: -7,  # alg: ECDSA (ES256)
+                -1: 1,  # crv: P-256
+                -2: device_key.x,
+                -3: device_key.y,
+            }
+        else:
+            device_key_dict = {
+                1: 1,  # kty: OKP
+                3: -8,  # alg: EdDSA
+                -1: 6,  # crv: Ed25519
+                -2: device_key.x,
+            }
 
         payload = {
             "version": "1.0",
             "digestAlgorithm": self.digest_alg,
             "valueDigests": self.hash_map,
-            "deviceKeyInfo": {"deviceKey": device_key},
+            "deviceKeyInfo": {"deviceKey": device_key_dict},
             "docType": doctype or list(self.hash_map)[0],
             "validityInfo": {
-                "signed": cbor2.dumps(
-                    cbor2.CBORTag(0, self.format_datetime_repr(utcnow))
+                "signed": cbor2.CBORTag(0, self.format_datetime_repr(utcnow)),
+                "validFrom": cbor2.CBORTag(
+                    0, self.format_datetime_repr(valid_from or utcnow)
                 ),
-                "validFrom": cbor2.dumps(
-                    cbor2.CBORTag(0, self.format_datetime_repr(valid_from or utcnow))
-                ),
-                "validUntil": cbor2.dumps(
-                    cbor2.CBORTag(0, self.format_datetime_repr(exp))
-                ),
+                "validUntil": cbor2.CBORTag(0, self.format_datetime_repr(exp)),
             },
         }
+
+        tagged_payload_bytes = cbor2.dumps(cbor2.CBORTag(24, cbor2.dumps(payload)))
+
         mso = Sign1Message(
             phdr={
                 Algorithm: self.private_key.alg,
                 KID: self.private_key.kid,
-                33: self.x509_cert,
+                # 33: self.x509_cert,
             },
             # TODO: x509 (cbor2.CBORTag(33)) and federation trust_chain support
             # (cbor2.CBORTag(27?)) here
             # 33 means x509chain standing to rfc9360
             # in both protected and unprotected for interop purpose .. for now.
             uhdr={33: self.x509_cert},
-            payload=cbor2.dumps(payload),
+            payload=tagged_payload_bytes,
         )
-        mso.key = self.private_key
+        mso.key = (
+            self.private_key
+        )  # signed in mdoc issuer - see https://share.google/aimode/XiHFf55UJByrdpvqN
+
         return mso

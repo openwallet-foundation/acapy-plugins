@@ -7,7 +7,7 @@ from typing import Dict
 
 from acapy_agent.core.profile import Profile
 from acapy_agent.messaging.util import datetime_now
-from acapy_agent.wallet.util import b58_to_bytes, bytes_to_b64, str_to_b64
+from acapy_agent.wallet.util import b58_to_bytes, bytes_to_b64, str_to_b64, unpad
 from oid4vc.config import Config
 from oid4vc.jwt import jwt_sign
 
@@ -30,7 +30,7 @@ def verkey_to_jwk(verkey: str) -> Dict:
     """Convert a base58 verkey (Ed25519) to a JWK dict."""
 
     key_bytes = b58_to_bytes(verkey)
-    x = bytes_to_b64(key_bytes)
+    x = unpad(bytes_to_b64(key_bytes, urlsafe=True))
     jwk = {
         "kty": "OKP",
         "crv": "Ed25519",

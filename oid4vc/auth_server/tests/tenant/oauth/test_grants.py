@@ -25,7 +25,7 @@ def make_request(data: dict, *, url: str = "https://example.org/token") -> OAuth
 @pytest.mark.asyncio
 async def test_pre_auth_grant_create_token_response(monkeypatch):
     server = DummyServer()
-    request = make_request({"pre-authorized_code": "abc", "user_pin": "123"})
+    request = make_request({"pre-authorized_code": "abc", "tx_code": "123"})
     extra_ctx = SimpleNamespace(uid="tenant-1", db=object(), token_ctx={})
     monkeypatch.setattr("tenant.oauth.grants.get_context", lambda _req: extra_ctx)
     monkeypatch.setattr(
@@ -44,7 +44,7 @@ async def test_pre_auth_grant_create_token_response(monkeypatch):
     assert extra_ctx.token_ctx.get("flow") == "pre_auth_code"
     assert extra_ctx.token_ctx.get("realm") == "tenant-1"
     assert extra_ctx.token_ctx.get("code") == "abc"
-    assert extra_ctx.token_ctx.get("user_pin") == "123"
+    assert extra_ctx.token_ctx.get("tx_code") == "123"
     assert server.saved is not None and server.saved[0] == {}
 
 

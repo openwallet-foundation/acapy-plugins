@@ -22,7 +22,7 @@ async def token_endpoint(
     ),
     pre_authorized_code: str | None = Form(None, alias="pre-authorized_code"),
     pre_authorized_code_alt: str | None = Form(None, alias="pre_authorized_code"),
-    user_pin: str | None = Form(None),
+    tx_code: str | None = Form(None),
     refresh_token: str | None = Form(None),
     db: AsyncSession = Depends(get_db_session),
 ):
@@ -33,7 +33,7 @@ async def token_endpoint(
         "grant_type": grant_type,
         "pre-authorized_code": pac_value,
         "pre_authorized_code": pac_value,
-        "user_pin": user_pin,
+        "tx_code": tx_code,
         "refresh_token": refresh_token,
     }
     oauth2_req = await to_oauth2_request(request, db=db, uid=uid, form_data=form_data)

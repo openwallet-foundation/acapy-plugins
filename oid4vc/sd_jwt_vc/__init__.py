@@ -1,4 +1,4 @@
-"""SD-JWT Crendential Handler Plugin."""
+"""SD-JWT Credential Handler Plugin."""
 
 from importlib.util import find_spec
 

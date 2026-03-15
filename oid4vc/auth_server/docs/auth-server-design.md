@@ -406,7 +406,7 @@ DPoP: <signed DPoP JWT>
 
 grant_type=urn:ietf:params:oauth:grant-type:pre-authorized_code&
 pre-authorized_code=abc123&
-user_pin=1234&
+tx_code=1234&
 client_attestation=eyJhbGciOiJSUzI1NiIs...
 ```
 
@@ -557,8 +557,7 @@ Decoded `credential_offer`:
     "credential_issuer": "https://issuer.example.com",
     "grants": {
       "urn:ietf:params:oauth:grant-type:pre-authorized_code": {
-        "pre-authorized_code": "abc123",
-        "user_pin_required": false
+        "pre-authorized_code": "abc123"
       }
     },
     "authorization_details": [
@@ -691,8 +690,7 @@ erDiagram
         INT id PK
         INT subject_id FK
         TEXT code UK
-        TEXT user_pin
-        BOOLEAN user_pin_required
+      TEXT tx_code
         JSONB authorization_details
         TIMESTAMPTZ expires_at
         TIMESTAMPTZ issued_at

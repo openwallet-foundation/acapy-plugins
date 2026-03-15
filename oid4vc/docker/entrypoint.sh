@@ -30,4 +30,5 @@ OID4VCI_ENDPOINT=$(curl --silent "${TUNNEL_ENDPOINT}/api/tunnels/command_line" |
 # Print the response for debugging purposes
 # echo "JSON Response: $RESPONSE"
 export OID4VCI_ENDPOINT=${OID4VCI_ENDPOINT}
+export STATUS_LIST_PUBLIC_URI=${OID4VCI_ENDPOINT}/tenant/{tenant_id}/status/{list_number}
 exec "$@"

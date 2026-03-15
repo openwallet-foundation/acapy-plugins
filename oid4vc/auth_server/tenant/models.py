@@ -57,10 +57,7 @@ class PreAuthCode(Base):
         ForeignKey("subject.id", onupdate="CASCADE", ondelete="CASCADE"), nullable=False
     )
     code: Mapped[str] = mapped_column(Text, nullable=False)
-    user_pin: Mapped[str | None] = mapped_column(Text, nullable=True)
-    user_pin_required: Mapped[bool] = mapped_column(
-        Boolean, nullable=False, default=False
-    )
+    tx_code: Mapped[str | None] = mapped_column("user_pin", Text, nullable=True)
     authorization_details: Mapped[list[dict[str, Any]] | None] = mapped_column(
         JSONB, nullable=True
     )

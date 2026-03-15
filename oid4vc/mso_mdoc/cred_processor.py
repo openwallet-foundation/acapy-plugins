@@ -3,6 +3,7 @@
 import json
 import logging
 import re
+import base64
 from typing import Any
 
 from acapy_agent.admin.request_context import AdminRequestContext
@@ -29,13 +30,17 @@ class MsoMdocCredProcessor(Issuer):
         context: AdminRequestContext,
     ):
         """Return signed credential in COBR format."""
-        assert supported.format_data
-        if body.get("doctype") != supported.format_data.get("doctype"):
-            raise CredProcessorError("Requested doctype does not match offer.")
+        LOGGER.debug("supported credential: %s", supported)
+        doctype = (
+            supported.vc_additional_data.get("doctype")
+            if supported.vc_additional_data
+            else None
+        )
+        assert doctype
 
         try:
             headers = {
-                "doctype": supported.format_data.get("doctype"),
+                "doctype": doctype,
                 "deviceKey": re.sub(
                     "did:(.+?):(.+?)#(.*)",
                     "\\2",
@@ -50,9 +55,13 @@ class MsoMdocCredProcessor(Issuer):
             )
             mso_mdoc = mso_mdoc[2:-1] if mso_mdoc.startswith("b'") else None
         except Exception as ex:
-            raise CredProcessorError("Failed to issue credential") from ex
+            raise CredProcessorError(f"Failed to issue credential: {ex}") from ex
 
-        return mso_mdoc
+        binary = bytes.fromhex(mso_mdoc)
+        mso_mdoc_base64url = base64.urlsafe_b64encode(binary).rstrip(b"=").decode("ascii")
+        LOGGER.debug("mso_mdoc credential: %s", mso_mdoc_base64url)
+
+        return mso_mdoc_base64url
 
     def validate_credential_subject(self, supported: SupportedCredential, subject: dict):
         """Validate the credential subject."""
@@ -61,3 +70,13 @@ class MsoMdocCredProcessor(Issuer):
     def validate_supported_credential(self, supported: SupportedCredential):
         """Validate a supported MSO MDOC Credential."""
         pass
+
+    def credential_metadata(self, supported_cred: dict) -> dict:
+        """Transform and return metadata for a supported MSO mdoc credential."""
+
+        vc_additional_data = supported_cred.pop("vc_additional_data", None) or {}
+
+        return {
+            "doctype": vc_additional_data.get("doctype"),
+            **supported_cred,
+        }

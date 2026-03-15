@@ -74,8 +74,12 @@ const API_BASE_URL = process.env.API_BASE_URL || "http://localhost:3001";
 const API_KEY = process.env.API_KEY;
 let jwtVcSupportedCredCreated = false;
 let sdJwtSupportedCredCreated = false;
+let mdocSupportedCredCreated = false;
+let sdJwtStatusListCreated = false;
+let jwtStatusListCreated = false;
 let jwtVcSupportedCredID = "";
 let sdJwtSupportedCredID = "";
+let mdocSupportedCredID = "";
 
 
 //    ###     ######     ###            ########  ##    ##
@@ -183,11 +187,8 @@ async function issue_jwt_credential(req, res) {
     jwtVcSupportedCredID = supportedCredentialData.supported_cred_id;
     jwtVcSupportedCredCreated = true;
   }
-  
 
-
-
-  // Create DID for issuance
+  // Create DID for issuance and status list
   const createDidUrl = `${API_BASE_URL}/did/jwk/create`;
   const createDidOptions = {
     method: "POST",
@@ -206,6 +207,42 @@ async function issue_jwt_credential(req, res) {
   logger.info(did);
   logger.info(jwtVcSupportedCredID);
 
+
+  // Create bitstring status list Configuration
+  const statusListCreateUrl = `${API_BASE_URL}/status-list/defs`;
+  const statusListCreateOptions = {
+    method: "POST",
+    headers: commonHeaders,
+    body: JSON.stringify({
+      issuer_did: did,
+      list_size: 131072,
+      list_type: "w3c",
+      shard_size: 131072,
+      status_message: [
+        {
+            status: "0x00",
+            message: "active"
+        },
+        {
+            status: "0x01",
+            message: "inactive"
+        },
+    ],
+    status_purpose: "revocation",
+    status_size: 1,
+    supported_cred_id: jwtVcSupportedCredID,
+    verification_method: did+"#0"
+    })
+  };
+
+  if (!jwtStatusListCreated){
+    events.emit(`issuance-${req.body.registrationId}`, {type: "message", message: `Posting Create Status List Request to: ${statusListCreateUrl}`});
+    events.emit(`issuance-${req.body.registrationId}`, {type: "debug-message", message: "Request options", data: statusListCreateOptions});
+    const statusListResponse = await fetchApiData(statusListCreateUrl, statusListCreateOptions);
+    const { id } = statusListResponse;
+    events.emit(`issuance-${req.body.registrationId}`, {type: "message", message: `Created Status List ID: ${id}`});
+    jwtStatusListCreated = true;
+  };
 
   // Create Credential Exchange records
   const exchangeCreateUrl = `${API_BASE_URL}/oid4vci/exchange/create`;
@@ -472,6 +509,172 @@ async function issue_sdjwt_credential(req, res) {
   events.emit(`issuance-${req.body.registrationId}`, {type: "message", message: "Begin listening for credential to be issued."});
 }
 
+// Begin Issue mDL (mso_mdoc) Credential Flow
+async function issue_mdoc_credential(req, res) {
+  res.status(200).send("");
+  events.emit(`issuance-${req.body.registrationId}`, {type: "message", message: "Received mDL credential data from user."});
+
+  console.log("req.body", req.body);
+  const {
+    family_name,
+    given_name,
+    birth_date,
+    issue_date,
+    expiry_date,
+    issuing_authority,
+    document_number,
+  } = req.body;
+
+  const headers = {
+    accept: "application/json",
+  };
+  const commonHeaders = {
+    accept: "application/json",
+    "Content-Type": "application/json",
+    "Authorization": "Bearer " + token.token,
+  };
+  if (API_KEY) {
+    commonHeaders["X-API-KEY"] =  API_KEY;
+  }
+
+  axios.defaults.withCredentials = true;
+  axios.defaults.headers.common["Access-Control-Allow-Origin"] = API_BASE_URL;
+  axios.defaults.headers.common["X-API-KEY"] = API_KEY;
+  axios.defaults.headers.common["Authorization"] = "Bearer " + token.token;
+
+
+  const fetchApiData = async (url, options) => {
+    const response = await fetch(url, options);
+    return await response.json();
+  };
+
+  // 1. Create supported credential for mso_mdoc
+  const createCredentialSupportedUrl = `${API_BASE_URL}/oid4vci/credential-supported/create/mso-mdoc`;
+  const createCredentialSupportedOptions = {
+    method: "POST",
+    headers: commonHeaders,
+    body: JSON.stringify({
+      format: "mso_mdoc",
+      cryptographic_binding_methods_supported: ["did:jwk"],
+      cryptographic_suites_supported: [
+        "EdDSA"
+      ],
+      display: [
+        {
+          name: "Sample Driving License",
+          locale: "en-US",
+          background_image: {
+            uri: "data:image/png;base64,iVBORw0KGgoAAAANS",
+            alt_text: "Driver's License Background"
+          }
+        }
+      ], 
+      id: "org.iso.18013.5.1.mDL",
+      format_data: {
+        doctype: "org.iso.18013.5.1.mDL",
+        "proof_types_supported": {
+          "jwt": {
+            "proof_signing_alg_values_supported": [
+              "ES256",
+              "EdDSA"
+            ]
+          }
+        },
+      }
+    }),
+  };
+
+  if (!mdocSupportedCredCreated) {
+    events.emit(`issuance-${req.body.registrationId}`, {type: "message", message: `Posting Create Credential Request to: ${createCredentialSupportedUrl}`});
+    events.emit(`issuance-${req.body.registrationId}`, {type: "debug-message", message: "Request options", data: createCredentialSupportedOptions});
+    console.log("Creating mDL supported credential", createCredentialSupportedOptions);
+    const supportedCredentialData = await fetchApiData(
+      createCredentialSupportedUrl,
+      createCredentialSupportedOptions
+    );
+    mdocSupportedCredID = supportedCredentialData.supported_cred_id;
+    mdocSupportedCredCreated = true;
+  }
+
+  // Create DID for issuance
+  const createDidUrl = `${API_BASE_URL}/did/jwk/create`;
+  const createDidOptions = {
+    method: "POST",
+    headers: commonHeaders,
+    body: JSON.stringify({
+      key_type: "p256",
+    }),
+  };
+
+  events.emit(`issuance-${req.body.registrationId}`, {type: "message", message: "Creating DID."});
+  events.emit(`issuance-${req.body.registrationId}`, {type: "message", message: `Posting Create DID Request to: ${createDidUrl}`});
+  events.emit(`issuance-${req.body.registrationId}`, {type: "debug-message", message: "Request options", data: createDidOptions});
+  const didData = await fetchApiData(createDidUrl, createDidOptions);
+  const { did } = didData;
+  events.emit(`issuance-${req.body.registrationId}`, {type: "message", message: `Created DID: ${did}`});
+  logger.info(did);
+  logger.info(mdocSupportedCredID);
+  
+  // 2. Create credential exchange
+  const exchangeCreateUrl = `${API_BASE_URL}/oid4vci/exchange/create`;
+ 
+  console.log("FAMILY NAME", family_name);
+  const exchangeCreateOptions = {
+      supported_cred_id: mdocSupportedCredID,
+      credential_subject: {
+        "org.iso.18013.5.1": {
+          family_name,
+          given_name,
+          birth_date,
+          issue_date,
+          expiry_date,
+          issuing_authority,
+          document_number,
+        }
+      },
+      verification_method: did + "#0",
+  };
+
+  events.emit(`issuance-${req.body.registrationId}`, {type: "message", message: "Generating Credential Exchange."});
+  events.emit(`issuance-${req.body.registrationId}`, {type: "message", message: `Posting Credential Exchange Creation Request to: ${exchangeCreateUrl}`});
+  events.emit(`issuance-${req.body.registrationId}`, {type: "debug-message", message: "Request options", data: exchangeCreateOptions});
+  
+  const exchangeResponse = await axios.post(exchangeCreateUrl, exchangeCreateOptions);
+  const exchangeId = exchangeResponse.data.exchange_id;
+  events.emit(`issuance-${req.body.registrationId}`, {type: "message", message: `Received Credential Exchange ID: ${exchangeId}`});
+  
+  
+  // 3. Get credential offer and emit QR code as in other flows
+  const credentialOfferUrl = `${API_BASE_URL}/oid4vci/credential-offer`;
+  const queryParams = {
+    exchange_id: exchangeId,
+    user_pin_required: false,
+  };
+
+  const credentialOfferOptions = {
+    params: queryParams,
+    headers: headers,
+  };
+  events.emit(`issuance-${req.body.registrationId}`, {type: "message", message: "Requesting Credential Offer."});
+  events.emit(`issuance-${req.body.registrationId}`, {type: "message", message: `Retrieving Credential Offer from: ${credentialOfferUrl}`});
+  events.emit(`issuance-${req.body.registrationId}`, {type: "debug-message", message: "Request options", data: credentialOfferOptions});
+  const offerResponse = await axios.get(credentialOfferUrl, credentialOfferOptions);
+  const credentialOffer = offerResponse.data;
+  
+  let qrcode;
+  if (credentialOffer.credential_offer) {
+    qrcode = credentialOffer.credential_offer;
+  } else {
+    qrcode = credentialOffer.credential_offer_uri;
+  } 
+  logger.info(JSON.stringify(offerResponse.data));
+  logger.info(exchangeId);
+  events.emit(`issuance-${req.body.registrationId}`, {type: "message", message: `Sending offer to user: ${qrcode}`});
+  events.emit(`issuance-${req.body.registrationId}`, {type: "qrcode", credentialOffer, exchangeId, qrcode});
+  exchangeCache.set(exchangeId, { exchangeId, credentialOffer, mdocSupportedCredID, registrationId: req.body.registrationId });
+
+  events.emit(`issuance-${req.body.registrationId}`, {type: "message", message: "Begin listening for credential to be issued."});
+}
 
 // Begin JWT VC JSON Presentation Flow
 async function create_jwt_vc_presentation(req, res) {
@@ -926,6 +1129,9 @@ app.post("/issue", (req, res, next) => {
       case "sdjwt":
         issue_sdjwt_credential(req, res).catch(next);
         break;
+      case "mdoc":
+        issue_mdoc_credential(req, res).catch(next);
+      break;
       default:
         res.status(400).send("");
     }
@@ -952,6 +1158,9 @@ app.post("/issue", (req, res, next) => {
     switch(req.query["credential-type"]) {
       case "jwt":
         create_jwt_vc_presentation(req, res).catch(next);
+        break;
+      case "multi":
+        create_jwt_vc_presentation_multi(req, res).catch(next);
         break;
       case "sdjwt":
         create_sd_jwt_presentation(req, res).catch(next);
