@@ -1446,7 +1446,12 @@
 
 
 <h1 id="openid4vci-plugin-for-aca-py">OpenID4VCI Plugin for ACA-Py<a class="headerlink" href="#openid4vci-plugin-for-aca-py" title="Permanent link">&para;</a></h1>
-<p>This plugin implements <a href="https://openid.net/specs/openid-4-verifiable-credential-issuance-1_0-11.html">OpenID4VCI (Draft 11)</a>. The OpenID4VCI specification is in active development, as is this plugin. Consider this plugin experimental; endpoints and records may change to reflect upstream changes in the specification.</p>
+<p>This plugin implements <a href="https://openid.net/specs/openid-4-verifiable-credential-issuance-1_0.html">OpenID4VCI v1.0</a>.</p>
+<blockquote>
+<p>[!WARNING]
+This plugin is under active development.
+Treat it as experimental; endpoints and records may change as implementation details evolve.</p>
+</blockquote>
 <h2 id="openid4vci-plugin-demo-with-sphereon-wallet">OpenID4VCI Plugin Demo with Sphereon Wallet<a class="headerlink" href="#openid4vci-plugin-demo-with-sphereon-wallet" title="Permanent link">&para;</a></h2>
 <h3 id="demo-overview">Demo Overview<a class="headerlink" href="#demo-overview" title="Permanent link">&para;</a></h3>
 <p>This repository showcases a simplified demonstration of the OID4VCI (OpenID for Verifiable Credential Issuers) integration with the <a href="https://github.com/Sphereon-Opensource/ssi-mobile-wallet">Sphereon Wallet app</a>. Follow the steps below to run the demo successfully.</p>
@@ -1515,7 +1520,7 @@
 <p>Example Configuration:
 <div class="highlight"><pre><span></span><code><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a>     OID4VCI_STATUS_HANDLER: status_list.v1_0.status_handler
 <a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a>     STATUS_LIST_SIZE: 131072
-<a id="__codelineno-2-3" name="__codelineno-2-3" href="#__codelineno-2-3"></a>     STATUS_LIST_SHARD_SIZE: 1024
+<a id="__codelineno-2-3" name="__codelineno-2-3" href="#__codelineno-2-3"></a>     STATUS_LIST_SHARD_SIZE: 131072
 <a id="__codelineno-2-4" name="__codelineno-2-4" href="#__codelineno-2-4"></a>     STATUS_LIST_PUBLIC_URI: https://localhost:8082/tenant/{tenant_id}/status/{list_number}
 <a id="__codelineno-2-5" name="__codelineno-2-5" href="#__codelineno-2-5"></a>     STATUS_LIST_FILE_PATH: /tmp/bitstring/{tenant_id}/{list_number}
 </code></pre></div>
@@ -1525,8 +1530,8 @@
 <p>Example JSON Body (list_type can be either "w3c" or "ietf"):
 <div class="highlight"><pre><span></span><code><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a>      {
 <a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a>        &quot;issuer_did&quot;: &quot;did....&quot;,
-<a id="__codelineno-3-3" name="__codelineno-3-3" href="#__codelineno-3-3"></a>        &quot;list_type&quot;: &quot;w3c&quot;,
-<a id="__codelineno-3-4" name="__codelineno-3-4" href="#__codelineno-3-4"></a>        &quot;list_size&quot;: 131072,
+<a id="__codelineno-3-3" name="__codelineno-3-3" href="#__codelineno-3-3"></a>        &quot;list_size&quot;: 131072,
+<a id="__codelineno-3-4" name="__codelineno-3-4" href="#__codelineno-3-4"></a>        &quot;list_type&quot;: &quot;ietf&quot;,
 <a id="__codelineno-3-5" name="__codelineno-3-5" href="#__codelineno-3-5"></a>        &quot;shard_size&quot;: 1024,
 <a id="__codelineno-3-6" name="__codelineno-3-6" href="#__codelineno-3-6"></a>        &quot;status_message&quot;: [
 <a id="__codelineno-3-7" name="__codelineno-3-7" href="#__codelineno-3-7"></a>          {
@@ -1538,7 +1543,7 @@
 <a id="__codelineno-3-13" name="__codelineno-3-13" href="#__codelineno-3-13"></a>            &quot;message&quot;: &quot;revoked&quot;
 <a id="__codelineno-3-14" name="__codelineno-3-14" href="#__codelineno-3-14"></a>          },
 <a id="__codelineno-3-15" name="__codelineno-3-15" href="#__codelineno-3-15"></a>        ],
-<a id="__codelineno-3-16" name="__codelineno-3-16" href="#__codelineno-3-16"></a>        &quot;status_purpose&quot;: &quot;message&quot;,
+<a id="__codelineno-3-16" name="__codelineno-3-16" href="#__codelineno-3-16"></a>        &quot;status_purpose&quot;: &quot;revocation&quot;,
 <a id="__codelineno-3-17" name="__codelineno-3-17" href="#__codelineno-3-17"></a>        &quot;status_size&quot;: 1,
 <a id="__codelineno-3-18" name="__codelineno-3-18" href="#__codelineno-3-18"></a>        &quot;supported_cred_id&quot;: &quot;string&quot;,
 <a id="__codelineno-3-19" name="__codelineno-3-19" href="#__codelineno-3-19"></a>        &quot;verification_method&quot;: &quot;did....&quot;
@@ -1552,7 +1557,7 @@
 <p><img alt="oid4vci-component" src="https://raw.githubusercontent.com/openwallet-foundation/acapy-plugins/main/oid4vc/docs/images/oid4vci-component.png" /></p>
 <h3 id="public-routes">Public Routes<a class="headerlink" href="#public-routes" title="Permanent link">&para;</a></h3>
 <p>ACA-Py provides a pluggable mechanism for registering routes for consumption by the controller, the Admin API. This Admin Server makes it trivial to extend the controller from plugins. ACA-Py does not, however, provide a similar mechanism for publicly accessible HTTP Endpoints. Generally speaking, the only public endpoint ACA-Py provides is the DIDComm Messaging endpoint. The OpenID4VCI protocol requires endpoints that are publicly accessible to present and exchange tokens for credentials. This Plugin accomplishes this by starting a separate <a href="https://docs.aiohttp.org/en/stable/index.html">aiohttp server</a> (similar to how the Admin server is separate from the DIDComm messaging server) and publishes the OpenID4VCI endpoints through this separate server.</p>
-<p>Details of the endpoints can be found at <code>/api/docs</code> or in the <a href="https://openid.net/specs/openid-4-verifiable-credential-issuance-1_0-11.html">OpenId4VCI Specification</a>.</p>
+<p>Details of the endpoints can be found at <code>/api/docs</code> or in the <a href="https://openid.net/specs/openid-4-verifiable-credential-issuance-1_0.html">OpenId4VCI Specification</a>.</p>
 <h3 id="admin-routes">Admin Routes<a class="headerlink" href="#admin-routes" title="Permanent link">&para;</a></h3>
 <p>The plugin exposes Admin API routes for consumption by the Controller to facilitate Credential Issuance over OpenID4VCI. The Admin API Routes can be found under <code>/api/docs</code> of the Admin Server in the <code>oid4vci</code> section.</p>
 <h3 id="records">Records<a class="headerlink" href="#records" title="Permanent link">&para;</a></h3>
@@ -1710,7 +1715,7 @@ controller -&gt;&gt; holder: result</code></pre>
 <a id="__codelineno-4-48" name="__codelineno-4-48" href="#__codelineno-4-48"></a><span class="w">  </span><span class="p">]</span>
 <a id="__codelineno-4-49" name="__codelineno-4-49" href="#__codelineno-4-49"></a><span class="p">}</span>
 </code></pre></div>
-<p>For the <code>id</code>, <code>format</code>, <code>cryptographic_binding_supported</code>, <code>cryptographic_suites_supported</code>, and <code>display</code> attributes, see the <a href="https://openid.net/specs/openid-4-verifiable-credential-issuance-1_0-11.html">OpenID4VCI Specification, Section 10.2.3</a>.</p>
+<p>For the <code>id</code>, <code>format</code>, <code>cryptographic_binding_supported</code>, <code>cryptographic_suites_supported</code>, and <code>display</code> attributes, see the <a href="https://openid.net/specs/openid-4-verifiable-credential-issuance-1_0.html">OpenID4VCI Specification, Section 10.2.3</a>.</p>
 <ul>
 <li><code>type</code> is a required attribute for JWT-VC (recorded as <code>types</code> in the <code>SupportedCredential.format_data</code> dictionary), and <code>credentialSubject</code> represents display characteristics of the credential only and is not an exhaustive list of the credential attributes. These values are reported in the credential issuer metadata.</li>
 <li>The <code>@context</code> of credential to be issued, as well as the <code>type</code> are stored in the <code>SupportedCredential.vc_additional_data</code> dictionary. These values are NOT reported in the credential issuer metadata.</li>
