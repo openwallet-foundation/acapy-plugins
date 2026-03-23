@@ -20,7 +20,7 @@ jsonrpc-api-proxy-client = {git = "https://github.com/Indicio-tech/json-rpc-api-
 pydantic = "~2.12.5"
 
 [tool.poetry.group.dev.dependencies]
-black = "^24.4.2"
+black = "^26.3.1"
 ruff = "^0.15.4"
 
 [tool.pytest.ini_options]
