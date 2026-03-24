@@ -72,6 +72,7 @@ const presentationCache = new NodeCache({ stdTTL: 300, checkperiod: 400 });
 
 const API_BASE_URL = process.env.API_BASE_URL || "http://localhost:3001";
 const API_KEY = process.env.API_KEY;
+const AUTHSERVER_NGROK_URL = process.env.AUTHSERVER_NGROK_URL;
 let jwtVcSupportedCredCreated = false;
 let sdJwtSupportedCredCreated = false;
 let mdocSupportedCredCreated = false;
@@ -329,15 +330,34 @@ async function issue_sdjwt_credential(req, res) {
 
 
   // Create credential schema
-  const createCredentialSupportedUrl = `${API_BASE_URL}/oid4vci/credential-supported/create`;
+  const createCredentialSupportedUrl = `${API_BASE_URL}/oid4vci/credential-supported/create/sd-jwt`;
   const createCredentialSupportedOptions = {
     method: "POST",
     headers: commonHeaders,
     body: JSON.stringify({
       format: "vc+sd-jwt",
       id: "IDCard",
-      format_data: {
-        cryptographic_binding_methods_supported: ["jwk"],
+      proof_types_supported: {
+        jwt: {
+          proof_signing_alg_values_supported: [
+            "ES256"
+          ]
+        }
+      },
+      cryptographic_binding_methods_supported: ["jwk"],
+      credential_signing_alg_values_supported: ["ES256K"],
+      vct: "ExampleIDCard",
+      sd_list: [
+          "/given_name",
+          "/family_name",
+          "/age_is_over_12",
+          "/age_is_over_14",
+          "/age_is_over_16",
+          "/age_is_over_18",
+          "/age_is_over_21",
+          "/age_is_over_65"
+        ],
+      credential_metadata: {  
         display: [
           {
             "name": "ID Card",
@@ -346,65 +366,89 @@ async function issue_sdjwt_credential(req, res) {
             "text_color": "#FFFFFF"
           }
         ],
-        vct: "ExampleIDCard",
-        "claims": {
-          "given_name": {
-            "mandatory": true,
-            "value_type": "string",
+        "claims": [
+          {
+          "path": ["given_name"],
+          "display": [
+            {
+              "name": "Given Name",
+              "locale": "en-US"
+            }
+          ]
           },
-          "family_name": {
-            "mandatory": true,
-            "value_type": "string",
+          {
+            "path": ["family_name"],
+            "display": [
+              {
+                "name": "Family Name",
+                "locale": "en-US"
+              }
+            ]
           },
-          "something_nested": {
-            "key1": {
-              "key2": {
-                "key3": {
-                  "mandatory": true,
-                  "value_type": "string",
-                },
-              },
-            },
+          {
+            "path": ["something_nested", "key1", "key2", "key3"],
+            "display": [
+              {
+                "name": "Something Nested",
+                "locale": "en-US"
+              }
+            ]
           },
-          "age_equal_or_over": {
-            "12": {
-              "mandatory": true,
-              "value_type": "boolean",
-            },
-            "14": {
-              "mandatory": true,
-              "value_type": "boolean",
-            },
-            "16": {
-              "mandatory": true,
-              "value_type": "boolean",
-            },
-            "18": {
-              "mandatory": true,
-              "value_type": "boolean",
-            },
-            "21": {
-              "mandatory": true,
-              "value_type": "boolean",
-            },
-            "65": {
-              "mandatory": true,
-              "value_type": "boolean",
-            },
+          {
+            "path": ["is_over_12"],
+            "display": [
+              {
+                "name": "Age 12 or Over",
+                "locale": "en-US"
+              }
+            ]
+          },
+          {
+            "path": ["is_over_14"],
+            "display": [
+              {
+                "name": "Age 14 or Over",
+                "locale": "en-US"
+              }
+            ]
+          },
+          {
+            "path": ["is_over_16"],
+            "display": [
+              {
+                "name": "Age 16 or Over",
+                "locale": "en-US"
+              }
+            ]
+          },
+          {
+            "path": ["is_over_18"],
+            "display": [
+              {
+                "name": "Age 18 or Over",
+                "locale": "en-US"
+              }
+            ]
+          },
+          {
+            "path": ["is_over_21"],
+            "display": [
+              {
+                "name": "Age 21 or Over",
+                "locale": "en-US"
+              }
+            ]
+          },
+          {
+            "path": ["is_over_65"],
+            "display": [
+              {
+                "name": "Age 65 or Over",
+                "locale": "en-US"
+              }
+            ]
           }
-        },
-      },
-      vc_additional_data: {
-        sd_list: [
-          "/given_name",
-          "/family_name",
-          "/age_equal_or_over/12",
-          "/age_equal_or_over/14",
-          "/age_equal_or_over/16",
-          "/age_equal_or_over/18",
-          "/age_equal_or_over/21",
-          "/age_equal_or_over/65"
-        ]
+        ],
       }
     }),
   };
@@ -441,6 +485,41 @@ async function issue_sdjwt_credential(req, res) {
   logger.info(did);
   logger.info(sdJwtSupportedCredID);
 
+  // Create IETF Token status list Configuration
+  const statusListCreateUrl = `${API_BASE_URL}/status-list/defs`;
+  const statusListCreateOptions = {
+    method: "POST",
+    headers: commonHeaders,
+    body: JSON.stringify({
+      issuer_did: did,
+      list_size: 131072,
+      list_type: "ietf",
+      shard_size: 131072,
+      status_message: [
+        {
+            status: "0x00",
+            message: "active"
+        },
+        {
+            status: "0x01",
+            message: "inactive"
+        },
+    ],
+    status_purpose: "revocation",
+    status_size: 1,
+    supported_cred_id: sdJwtSupportedCredID,
+    verification_method: did+"#0"
+    })
+  };
+
+  if (!sdJwtStatusListCreated){
+    events.emit(`issuance-${req.body.registrationId}`, {type: "message", message: `Posting Create Status List Request to: ${statusListCreateUrl}`});
+    events.emit(`issuance-${req.body.registrationId}`, {type: "debug-message", message: "Request options", data: statusListCreateOptions});
+    const statusListResponse = await fetchApiData(statusListCreateUrl, statusListCreateOptions);
+    const { id } = statusListResponse;
+    events.emit(`issuance-${req.body.registrationId}`, {type: "message", message: `Created Status List ID: ${id}`});
+    sdJwtStatusListCreated = true;
+  };
 
   // Create Credential Exchange records
   const exchangeCreateUrl = `${API_BASE_URL}/oid4vci/exchange/create`;
@@ -453,14 +532,12 @@ async function issue_sdjwt_credential(req, res) {
       family_name: lastName,
       something_nested: {key1: {key2: {key3: "something nested"}}},
       source_document_type: "id_card",
-      age_equal_or_over: {
-        "12": age >= 12,
-        "14": age >= 14,
-        "16": age >= 16,
-        "18": age >= 18,
-        "21": age >= 21,
-        "65": age >= 65,
-      }
+      age_is_over_12: true,
+      age_is_over_14: true,
+      age_is_over_16: true,
+      age_is_over_18: true,
+      age_is_over_21: true,
+      age_is_over_65: false,
     },
   };
   events.emit(`issuance-${req.body.registrationId}`, {type: "message", message: "Generating Credential Exchange."});
@@ -1108,6 +1185,111 @@ const token = await fetchApiData(
 
 console.log("_______TOKEN________\n\n\n");
 console.log(token);
+
+const WALLET_ID = token.settings["wallet.id"];
+
+// Configure Auth server tenant
+// TODO client secret should be passed from environment variables as part of docker-compose configuration.
+async function initializeAuthServer() {
+  try {
+ 
+    const AUTHSERVER="http://auth-server:9000"
+
+    const commonHeaders = {
+      accept: "application/json",
+      "Authorization": "Bearer adminsecrettoken",
+      "Content-Type": "application/json",
+    };
+
+    // Create tenant
+    const tenantRes = await axios.post(
+      `${AUTHSERVER}/admin/tenants`,
+      {
+        uid: WALLET_ID,
+        name: "tenant",
+        active: true,
+        notes: "demo tenant"
+      },
+      { headers: commonHeaders }
+    );
+    logger.info("Tenant created:", tenantRes.data);
+
+    // Create key for tenant
+    const now = new Date();
+    const oneYearLater = new Date(now);
+    oneYearLater.setFullYear(now.getFullYear() + 1);
+
+    const keyRes = await axios.post(
+      `${AUTHSERVER}/admin/tenants/${WALLET_ID}/keys`,
+      {
+        alg: "ES256",
+        not_before: now.toISOString(),
+        not_after: oneYearLater.toISOString(),
+        status: "active"
+      },
+      { headers: commonHeaders }
+    );
+    logger.info("Key created:", keyRes.data);
+
+    // Create client for tenant
+    const clientRes = await axios.post(
+      `${AUTHSERVER}/admin/tenants/${WALLET_ID}/clients`,
+      {
+        client_id: "client1",
+        client_auth_method: "client_secret_basic",
+        client_secret: "clientsecret"
+      },
+      { headers: commonHeaders }
+    );
+    logger.info("Client created:", clientRes.data);
+
+  } catch (err) {
+    logger.error("Auth server initialization failed:", err?.response?.data || err.message);
+  }
+}
+
+// Configure the Issuer to use the use the Auth server and define issuer metadata.
+async function initializeIssuerMetadata() {
+  try {
+    const commonHeaders = {
+      accept: "application/json",
+      "Content-Type": "application/json",
+      "Authorization": "Bearer " + token.token,
+    };
+    if (API_KEY) {
+      commonHeaders["X-API-KEY"] = API_KEY;
+    }
+
+    const payload = {
+      authorization_servers: [
+        {
+          public_url: `${AUTHSERVER_NGROK_URL}/tenants/${WALLET_ID}`,
+          private_url: `http://auth-server:9000/tenants/${WALLET_ID}`,
+          auth_type: "client_secret_basic",
+          client_credentials: {
+            client_id: "client1",
+            client_secret: "clientsecret"
+          }
+        }
+      ]
+    };
+
+    const response = await axios.put(
+      `${API_BASE_URL}/oid4vci/issuer/configuration`,
+      payload,
+      { headers: commonHeaders }
+    );
+    logger.info("Issuer metadata initialized:", response.data);
+  } catch (err) {
+    logger.error("Issuer metadata initialization failed:", err?.response?.data || err.message);
+  }
+}
+
+await initializeAuthServer();
+
+await initializeIssuerMetadata();
+
+
 
 // Render Credential Issuance form
 app.get("/issue", (req, res) => {
