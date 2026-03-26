@@ -1,0 +1,152 @@
+{
+  "valid_metadata": {
+    "credential_issuer": "http://localhost:8032",
+    "credential_endpoint": "http://localhost:8032/credential",
+    "credential_configurations_supported": {
+      "config_id_1": {
+        "id": "UniversityDegree-1.0",
+        "format": "jwt_vc_json",
+        "identifier": "UniversityDegreeCredential",
+        "cryptographic_binding_methods_supported": [
+          "did:key",
+          "did:jwk"
+        ],
+        "cryptographic_suites_supported": [
+          "ES256",
+          "ES384",
+          "ES512"
+        ],
+        "display": [
+          {
+            "name": "University Degree",
+            "locale": "en-US",
+            "background_color": "#1e3a8a",
+            "text_color": "#ffffff"
+          }
+        ],
+        "type": [
+          "VerifiableCredential",
+          "UniversityDegreeCredential"
+        ],
+        "@context": [
+          "https://www.w3.org/2018/credentials/v1",
+          "https://www.w3.org/2018/credentials/examples/v1"
+        ]
+      }
+    }
+  },
+  "valid_jwt_config": {
+    "id": "UniversityDegree-1.0",
+    "format": "jwt_vc_json",
+    "identifier": "UniversityDegreeCredential",
+    "cryptographic_binding_methods_supported": [
+      "did:key",
+      "did:jwk"
+    ],
+    "cryptographic_suites_supported": [
+      "ES256",
+      "ES384",
+      "ES512"
+    ],
+    "display": [
+      {
+        "name": "University Degree",
+        "locale": "en-US",
+        "background_color": "#1e3a8a",
+        "text_color": "#ffffff"
+      }
+    ],
+    "type": [
+      "VerifiableCredential",
+      "UniversityDegreeCredential"
+    ],
+    "@context": [
+      "https://www.w3.org/2018/credentials/v1",
+      "https://www.w3.org/2018/credentials/examples/v1"
+    ]
+  },
+  "valid_token_request": {
+    "grant_type": "urn:ietf:params:oauth:grant-type:pre-authorized_code",
+    "pre-authorized_code": "test_pre_auth_code_123"
+  },
+  "valid_credential_request_identifier": {
+    "credential_identifier": "org.iso.18013.5.1.mDL",
+    "proof": {
+      "proof_type": "jwt",
+      "jwt": "eyJ0eXAiOiJvcGVuaWQ0dmNpLXByb29mK2p3dCIsImFsZyI6IkVTMjU2In0..."
+    }
+  },
+  "valid_credential_request_format": {
+    "format": "jwt_vc_json",
+    "credential_definition": {
+      "type": [
+        "VerifiableCredential",
+        "UniversityDegreeCredential"
+      ]
+    },
+    "proof": {
+      "proof_type": "jwt",
+      "jwt": "eyJ0eXAiOiJvcGVuaWQ0dmNpLXByb29mK2p3dCIsImFsZyI6IkVTMjU2In0..."
+    }
+  },
+  "invalid_mixed_request": {
+    "credential_identifier": "org.iso.18013.5.1.mDL",
+    "format": "jwt_vc_json",
+    "proof": {
+      "jwt": "test_jwt"
+    }
+  },
+  "valid_mdoc_config": {
+    "id": "mDL-1.0",
+    "format": "mso_mdoc",
+    "identifier": "org.iso.18013.5.1.mDL",
+    "doctype": "org.iso.18013.5.1.mDL",
+    "cryptographic_binding_methods_supported": [
+      "cose_key"
+    ],
+    "cryptographic_suites_supported": [
+      "ES256",
+      "ES384",
+      "ES512"
+    ],
+    "display": [
+      {
+        "name": "Mobile Driver's License",
+        "locale": "en-US",
+        "background_color": "#003f7f",
+        "text_color": "#ffffff"
+      }
+    ],
+    "claims": {
+      "org.iso.18013.5.1": {
+        "given_name": {
+          "mandatory": true,
+          "display": [
+            {
+              "name": "Given Name",
+              "locale": "en-US"
+            }
+          ]
+        },
+        "family_name": {
+          "mandatory": true,
+          "display": [
+            {
+              "name": "Family Name",
+              "locale": "en-US"
+            }
+          ]
+        },
+        "birth_date": {
+          "mandatory": true,
+          "display": [
+            {
+              "name": "Date of Birth",
+              "locale": "en-US"
+            }
+          ]
+        }
+      }
+    }
+  }
+}

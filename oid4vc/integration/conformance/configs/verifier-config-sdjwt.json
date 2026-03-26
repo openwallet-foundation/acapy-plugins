@@ -1,0 +1,18 @@
+{
+  "description": "ACA-Py OID4VP Verifier Conformance Test Configuration - SD-JWT VC",
+  "alias": "acapy-oid4vp-verifier-sdjwt",
+
+  "server": {
+    "verifier_url": "http://acapy-verifier:8032",
+    "authorization_endpoint": "http://acapy-verifier:8032/oid4vp/request/__REQUEST_ID__",
+    "response_uri": "http://acapy-verifier:8032/oid4vp/response/__PRESENTATION_ID__"
+  },
+
+  "credential_format": "sd_jwt_vc",
+
+  "vp_format": {
+    "sd_jwt_vc": {
+      "alg": ["ES256", "EdDSA"]
+    }
+  }
+}

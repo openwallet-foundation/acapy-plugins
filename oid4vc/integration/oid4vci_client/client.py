@@ -2,7 +2,7 @@
 
 import json
 from dataclasses import dataclass
-from typing import Dict, List, Literal, Optional, Union, Any
+from typing import Any, Literal, Optional
 from urllib.parse import parse_qsl, urlparse
 
 from aiohttp import ClientSession
@@ -19,7 +19,7 @@ class CredentialGrantPreAuth:
     """Credential Grant Pre-Auth."""
 
     code: str
-    user_pin_required: Optional[bool] = None
+    user_pin_required: bool | None = None
 
     @classmethod
     def from_grants(cls, value: dict) -> Optional["CredentialGrantPreAuth"]:
@@ -39,22 +39,25 @@ class CredentialOffer:
     """Credential Offer."""
 
     credential_issuer: str
-    credential_configuration_ids: List[str]
-    credentials: List[str]
-    authorization_code: Optional[dict] = None
-    pre_authorized_code: Optional[CredentialGrantPreAuth] = None
+    credential_configuration_ids: list[str]
+    authorization_code: dict | None = None
+    pre_authorized_code: CredentialGrantPreAuth | None = None
 
     @classmethod
     def from_dict(cls, value: dict):
-        """Parse from dict."""
-        offer = value["offer"]
-        cred_config_ids = offer.get("credential_configuration_ids") or []
-        credentials = offer.get("credentials") or []
+        """Parse from dict.
 
+        Accepts either the raw credential offer object or a wrapped dict
+        with a 'credential_offer' key (legacy format).
+        """
+        # Support legacy wrapped format: {"credential_offer": {...}}
+        offer = value.get("credential_offer", value)
+        if isinstance(offer, str):
+            # credential_offer was a URL string, not the offer dict itself
+            offer = value
         return cls(
             offer["credential_issuer"],
-            cred_config_ids,
-            credentials,
+            offer.get("credential_configuration_ids") or offer.get("credentials", []),
             offer.get("grants", {}).get("authorization_code"),
             CredentialGrantPreAuth.from_grants(offer.get("grants", {})),
         )
@@ -80,9 +83,9 @@ class TokenParams:
 class OpenID4VCIClient:
     """OpenID Connect 4 Verifiable Credential Issuance Client."""
 
-    def __init__(self, key: Optional[AskarKey] = None):
+    def __init__(self, key: AskarKey | None = None):
         """Initialize the client."""
-        self.did_to_key: Dict[str, AskarKey] = {}
+        self.did_to_key: dict[str, AskarKey] = {}
 
     def generate_did(self, key_type: Literal["ed25519", "secp256k1"]) -> str:
         """Generate a DID."""
@@ -162,8 +165,8 @@ class OpenID4VCIClient:
             "credential_configuration_id": credential_configuration_id,
             "proofs": proofs,
         }
-        if offer.credentials:
-            request["type"] = offer.credentials
+        if offer.credential_configuration_ids:
+            request["type"] = offer.credential_configuration_ids
 
         async with ClientSession() as session:
             async with session.post(
@@ -172,12 +175,14 @@ class OpenID4VCIClient:
                 json=request,
             ) as resp:
                 if resp.status != 200:
-                    raise ValueError(f"Error requesting credential: {await resp.text()}")
+                    raise ValueError(
+                        f"Error requesting credential: {await resp.text()}"
+                    )
                 credential = await resp.json()
 
         return credential
 
-    async def receive_offer(self, offer_in: Union[str, dict], holder_did: str):
+    async def receive_offer(self, offer_in: str | dict, holder_did: str):
         """Receive an offer."""
         if isinstance(offer_in, str):
             parsed = dict(parse_qsl(urlparse(offer_in).query))

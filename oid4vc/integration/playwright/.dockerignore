@@ -1,0 +1,24 @@
+# Node.js
+node_modules/
+npm-debug.log*
+
+# Test outputs
+test-results/
+playwright-report/
+*.xml
+
+# IDE
+.vscode/
+.idea/
+*.swp
+
+# Git
+.git/
+.gitignore
+
+# TypeScript build cache
+*.tsbuildinfo
+
+# Environment files
+.env
+.env.local

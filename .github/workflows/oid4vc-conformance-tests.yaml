@@ -1,0 +1,149 @@
+name: OID4VC Conformance Tests
+# Runs the OIDF HAIP conformance suite against ACA-Py OID4VCI issuer and
+# OID4VP verifier.  The suite is started from source inside Docker Compose and
+# all test results are written to a JUnit XML artifact.
+#
+# Trigger conditions:
+#   - PR or push that touches oid4vc/** source files
+#   - Manual run via workflow_dispatch (always runs regardless of changed files)
+on:
+  pull_request:
+    types: [opened, synchronize, reopened, ready_for_review]
+    branches:
+      - "**"
+    paths:
+      - "oid4vc/**"
+  push:
+    branches:
+      - main
+    paths:
+      - "oid4vc/**"
+  workflow_dispatch:
+
+jobs:
+  conformance-tests:
+    name: "OID4VC Conformance Tests"
+    runs-on: ubuntu-latest
+    # Skip draft PRs (same policy as integration-tests)
+    if: |
+      github.event_name == 'workflow_dispatch' ||
+      (github.event_name == 'push') ||
+      (github.event_name == 'pull_request' && github.event.pull_request.draft == false)
+    timeout-minutes: 90
+
+    steps:
+      # ── Checkout ────────────────────────────────────────────────────────────
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      # ── Docker Buildx (enables layer cache via GitHub Actions cache) ────────
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      # ── Pre-build ACA-Py issuer image (Rust/isomdl, ~10 min cold) ──────────
+      # Both issuer and verifier share the same Dockerfile; the verifier build
+      # hits cache after the issuer build completes.
+      - name: Build acapy-issuer image
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: oid4vc/docker/Dockerfile
+          push: false
+          load: true
+          tags: oid4vc-integration-acapy-issuer:latest
+          build-args: |
+            ACAPY_VERSION=1.4.0
+            ISOMDL_BRANCH=fix/python-build-system
+          cache-from: type=gha,scope=acapy-oid4vc
+          cache-to: type=gha,mode=max,scope=acapy-oid4vc
+
+      - name: Build acapy-verifier image
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: oid4vc/docker/Dockerfile
+          push: false
+          load: true
+          tags: oid4vc-integration-acapy-verifier:latest
+          build-args: |
+            ACAPY_VERSION=1.4.0
+            ISOMDL_BRANCH=fix/python-build-system
+          # Issuer + verifier share all layers; use same cache scope.
+          cache-from: type=gha,scope=acapy-oid4vc
+
+      # ── Pre-build OIDF conformance server (Maven build, ~15 min cold) ───────
+      - name: Build conformance-server image
+        uses: docker/build-push-action@v6
+        with:
+          context: oid4vc/integration/conformance
+          file: oid4vc/integration/conformance/Dockerfile.server
+          push: false
+          load: true
+          tags: oid4vc-integration-conformance-server:latest
+          build-args: |
+            CONFORMANCE_SUITE_BRANCH=master
+          cache-from: type=gha,scope=conformance-server
+          cache-to: type=gha,mode=max,scope=conformance-server
+
+      # ── Pre-build conformance runner (lightweight Python image) ─────────────
+      - name: Build conformance-runner image
+        uses: docker/build-push-action@v6
+        with:
+          context: oid4vc/integration
+          file: oid4vc/integration/conformance/Dockerfile.runner
+          push: false
+          load: true
+          tags: oid4vc-integration-conformance-runner:latest
+          cache-from: type=gha,scope=conformance-runner
+          cache-to: type=gha,mode=max,scope=conformance-runner
+
+      # ── Run conformance suite ────────────────────────────────────────────────
+      # DOCKER_PLATFORM is detected automatically by the shell script based on
+      # `uname -m`; set explicitly here to avoid any ambiguity on CI runners.
+      - name: Run conformance tests
+        env:
+          DOCKER_PLATFORM: linux/amd64
+        run: |
+          bash oid4vc/integration/run-conformance-tests.sh run all
+
+      # ── Collect results ──────────────────────────────────────────────────────
+      - name: Upload JUnit test results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: conformance-junit-results
+          path: oid4vc/integration/test-results/conformance-junit.xml
+          if-no-files-found: warn
+
+      - name: Publish JUnit test summary
+        if: always()
+        uses: mikepenz/action-junit-report@v4
+        with:
+          report_paths: "oid4vc/integration/test-results/conformance-junit.xml"
+          check_name: "OIDF Conformance Results"
+          fail_on_failure: false
+          require_tests: false
+
+      # ── Collect Docker logs on failure ───────────────────────────────────────
+      - name: Dump Docker Compose logs
+        if: failure()
+        run: |
+          mkdir -p /tmp/conformance-logs
+          cd oid4vc/integration
+          # Capture all service logs for post-mortem analysis
+          docker compose --profile conformance logs --no-color \
+            > /tmp/conformance-logs/docker-compose.log 2>&1 || true
+          docker compose --profile conformance logs --no-color acapy-issuer \
+            > /tmp/conformance-logs/acapy-issuer.log 2>&1 || true
+          docker compose --profile conformance logs --no-color acapy-verifier \
+            > /tmp/conformance-logs/acapy-verifier.log 2>&1 || true
+          docker compose --profile conformance logs --no-color conformance-server \
+            > /tmp/conformance-logs/conformance-server.log 2>&1 || true
+
+      - name: Upload Docker logs artifact
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: conformance-docker-logs
+          path: /tmp/conformance-logs/
+          retention-days: 7

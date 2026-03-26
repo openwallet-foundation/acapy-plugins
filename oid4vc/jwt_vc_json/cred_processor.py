@@ -1,6 +1,8 @@
 """Issue a jwt_vc_json credential."""
 
+import base64
 import datetime
+import json
 import logging
 import uuid
 from typing import Any
@@ -47,8 +49,13 @@ class JwtVcJsonCredProcessor(Issuer, CredVerifier, PresVerifier):
         if pop.holder_kid and pop.holder_kid.startswith("did:"):
             subject = DIDUrl(pop.holder_kid).did
         elif pop.holder_jwk:
-            # TODO implement this
-            raise ValueError("Unsupported pop holder value")
+            # JWK binding (RFC 7517): derive subject as did:jwk
+            # Wallets like Credo use JWK binding when no DID is available
+            jwk_str = json.dumps(pop.holder_jwk, separators=(",", ":"), sort_keys=True)
+            subject = (
+                "did:jwk:"
+                + base64.urlsafe_b64encode(jwk_str.encode()).rstrip(b"=").decode()
+            )
         else:
             raise ValueError("Unsupported pop holder value")
 

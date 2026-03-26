@@ -1,6 +1,6 @@
 import pytest
 
-from ...mdoc import mdoc_verify, MdocVerifyResult
+from ...mdoc import MdocVerifyResult, mdoc_verify
 
 
 @pytest.mark.asyncio

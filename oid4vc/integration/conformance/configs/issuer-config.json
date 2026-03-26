@@ -1,0 +1,22 @@
+{
+  "description": "ACA-Py OID4VCI Issuer Conformance Test Configuration",
+  "alias": "acapy-oid4vci-issuer",
+
+  "server": {
+    "issuer": "http://acapy-issuer:8022",
+    "credential_endpoint": "http://acapy-issuer:8022/credential",
+    "token_endpoint": "http://acapy-issuer:8022/token",
+    "notification_endpoint": "http://acapy-issuer:8022/notification",
+    "openid_credential_issuer_discovery_url": "http://acapy-issuer:8022/.well-known/openid-credential-issuer"
+  },
+
+  "client": {
+    "client_id": "conformance-suite-wallet",
+    "client_secret": "conformance-suite-secret"
+  },
+
+  "resource": {
+    "resourceUrl": "http://acapy-issuer:8022/credential",
+    "credential_configuration_id": "__DYNAMIC__"
+  }
+}

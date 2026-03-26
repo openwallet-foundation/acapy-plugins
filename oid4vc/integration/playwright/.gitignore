@@ -1,0 +1,11 @@
+# Playwright Test Artifacts
+# These directories contain test execution results and should not be committed
+
+# Playwright HTML report
+playwright-report/
+
+# Playwright test results (videos, screenshots, traces)
+test-results/
+
+# Playwright state directory
+.playwright/

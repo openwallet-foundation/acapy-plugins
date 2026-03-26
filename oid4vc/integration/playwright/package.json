@@ -1,0 +1,24 @@
+{
+  "name": "oid4vc-playwright-tests",
+  "version": "1.0.0",
+  "description": "Playwright E2E tests for OID4VC with walt.id web wallet",
+  "type": "module",
+  "scripts": {
+    "test": "playwright test",
+    "test:headed": "playwright test --headed",
+    "test:debug": "playwright test --debug",
+    "test:ui": "playwright test --ui",
+    "test:mdoc": "playwright test tests/mdoc-*.spec.ts",
+    "test:sdjwt": "playwright test tests/sdjwt-*.spec.ts",
+    "test:jwt": "playwright test tests/jwt-vc-*.spec.ts",
+    "report": "playwright show-report"
+  },
+  "devDependencies": {
+    "@playwright/test": "1.48.0",
+    "@types/node": "^20.10.0",
+    "typescript": "^5.3.0"
+  },
+  "dependencies": {
+    "axios": "^1.6.0"
+  }
+}

@@ -38,13 +38,13 @@ async def test_save(profile: Profile, record: SupportedCredential):
 
 
 def test_metadata(record: SupportedCredential):
-    assert record.metadata() == {
+    assert record.to_issuer_metadata() == {
         "format": "jwt_vc_json",
         "credential_signing_alg_values_supported": ["EdDSA"],
         "proof_types_supported": {
             "jwt": {"proof_signing_alg_values_supported": ["ES256"]}
         },
-        "credential_metadata": {
+        "credential_definition": {
             "credentialSubject": {"name": "alice"},
             "type": ["VerifiableCredential", "UniversityDegreeCredential"],
         },
@@ -58,6 +58,6 @@ def test_metadata_parses_numeric_string_alg_values():
         credential_signing_alg_values_supported=["-7", "EdDSA"],
     )
 
-    metadata = record.metadata()
+    metadata = record.to_issuer_metadata()
 
-    assert metadata["credential_signing_alg_values_supported"] == [-7, "EdDSA"]
+    assert metadata["credential_signing_alg_values_supported"] == ["-7", "EdDSA"]

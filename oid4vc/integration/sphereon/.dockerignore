@@ -1,0 +1,22 @@
+# Node.js
+node_modules/
+npm-debug.log*
+
+# Build output (will be created during build)
+dist/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+
+# Git
+.git/
+.gitignore
+
+# TypeScript build cache
+*.tsbuildinfo
+
+# Environment files
+.env
+.env.local

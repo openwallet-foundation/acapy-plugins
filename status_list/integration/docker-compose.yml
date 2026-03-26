@@ -17,7 +17,7 @@ services:
     image: status-list
     command: start --arg-file integration.yml --label alice -e http://alice:3000 --log-level info
 
-  tests:
+  test-river:
     container_name: juggernaut
     build:
       context: .

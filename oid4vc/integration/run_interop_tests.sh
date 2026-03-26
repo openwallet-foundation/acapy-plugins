@@ -18,16 +18,16 @@ case $ARG in
     ;;
 
   build)
-    docker-compose -f $F build
+    docker compose -f $F build
     ;;
 
   logs)
-    docker-compose -f $F logs "$@" | less -R
+    docker compose -f $F logs "$@" | less -R
     ;;
 
   *)
-    docker-compose -f $F down -v
-    docker-compose -f $F build
-    docker-compose -f $F run tests -m interop "$ARG" "$@"
+    docker compose -f $F down -v
+    docker compose -f $F build
+    docker compose -f $F run tests -m interop "$ARG" "$@"
     ;;
 esac

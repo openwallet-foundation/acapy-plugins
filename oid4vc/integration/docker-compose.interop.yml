@@ -5,7 +5,7 @@ services:
     restart: unless-stopped
     hostname: ngrok
     ports:
-      - "4040:4040"
+      - "14040:4040"
     environment:
       - NGROK_AUTHTOKEN=${NGROK_AUTHTOKEN}
     command: ["http", "issuer:8081"]
@@ -18,13 +18,14 @@ services:
 
   issuer:
     image: oid4vc
+    platform: linux/amd64
     build: 
-      dockerfile: docker/Dockerfile
-      context: ..
+      dockerfile: oid4vc/docker/Dockerfile
+      context: ../..
     ports:
-      - "3000:3000"
-      - "3001:3001"
-      - "8081:8081"
+      - "13000:3000"
+      - "13001:3001"
+      - "18081:8081"
     volumes:
       - ../docker/entrypoint.sh:/entrypoint.sh:ro,z
       - ../oid4vc:/usr/src/app/oid4vc:z
@@ -70,8 +71,8 @@ services:
     image: sphereon-json-rpc
     build: sphereon
     ports:
-      - "3010:3000"
-      - "6499:6499"
+      - "13010:3000"
+      - "16499:6499"
     volumes:
       - ./sphereon/index.ts:/usr/src/app/index.ts:z
     healthcheck:
@@ -84,8 +85,9 @@ services:
   credo:
     image: credo-json-rpc
     build: credo
+    platform: linux/amd64
     ports:
-      - "3020:3000"
+      - "13020:3000"
     environment:
       AFJ_MESSAGE_PORT: 3001
       AFJ_ENDPOINT: "http://credo:3001"

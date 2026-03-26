@@ -1,0 +1,50 @@
+auto-provision: true
+label: "ACA-Py OID4VC Issuer"
+
+# Admin
+admin: [ 0.0.0.0, 8021 ]
+admin-insecure-mode: true
+# admin-api-key: change-me
+
+# Transport
+inbound-transport:
+  - [ http, 0.0.0.0, 8020 ]
+outbound-transport: http
+
+# Use environment variable or fallback to localhost
+# Set AGENT_ENDPOINT environment variable when using VS Code port forwarding
+endpoint:
+  - "${AGENT_ENDPOINT:-http://localhost:8020}"
+
+# plugins
+plugin:
+  - oid4vc
+  - sd_jwt_vc
+  - status_list.v1_0
+  - mso_mdoc
+
+# OID4VC plugin configuration - Use different port for OID4VCI server
+plugin-config-value:
+  - oid4vci.host=0.0.0.0
+  - oid4vci.port=8022
+  - oid4vci.endpoint=${OID4VCI_ENDPOINT:-http://localhost:8022}
+  - oid4vci.status_handler=status_list.v1_0.status_handler
+  # status_list.public_uri is set via STATUS_LIST_PUBLIC_URI env var to avoid issues with variable substitution
+  - status_list.file_path=./status_list_data
+
+# Ledger configuration - use no-ledger for simple development
+no-ledger: true
+
+# Wallet
+wallet-type: askar
+wallet-name: "acapy-issuer-wallet"
+wallet-key: "insecure-key"
+
+log-level: info
+
+# Development settings
+debug-connections: true
+auto-accept-invites: true
+auto-accept-requests: true
+auto-ping-connection: true
+auto-respond-messages: true

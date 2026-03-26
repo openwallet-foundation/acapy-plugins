@@ -1,12 +1,11 @@
 from unittest import mock
+
 import pytest
 from acapy_agent.core.profile import Profile
-from acapy_agent.tests.mock import CoroutineMock
 
 from oid4vc.cred_processor import CredProcessors, VerifyResult
 from oid4vc.dcql import DCQLQueryEvaluator
 from oid4vc.models.dcql_query import CredentialQuery, DCQLQuery
-
 
 raw_query = {
     "credentials": [
@@ -62,7 +61,7 @@ async def test_dcql_verify(profile: Profile):
     mock_cred_processors = mock.MagicMock(CredProcessors)
 
     mock_pres_verifier = mock.MagicMock()
-    mock_pres_verifier.verify_presentation = CoroutineMock(
+    mock_pres_verifier.verify_presentation = mock.AsyncMock(
         return_value=VerifyResult(True, pres_result_payload)
     )
     mock_cred_processors.pres_verifier_for_format = mock.MagicMock(
@@ -70,7 +69,7 @@ async def test_dcql_verify(profile: Profile):
     )
 
     mock_cred_verifier = mock.MagicMock()
-    mock_cred_verifier.verify_credential = CoroutineMock(
+    mock_cred_verifier.verify_credential = mock.AsyncMock(
         return_value=VerifyResult(True, pres_result_payload)
     )
     mock_cred_processors.cred_verifier_for_format = mock.MagicMock(

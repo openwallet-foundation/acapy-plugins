@@ -1,0 +1,43 @@
+# =============================================================================
+# Test Runner Image - Uses pre-built isomdl-uniffi wheels
+# =============================================================================
+FROM python:3.12-slim-bookworm
+
+WORKDIR /usr/src/app
+
+# Install system dependencies
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    curl \
+    jq \
+    git \
+    && apt-get clean \
+    && rm -rf /var/lib/apt/lists/*
+
+# Clone ACA-Py with shallow clone
+ARG ACAPY_VERSION=1.4.0
+RUN git clone --depth 1 --branch ${ACAPY_VERSION} \
+    https://github.com/openwallet-foundation/acapy.git /usr/acapy
+
+# Install uv
+RUN curl -LsSf https://astral.sh/uv/install.sh | sh
+ENV PATH="/root/.local/bin:$PATH"
+
+# Setup project with pre-built wheels
+COPY pyproject.toml uv.lock README.md ./
+RUN uv sync --frozen
+
+# Install acapy-agent from cloned source
+RUN uv pip install -e /usr/acapy --python .venv
+
+# Copy integration test components
+COPY tests/ tests/
+COPY credo_wrapper/ credo_wrapper/
+COPY sphereon_wrapper/ sphereon_wrapper/
+COPY oid4vci_client/ oid4vci_client/
+COPY acapy_controller.py ./
+
+# Create test results directory
+RUN mkdir -p test-results
+
+# Run tests directly (services are healthy via depends_on)
+CMD ["uv", "run", "pytest"]

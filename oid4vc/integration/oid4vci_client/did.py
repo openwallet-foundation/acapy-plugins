@@ -2,14 +2,14 @@
 
 import base64
 import json
-from typing import Literal, Tuple
+from typing import Literal
 
 from aries_askar import Key, KeyAlg
 
 from .crypto import AskarKey
 
 
-def generate(key_type: Literal["ed25519", "secp256k1"]) -> Tuple[str, AskarKey]:
+def generate(key_type: Literal["ed25519", "secp256k1"]) -> tuple[str, AskarKey]:
     """Generate a DID."""
     if key_type == "ed25519":
         vk = Key.generate(KeyAlg.ED25519)

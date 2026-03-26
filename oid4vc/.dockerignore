@@ -1,0 +1,49 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+.venv/
+venv/
+ENV/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+*.egg-info/
+dist/
+build/
+.eggs/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# Test outputs
+.test-reports/
+test_results/
+test_data/
+htmlcov/
+.coverage
+coverage.xml
+
+# Development
+.dev/
+.devcontainer/
+demo/
+devtools/
+docs/
+
+# Git
+.git/
+.gitignore
+
+# Docker (don't need to copy these into image)
+docker-compose*.yml
+Dockerfile*
+
+# Pre-commit
+.pre-commit-config.yaml
