@@ -4,7 +4,7 @@
 name = "acapy-agent"
 version = "1.5.1"
 description = "(ACA-Py) A Cloud Agent Python is a foundation for building decentralized identity applications and services running in non-mobile environments. "
-optional = true
+optional = false
 python-versions = "<4.0,>=3.13"
 groups = ["main"]
 markers = "extra == \"aca-py\""
@@ -222,7 +222,7 @@ speedups = ["Brotli (>=1.2) ; platform_python_implementation == \"CPython\"", "a
 name = "aiohttp-apispec-acapy"
 version = "3.0.3"
 description = "Build and document REST APIs with aiohttp and apispec"
-optional = true
+optional = false
 python-versions = ">=3.9"
 groups = ["main"]
 markers = "extra == \"aca-py\""
@@ -271,7 +271,7 @@ frozenlist = ">=1.1.0"
 name = "annotated-types"
 version = "0.7.0"
 description = "Reusable constraint types to use with typing.Annotated"
-optional = true
+optional = false
 python-versions = ">=3.8"
 groups = ["main"]
 markers = "extra == \"aca-py\""
@@ -298,7 +298,7 @@ files = [
 name = "apispec"
 version = "6.8.2"
 description = "A pluggable API specification generator. Currently supports the OpenAPI Specification (f.k.a. the Swagger specification)."
-optional = true
+optional = false
 python-versions = ">=3.9"
 groups = ["main"]
 markers = "extra == \"aca-py\""
@@ -383,7 +383,7 @@ tests = ["PyHamcrest (>=2.0.2)", "mypy", "pytest (>=4.6)", "pytest-benchmark", "
 name = "bases"
 version = "0.3.0"
 description = "Python library for general Base-N encodings."
-optional = true
+optional = false
 python-versions = ">=3.7"
 groups = ["main"]
 markers = "extra == \"aca-py\""
@@ -547,7 +547,7 @@ files = [
 name = "cachetools"
 version = "6.1.0"
 description = "Extensible memoizing collections and decorators"
-optional = true
+optional = false
 python-versions = ">=3.9"
 groups = ["main"]
 markers = "extra == \"aca-py\""
@@ -560,7 +560,7 @@ files = [
 name = "canonicaljson"
 version = "2.0.0"
 description = "Canonical JSON"
-optional = true
+optional = false
 python-versions = ">=3.7"
 groups = ["main"]
 markers = "extra == \"aca-py\""
@@ -695,70 +695,64 @@ files = [
 
 [[package]]
 name = "cbor2"
-version = "5.7.0"
+version = "5.9.0"
 description = "CBOR (de)serializer with extensive tag support"
 optional = true
 python-versions = ">=3.9"
 groups = ["main"]
 markers = "extra == \"mso-mdoc\""
 files = [
-    {file = "cbor2-5.7.0-cp310-cp310-macosx_10_9_x86_64.whl", hash = "sha256:305edac16524df843d53ba086bc194c0975388e755ed177eb84e0324e3d705ec"},
-    {file = "cbor2-5.7.0-cp310-cp310-macosx_11_0_arm64.whl", hash = "sha256:e00d7250e528a9a1bfd3b294799bdae96c158f72d95be58a3fbf97dab2467bbe"},
-    {file = "cbor2-5.7.0-cp310-cp310-manylinux2014_aarch64.manylinux_2_17_aarch64.manylinux_2_28_aarch64.whl", hash = "sha256:36b6e229b36147051ea1063ba0cd6225bfe6b5398ca0ac7b33fa91407ca75081"},
-    {file = "cbor2-5.7.0-cp310-cp310-manylinux2014_x86_64.manylinux_2_17_x86_64.manylinux_2_28_x86_64.whl", hash = "sha256:06f8e9d8fa6d0ed7b8a81f4613a60e740be9bd5087de620e3b64007832dfd815"},
-    {file = "cbor2-5.7.0-cp310-cp310-musllinux_1_2_aarch64.whl", hash = "sha256:90c1236e5bfad19493183f9a9ecd3705e3ad3eb02fce6d6381c12ece86147b15"},
-    {file = "cbor2-5.7.0-cp310-cp310-musllinux_1_2_x86_64.whl", hash = "sha256:afc6c6611b7529136ea4a04cf8711786640b687859c9688ae172726c305a83a1"},
-    {file = "cbor2-5.7.0-cp310-cp310-win_amd64.whl", hash = "sha256:be635795908d59f46303ab266fc6f3aa6543c742fa112fd1cd2e5307b91c6de4"},
-    {file = "cbor2-5.7.0-cp310-cp310-win_arm64.whl", hash = "sha256:16a21233f11874b7067b136cb2910333b36c1dee455a42a7c8473a104753cf4a"},
-    {file = "cbor2-5.7.0-cp311-cp311-macosx_10_9_x86_64.whl", hash = "sha256:73532e725501915f95d589500e0a11813c9a3fd735d3cdb6c4dd320e6a2f12e1"},
-    {file = "cbor2-5.7.0-cp311-cp311-macosx_11_0_arm64.whl", hash = "sha256:b785d954879e3800a074efa45c882a1cc6459476ab0d354c74e1dca92b17ede3"},
-    {file = "cbor2-5.7.0-cp311-cp311-manylinux2014_aarch64.manylinux_2_17_aarch64.manylinux_2_28_aarch64.whl", hash = "sha256:5fc1005b412ace94bbf905a8c4214e639557568551d9b5474645789e976e91e4"},
-    {file = "cbor2-5.7.0-cp311-cp311-manylinux2014_x86_64.manylinux_2_17_x86_64.manylinux_2_28_x86_64.whl", hash = "sha256:d981d691dd721dd712fc824d04a01347955a206107fbee1d75803fa58de172c7"},
-    {file = "cbor2-5.7.0-cp311-cp311-musllinux_1_2_aarch64.whl", hash = "sha256:b3b9730928163d02e7f1267e48a39ed75560ff3e56cdc6768d670d3e96028623"},
-    {file = "cbor2-5.7.0-cp311-cp311-musllinux_1_2_x86_64.whl", hash = "sha256:01cc4d840943b4c2e468b8560830235d044a8cb45e5d66ba3ae933c3e21b8d49"},
-    {file = "cbor2-5.7.0-cp311-cp311-win_amd64.whl", hash = "sha256:6abe31e742ccf966778d77ce99d7c6136ca0f8424446dfdabcc3491f015e84d4"},
-    {file = "cbor2-5.7.0-cp311-cp311-win_arm64.whl", hash = "sha256:c48dff8f6aacd76fc0680c48ef35e5912e3d758a9f41305a35e847f382b60eea"},
-    {file = "cbor2-5.7.0-cp312-cp312-macosx_10_13_x86_64.whl", hash = "sha256:7ad36f0537b75c1aa2c7a462cbdbeec5e8ba02802ea985e0b9fe5deee3b946f4"},
-    {file = "cbor2-5.7.0-cp312-cp312-macosx_11_0_arm64.whl", hash = "sha256:5fc9b335cf28e63d9eed4ae03d1e8f90f1a6b287cabc8d29bfddf73fa70643e9"},
-    {file = "cbor2-5.7.0-cp312-cp312-manylinux2014_aarch64.manylinux_2_17_aarch64.manylinux_2_28_aarch64.whl", hash = "sha256:16bea83598a1eeedbd50c2e9fdf3685bae78ca9d9ec8cd8010777db14a315578"},
-    {file = "cbor2-5.7.0-cp312-cp312-manylinux2014_x86_64.manylinux_2_17_x86_64.manylinux_2_28_x86_64.whl", hash = "sha256:8e837825a16e60ace6e284095aa9fbe504bf87a8f4494bf7d95931e37fb01a70"},
-    {file = "cbor2-5.7.0-cp312-cp312-musllinux_1_2_aarch64.whl", hash = "sha256:27396c5e275ff7c7cd87fe8aaadf781e6194903921f250934af7c86d5efec82e"},
-    {file = "cbor2-5.7.0-cp312-cp312-musllinux_1_2_x86_64.whl", hash = "sha256:c84bfef78c4e9c81eb0a10cec340222ba4e39498a63fc2e3d5f982a3f4efa4a7"},
-    {file = "cbor2-5.7.0-cp312-cp312-win_amd64.whl", hash = "sha256:f64270a24aaadb15dd31cbd64a98d99fca8e0398a65b1570ba07f3c259eb5516"},
-    {file = "cbor2-5.7.0-cp312-cp312-win_arm64.whl", hash = "sha256:73ef321d7b580f08c9fadc41c3d2a218aa3f01e163be9793c6969aadee07f57a"},
-    {file = "cbor2-5.7.0-cp313-cp313-macosx_10_13_x86_64.whl", hash = "sha256:7654e77b7f6be029fb37a074b175483a4a8ae3fe5e2a91008926625aa91aef2c"},
-    {file = "cbor2-5.7.0-cp313-cp313-macosx_11_0_arm64.whl", hash = "sha256:9bd76624b090faa6900739025d798a4e3130da80dbae15391b42b3d4672a4022"},
-    {file = "cbor2-5.7.0-cp313-cp313-manylinux2014_aarch64.manylinux_2_17_aarch64.manylinux_2_28_aarch64.whl", hash = "sha256:428d58b54a7b32ede869e79c294d686f826dcfdab9de7f92135dd3ce12e313b8"},
-    {file = "cbor2-5.7.0-cp313-cp313-manylinux2014_x86_64.manylinux_2_17_x86_64.manylinux_2_28_x86_64.whl", hash = "sha256:a91b6912e2ff64f33464f67ec6528cf2e26c06a5f3cc3fb1954f94aa58d68670"},
-    {file = "cbor2-5.7.0-cp313-cp313-musllinux_1_2_aarch64.whl", hash = "sha256:9faeec4525fe3103a71f0fd3d6fe9a49ea6ff4ade8cb7cf1c395001b906a01e5"},
-    {file = "cbor2-5.7.0-cp313-cp313-musllinux_1_2_x86_64.whl", hash = "sha256:361315ccd8022c44bb501877fd9b236479c975f1a7aed69c8541bd609c0a8908"},
-    {file = "cbor2-5.7.0-cp313-cp313-win_amd64.whl", hash = "sha256:293c4a5d6a9a69fcecf595a47430dc3b11f4a3355089b1fe300d0ac48c5776c5"},
-    {file = "cbor2-5.7.0-cp313-cp313-win_arm64.whl", hash = "sha256:52d6e1a9b2f4475540063d7b966b1b2e93ac497e08ab9a1514fd6330f8db5b4c"},
-    {file = "cbor2-5.7.0-cp314-cp314-macosx_10_13_x86_64.whl", hash = "sha256:f4f0464425ff809b1dd737db8c65a937516aba5eb3794cb1433f7eb8eb7a6535"},
-    {file = "cbor2-5.7.0-cp314-cp314-macosx_11_0_arm64.whl", hash = "sha256:866d993ebc9c4e4018ab001503dafc4145bb6ec91e1eddf12b8d7b6898021201"},
-    {file = "cbor2-5.7.0-cp314-cp314-manylinux2014_aarch64.manylinux_2_17_aarch64.manylinux_2_28_aarch64.whl", hash = "sha256:bc7a11433ea1c45b6d47484bef99e822fd8a40b4cfbcdc1e00378a7e8704e317"},
-    {file = "cbor2-5.7.0-cp314-cp314-manylinux2014_x86_64.manylinux_2_17_x86_64.manylinux_2_28_x86_64.whl", hash = "sha256:e33242570cb4542302dcb6cf429cc9abe315ff7ebb370de2828eed22a8b00fe8"},
-    {file = "cbor2-5.7.0-cp314-cp314-musllinux_1_2_aarch64.whl", hash = "sha256:855fe80517071028a5804a29b607864b8d90bbb2223331ab2d8cae94b979d61f"},
-    {file = "cbor2-5.7.0-cp314-cp314-musllinux_1_2_x86_64.whl", hash = "sha256:87170260845c2ea3d74288f667e0bc81c8a6bbc72ff60265d19c59b3e76be266"},
-    {file = "cbor2-5.7.0-cp314-cp314-win_amd64.whl", hash = "sha256:a2b591904555e51843c95776df2d6b161226af045e655f464c101d8ad8708e99"},
-    {file = "cbor2-5.7.0-cp314-cp314-win_arm64.whl", hash = "sha256:4460164ffd0ceaf8cc3f5597e73dd99fd781541c7bba0ea64ac93043bf08bb6a"},
-    {file = "cbor2-5.7.0-cp39-cp39-macosx_10_9_x86_64.whl", hash = "sha256:b20eb9b3b4c593cf8135e5c98b49d085e2d052ba714448583359c4b1f5cd0cd4"},
-    {file = "cbor2-5.7.0-cp39-cp39-macosx_11_0_arm64.whl", hash = "sha256:69503de8d937d7764cac127f32d94474b07c593ce0c4323f4ad7ff78adbfb776"},
-    {file = "cbor2-5.7.0-cp39-cp39-manylinux2014_aarch64.manylinux_2_17_aarch64.manylinux_2_28_aarch64.whl", hash = "sha256:f94dbfd77ae591010429d645e4e7fd4f387183193f14c4f645dd7ba03668f9a9"},
-    {file = "cbor2-5.7.0-cp39-cp39-manylinux2014_x86_64.manylinux_2_17_x86_64.manylinux_2_28_x86_64.whl", hash = "sha256:cd36c935adf56ccf83c6b85949cb2ac8b991672d241ec1f645b557ae4730221b"},
-    {file = "cbor2-5.7.0-cp39-cp39-musllinux_1_2_aarch64.whl", hash = "sha256:1198cbfa5194410b35b7fb5c0e58a0ee22c20b44197605e26f14e320e1750c5e"},
-    {file = "cbor2-5.7.0-cp39-cp39-musllinux_1_2_x86_64.whl", hash = "sha256:78dca93abdbea701caa068e412e54923f3b4d117f5b46b39f44456e01b047534"},
-    {file = "cbor2-5.7.0-cp39-cp39-win_amd64.whl", hash = "sha256:f56d5af41da9b1ef13ceec297411bd472c30d70bca29a25cb3a27ad7309d9974"},
-    {file = "cbor2-5.7.0-cp39-cp39-win_arm64.whl", hash = "sha256:b6e8f09664f799150ce6275c5487a35ca5773e5c6eb44209f187102b94ebd2d0"},
-    {file = "cbor2-5.7.0-py3-none-any.whl", hash = "sha256:a871e7a6f7cba1ddb02503ea974f15f6524c95078fbfe0b860fd4193d7c8f27a"},
-    {file = "cbor2-5.7.0.tar.gz", hash = "sha256:3f6d843f4db4d0ec501c46453c22a4fbebb1abfb5b740e1bcab34c615cd7406b"},
+    {file = "cbor2-5.9.0-cp310-cp310-macosx_11_0_arm64.whl", hash = "sha256:55bea0dd9a7d354e35f4e5fe58ceab393e76962713749dc3a0a64a0e5d19545e"},
+    {file = "cbor2-5.9.0-cp310-cp310-manylinux2014_aarch64.manylinux_2_17_aarch64.manylinux_2_28_aarch64.whl", hash = "sha256:3095dc49e75572841a9534cbfdabc2a17487ea4ee33341436abc4a7ac7245a3a"},
+    {file = "cbor2-5.9.0-cp310-cp310-manylinux2014_x86_64.manylinux_2_17_x86_64.manylinux_2_28_x86_64.whl", hash = "sha256:25bec7beb2089465382b1be72e78667fe9090598800826559c3e3008cf0db743"},
+    {file = "cbor2-5.9.0-cp310-cp310-musllinux_1_2_aarch64.whl", hash = "sha256:cc5efec69055c3c470997935d95762be7e4bfd1248d88fb1a33bb7e0f45712e9"},
+    {file = "cbor2-5.9.0-cp310-cp310-musllinux_1_2_x86_64.whl", hash = "sha256:420d2490c7836c81151b4bd591c35cffc55391e33e7e333c50fda391bcea7d31"},
+    {file = "cbor2-5.9.0-cp310-cp310-win_amd64.whl", hash = "sha256:d1a21c006760f95acd9509cc5a7d15d6fc82e58f721f94fa9039b4e77189a6e5"},
+    {file = "cbor2-5.9.0-cp310-cp310-win_arm64.whl", hash = "sha256:08388ea54195738602b4c4999966bcaef6f0b17d293c9658658409d9fff96f57"},
+    {file = "cbor2-5.9.0-cp311-cp311-macosx_11_0_arm64.whl", hash = "sha256:0485d3372fc832c5e16d4eb45fa1a20fc53e806e6c29a1d2b0d3e176cedd52b9"},
+    {file = "cbor2-5.9.0-cp311-cp311-manylinux2014_aarch64.manylinux_2_17_aarch64.manylinux_2_28_aarch64.whl", hash = "sha256:a9d6e4e0f988b0e766509a8071975a8ee99f930e14a524620bf38083106158d2"},
+    {file = "cbor2-5.9.0-cp311-cp311-manylinux2014_x86_64.manylinux_2_17_x86_64.manylinux_2_28_x86_64.whl", hash = "sha256:5326336f633cc89dfe543c78829c16c3a6449c2c03277d1ddba99086c3323363"},
+    {file = "cbor2-5.9.0-cp311-cp311-musllinux_1_2_aarch64.whl", hash = "sha256:5e702b02d42a5ace45425b595ffe70fe35aebaf9a3cdfdc2c758b6189c744422"},
+    {file = "cbor2-5.9.0-cp311-cp311-musllinux_1_2_x86_64.whl", hash = "sha256:2372d357d403e7912f104ff085950ffc82a5854d6d717f1ca1ce16a40a0ef5a7"},
+    {file = "cbor2-5.9.0-cp311-cp311-win_amd64.whl", hash = "sha256:1d02b65f070fd726bdc310d927228975bb655d155bf059b6eb7cacefb3dca86f"},
+    {file = "cbor2-5.9.0-cp311-cp311-win_arm64.whl", hash = "sha256:837754ece9052b3f607047e1741e5f852a538aa2b0ee3db11c82a8fa11804aa4"},
+    {file = "cbor2-5.9.0-cp312-cp312-macosx_11_0_arm64.whl", hash = "sha256:1f223dffb1bcdd2764665f04c1152943d9daa4bc124a576cd8dee1cad4264313"},
+    {file = "cbor2-5.9.0-cp312-cp312-manylinux2014_aarch64.manylinux_2_17_aarch64.manylinux_2_28_aarch64.whl", hash = "sha256:ae6c706ac1d85a0b3cb3395308fd0c4d55e3202b4760773675957e93cdff45fc"},
+    {file = "cbor2-5.9.0-cp312-cp312-manylinux2014_x86_64.manylinux_2_17_x86_64.manylinux_2_28_x86_64.whl", hash = "sha256:4cd43d8fc374b31643b2830910f28177a606a7bc84975a62675dd3f2e320fc7b"},
+    {file = "cbor2-5.9.0-cp312-cp312-musllinux_1_2_aarch64.whl", hash = "sha256:4aa07b392cc3d76fb31c08a46a226b58c320d1c172ff3073e864409ced7bc50f"},
+    {file = "cbor2-5.9.0-cp312-cp312-musllinux_1_2_x86_64.whl", hash = "sha256:971d425b3a23b75953d8853d5f9911bdeefa09d759ee3b5e6b07b5ff3cbd9073"},
+    {file = "cbor2-5.9.0-cp312-cp312-win_amd64.whl", hash = "sha256:34a6cb15e6ab6a8eae94ad2041731cd3ef786af43a8df99f847969af5b902ee7"},
+    {file = "cbor2-5.9.0-cp312-cp312-win_arm64.whl", hash = "sha256:7d1ddc4541e7367ac58c2470cc0df847f7137167fe4f5729e2d3cc0b993d7da4"},
+    {file = "cbor2-5.9.0-cp313-cp313-macosx_11_0_arm64.whl", hash = "sha256:fbb06f34aa645b4deca66643bba3d400d20c15312d1fe88d429be60c1ab50f27"},
+    {file = "cbor2-5.9.0-cp313-cp313-manylinux2014_aarch64.manylinux_2_17_aarch64.manylinux_2_28_aarch64.whl", hash = "sha256:ac684fe195c39821fca70d18afbf748f728aefbfbf88456018d299e559b8cae0"},
+    {file = "cbor2-5.9.0-cp313-cp313-manylinux2014_x86_64.manylinux_2_17_x86_64.manylinux_2_28_x86_64.whl", hash = "sha256:2a54fbb32cb828c214f7f333a707e4aec61182e7efdc06ea5d9596d3ecee624a"},
+    {file = "cbor2-5.9.0-cp313-cp313-musllinux_1_2_aarch64.whl", hash = "sha256:4753a6d1bc71054d9179557bc65740860f185095ccb401d46637fff028a5b3ec"},
+    {file = "cbor2-5.9.0-cp313-cp313-musllinux_1_2_x86_64.whl", hash = "sha256:380e534482b843e43442b87d8777a7bf9bed20cb7526f89b780c3400f617304b"},
+    {file = "cbor2-5.9.0-cp313-cp313-win_amd64.whl", hash = "sha256:dcf0f695873e5c94bd072d6af8698e72b8fb7f7a18f37e0bced1041b7111a6cf"},
+    {file = "cbor2-5.9.0-cp313-cp313-win_arm64.whl", hash = "sha256:f7c9751a9611601ab326d8f5837f01379195bbf06175fb4effeb552140e7c9e8"},
+    {file = "cbor2-5.9.0-cp314-cp314-macosx_11_0_arm64.whl", hash = "sha256:23606d31ba1368bd1b6602e3020ee88fe9523ca80e8630faf6b2fc904fd84560"},
+    {file = "cbor2-5.9.0-cp314-cp314-manylinux2014_aarch64.manylinux_2_17_aarch64.manylinux_2_28_aarch64.whl", hash = "sha256:0322296b9d52f55880e300ba8ba09ecf644303b99b51138bbb1c0fb644fa7c3e"},
+    {file = "cbor2-5.9.0-cp314-cp314-manylinux2014_x86_64.manylinux_2_17_x86_64.manylinux_2_28_x86_64.whl", hash = "sha256:422817286c1d0ce947fb2f7eca9212b39bddd7231e8b452e2d2cc52f15332dba"},
+    {file = "cbor2-5.9.0-cp314-cp314-musllinux_1_2_aarch64.whl", hash = "sha256:9a4907e0c3035bb8836116854ed8e56d8aef23909d601fa59706320897ec2551"},
+    {file = "cbor2-5.9.0-cp314-cp314-musllinux_1_2_x86_64.whl", hash = "sha256:fb7afe77f8d269e42d7c4b515c6fd14f1ccc0625379fb6829b269f493d16eddd"},
+    {file = "cbor2-5.9.0-cp314-cp314-win_amd64.whl", hash = "sha256:86baf870d4c0bfc6f79de3801f3860a84ab76d9c8b0abb7f081f2c14c38d79d3"},
+    {file = "cbor2-5.9.0-cp314-cp314-win_arm64.whl", hash = "sha256:7221483fad0c63afa4244624d552abf89d7dfdbc5f5edfc56fc1ff2b4b818975"},
+    {file = "cbor2-5.9.0-cp39-cp39-macosx_11_0_arm64.whl", hash = "sha256:1da96ce5d852fe3d342c1eb2c202a52d1c97edfddc9230f1be7e02674662bf26"},
+    {file = "cbor2-5.9.0-cp39-cp39-manylinux2014_aarch64.manylinux_2_17_aarch64.manylinux_2_28_aarch64.whl", hash = "sha256:65f8eac3268c608533f326f0fd9010ab1b2a8a917b05edaf3853116336821669"},
+    {file = "cbor2-5.9.0-cp39-cp39-manylinux2014_x86_64.manylinux_2_17_x86_64.manylinux_2_28_x86_64.whl", hash = "sha256:f797532d13469f2193e5c16e827d8df7a8c33674b19be755790b54ab231e6a73"},
+    {file = "cbor2-5.9.0-cp39-cp39-musllinux_1_2_aarch64.whl", hash = "sha256:fbdcf4d74acbeb7672e6413e81cd2c1ced1a4a8cf949484ac54e9af5265c3c72"},
+    {file = "cbor2-5.9.0-cp39-cp39-musllinux_1_2_x86_64.whl", hash = "sha256:53cfa49e0df9c639beb871d480de098eedc81eb63ff29f2dc922720d7577b676"},
+    {file = "cbor2-5.9.0-cp39-cp39-win_amd64.whl", hash = "sha256:f29e5c3abcc91c1aeefecde0e057bf33f1655588d3065c6560c30ceb3be6f333"},
+    {file = "cbor2-5.9.0-cp39-cp39-win_arm64.whl", hash = "sha256:d8524a8c142c3cc228e635f8a97499a6c0b18ca91382e8276565658035cdcb6d"},
+    {file = "cbor2-5.9.0-py3-none-any.whl", hash = "sha256:27695cbd70c90b8de5c4a284642c2836449b14e2c2e07e3ffe0744cb7669a01b"},
+    {file = "cbor2-5.9.0.tar.gz", hash = "sha256:85c7a46279ac8f226e1059275221e6b3d0e370d2bb6bd0500f9780781615bcea"},
 ]
 
 [[package]]
 name = "certifi"
 version = "2025.8.3"
 description = "Python package for providing Mozilla's CA Bundle."
-optional = true
+optional = false
 python-versions = ">=3.7"
 groups = ["main"]
 markers = "extra == \"aca-py\""
@@ -788,7 +782,7 @@ oscrypto = ">=0.16.1"
 name = "cffi"
 version = "1.17.1"
 description = "Foreign Function Interface for Python calling C code."
-optional = true
+optional = false
 python-versions = ">=3.8"
 groups = ["main"]
 markers = "(extra == \"aca-py\" or extra == \"mso-mdoc\") and platform_python_implementation != \"PyPy\" or extra == \"aca-py\""
@@ -869,7 +863,7 @@ pycparser = "*"
 name = "charset-normalizer"
 version = "3.4.3"
 description = "The Real First Universal Charset Detector. Open, modern and actively maintained alternative to Chardet."
-optional = true
+optional = false
 python-versions = ">=3.7"
 groups = ["main"]
 markers = "extra == \"aca-py\""
@@ -972,7 +966,7 @@ markers = {main = "extra == \"aca-py\" and sys_platform == \"win32\"", dev = "sy
 name = "configargparse"
 version = "1.7.1"
 description = "A drop-in replacement for argparse that allows options to also be set via config files and/or environment variables."
-optional = true
+optional = false
 python-versions = ">=3.6"
 groups = ["main"]
 markers = "extra == \"aca-py\""
@@ -1065,7 +1059,7 @@ toml = ["tomli ; python_full_version <= \"3.11.0a6\""]
 name = "cryptography"
 version = "43.0.3"
 description = "cryptography is a package which provides cryptographic recipes and primitives to Python developers."
-optional = true
+optional = false
 python-versions = ">=3.7"
 groups = ["main"]
 markers = "extra == \"aca-py\" or extra == \"mso-mdoc\""
@@ -1139,7 +1133,7 @@ docs = ["Sphinx[docs] (>=7.1,<8)", "sphinx-autodoc-typehints[docs] (>=1.25.2,<3.
 name = "cytoolz"
 version = "1.0.1"
 description = "Cython implementation of Toolz: High performance functional utilities"
-optional = true
+optional = false
 python-versions = ">=3.8"
 groups = ["main"]
 markers = "extra == \"aca-py\" and implementation_name == \"cpython\""
@@ -1256,7 +1250,7 @@ cython = ["cython"]
 name = "deepmerge"
 version = "2.0"
 description = "A toolset for deeply merging Python dictionaries."
-optional = true
+optional = false
 python-versions = ">=3.8"
 groups = ["main"]
 markers = "extra == \"aca-py\""
@@ -1272,7 +1266,7 @@ dev = ["black", "build", "mypy", "pytest", "pyupgrade", "twine", "validate-pypro
 name = "did-peer-2"
 version = "0.1.2"
 description = "An implementation of did:peer:2"
-optional = true
+optional = false
 python-versions = ">=3.9"
 groups = ["main"]
 markers = "extra == \"aca-py\""
@@ -1288,7 +1282,7 @@ base58 = ">=2.1.1"
 name = "did-peer-4"
 version = "0.1.4"
 description = "An implementation of did:peer:4"
-optional = true
+optional = false
 python-versions = ">=3.9"
 groups = ["main"]
 markers = "extra == \"aca-py\""
@@ -1304,7 +1298,7 @@ base58 = ">=2.1.1"
 name = "did-webvh"
 version = "1.0.0"
 description = "This repository includes Python libraries for working with `did:webvh` (did:web + Verified History) DID documents and the underlying log format."
-optional = true
+optional = false
 python-versions = "<4,>=3.10"
 groups = ["main"]
 markers = "extra == \"aca-py\""
@@ -1344,7 +1338,7 @@ gmpy2 = ["gmpy2"]
 name = "eth-hash"
 version = "0.7.1"
 description = "eth-hash: The Ethereum hashing function, keccak256, sometimes (erroneously) called sha3"
-optional = true
+optional = false
 python-versions = "<4,>=3.8"
 groups = ["main"]
 markers = "extra == \"aca-py\""
@@ -1364,7 +1358,7 @@ test = ["pytest (>=7.0.0)", "pytest-xdist (>=2.4.0)"]
 name = "eth-typing"
 version = "5.2.1"
 description = "eth-typing: Common type annotations for ethereum python packages"
-optional = true
+optional = false
 python-versions = "<4,>=3.8"
 groups = ["main"]
 markers = "extra == \"aca-py\""
@@ -1385,7 +1379,7 @@ test = ["pytest (>=7.0.0)", "pytest-xdist (>=2.4.0)"]
 name = "eth-utils"
 version = "5.3.0"
 description = "eth-utils: Common utility functions for python code that interacts with Ethereum"
-optional = true
+optional = false
 python-versions = "<4,>=3.8"
 groups = ["main"]
 markers = "extra == \"aca-py\""
@@ -1408,21 +1402,21 @@ test = ["hypothesis (>=4.43.0)", "mypy (==1.10.0)", "pytest (>=7.0.0)", "pytest-
 
 [[package]]
 name = "filelock"
-version = "3.19.1"
+version = "3.20.3"
 description = "A platform independent file lock."
 optional = false
-python-versions = ">=3.9"
+python-versions = ">=3.10"
 groups = ["main"]
 files = [
-    {file = "filelock-3.19.1-py3-none-any.whl", hash = "sha256:d38e30481def20772f5baf097c122c3babc4fcdb7e14e57049eb9d88c6dc017d"},
-    {file = "filelock-3.19.1.tar.gz", hash = "sha256:66eda1888b0171c998b35be2bcc0f6d75c388a7ce20c3f3f37aa8e96c2dddf58"},
+    {file = "filelock-3.20.3-py3-none-any.whl", hash = "sha256:4b0dda527ee31078689fc205ec4f1c1bf7d56cf88b6dc9426c4f230e46c2dce1"},
+    {file = "filelock-3.20.3.tar.gz", hash = "sha256:18c57ee915c7ec61cff0ecf7f0f869936c7c30191bb0cf406f1341778d0834e1"},
 ]
 
 [[package]]
 name = "frozendict"
 version = "2.4.6"
 description = "A simple immutable dictionary"
-optional = true
+optional = false
 python-versions = ">=3.6"
 groups = ["main"]
 markers = "extra == \"aca-py\""
@@ -1630,7 +1624,7 @@ files = [
 name = "inflection"
 version = "0.5.1"
 description = "A port of Ruby on Rails inflector to Python"
-optional = true
+optional = false
 python-versions = ">=3.5"
 groups = ["main"]
 markers = "extra == \"aca-py\""
@@ -1655,7 +1649,7 @@ files = [
 name = "jinja2"
 version = "3.1.6"
 description = "A very fast and expressive template engine."
-optional = true
+optional = false
 python-versions = ">=3.7"
 groups = ["main"]
 markers = "extra == \"aca-py\""
@@ -1674,7 +1668,7 @@ i18n = ["Babel (>=2.7)"]
 name = "jsoncanon"
 version = "0.2.3"
 description = "Typed Python implementation of JSON Canonicalization Scheme as described in RFC 8785. Currently lacks full floating point support"
-optional = true
+optional = false
 python-versions = ">=3.8,<4.0"
 groups = ["main"]
 markers = "extra == \"aca-py\""
@@ -1698,7 +1692,7 @@ files = [
 name = "jsonpath-ng"
 version = "1.7.0"
 description = "A final implementation of JSONPath for Python that aims to be standard compliant, including arithmetic and binary comparison operators and providing clear AST for metaprogramming."
-optional = true
+optional = false
 python-versions = "*"
 groups = ["main"]
 markers = "extra == \"aca-py\""
@@ -1765,7 +1759,7 @@ referencing = ">=0.31.0"
 name = "jwcrypto"
 version = "1.5.6"
 description = "Implementation of JOSE Web standards"
-optional = true
+optional = false
 python-versions = ">= 3.8"
 groups = ["main"]
 markers = "extra == \"aca-py\""
@@ -1782,7 +1776,7 @@ typing-extensions = ">=4.5.0"
 name = "lxml"
 version = "6.0.0"
 description = "Powerful and Pythonic XML processing library combining libxml2/libxslt with the ElementTree API."
-optional = true
+optional = false
 python-versions = ">=3.8"
 groups = ["main"]
 markers = "extra == \"aca-py\""
@@ -1893,7 +1887,7 @@ htmlsoup = ["BeautifulSoup4"]
 name = "markdown"
 version = "3.8.2"
 description = "Python implementation of John Gruber's Markdown."
-optional = true
+optional = false
 python-versions = ">=3.9"
 groups = ["main"]
 markers = "extra == \"aca-py\""
@@ -1910,7 +1904,7 @@ testing = ["coverage", "pyyaml"]
 name = "markupsafe"
 version = "3.0.2"
 description = "Safely add untrusted strings to HTML/XML markup."
-optional = true
+optional = false
 python-versions = ">=3.9"
 groups = ["main"]
 markers = "extra == \"aca-py\""
@@ -2122,7 +2116,7 @@ files = [
 name = "multiformats"
 version = "0.3.1.post4"
 description = "Python implementation of multiformats protocols."
-optional = true
+optional = false
 python-versions = ">=3.7"
 groups = ["main"]
 markers = "extra == \"aca-py\""
@@ -2145,7 +2139,7 @@ full = ["blake3", "mmh3", "pycryptodomex", "pyskein", "rich"]
 name = "multiformats-config"
 version = "0.3.1"
 description = "Pre-loading configuration module for the 'multiformats' package."
-optional = true
+optional = false
 python-versions = ">=3.7"
 groups = ["main"]
 markers = "extra == \"aca-py\""
@@ -2164,7 +2158,7 @@ dev = ["mypy", "pylint", "pytest", "pytest-cov"]
 name = "nest-asyncio"
 version = "1.6.0"
 description = "Patch asyncio to allow nested event loops"
-optional = true
+optional = false
 python-versions = ">=3.5"
 groups = ["main"]
 markers = "extra == \"aca-py\""
@@ -2208,7 +2202,7 @@ files = [
 name = "pillow"
 version = "12.1.1"
 description = "Python Imaging Library (fork)"
-optional = true
+optional = false
 python-versions = ">=3.10"
 groups = ["main"]
 markers = "extra == \"aca-py\""
@@ -2334,7 +2328,7 @@ testing = ["coverage", "pytest", "pytest-benchmark"]
 name = "ply"
 version = "3.11"
 description = "Python Lex & Yacc"
-optional = true
+optional = false
 python-versions = "*"
 groups = ["main"]
 markers = "extra == \"aca-py\""
@@ -2347,7 +2341,7 @@ files = [
 name = "portalocker"
 version = "3.2.0"
 description = "Wraps the portalocker recipe for easy usage"
-optional = true
+optional = false
 python-versions = ">=3.9"
 groups = ["main"]
 markers = "extra == \"aca-py\""
@@ -2368,7 +2362,7 @@ tests = ["coverage-conditional-plugin (>=0.9.0)", "portalocker[redis]", "pytest 
 name = "prompt-toolkit"
 version = "3.0.51"
 description = "Library for building powerful interactive command lines in Python"
-optional = true
+optional = false
 python-versions = ">=3.8"
 groups = ["main"]
 markers = "extra == \"aca-py\""
@@ -2492,7 +2486,7 @@ files = [
 name = "psycopg"
 version = "3.2.12"
 description = "PostgreSQL database adapter for Python"
-optional = true
+optional = false
 python-versions = ">=3.8"
 groups = ["main"]
 markers = "extra == \"aca-py\""
@@ -2518,7 +2512,7 @@ test = ["anyio (>=4.0)", "mypy (>=1.14)", "pproxy (>=2.7)", "pytest (>=6.2.5)", 
 name = "psycopg-binary"
 version = "3.2.12"
 description = "PostgreSQL database adapter for Python -- C optimisation distribution"
-optional = true
+optional = false
 python-versions = ">=3.8"
 groups = ["main"]
 markers = "extra == \"aca-py\" and implementation_name != \"pypy\""
@@ -2591,7 +2585,7 @@ files = [
 name = "psycopg-pool"
 version = "3.2.7"
 description = "Connection Pool for Psycopg"
-optional = true
+optional = false
 python-versions = ">=3.8"
 groups = ["main"]
 markers = "extra == \"aca-py\""
@@ -2630,7 +2624,7 @@ develop = ["Sphinx (>=3.3.1)", "attrs", "cbor2", "certvalidator", "coverage (>=5
 name = "pycparser"
 version = "2.22"
 description = "C parser in Python"
-optional = true
+optional = false
 python-versions = ">=3.8"
 groups = ["main"]
 markers = "(extra == \"aca-py\" or extra == \"mso-mdoc\") and platform_python_implementation != \"PyPy\" or extra == \"aca-py\""
@@ -2643,7 +2637,7 @@ files = [
 name = "pydantic"
 version = "2.12.5"
 description = "Data validation using Python type hints"
-optional = true
+optional = false
 python-versions = ">=3.9"
 groups = ["main"]
 markers = "extra == \"aca-py\""
@@ -2666,7 +2660,7 @@ timezone = ["tzdata ; python_version >= \"3.9\" and platform_system == \"Windows
 name = "pydantic-core"
 version = "2.41.5"
 description = "Core functionality for Pydantic validation and serialization"
-optional = true
+optional = false
 python-versions = ">=3.9"
 groups = ["main"]
 markers = "extra == \"aca-py\""
@@ -2801,7 +2795,7 @@ typing-extensions = ">=4.14.1"
 name = "pydid"
 version = "0.5.2"
 description = "Python library for validating, constructing, and representing DIDs and DID Documents"
-optional = true
+optional = false
 python-versions = "<4.0.0,>=3.9.0"
 groups = ["main"]
 markers = "extra == \"aca-py\""
@@ -2853,7 +2847,7 @@ docs = ["Sphinx[docs] (>=7.1,<8)", "sphinx-autodoc-typehints[docs] (>=1.25.2)", 
 name = "pyjwt"
 version = "2.10.1"
 description = "JSON Web Token implementation in Python"
-optional = true
+optional = false
 python-versions = ">=3.9"
 groups = ["main"]
 markers = "extra == \"aca-py\""
@@ -2872,7 +2866,7 @@ tests = ["coverage[toml] (==5.0.4)", "pytest (>=6.0.0,<7.0.0)"]
 name = "pyld"
 version = "2.0.4"
 description = "Python implementation of the JSON-LD API"
-optional = true
+optional = false
 python-versions = "*"
 groups = ["main"]
 markers = "extra == \"aca-py\""
@@ -2896,7 +2890,7 @@ requests = ["requests"]
 name = "pynacl"
 version = "1.5.0"
 description = "Python binding to the Networking and Cryptography (NaCl) library"
-optional = true
+optional = false
 python-versions = ">=3.6"
 groups = ["main"]
 markers = "extra == \"aca-py\""
@@ -3000,7 +2994,7 @@ ruff = ">=0.0.242"
 name = "python-dateutil"
 version = "2.9.0.post0"
 description = "Extensions to the standard Python datetime module"
-optional = true
+optional = false
 python-versions = "!=3.0.*,!=3.1.*,!=3.2.*,>=2.7"
 groups = ["main"]
 markers = "extra == \"aca-py\""
@@ -3016,7 +3010,7 @@ six = ">=1.5"
 name = "python-json-logger"
 version = "3.3.0"
 description = "JSON Log Formatter for the Python Logging Package"
-optional = true
+optional = false
 python-versions = ">=3.8"
 groups = ["main"]
 markers = "extra == \"aca-py\""
@@ -3049,7 +3043,7 @@ test = ["base58", "pytest (<3.7)", "pytest-asyncio (==0.10.0)"]
 name = "pywin32"
 version = "311"
 description = "Python for Window Extensions"
-optional = true
+optional = false
 python-versions = "*"
 groups = ["main"]
 markers = "extra == \"aca-py\" and platform_system == \"Windows\""
@@ -3080,7 +3074,7 @@ files = [
 name = "pyyaml"
 version = "6.0.2"
 description = "YAML parser and emitter for Python"
-optional = true
+optional = false
 python-versions = ">=3.8"
 groups = ["main"]
 markers = "extra == \"aca-py\""
@@ -3144,7 +3138,7 @@ files = [
 name = "qrcode"
 version = "8.2"
 description = "QR Code image generator"
-optional = true
+optional = false
 python-versions = "<4.0,>=3.9"
 groups = ["main"]
 markers = "extra == \"aca-py\""
@@ -3182,7 +3176,7 @@ rpds-py = ">=0.7.0"
 name = "requests"
 version = "2.32.5"
 description = "Python HTTP for Humans."
-optional = true
+optional = false
 python-versions = ">=3.9"
 groups = ["main"]
 markers = "extra == \"aca-py\""
@@ -3205,7 +3199,7 @@ use-chardet-on-py3 = ["chardet (>=3.0.2,<6)"]
 name = "rlp"
 version = "4.1.0"
 description = "rlp: A package for Recursive Length Prefix encoding and decoding"
-optional = true
+optional = false
 python-versions = "<4,>=3.8"
 groups = ["main"]
 markers = "extra == \"aca-py\""
@@ -3420,7 +3414,7 @@ files = [
 name = "sd-jwt"
 version = "0.10.4"
 description = "The reference implementation of the IETF SD-JWT specification."
-optional = true
+optional = false
 python-versions = ">=3.8,<4.0"
 groups = ["main"]
 markers = "extra == \"aca-py\""
@@ -3437,7 +3431,7 @@ pyyaml = ">=5.4"
 name = "six"
 version = "1.17.0"
 description = "Python 2 and 3 compatibility utilities"
-optional = true
+optional = false
 python-versions = "!=3.0.*,!=3.1.*,!=3.2.*,>=2.7"
 groups = ["main"]
 markers = "extra == \"aca-py\" or extra == \"mso-mdoc\""
@@ -3450,7 +3444,7 @@ files = [
 name = "toolz"
 version = "1.0.0"
 description = "List processing tools and functional utilities"
-optional = true
+optional = false
 python-versions = ">=3.8"
 groups = ["main"]
 markers = "extra == \"aca-py\" and (implementation_name == \"pypy\" or implementation_name == \"cpython\")"
@@ -3463,7 +3457,7 @@ files = [
 name = "typing-extensions"
 version = "4.15.0"
 description = "Backported and Experimental Type Hints for Python 3.9+"
-optional = true
+optional = false
 python-versions = ">=3.9"
 groups = ["main"]
 markers = "extra == \"aca-py\""
@@ -3476,7 +3470,7 @@ files = [
 name = "typing-inspection"
 version = "0.4.2"
 description = "Runtime typing introspection tools"
-optional = true
+optional = false
 python-versions = ">=3.9"
 groups = ["main"]
 markers = "extra == \"aca-py\""
@@ -3492,7 +3486,7 @@ typing-extensions = ">=4.12.0"
 name = "typing-validation"
 version = "1.2.12"
 description = "A simple library for runtime type-checking."
-optional = true
+optional = false
 python-versions = ">=3.7"
 groups = ["main"]
 markers = "extra == \"aca-py\""
@@ -3508,7 +3502,7 @@ dev = ["mypy", "pylint", "pytest", "pytest-cov", "rich"]
 name = "tzdata"
 version = "2025.2"
 description = "Provider of IANA time zone data"
-optional = true
+optional = false
 python-versions = ">=2"
 groups = ["main"]
 markers = "extra == \"aca-py\" and sys_platform == \"win32\""
@@ -3521,7 +3515,7 @@ files = [
 name = "unflatten"
 version = "0.2.0"
 description = "Unflatten dict to dict with nested dict/arrays"
-optional = true
+optional = false
 python-versions = "*"
 groups = ["main"]
 markers = "extra == \"aca-py\""
@@ -3534,7 +3528,7 @@ files = [
 name = "urllib3"
 version = "2.5.0"
 description = "HTTP library with thread-safe connection pooling, file post, and more."
-optional = true
+optional = false
 python-versions = ">=3.9"
 groups = ["main"]
 markers = "extra == \"aca-py\""
@@ -3553,7 +3547,7 @@ zstd = ["zstandard (>=0.18.0)"]
 name = "uuid-utils"
 version = "0.11.0"
 description = "Drop-in replacement for Python UUID with bindings in Rust"
-optional = true
+optional = false
 python-versions = ">=3.9"
 groups = ["main"]
 markers = "extra == \"aca-py\""
@@ -3592,7 +3586,7 @@ files = [
 name = "wcwidth"
 version = "0.2.13"
 description = "Measures the displayed width of unicode strings in a terminal"
-optional = true
+optional = false
 python-versions = "*"
 groups = ["main"]
 markers = "extra == \"aca-py\""
@@ -3605,7 +3599,7 @@ files = [
 name = "webargs"
 version = "8.7.0"
 description = "Declarative parsing and validation of HTTP request objects, with built-in support for popular web frameworks, including Flask, Django, Bottle, Tornado, Pyramid, Falcon, and aiohttp."
-optional = true
+optional = false
 python-versions = ">=3.9"
 groups = ["main"]
 markers = "extra == \"aca-py\""
@@ -3751,4 +3745,4 @@ sd-jwt-vc = ["jsonpointer"]
 [metadata]
 lock-version = "2.1"
 python-versions = "^3.13"
-content-hash = "c4783e82c04700994d2ca0d732950136227daa645fb3e317a6bd31e6df2ddd73"
+content-hash = "2427214cabc35091af4fb28cd2fa86f200c0d8659b5ad0b3b84e01b97b887eea"
