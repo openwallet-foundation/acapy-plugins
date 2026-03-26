@@ -52,6 +52,7 @@ services:
         --multitenant
         --multitenant-admin
         --jwt-secret insecure
+        --log-level INFO
         --multitenancy-config wallet_type=single-wallet-askar key_derivation_method=RAW
     healthcheck:
       test: curl -s -o /dev/null -w '%{http_code}' "http://localhost:3001/status/live" | grep "200" > /dev/null
@@ -99,18 +100,20 @@ services:
       - ./frontend/index.js:/app/index.js:z
       - ./frontend/templates:/app/templates:z
     environment:
-      - NODE_ENV=development # Set NODE_ENV to 'development'
-      - WDS_SOCKET_PORT=0
-      - API_BASE_URL=http://issuer:3001
-      - FORCE_COLOR=3
+      NODE_ENV: development # Set NODE_ENV to 'development'
+      WDS_SOCKET_PORT: 0
+      API_BASE_URL: http://issuer:3001
+      FORCE_COLOR: 3
+      ADMIN_MANAGE_AUTH_TOKEN: $ADMIN_MANAGE_AUTH_TOKEN
+      TENANT_SECRET: tenantsecrettoken #Used by the issuer introspect tokens on auth server.
     depends_on:
       issuer:
         condition: service_healthy
 
 
   #setup Auth Server. 
-  #Environment could be sourced from .env.admin and .env.tenant files for local development,
-  #Here we set them explicitly to demo a working config. 
+  #ADMIN_MANAGE_AUTH_TOKEN is sourced from the .env as it is shared with demo-app.
+  #Other environment variables are set explicitly here to demo a working config. 
   #Admin full list: https://github.com/openwallet-foundation/acapy-plugins/blob/main/oid4vc/auth_server/admin/config.py
   #Tenant full list:https://github.com/openwallet-foundation/acapy-plugins/blob/main/oid4vc/auth_server/tenant/config.py
   auth-server:
@@ -127,15 +130,15 @@ services:
       ADMIN_DB_NAME: auth_server_admin
       ADMIN_DB_PORT: 5432
       ADMIN_DB_SCHEMA: admin
-      ADMIN_APP_TITLE: OAuth 2.0 BLAH Authorization Server Admin API
+      ADMIN_APP_TITLE: OAuth 2.0 Authorization Server Admin API
       ADMIN_APP_VERSION: 0.2.0
       ADMIN_APP_ROOT_PATH: /
-      TENANT_ADMIN_INTERNAL_BASE_URL: http://auth-server:9000/internal
-      ADMIN_MANAGE_AUTH_TOKEN: adminsecrettoken # Access the admin API with this token
-      TENANT_ADMIN_INTERNAL_AUTH_TOKEN: admininternaltoken # Issuer request to admin internal - examples
-      ADMIN_INTERNAL_AUTH_TOKEN: admininternaltoken # Admin API request to admin API - examples
+      ADMIN_MANAGE_AUTH_TOKEN: $ADMIN_MANAGE_AUTH_TOKEN # Access the admin API with this token
+      ADMIN_INTERNAL_AUTH_TOKEN: admininternaltoken # Admin API request to admin API
       ADMIN_TENANT_DB_NAME: auth_server_tenant
       ADMIN_TENANT_DB_SCHEMA: auth
+      TENANT_ADMIN_INTERNAL_BASE_URL: http://auth-server:9000/internal
+      TENANT_ADMIN_INTERNAL_AUTH_TOKEN: admininternaltoken # TODO BUG must match ADMIN_INTERNAL_AUTH_TOKEN
       TENANT_APP_ROOT_PATH: /
       TENANT_DB_HOST: db
       TENANT_DB_PORT: 5432

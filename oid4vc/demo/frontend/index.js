@@ -73,6 +73,8 @@ const presentationCache = new NodeCache({ stdTTL: 300, checkperiod: 400 });
 const API_BASE_URL = process.env.API_BASE_URL || "http://localhost:3001";
 const API_KEY = process.env.API_KEY;
 const AUTHSERVER_NGROK_URL = process.env.AUTHSERVER_NGROK_URL;
+const ADMIN_MANAGE_AUTH_TOKEN = process.env.ADMIN_MANAGE_AUTH_TOKEN;
+const TENANT_SECRET = process.env.TENANT_SECRET;
 let jwtVcSupportedCredCreated = false;
 let sdJwtSupportedCredCreated = false;
 let mdocSupportedCredCreated = false;
@@ -189,25 +191,7 @@ async function issue_jwt_credential(req, res) {
     jwtVcSupportedCredCreated = true;
   }
 
-  // Create DID for issuance and status list
-  const createDidUrl = `${API_BASE_URL}/did/jwk/create`;
-  const createDidOptions = {
-    method: "POST",
-    headers: commonHeaders,
-    body: JSON.stringify({
-      key_type: "p256",
-    }),
-  };
-
-  events.emit(`issuance-${req.body.registrationId}`, {type: "message", message: "Creating DID."});
-  events.emit(`issuance-${req.body.registrationId}`, {type: "message", message: `Posting Create DID Request to: ${createDidUrl}`});
-  events.emit(`issuance-${req.body.registrationId}`, {type: "debug-message", message: "Request options", data: createDidOptions});
-  const didData = await fetchApiData(createDidUrl, createDidOptions);
-  const { did } = didData;
-  events.emit(`issuance-${req.body.registrationId}`, {type: "message", message: `Created DID: ${did}`});
-  logger.info(did);
-  logger.info(jwtVcSupportedCredID);
-
+   logger.info(jwtVcSupportedCredID);
 
   // Create bitstring status list Configuration
   const statusListCreateUrl = `${API_BASE_URL}/status-list/defs`;
@@ -215,7 +199,7 @@ async function issue_jwt_credential(req, res) {
     method: "POST",
     headers: commonHeaders,
     body: JSON.stringify({
-      issuer_did: did,
+      issuer_did: issuerDID,
       list_size: 131072,
       list_type: "w3c",
       shard_size: 131072,
@@ -232,7 +216,7 @@ async function issue_jwt_credential(req, res) {
     status_purpose: "revocation",
     status_size: 1,
     supported_cred_id: jwtVcSupportedCredID,
-    verification_method: did+"#0"
+    verification_method: issuerDID+"#0"
     })
   };
 
@@ -249,7 +233,7 @@ async function issue_jwt_credential(req, res) {
   const exchangeCreateUrl = `${API_BASE_URL}/oid4vci/exchange/create`;
   const exchangeCreateOptions = {
     credential_subject: { id: req.body.registrationId, first_name: firstName, last_name: lastName, email },
-    verification_method: did+"#0",
+    verification_method: issuerDID+"#0",
     supported_cred_id: jwtVcSupportedCredID,
   };
   events.emit(`issuance-${req.body.registrationId}`, {type: "message", message: "Generating Credential Exchange."});
@@ -465,24 +449,6 @@ async function issue_sdjwt_credential(req, res) {
     sdJwtSupportedCredCreated = true;
   }
 
-
-  // Create DID for issuance
-  const createDidUrl = `${API_BASE_URL}/did/jwk/create`;
-  const createDidOptions = {
-    method: "POST",
-    headers: commonHeaders,
-    body: JSON.stringify({
-      key_type: "p256",
-    }),
-  };
-
-  events.emit(`issuance-${req.body.registrationId}`, {type: "message", message: "Creating DID."});
-  events.emit(`issuance-${req.body.registrationId}`, {type: "message", message: `Posting Create DID Request to: ${createDidUrl}`});
-  events.emit(`issuance-${req.body.registrationId}`, {type: "debug-message", message: "Request options", data: createDidOptions});
-  const didData = await fetchApiData(createDidUrl, createDidOptions);
-  const { did } = didData;
-  events.emit(`issuance-${req.body.registrationId}`, {type: "message", message: `Created DID: ${did}`});
-  logger.info(did);
   logger.info(sdJwtSupportedCredID);
 
   // Create IETF Token status list Configuration
@@ -491,7 +457,7 @@ async function issue_sdjwt_credential(req, res) {
     method: "POST",
     headers: commonHeaders,
     body: JSON.stringify({
-      issuer_did: did,
+      issuer_did: issuerDID,
       list_size: 131072,
       list_type: "ietf",
       shard_size: 131072,
@@ -508,7 +474,7 @@ async function issue_sdjwt_credential(req, res) {
     status_purpose: "revocation",
     status_size: 1,
     supported_cred_id: sdJwtSupportedCredID,
-    verification_method: did+"#0"
+    verification_method: issuerDID+"#0"
     })
   };
 
@@ -524,8 +490,8 @@ async function issue_sdjwt_credential(req, res) {
   // Create Credential Exchange records
   const exchangeCreateUrl = `${API_BASE_URL}/oid4vci/exchange/create`;
   const exchangeCreateOptions = {
-    did: did,
-    verification_method: did+"#0",
+    did: issuerDID,
+    verification_method: issuerDID+"#0",
     supported_cred_id: sdJwtSupportedCredID,
     credential_subject: {
       given_name: firstName,
@@ -580,7 +546,7 @@ async function issue_sdjwt_credential(req, res) {
 
   events.emit(`issuance-${req.body.registrationId}`, {type: "message", message: `Sending offer to user: ${qrcode}`});
   events.emit(`issuance-${req.body.registrationId}`, {type: "qrcode", credentialOffer, exchangeId, qrcode});
-  exchangeCache.set(exchangeId, { exchangeId, credentialOffer, did, sdJwtSupportedCredID, registrationId: req.body.registrationId });
+  exchangeCache.set(exchangeId, { exchangeId, credentialOffer, issuerDID, sdJwtSupportedCredID, registrationId: req.body.registrationId });
 
   // Polling for the credential is an option at this stage, but we opt to just listen for the appropriate webhook instead
   events.emit(`issuance-${req.body.registrationId}`, {type: "message", message: "Begin listening for credential to be issued."});
@@ -625,39 +591,104 @@ async function issue_mdoc_credential(req, res) {
     return await response.json();
   };
 
-  // 1. Create supported credential for mso_mdoc
   const createCredentialSupportedUrl = `${API_BASE_URL}/oid4vci/credential-supported/create/mso-mdoc`;
   const createCredentialSupportedOptions = {
     method: "POST",
     headers: commonHeaders,
     body: JSON.stringify({
       format: "mso_mdoc",
-      cryptographic_binding_methods_supported: ["did:jwk"],
-      cryptographic_suites_supported: [
-        "EdDSA"
-      ],
-      display: [
-        {
-          name: "Sample Driving License",
-          locale: "en-US",
-          background_image: {
-            uri: "data:image/png;base64,iVBORw0KGgoAAAANS",
-            alt_text: "Driver's License Background"
-          }
-        }
-      ], 
       id: "org.iso.18013.5.1.mDL",
-      format_data: {
-        doctype: "org.iso.18013.5.1.mDL",
-        "proof_types_supported": {
-          "jwt": {
-            "proof_signing_alg_values_supported": [
-              "ES256",
-              "EdDSA"
+      doctype: "org.iso.18013.5.1.mDL",
+      cryptographic_binding_methods_supported: ["jwk"],
+      cryptographic_signing_algorithms_supported: [
+        "-7",
+        "-8"
+      ],
+      proof_types_supported: {
+        jwt: {
+          proof_signing_alg_values_supported: [
+            "ES256",
+            "EdDSA"
+          ]
+        }
+      },
+      "credential_metadata": {
+        claims: [
+          { 
+            path: [ "org.iso.18013.5.1", "given_name"],
+            display: [
+              {
+                name: "Given Name",
+                locale: "en-US",
+              }
+            ]
+          },
+          {
+            path: ["org.iso.18013.5.1", "family_name"],
+            display: [
+              {
+                name: "Family Name",
+                locale: "en-US",
+              }
+            ]
+          },
+          {
+            path: ["org.iso.18013.5.1", "birth_date"],
+            display: [
+              {
+                name: "Birth Date",
+                locale: "en-US",
+              }
+            ]
+          },
+          {
+            path: ["org.iso.18013.5.1", "issue_date"],
+            display: [
+              {
+                name: "Issue Date",
+                locale: "en-US",
+              }
+            ]
+          },
+          {
+            path: ["org.iso.18013.5.1", "expiry_date"],
+            display: [
+              {
+                name: "Expiry Date",
+                locale: "en-US",
+              }
+            ]
+          },
+          {
+            path: ["org.iso.18013.5.1", "issuing_authority"],
+            display: [
+              {
+                name: "Issuing Authority",
+                locale: "en-US",
+              }
+            ]
+          },
+          {
+            path: ["org.iso.18013.5.1", "document_number"],
+            display: [
+              {
+                name: "Document Number",
+                locale: "en-US",
+              }
             ]
           }
-        },
-      }
+        ],
+        display: [
+          {
+            name: "Sample Driving License",
+            locale: "en-US",
+            background_image: {
+              uri: "data:image/png;base64,iVBORw0KGgoAAAANS",
+              alt_text: "Driver's License Background"
+            }
+          }
+        ],
+      }   
     }),
   };
 
@@ -673,26 +704,9 @@ async function issue_mdoc_credential(req, res) {
     mdocSupportedCredCreated = true;
   }
 
-  // Create DID for issuance
-  const createDidUrl = `${API_BASE_URL}/did/jwk/create`;
-  const createDidOptions = {
-    method: "POST",
-    headers: commonHeaders,
-    body: JSON.stringify({
-      key_type: "p256",
-    }),
-  };
-
-  events.emit(`issuance-${req.body.registrationId}`, {type: "message", message: "Creating DID."});
-  events.emit(`issuance-${req.body.registrationId}`, {type: "message", message: `Posting Create DID Request to: ${createDidUrl}`});
-  events.emit(`issuance-${req.body.registrationId}`, {type: "debug-message", message: "Request options", data: createDidOptions});
-  const didData = await fetchApiData(createDidUrl, createDidOptions);
-  const { did } = didData;
-  events.emit(`issuance-${req.body.registrationId}`, {type: "message", message: `Created DID: ${did}`});
-  logger.info(did);
   logger.info(mdocSupportedCredID);
   
-  // 2. Create credential exchange
+  // Create credential exchange
   const exchangeCreateUrl = `${API_BASE_URL}/oid4vci/exchange/create`;
  
   console.log("FAMILY NAME", family_name);
@@ -709,7 +723,7 @@ async function issue_mdoc_credential(req, res) {
           document_number,
         }
       },
-      verification_method: did + "#0",
+      verification_method: issuerDID + "#0",
   };
 
   events.emit(`issuance-${req.body.registrationId}`, {type: "message", message: "Generating Credential Exchange."});
@@ -721,7 +735,7 @@ async function issue_mdoc_credential(req, res) {
   events.emit(`issuance-${req.body.registrationId}`, {type: "message", message: `Received Credential Exchange ID: ${exchangeId}`});
   
   
-  // 3. Get credential offer and emit QR code as in other flows
+  // Get credential offer and emit QR code as in other flows
   const credentialOfferUrl = `${API_BASE_URL}/oid4vci/credential-offer`;
   const queryParams = {
     exchange_id: exchangeId,
@@ -1189,7 +1203,6 @@ console.log(token);
 const WALLET_ID = token.settings["wallet.id"];
 
 // Configure Auth server tenant
-// TODO client secret should be passed from environment variables as part of docker-compose configuration.
 async function initializeAuthServer() {
   try {
  
@@ -1197,7 +1210,7 @@ async function initializeAuthServer() {
 
     const commonHeaders = {
       accept: "application/json",
-      "Authorization": "Bearer adminsecrettoken",
+      "Authorization": "Bearer " + ADMIN_MANAGE_AUTH_TOKEN,
       "Content-Type": "application/json",
     };
 
@@ -1206,7 +1219,7 @@ async function initializeAuthServer() {
       `${AUTHSERVER}/admin/tenants`,
       {
         uid: WALLET_ID,
-        name: "tenant",
+        name: "tenant1",
         active: true,
         notes: "demo tenant"
       },
@@ -1215,16 +1228,18 @@ async function initializeAuthServer() {
     logger.info("Tenant created:", tenantRes.data);
 
     // Create key for tenant
-    const now = new Date();
-    const oneYearLater = new Date(now);
-    oneYearLater.setFullYear(now.getFullYear() + 1);
+    const notBefore = new Date();
+    const notAfter = new Date(new Date().setFullYear(new Date().getFullYear() + 1));
+    console.log("Not before:", notBefore.toISOString());
+    console.log("Not after:", notAfter.toISOString());
+    
 
     const keyRes = await axios.post(
       `${AUTHSERVER}/admin/tenants/${WALLET_ID}/keys`,
       {
         alg: "ES256",
-        not_before: now.toISOString(),
-        not_after: oneYearLater.toISOString(),
+        not_before: notBefore.toISOString(),
+        not_after: notAfter.toISOString(),
         status: "active"
       },
       { headers: commonHeaders }
@@ -1237,7 +1252,7 @@ async function initializeAuthServer() {
       {
         client_id: "client1",
         client_auth_method: "client_secret_basic",
-        client_secret: "clientsecret"
+        client_secret: TENANT_SECRET,
       },
       { headers: commonHeaders }
     );
@@ -1268,7 +1283,7 @@ async function initializeIssuerMetadata() {
           auth_type: "client_secret_basic",
           client_credentials: {
             client_id: "client1",
-            client_secret: "clientsecret"
+            client_secret: TENANT_SECRET
           }
         }
       ]
@@ -1285,9 +1300,37 @@ async function initializeIssuerMetadata() {
   }
 }
 
-await initializeAuthServer();
+// Create Signing DID. Note that this DID is used to sign both the credential and status list (required by IETF token status list spec)
+let issuerDID = null;
+async function initializeSigningDid() {
+  try {
+    const commonHeaders = {
+      accept: "application/json",
+      "Content-Type": "application/json",
+      "Authorization": "Bearer " + token.token,
+    }
+    const createDidUrl = `${API_BASE_URL}/did/jwk/create`;
+    const createDidOptions = {
+      method: "POST",
+      headers: commonHeaders,
+      body: JSON.stringify({
+        key_type: "p256",
+      }),
+    };
+    logger.info(`Posting Create DID Request to: ${createDidUrl}`);
+    logger.info("Request options", createDidOptions);
+    const didData = await fetchApiData(createDidUrl, createDidOptions);
+    const { did } = didData;
+    issuerDID = did;
+    logger.info(`Created signing DID: ${issuerDID}`);
+  } catch (err) {
+    logger.error("Signing DID initialization failed:", err?.response?.data || err.message);
+  }
+}
 
+await initializeAuthServer();
 await initializeIssuerMetadata();
+await initializeSigningDid();
 
 
 
