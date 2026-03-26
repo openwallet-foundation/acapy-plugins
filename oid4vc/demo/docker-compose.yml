@@ -1,0 +1,249 @@
+# OID4VC Demo Stack
+#
+# Brings up:
+#   - ACA-Py issuer  (OID4VCI v1, mDOC / SD-JWT / JWT-VC)
+#   - ACA-Py verifier (OID4VP v1)
+#   - walt.id Web Wallet (holder)
+#   - Nginx reverse-proxy (combines wallet-api + wallet-frontend on port 7101)
+#
+# Quick-start (from this directory):
+#   cp .env.example .env        # first time only
+#   docker compose up -d
+#   ./setup.sh                  # configure ACA-Py (DIDs, credential schemas, …)
+#
+# Then open the wallet at http://localhost:7101 or run the Playwright demo:
+#   cd playwright && npm install && npx playwright test
+#
+# To expose externally via zrok (optional):
+#   See .env.example for instructions.
+#
+# NOTE: walt.id images are linux/amd64 only. On Apple Silicon they run via
+# Rosetta. Set DOCKER_PLATFORM=linux/amd64 to force emulation for ACA-Py too
+# if you hit issues, or leave it as linux/arm64 for native performance.
+
+services:
+
+  # ── ACA-Py Issuer ──────────────────────────────────────────────────────────
+  acapy-issuer:
+    platform: ${DOCKER_PLATFORM:-linux/arm64}
+    build:
+      dockerfile: oid4vc/docker/Dockerfile
+      context: ../..
+      args:
+        ACAPY_VERSION: 1.4.0
+        ISOMDL_BRANCH: main
+    ports:
+      - "${ACAPY_ISSUER_ADMIN_PORT:-8121}:8021"
+      - "${ACAPY_ISSUER_OID4VCI_PORT:-8122}:8022"
+    environment:
+      - AGENT_ENDPOINT=http://acapy-issuer:8020
+      # OID4VCI_ENDPOINT is the URL embedded in credential offers.
+      # Leave as default (docker-internal) for localhost demos so the wallet-api
+      # container can reach it. Override with a zrok HTTPS URL for external demos.
+      - OID4VCI_ENDPOINT=${ISSUER_OID4VCI_ENDPOINT:-http://acapy-issuer.local:8022}
+      - STATUS_LIST_PUBLIC_URI=${ISSUER_OID4VCI_ENDPOINT:-http://acapy-issuer.local:8022}/status/{list_number}
+      - WALLET_STORAGE_TYPE=sqlite
+      - PYTHONPATH=/usr/src/app/isomdl_wrapper:/usr/src/app
+      - ACAPY_ADMIN_PORT=8021
+      - ADMIN_PORT=8021
+      - LOG_LEVEL=${LOG_LEVEL:-info}
+    volumes:
+      - ../docker/dev.yml:/usr/src/app/docker/dev.yml
+      - ../oid4vc:/usr/src/app/oid4vc
+      - ../mso_mdoc:/usr/src/app/mso_mdoc
+      - ../sd_jwt_vc:/usr/src/app/sd_jwt_vc
+    networks:
+      default:
+        aliases:
+          - acapy-issuer.local
+    command:
+      - python
+      - -m
+      - acapy_agent
+      - start
+      - --arg-file
+      - /usr/src/app/docker/dev.yml
+      - --wallet-storage-type
+      - sqlite
+      - --log-level
+      - ${LOG_LEVEL:-info}
+    healthcheck:
+      test: ["CMD-SHELL", "curl -sf http://localhost:8021/status/live"]
+      start_period: 30s
+      interval: 7s
+      timeout: 5s
+      retries: 10
+    restart: unless-stopped
+
+  # ── ACA-Py Verifier ────────────────────────────────────────────────────────
+  acapy-verifier:
+    platform: ${DOCKER_PLATFORM:-linux/arm64}
+    build:
+      dockerfile: oid4vc/docker/Dockerfile
+      context: ../..
+      args:
+        ACAPY_VERSION: 1.4.0
+        ISOMDL_BRANCH: main
+    ports:
+      - "${ACAPY_VERIFIER_ADMIN_PORT:-8031}:8031"
+      - "${ACAPY_VERIFIER_OID4VP_PORT:-8032}:8032"
+    environment:
+      - AGENT_ENDPOINT=http://acapy-verifier:8030
+      - OID4VCI_ENDPOINT=http://acapy-verifier.local:8032
+      # OID4VP_ENDPOINT is embedded in presentation requests sent to the wallet.
+      - OID4VP_ENDPOINT=${VERIFIER_OID4VP_ENDPOINT:-http://acapy-verifier.local:8032}
+      - WALLET_STORAGE_TYPE=sqlite
+      - PYTHONPATH=/usr/src/app/isomdl_wrapper:/usr/src/app
+      - ACAPY_ADMIN_PORT=8031
+      - ADMIN_PORT=8031
+      - LOG_LEVEL=${LOG_LEVEL:-info}
+      - OID4VC_MDOC_TRUST_STORE_TYPE=wallet
+    volumes:
+      - ../docker/dev-verifier.yml:/usr/src/app/docker/dev-verifier.yml
+      - ../oid4vc:/usr/src/app/oid4vc
+      - ../mso_mdoc:/usr/src/app/mso_mdoc
+      - ../sd_jwt_vc:/usr/src/app/sd_jwt_vc
+    networks:
+      default:
+        aliases:
+          - acapy-verifier.local
+    command:
+      - python
+      - -m
+      - acapy_agent
+      - start
+      - --arg-file
+      - /usr/src/app/docker/dev-verifier.yml
+      - --wallet-storage-type
+      - sqlite
+      - --log-level
+      - ${LOG_LEVEL:-info}
+    healthcheck:
+      test: ["CMD-SHELL", "curl -sf http://localhost:8031/status/live"]
+      start_period: 30s
+      interval: 7s
+      timeout: 5s
+      retries: 10
+    restart: unless-stopped
+
+  # ── Walt.id: PostgreSQL ────────────────────────────────────────────────────
+  waltid-postgres:
+    image: postgres:15-alpine
+    environment:
+      POSTGRES_USER: waltid
+      POSTGRES_PASSWORD: waltid
+      POSTGRES_DB: waltid
+    volumes:
+      - waltid-postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U waltid -d waltid"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  # ── Walt.id: Valkey (Redis-compatible) ─────────────────────────────────────
+  waltid-valkey:
+    image: valkey/valkey:8-alpine
+    command: valkey-server --appendonly yes
+    volumes:
+      - waltid-valkey-data:/data
+    healthcheck:
+      test: ["CMD", "valkey-cli", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  # ── Walt.id: Wallet API ────────────────────────────────────────────────────
+  #
+  # NOTE: linux/amd64 only; runs via Rosetta on Apple Silicon.
+  waltid-wallet-api:
+    image: waltid/wallet-api:latest
+    platform: linux/amd64
+    environment:
+      - WALTID_WALLET_BACKEND_BIND_ADDRESS=0.0.0.0
+      - WALLET_BACKEND_PORT=7001
+      - SERVICE_HOST=waltid-wallet-api.local
+      - POSTGRES_DB_HOST=waltid-postgres
+      - POSTGRES_DB_PORT=5432
+      - DB_NAME=waltid
+      - DB_USERNAME=waltid
+      - DB_PASSWORD=waltid
+      # Tells the wallet which URL to trust for did:web resolution (no HTTPS required
+      # for local demos — dev-mode.conf sets enableDidWebResolverHttps=false)
+      - DEMO_WALLET_FRONTEND_PORT=7101
+    volumes:
+      - ./waltid-config:/waltid-wallet-api/config:ro
+    healthcheck:
+      test:
+        - CMD-SHELL
+        - >
+          curl -sf http://localhost:7001/wallet-api/auth/login
+          -X POST -d '{}' -H 'Content-Type: application/json' || exit 0
+      interval: 10s
+      timeout: 10s
+      retries: 30
+      start_period: 60s
+    depends_on:
+      waltid-postgres:
+        condition: service_healthy
+      waltid-valkey:
+        condition: service_healthy
+    networks:
+      default:
+        aliases:
+          - waltid-wallet-api.local
+    restart: unless-stopped
+
+  # ── Walt.id: Web Wallet Frontend ───────────────────────────────────────────
+  #
+  # NOTE: linux/amd64 only; runs via Rosetta on Apple Silicon.
+  waltid-web-wallet-backend:
+    image: waltid/waltid-web-wallet:latest
+    platform: linux/amd64
+    environment:
+      - PORT=7101
+      # Must match the public-facing wallet URL so deep-links resolve correctly.
+      - NUXT_PUBLIC_ISSUER_CALLBACK_URL=${WALLET_PUBLIC_URL:-http://localhost:7201}
+    healthcheck:
+      test: ["CMD", "wget", "-q", "--spider", "http://localhost:7101"]
+      interval: 10s
+      timeout: 10s
+      retries: 30
+      start_period: 60s
+    depends_on:
+      waltid-wallet-api:
+        condition: service_healthy
+    networks:
+      default:
+        aliases:
+          - waltid-wallet.local
+    restart: unless-stopped
+
+  # ── Nginx: Walt.id Wallet Reverse Proxy ───────────────────────────────────
+  #
+  # Exposes the wallet on a single port (default 7101):
+  #   /wallet-api/  →  waltid-wallet-api:7001
+  #   /             →  waltid-web-wallet-backend:7101
+  #
+  # Expose this port via zrok for external/mobile access:
+  #   zrok share reserved mydemowallet  (after reserving http://localhost:7101)
+  waltid-proxy:
+    image: nginx:alpine
+    ports:
+      - "${WALLET_PORT:-7201}:80"
+    volumes:
+      - ./nginx.conf:/etc/nginx/nginx.conf:ro
+    depends_on:
+      waltid-wallet-api:
+        condition: service_healthy
+      waltid-web-wallet-backend:
+        condition: service_started
+    networks:
+      default:
+        aliases:
+          - waltid-web-wallet
+    restart: unless-stopped
+
+volumes:
+  waltid-postgres-data:
+  waltid-valkey-data:

@@ -1,0 +1,39 @@
+# Conformance test runner image.
+# Runs setup_acapy.py followed by run_conformance.py to drive the OIDF
+# conformance suite against the ACA-Py OID4VC services.
+#
+# Intentionally lightweight — only installs the minimal Python deps needed
+# by the two runner scripts (httpx + cryptography).  The heavy acapy-agent
+# dependency is NOT required here.
+
+FROM python:3.12-slim-bookworm
+
+# System deps: curl (health-check probes inside scripts)
+RUN apt-get update && apt-get install -y --no-install-recommends \
+        curl \
+    && rm -rf /var/lib/apt/lists/*
+
+WORKDIR /usr/src/app
+
+# Install only the packages the runner scripts actually need.
+# Pinning major versions to keep the image reproducible.
+RUN pip install --no-cache-dir \
+        "httpx>=0.28,<1" \
+        "cryptography>=42,<47" \
+        "pytest>=8,<9" \
+        "pytest-asyncio>=0.25,<1"
+
+# Copy conformance scripts and configs
+COPY conformance/ ./conformance/
+
+# Ensure the test-results mount point exists
+RUN mkdir -p /usr/src/app/test-results
+
+ENV CONFORMANCE_SETUP_OUTPUT=/tmp/conformance-setup.json
+ENV CONFORMANCE_OUTPUT_XML=/usr/src/app/test-results/conformance-junit.xml
+
+# Default: run setup then conformance tests.
+# Override CMD in docker-compose when running only setup or only tests.
+CMD ["sh", "-c", \
+     "python conformance/setup_acapy.py && \
+      python conformance/run_conformance.py"]

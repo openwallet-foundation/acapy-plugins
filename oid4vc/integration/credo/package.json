@@ -1,29 +1,39 @@
 {
-  "name": "afj-test",
-  "version": "0.0.1",
-  "description": "Testing against AFJ",
+  "name": "credo-oid4vc-test-client",
+  "version": "0.1.0",
+  "description": "Credo OID4VC v1 Test Client - Holder/Verifier for integration tests",
+  "type": "module",
   "main": "dist/index.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
     "start": "node dist/index.js",
-    "build": "tsc --declaration",
-    "format": "prettier --write .",
-    "watch": "nodemon --watch 'index.ts' --exec 'ts-node index.ts'"
+    "build": "tsc",
+    "dev": "ts-node index.ts"
   },
-  "author": "",
+  "author": "Indicio Tech",
   "license": "Apache-2.0",
   "dependencies": {
-    "@credo-ts/askar": "^0.5.10",
-    "@credo-ts/core": "^0.5.10",
-    "@credo-ts/node": "^0.5.10",
-    "@credo-ts/openid4vc": "^0.5.10",
-    "@hyperledger/aries-askar-nodejs": "^0.2.3",
-    "json-rpc-api-proxy": "github:Indicio-tech/json-rpc-api-proxy"
+    "@credo-ts/askar": "^0.6.0",
+    "@credo-ts/core": "^0.6.0",
+    "@credo-ts/node": "^0.6.0",
+    "@credo-ts/openid4vc": "^0.6.0",
+    "@openwallet-foundation/askar-nodejs": "^0.4.3",
+    "@sphereon/did-auth-siop": "^0.16.0",
+    "@sphereon/pex": "^4.1.0",
+    "@sphereon/ssi-types": "^0.30.0",
+    "@sd-jwt/decode": "^0.7.2",
+    "cbor": "^9.0.0",
+    "express": "^4.21.1",
+    "uuid": "^10.0.0"
   },
   "devDependencies": {
-    "nodemon": "^3.0.1",
-    "prettier": "^3.1.0",
-    "ts-node": "^10.9.1",
-    "typescript": "^5.2.2"
+    "@types/node": "^22.9.0",
+    "@types/express": "^4.17.21",
+    "@types/uuid": "^10.0.0",
+    "ts-node": "^10.9.2",
+    "typescript": "^5.6.3"
+  },
+  "overrides": {
+    "webidl-conversions": "6.1.0"
   }
 }

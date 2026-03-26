@@ -5,14 +5,11 @@ import json
 import time
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
-from typing import Generic, TypeVar, Union
 
 from aries_askar import Key, KeyAlg
 
-K = TypeVar("K")
 
-
-class OID4VCICryptoService(ABC, Generic[K]):
+class OID4VCICryptoService[K](ABC):
     """OpenID Connect for Verifiable Credentials (OID4VC) Crypto Service."""
 
     @abstractmethod
@@ -24,7 +21,7 @@ class OID4VCICryptoService(ABC, Generic[K]):
         """Return proof of possession over key."""
 
     @classmethod
-    def b64url(cls, value: Union[dict, str, bytes]) -> str:
+    def b64url(cls, value: dict | str | bytes) -> str:
         """Base64 URL encode a value, without padding."""
         if isinstance(value, dict):
             value = json.dumps(value)
@@ -72,7 +69,5 @@ class AskarCryptoService(OID4VCICryptoService[AskarKey]):
                 "nonce": nonce,
             }
         )
-        signature = self.b64url(
-            key.key.sign_message(f"{headers}.{payload}".encode("utf-8"))
-        )
+        signature = self.b64url(key.key.sign_message(f"{headers}.{payload}".encode()))
         return {"proof_type": "jwt", "jwt": f"{headers}.{payload}.{signature}"}

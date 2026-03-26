@@ -1,0 +1,66 @@
+# docker-compose.conformance-only.yml
+#
+# Starts only the OIDF Conformance Suite (MongoDB + server) and exposes the UI
+# on https://localhost:8443.  No ACA-Py, Credo, or Sphereon services are
+# included — bring your own agent and wire it in via the UI.
+#
+# See integration/README.md § "Testing a custom agent against the conformance suite"
+#
+# Usage:
+#   docker compose -f docker-compose.conformance-only.yml up -d
+#   open https://localhost:8443   (accept self-signed cert)
+#
+#   docker compose -f docker-compose.conformance-only.yml down -v   # teardown
+
+services:
+
+  conformance-mongodb:
+    image: mongo:6.0.13
+    volumes:
+      - conformance-mongo-data:/data/db
+    healthcheck:
+      test: ["CMD", "mongosh", "--eval", "db.adminCommand('ping')"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+
+  conformance-server:
+    build:
+      context: ./conformance
+      dockerfile: Dockerfile.server
+      args:
+        CONFORMANCE_SUITE_BRANCH: ${CONFORMANCE_SUITE_BRANCH:-master}
+    ports:
+      - "8443:8443"
+    environment:
+      - SPRING_DATA_MONGODB_URI=mongodb://conformance-mongodb:27017/oidf_conformance
+      # Base URL controls the redirect_uri and callback URLs the conformance server
+      # registers with your agent.  In this standalone compose (no other Docker services
+      # calling back to it) localhost:8443 is correct — your local SDK can reach it.
+      # Override with CONFORMANCE_SERVER_BASE_URL if you need a different address.
+      - FINTECHLABS_BASE_URL=${CONFORMANCE_SERVER_BASE_URL:-https://localhost:8443}
+      - FINTECHLABS_DEVMODE=true
+    command:
+      - java
+      - -jar
+      - /server/fapi-test-suite.jar
+      - --server.port=8443
+      - --server.ssl.key-store=/server/keystore.p12
+      - --server.ssl.key-store-password=changeit
+      - --server.ssl.key-store-type=PKCS12
+      - --fintechlabs.devmode=true
+      - --fintechlabs.startredir=true
+      - --spring.data.mongodb.uri=mongodb://conformance-mongodb:27017/oidf_conformance
+      - --fintechlabs.base_url=${CONFORMANCE_SERVER_BASE_URL:-https://localhost:8443}
+    depends_on:
+      conformance-mongodb:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-sfk", "https://localhost:8443/actuator/health"]
+      interval: 15s
+      timeout: 10s
+      retries: 24
+      start_period: 120s
+
+volumes:
+  conformance-mongo-data:

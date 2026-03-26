@@ -1,0 +1,43 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+.venv/
+.pytest_cache/
+.ruff_cache/
+
+# Node.js
+node_modules/
+npm-debug.log*
+
+# Test outputs
+test-results/
+*.xml
+htmlcov/
+.coverage
+
+# Build artifacts
+*.whl
+dist/
+build/
+poetry.lock
+
+# IDE
+.vscode/
+.idea/
+*.swp
+
+# Git
+.git/
+.gitignore
+
+# Docker files (context already has them)
+Dockerfile*
+docker-compose*.yml
+
+# Logs
+*.log
+wallet-build.log
+
+# Nested integration directory (avoid recursion)
+aries-acapy-plugins/

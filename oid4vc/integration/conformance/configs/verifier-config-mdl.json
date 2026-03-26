@@ -1,0 +1,20 @@
+{
+  "description": "ACA-Py OID4VP Verifier Conformance Test Configuration - mDL / ISO mDOC",
+  "alias": "acapy-oid4vp-verifier-mdl",
+
+  "server": {
+    "verifier_url": "http://acapy-verifier:8032",
+    "authorization_endpoint": "http://acapy-verifier:8032/oid4vp/request/__REQUEST_ID__",
+    "response_uri": "http://acapy-verifier:8032/oid4vp/response/__PRESENTATION_ID__"
+  },
+
+  "credential_format": "iso_mdl",
+
+  "vp_format": {
+    "mso_mdoc": {
+      "alg": ["ES256"]
+    }
+  },
+
+  "mdl_doctype": "org.iso.18013.5.1.mDL"
+}

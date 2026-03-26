@@ -9,12 +9,14 @@ from acapy_agent.resolver.did_resolver import DIDResolver
 from oid4vc.cred_processor import CredProcessors
 from oid4vc.models.exchange import OID4VCIExchangeRecord
 from oid4vc.models.supported_cred import SupportedCredential
-from oid4vc.routes import (
-    _create_pre_auth_code,
-    _parse_cred_offer,
+from oid4vc.routes.exchange import (
     create_exchange,
     credential_refresh,
     exchange_create,
+)
+from oid4vc.routes.helpers import (
+    _create_pre_auth_code,
+    _parse_cred_offer,
 )
 
 
@@ -55,10 +57,13 @@ async def test_create_pre_auth_code(monkeypatch, profile, config):
     mock_response = MagicMock()
     mock_response.json = AsyncMock(return_value={"pre_authorized_code": "code123"})
     mock_client.post = AsyncMock(return_value=mock_response)
-    monkeypatch.setattr("oid4vc.routes.AppResources.get_http_client", lambda: mock_client)
+    monkeypatch.setattr(
+        "oid4vc.routes.helpers.AppResources.get_http_client", lambda: mock_client
+    )
     # Patch get_auth_header to return a dummy header
     monkeypatch.setattr(
-        "oid4vc.routes.get_auth_header", AsyncMock(return_value="Bearer dummyheader")
+        "oid4vc.routes.helpers.get_auth_header",
+        AsyncMock(return_value="Bearer dummyheader"),
     )
     code = await _create_pre_auth_code(
         profile, config, "subject_id", "cred_config_id", "1234"
@@ -77,18 +82,18 @@ async def test_parse_cred_offer(monkeypatch, context):
     mock_record.state = None
     mock_record.save = AsyncMock()
     monkeypatch.setattr(
-        "oid4vc.routes.OID4VCIExchangeRecord.retrieve_by_id",
+        "oid4vc.routes.helpers.OID4VCIExchangeRecord.retrieve_by_id",
         AsyncMock(return_value=mock_record),
     )
     mock_supported = MagicMock(spec=SupportedCredential)
     mock_supported.identifier = "cred_id"
     mock_supported.format = "jwt_vc_json"
     monkeypatch.setattr(
-        "oid4vc.routes.SupportedCredential.retrieve_by_id",
+        "oid4vc.routes.helpers.SupportedCredential.retrieve_by_id",
         AsyncMock(return_value=mock_supported),
     )
     monkeypatch.setattr(
-        "oid4vc.routes._create_pre_auth_code", AsyncMock(return_value="code123")
+        "oid4vc.routes.helpers._create_pre_auth_code", AsyncMock(return_value="code123")
     )
     offer = await _parse_cred_offer(context, "exchange_id")
     assert offer["credential_issuer"].startswith("http://localhost:8020")
@@ -108,7 +113,7 @@ async def test_create_exchange(monkeypatch, context, dummy_request):
     mock_supported.identifier = "cred_id"
     mock_supported.format = "jwt_vc_json"
     monkeypatch.setattr(
-        "oid4vc.routes.SupportedCredential.retrieve_by_id",
+        "oid4vc.routes.exchange.SupportedCredential.retrieve_by_id",
         AsyncMock(return_value=mock_supported),
     )
     # Patch CredProcessors
@@ -119,7 +124,7 @@ async def test_create_exchange(monkeypatch, context, dummy_request):
     mock_processors.issuer_for_format = MagicMock(return_value=mock_processor)
     context.profile.context.injector.bind_instance(CredProcessors, mock_processors)
     # Patch OID4VCIExchangeRecord.save
-    monkeypatch.setattr("oid4vc.routes.OID4VCIExchangeRecord.save", AsyncMock())
+    monkeypatch.setattr("oid4vc.routes.exchange.OID4VCIExchangeRecord.save", AsyncMock())
 
     request = dummy_request()
     record = await create_exchange(cast(web.Request, request))
@@ -136,7 +141,7 @@ async def test_exchange_create(monkeypatch, dummy_request):
         "credential_subject": {"name": "alice"},
     }
     monkeypatch.setattr(
-        "oid4vc.routes.create_exchange", AsyncMock(return_value=mock_record)
+        "oid4vc.routes.exchange.create_exchange", AsyncMock(return_value=mock_record)
     )
 
     request = dummy_request()
@@ -152,7 +157,7 @@ async def test_credential_refresh(monkeypatch, dummy_request):
     mock_existing.state = OID4VCIExchangeRecord.STATE_CREATED
     mock_existing.save = AsyncMock()
     monkeypatch.setattr(
-        "oid4vc.routes.OID4VCIExchangeRecord.retrieve_by_refresh_id",
+        "oid4vc.routes.exchange.OID4VCIExchangeRecord.retrieve_by_refresh_id",
         AsyncMock(return_value=mock_existing),
     )
     # Patch create_exchange
@@ -162,7 +167,7 @@ async def test_credential_refresh(monkeypatch, dummy_request):
         "credential_subject": {"name": "alice"},
     }
     monkeypatch.setattr(
-        "oid4vc.routes.create_exchange", AsyncMock(return_value=mock_record)
+        "oid4vc.routes.exchange.create_exchange", AsyncMock(return_value=mock_record)
     )
 
     request = dummy_request()

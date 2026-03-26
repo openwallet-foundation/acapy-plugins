@@ -1,201 +1,165 @@
-import {
-  InitConfig,
-  Agent,
-  KeyDerivationMethod,
-  ConsoleLogger,
-  LogLevel,
-  W3cCredentialsModule,
-  DidsModule,
-  PeerDidResolver,
-  PeerDidRegistrar,
-  W3cCredentialRecord,
-  SdJwtVcRecord,
-  DifPresentationExchangeService,
-  JwkDidResolver,
-  JwkDidCreateOptions,
-  JwkDidRegistrar,
-} from '@credo-ts/core';
-import { KeyDidCreateOptions, getJwkFromKey, DidKey } from '@credo-ts/core'
-import { agentDependencies } from '@credo-ts/node';
-import { AskarModule } from '@credo-ts/askar';
-import { ariesAskar } from '@hyperledger/aries-askar-nodejs';
-import { OpenId4VcHolderModule, OpenId4VciCredentialFormatProfile } from '@credo-ts/openid4vc';
-import { TCPSocketServer, JsonRpcApiProxy } from 'json-rpc-api-proxy';
+/**
+ * Simplified Credo OID4VC Agent
+ * 
+ * This service acts as a holder/verifier that can:
+ * - Receive credentials from ACA-Py OID4VCI issuer  
+ * - Present credentials to ACA-Py OID4VP verifier
+ * 
+ * Supports both mso_mdoc and SD-JWT credential formats.
+ */
 
-let agent: Agent | null = null;
-const server = new TCPSocketServer({
-  host: process.env.AFJ_HOST || '0.0.0.0',
-  port: parseInt(process.env.AFJ_PORT || '3000'),
-});
-const proxy = new JsonRpcApiProxy(server);
+// IMPORTANT: Import askar-nodejs first to register the native bindings
+// before any credo-ts packages that depend on @openwallet-foundation/askar-shared
+import '@openwallet-foundation/askar-nodejs';
 
-proxy.rpc.addMethod('initialize', async (): Promise<{}> => {
-  if (agent !== null) {
-    console.warn('Agent already initialized');
-    return {};
+import express from 'express';
+import issuanceRouter from './issuance.js';
+import verificationRouter from './verification.js';
+import debugRouter from './debug.js';
+import { initializeAgent, addTrustedCertificate, setTrustedCertificates, getTrustedCertificates } from './agent.js';
+import { logger } from './logger.js';
+
+const app = express();
+const PORT = parseInt(process.env.PORT || '3020', 10);
+
+// Middleware
+app.use(express.json());
+app.use((req: any, res: any, next: any) => {
+  res.header('Access-Control-Allow-Origin', '*');
+  res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
+  res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+  if (req.method === 'OPTIONS') {
+    res.sendStatus(200);
+    return;
   }
+  next();
+});
 
-  const key = ariesAskar.storeGenerateRawKey({});
-
-  const config: InitConfig = {
-    label: 'test-agent',
-    logger: new ConsoleLogger(LogLevel.debug),
-    endpoints: [process.env.AFJ_ENDPOINT || 'http://localhost:3000'],
-    walletConfig: {
-      id: 'test',
-      key: key,
-      keyDerivationMethod: KeyDerivationMethod.Raw,
-      storage: {
-        type: 'sqlite',
-        inMemory: true,
-      },
-    },
-  };
-
-  agent = new Agent({
-    config,
-    dependencies: agentDependencies,
-    modules: {
-      // Register the Askar module on the agent
-      askar: new AskarModule({
-        ariesAskar,
-      }),
-      dids: new DidsModule({
-        registrars: [new PeerDidRegistrar(), new JwkDidRegistrar()],
-        resolvers: [new PeerDidResolver(), new JwkDidResolver()]
-      }),
-      openId4VcHolderModule: new OpenId4VcHolderModule(),
-      w3cCredentials: new W3cCredentialsModule(),
-    },
+// Health check endpoint
+app.get('/health', (req: any, res: any) => {
+  res.status(200).json({
+    status: 'healthy',
+    service: 'credo-oid4vc-agent',
+    version: '1.0.0',
+    timestamp: new Date().toISOString()
   });
-
-  await agent.initialize();
-  return {};
 });
 
+// ============================================================================
+// Trust Anchor Management API
+// ============================================================================
 
-const getAgent = () => {
-  if (agent === null) {
-    throw new Error('Agent not initialized');
+/**
+ * POST /x509/trust-anchors
+ * Add a trusted certificate to the X509 module
+ * 
+ * Request body:
+ * {
+ *   "certificate_pem": "-----BEGIN CERTIFICATE-----\n..."
+ * }
+ */
+app.post('/x509/trust-anchors', (req: any, res: any) => {
+  try {
+    const { certificate_pem } = req.body;
+    
+    if (!certificate_pem) {
+      return res.status(400).json({ 
+        error: 'certificate_pem is required' 
+      });
+    }
+    
+    addTrustedCertificate(certificate_pem);
+    
+    res.status(201).json({
+      status: 'success',
+      message: 'Trust anchor added successfully'
+    });
+  } catch (error: any) {
+    logger.error('Error adding trust anchor:', error);
+    res.status(500).json({ 
+      error: 'Failed to add trust anchor',
+      details: error.message 
+    });
   }
-  return agent;
+});
+
+/**
+ * PUT /x509/trust-anchors
+ * Replace all trusted certificates with new set
+ * 
+ * Request body:
+ * {
+ *   "certificates": ["-----BEGIN CERTIFICATE-----\n...", ...]
+ * }
+ */
+app.put('/x509/trust-anchors', (req: any, res: any) => {
+  try {
+    const { certificates } = req.body;
+    
+    if (!Array.isArray(certificates)) {
+      return res.status(400).json({ 
+        error: 'certificates array is required' 
+      });
+    }
+    
+    setTrustedCertificates(certificates);
+    
+    res.json({
+      status: 'success',
+      message: `Set ${certificates.length} trusted certificates`,
+      count: certificates.length
+    });
+  } catch (error: any) {
+    logger.error('Error setting trust anchors:', error);
+    res.status(500).json({ 
+      error: 'Failed to set trust anchors',
+      details: error.message 
+    });
+  }
+});
+
+/**
+ * GET /x509/trust-anchors
+ * Get list of currently trusted certificates
+ */
+app.get('/x509/trust-anchors', (req: any, res: any) => {
+  try {
+    const certificates = getTrustedCertificates();
+    
+    res.json({
+      status: 'success',
+      count: certificates.length,
+      certificates
+    });
+  } catch (error: any) {
+    logger.error('Error getting trust anchors:', error);
+    res.status(500).json({ 
+      error: 'Failed to get trust anchors',
+      details: error.message 
+    });
+  }
+});
+
+// Mount routers
+app.use('/oid4vci', issuanceRouter);
+app.use('/oid4vp', verificationRouter);
+app.use('/debug', debugRouter);
+
+// Start server
+const startServer = async () => {
+  try {
+    await initializeAgent(PORT);
+    
+    app.listen(PORT, '0.0.0.0', () => {
+      logger.info(`🚀 Credo OID4VC Agent running on port ${PORT}`);
+      logger.info(`📋 Health check: http://localhost:${PORT}/health`);
+      logger.info(`🎫 Accept credentials: POST http://localhost:${PORT}/oid4vci/accept-offer`);
+      logger.info(`📤 Present credentials: POST http://localhost:${PORT}/oid4vp/present`);
+    });
+  } catch (error) {
+    logger.error('Failed to start server:', error);
+    process.exit(1);
+  }
 };
 
-proxy.rpc.addMethod(
-  'openid4vci.acceptCredentialOffer',
-  async ({offer}: {offer: string}) => {
-    const agent = getAgent();
-
-    // resolved credential offer contains the offer, metadata, etc..
-    const resolvedCredentialOffer = await agent.modules.openId4VcHolderModule.resolveCredentialOffer(offer)
-    console.log('Resolved credential offer', JSON.stringify(resolvedCredentialOffer.credentialOfferPayload, null, 2))
-
-    // issuer only supports pre-authorized flow for now
-    const credentials = await agent.modules.openId4VcHolderModule.acceptCredentialOfferUsingPreAuthorizedCode(
-      resolvedCredentialOffer,
-      {
-        credentialBindingResolver: async ({
-          supportedDidMethods,
-          keyType,
-          supportsAllDidMethods,
-          // supportsJwk now also passed
-          supportsJwk,
-          credentialFormat,
-        }: {
-          supportedDidMethods: any,
-          keyType: any,
-          supportsAllDidMethods: any,
-          // supportsJwk now also passed
-          supportsJwk: any,
-          credentialFormat: any,
-        }) => {
-          // NOTE: example implementation. Adjust based on your needs
-          // Return the binding to the credential that should be used. Either did or jwk is supported
-
-          if (supportsAllDidMethods || supportedDidMethods?.includes('did:key')) {
-            const didResult = await agent.dids.create<JwkDidCreateOptions>({
-              method: 'jwk',
-              options: {
-                keyType,
-              },
-            })
-
-            if (didResult.didState.state !== 'finished') {
-              throw new Error('DID creation failed.')
-            }
-
-            const did = didResult.didState.did
-
-            return {
-              method: 'did',
-              didUrl: `${did}#0`,
-            }
-          }
-
-          // we also support plain jwk for sd-jwt only
-          if (supportsJwk && credentialFormat === OpenId4VciCredentialFormatProfile.SdJwtVc) {
-            const key = await agent.wallet.createKey({
-              keyType,
-            })
-
-            // you now need to return an object instead of VerificationMethod instance
-            // and method 'did' or 'jwk'
-            return {
-              method: 'jwk',
-              jwk: getJwkFromKey(key),
-            }
-          }
-
-          throw new Error('Unable to create a key binding')
-        },
-      }
-    )
-
-    console.log('Received credentials', JSON.stringify(credentials, null, 2))
-
-    // Store the received credentials
-    const records: Array<W3cCredentialRecord | SdJwtVcRecord> = []
-    for (const credential of credentials) {
-      if ('compact' in credential) {
-        const record = await agent.sdJwtVc.store(credential.compact)
-        records.push(record)
-      } else {
-        const record = await agent.w3cCredentials.storeCredential({
-          credential,
-        })
-        records.push(record)
-      }
-    }
-  }
-)
-
-proxy.rpc.addMethod(
-  'openid4vci.acceptAuthorizationRequest',
-  async ({request}: {request: string}) => {
-    const agent = getAgent()
-    const resolvedAuthorizationRequest = await agent.modules.openId4VcHolderModule.resolveSiopAuthorizationRequest(
-      request
-    )
-    console.log(
-      'Resolved credentials for request',
-      JSON.stringify(resolvedAuthorizationRequest.presentationExchange.credentialsForRequest, null, 2)
-    )
-
-    const presentationExchangeService = agent.dependencyManager.resolve(DifPresentationExchangeService)
-    // Automatically select credentials. In a wallet you could manually choose which credentials to return based on the "resolvedAuthorizationRequest.presentationExchange.credentialsForRequest" value
-    const selectedCredentials = presentationExchangeService.selectCredentialsForRequest(
-      resolvedAuthorizationRequest.presentationExchange.credentialsForRequest
-    )
-
-    // issuer only supports pre-authorized flow for now
-    const authorizationResponse = await agent.modules.openId4VcHolderModule.acceptSiopAuthorizationRequest({
-      authorizationRequest: resolvedAuthorizationRequest.authorizationRequest,
-      presentationExchange: {
-        credentials: selectedCredentials,
-      },
-    })
-    console.log('Submitted authorization response', JSON.stringify(authorizationResponse.submittedResponse, null, 2))
-  }
-)
-
-proxy.start();
+startServer().catch(logger.error);

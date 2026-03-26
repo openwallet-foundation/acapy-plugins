@@ -7,6 +7,8 @@ from oid4vc.models.exchange import OID4VCIExchangeRecord
 from oid4vc.models.supported_cred import SupportedCredential
 from oid4vc.public_routes import PopResult
 
+_EXCHANGE_ID = "11111111-2222-3333-4444-555555555555"
+
 
 @pytest.fixture
 def body():
@@ -33,6 +35,7 @@ def supported():
 @pytest.fixture
 def ex_record():
     yield OID4VCIExchangeRecord(
+        exchange_id=_EXCHANGE_ID,
         state=OID4VCIExchangeRecord.STATE_OFFER_CREATED,
         verification_method="did:example:123#key-1",
         issuer_id="did:example:123",
@@ -57,8 +60,9 @@ def pop():
 
 
 @pytest.fixture
-def context():
+async def context():
     """Test AdminRequestContext."""
-    context = AdminRequestContext.test_context({}, MagicMock())
-    context.inject_or = MagicMock(return_value=None)
-    yield context
+    from acapy_agent.utils.testing import create_test_profile
+
+    profile = await create_test_profile()
+    yield AdminRequestContext(profile)

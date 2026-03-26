@@ -1,0 +1,90 @@
+# Multi-stage build for the OIDF Conformance Suite.
+#
+# Stage 1 (builder): clones the GitLab repo and builds the fat JAR with Maven.
+# Stage 2 (server):  runs the JAR with Eclipse Temurin 17 JRE.
+#
+# Build args:
+#   CONFORMANCE_SUITE_REPO   — git repository URL (default: official GitLab)
+#   CONFORMANCE_SUITE_BRANCH — branch / tag to build (default: main)
+#
+# The resulting image is used by the `conformance-server` service in the
+# docker-compose `conformance` profile.
+
+ARG CONFORMANCE_SUITE_REPO=https://gitlab.com/openid/conformance-suite.git
+ARG CONFORMANCE_SUITE_BRANCH=master
+
+# ── Stage 1: builder ──────────────────────────────────────────────────────────
+# eclipse-temurin-17 (no alpine) has arm64 + amd64 manifests.
+FROM maven:3.9-eclipse-temurin-17 AS builder
+
+ARG CONFORMANCE_SUITE_REPO
+ARG CONFORMANCE_SUITE_BRANCH
+
+RUN apt-get update && apt-get install -y --no-install-recommends \
+        git \
+    && rm -rf /var/lib/apt/lists/*
+
+WORKDIR /build
+
+# Shallow clone at the requested branch/tag
+RUN git clone --depth=1 \
+        --branch "${CONFORMANCE_SUITE_BRANCH}" \
+        "${CONFORMANCE_SUITE_REPO}" .
+
+# Download dependencies in a separate layer for better cache reuse
+RUN mvn dependency:go-offline \
+        --batch-mode \
+        --no-transfer-progress \
+        -q || true
+
+# Build; skip tests for speed, skip spring-boot:repackage if a plain package runs
+RUN mvn clean package \
+        -DskipTests \
+        --batch-mode \
+        --no-transfer-progress
+
+# Locate the fat JAR — Spring Boot repackage replaces the artifact in-place,
+# so the final file is simply fapi-test-suite.jar (no version suffix).
+RUN cp /build/target/fapi-test-suite.jar /server.jar
+
+# ── Stage 2: runtime ──────────────────────────────────────────────────────────
+FROM eclipse-temurin:17-jre-jammy
+
+# Add curl for health checks
+RUN apt-get update && apt-get install -y --no-install-recommends \
+        curl \
+    && rm -rf /var/lib/apt/lists/*
+
+WORKDIR /server
+
+COPY --from=builder /server.jar /server/fapi-test-suite.jar
+
+# Generate a self-signed TLS certificate so the conformance suite can run over
+# HTTPS (the suite enforces HTTPS and rejects all plain-HTTP requests).
+# The keystore is embedded in the image; override at run-time by bind-mounting a
+# real cert and passing --server.ssl.key-store=file:/path/to/keystore.p12.
+RUN keytool -genkeypair \
+        -alias conformance \
+        -keyalg RSA -keysize 2048 \
+        -validity 3650 \
+        -keystore /server/keystore.p12 \
+        -storetype PKCS12 \
+        -storepass changeit \
+        -dname "CN=conformance-server,OU=Dev,O=Local,L=Local,S=Local,C=US" \
+        -noprompt
+
+# Expose the Spring Boot HTTPS port
+EXPOSE 8443
+
+# Override individual flags via environment or docker-compose `command:`
+ENV SPRING_DATA_MONGODB_URI=mongodb://conformance-mongodb:27017/oidf_conformance
+ENV FINTECHLABS_BASE_URL=https://conformance-server:8443
+ENV FINTECHLABS_DEVMODE=true
+
+CMD ["java", "-jar", "/server/fapi-test-suite.jar", \
+     "--server.port=8443", \
+     "--server.ssl.key-store=/server/keystore.p12", \
+     "--server.ssl.key-store-password=changeit", \
+     "--server.ssl.key-store-type=PKCS12", \
+     "--fintechlabs.devmode=true", \
+     "--fintechlabs.startredir=true"]

@@ -1,0 +1,8 @@
+# Cloned conformance suite (populated by setup.sh)
+suite/
+
+# Build artifacts
+*.jar
+
+# Downloaded Maven dependencies
+m2/

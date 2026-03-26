@@ -1,35 +1,98 @@
-[tool.poetry]
-name = "oid4vci-client"
+[project]
+name = "oid4vc-integration-tests"
 version = "0.1.0"
-description = "Minimal OpenID4VCI Client"
-authors = ["Daniel Bluhm <dbluhm@pm.me>"]
-license = "Apache-2.0"
+description = "OID4VC Integration Tests"
+authors = [
+    {name = "Adam Burdett", email = "burdettadam@gmail.com"},
+    {name = "Daniel Bluhm", email = "dbluhm@pm.me"}
+]
 readme = "README.md"
-package-mode = false
+requires-python = ">=3.12,<3.13"
+dependencies = [
+    "pytest>=8.4.2",
+    "pytest-asyncio>=1.2.0",
+    "pytest-html>=4.1.1",
+    "pytest-xdist>=3.6.0",
+    "httpx>=0.28.1",
+    "aiohttp>=3.9.5",
+    "aries-askar>=0.4.3",
+    "pydantic>=2.7.0",
+    "requests>=2.32.0",
+    "did-peer-4>=0.1.4",
+    "jsonrpc-api-proxy-client @ git+https://github.com/Indicio-tech/json-rpc-api-proxy.git@main#subdirectory=clients/python",
+    "cryptography>=46.0.3",
+    "cbor2>=5.4.3",
+    # mso_mdoc dependencies
+    "cwt>=1.6.0",
+    "pycose>=1.0.0",
+    # sd_jwt dependencies
+    "jsonpointer>=3.0.0,<4.0.0",
+    # isomdl-uniffi from GitHub releases (pre-built wheels)
+    "isomdl-uniffi @ https://github.com/Indicio-tech/isomdl-uniffi/releases/download/v0.1.0-test12/isomdl_uniffi-0.1.0-py3-none-manylinux_2_17_x86_64.manylinux2014_x86_64.whl ; sys_platform == 'linux'",
+    "acapy-agent>=1.4.0",
+    "Appium-Python-Client>=4.0.0",
+    "bitarray>=2.9.2",
+]
 
-[tool.poetry.dependencies]
-python = "^3.13"
-pytest = "^8.3.5"
-pytest-asyncio = "^1.2.0"
-requests = "^2.32.0"
-aries-askar = "^0.5.0"
-did-peer-4 = "^0.1.4"
-aiohttp = "^3.13.3"
-acapy-controller = {git = "https://github.com/indicio-tech/acapy-minimal-example.git", python = ">=3.10,<4.0"}
-jsonrpc-api-proxy-client = {git = "https://github.com/Indicio-tech/json-rpc-api-proxy.git", rev = "main", subdirectory = "clients/python"}
-pydantic = "~2.12.5"
+[tool.hatch.build.targets.wheel]
+packages = ["tests", "acapy_controller.py"]
 
-[tool.poetry.group.dev.dependencies]
-black = "^24.4.2"
-ruff = "^0.15.4"
+[tool.hatch.metadata]
+allow-direct-references = true
+
+[tool.uv]
+dev-dependencies = [
+    "acapy-controller>=0.3.0",
+    "black>=24.4.2",
+    "httpx>=0.28.1",
+    "pytest>=8.4.2",
+    "pytest-asyncio>=1.2.0",
+    "ruff>=0.11.4",
+]
 
 [tool.pytest.ini_options]
-addopts = "-m 'not interop'"
-markers = """
-interop: interop testing
-"""
+addopts = [
+    "-v", 
+    "--tb=short", 
+    "--durations=10",
+    "--strict-markers",
+    "--strict-config",
+]
+markers = [
+    "unit: Unit tests",
+    "integration: Integration testing",
+    "interop: Interoperability testing",
+    "connectivity: Basic connectivity tests",
+    "flow: End-to-end flow tests",
+    "credo: Credo client tests",
+    "acapy: ACA-Py tests",
+    "mdoc: mso_mdoc credential tests",
+    "sdjwt: SD-JWT credential tests",
+    "slow: Tests that take longer to run",
+    "requires_credo: Tests that require Credo agent",
+    "requires_acapy: Tests that require ACA-Py agents",
+    "negative: Negative and error handling tests",
+    "trust: Trust anchor and certificate chain validation tests",
+    "conformance: OpenID Foundation conformance suite tests",
+]
+testpaths = ["tests"]
+asyncio_mode = "auto"
+asyncio_default_fixture_loop_scope = "session"
+asyncio_default_test_loop_scope = "session"
+filterwarnings = [
+    "ignore::DeprecationWarning",
+    "ignore::PendingDeprecationWarning",
+]
+
+[tool.ruff]
+line-length = 88
+target-version = "py312"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "N", "W", "UP"]
+ignore = ["E501"]
 
 [build-system]
-requires = ["poetry-core>=2.1"]
-build-backend = "poetry.core.masonry.api"
+requires = ["hatchling"]
+build-backend = "hatchling.build"
 

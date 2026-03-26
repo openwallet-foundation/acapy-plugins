@@ -76,6 +76,15 @@ jobs:
             cd ..
           done
       #----------------------------------------------
+      #       Install isomdl-uniffi (for oid4vc mso_mdoc support)
+      #----------------------------------------------
+      - name: Install isomdl-uniffi
+        if: contains(steps.changed-plugins.outputs.changed-plugins, 'oid4vc')
+        run: |
+          cd oid4vc
+          poetry run pip install --force-reinstall https://github.com/Indicio-tech/isomdl-uniffi/releases/download/v0.1.0-test12/isomdl_uniffi-0.1.0-py3-none-manylinux_2_17_x86_64.manylinux2014_x86_64.whl
+          cd ..
+      #----------------------------------------------
       #       Lint plugins
       #----------------------------------------------
       - name: Lint plugins
@@ -99,4 +108,99 @@ jobs:
             cd $dir
             poetry run pytest
             cd ..
+          done
+  integration-tests:
+    name: "Integration tests"
+    runs-on: ubuntu-latest
+    needs: linting-and-unit-tests
+    if: needs.linting-and-unit-tests.result == 'success'
+    steps:
+      #----------------------------------------------
+      #       Check out repo
+      #----------------------------------------------
+      - name: Check out repository
+        uses: actions/checkout@v6
+      #----------------------------------------------
+      #       Get changed files
+      #----------------------------------------------
+      - name: Get changed files
+        id: changed-files
+        uses: tj-actions/changed-files@v47.0.0
+      #----------------------------------------------
+      #       Get changed plugins
+      #----------------------------------------------
+      - name: Get changed plugins
+        id: changed-plugins
+        run: |
+          # Collects all the plugin names that have changes
+          declare -a changed_dirs=()
+          for dir in ./*/; do
+            current_folder=$(basename "$dir")
+            if [[ $current_folder == "plugin_globals" ]]; then
+              continue
+            fi
+            for changed_file in ${{ steps.changed-files.outputs.all_changed_files }}; do
+              if [[ $changed_file == *"$current_folder"* ]]; then
+                if ! [[ ${changed_dirs[*]} =~ $current_folder ]]; then
+                  changed_dirs+=("$current_folder")
+                fi
+              fi
+            done
+          done
+
+          echo "changed-plugins=${changed_dirs[*]}" >> $GITHUB_OUTPUT
+      #----------------------------------------------
+      #       Initialize Docker Compose
+      #----------------------------------------------
+      - name: Initialize Docker Compose
+        uses: isbang/compose-action@v1.5.1
+      #----------------------------------------------
+      #       Run Integration Tests
+      #----------------------------------------------
+      - name: Run Integration Tests
+        id: integration-tests
+        shell: bash
+        env:
+          DOCKER_PLATFORM: linux/amd64
+        run: |
+          for dir in ${{ steps.changed-plugins.outputs.changed-plugins }}; do
+            # Check if integration directory exists
+            if [[ ! -d "$dir/integration" ]]; then
+              echo "⏭️  Skipping integration tests for $dir (no integration directory)"
+              continue
+            fi
+
+            echo "🔧 Running integration tests for $dir"
+            cd "$dir/integration"
+
+            # Source init-network.sh if it exists
+            if [ -f ./init-network.sh ]; then
+              echo "📡 Sourcing init-network.sh"
+              . ./init-network.sh
+            fi
+
+            # Skip if no test-river service (plugin uses a different service name)
+            if ! docker compose config --services 2>/dev/null | grep -q "^test-river$"; then
+              echo "⏭️  No test-river service in $dir/integration, skipping"
+              cd ../..
+              continue
+            fi
+
+            docker compose build test-river
+
+            # Run tests
+            if ! docker compose up --exit-code-from test-river test-river; then
+              echo "❌ Tests failed for $dir - dumping logs:"
+              docker compose logs test-river
+              echo "--- ACA-Py Issuer Logs ---"
+              docker compose logs acapy-issuer 2>/dev/null || true
+              echo "--- ACA-Py Verifier Logs ---"
+              docker compose logs acapy-verifier 2>/dev/null || true
+              docker compose down --remove-orphans
+              exit 1
+            fi
+
+            echo "✅ Tests passed for $dir"
+            docker compose down --remove-orphans
+            cd ../..
           done
