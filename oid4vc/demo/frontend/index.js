@@ -600,7 +600,7 @@ async function issue_mdoc_credential(req, res) {
       id: "org.iso.18013.5.1.mDL",
       doctype: "org.iso.18013.5.1.mDL",
       cryptographic_binding_methods_supported: ["jwk"],
-      cryptographic_signing_algorithms_supported: [
+      credential_signing_alg_values_supported: [
         "-7",
         "-8"
       ],
