@@ -83,6 +83,8 @@ let jwtStatusListCreated = false;
 let jwtVcSupportedCredID = "";
 let sdJwtSupportedCredID = "";
 let mdocSupportedCredID = "";
+let jwtStatusListID = "";
+let sdJwtStatusListID = "";
 
 
 //    ###     ######     ###            ########  ##    ##
@@ -224,8 +226,8 @@ async function issue_jwt_credential(req, res) {
     events.emit(`issuance-${req.body.registrationId}`, {type: "message", message: `Posting Create Status List Request to: ${statusListCreateUrl}`});
     events.emit(`issuance-${req.body.registrationId}`, {type: "debug-message", message: "Request options", data: statusListCreateOptions});
     const statusListResponse = await fetchApiData(statusListCreateUrl, statusListCreateOptions);
-    const { id } = statusListResponse;
-    events.emit(`issuance-${req.body.registrationId}`, {type: "message", message: `Created Status List ID: ${id}`});
+    jwtStatusListID = statusListResponse.id;
+    events.emit(`issuance-${req.body.registrationId}`, {type: "message", message: `Created Status List ID: ${jwtStatusListID}`});
     jwtStatusListCreated = true;
   };
 
@@ -482,13 +484,14 @@ async function issue_sdjwt_credential(req, res) {
     events.emit(`issuance-${req.body.registrationId}`, {type: "message", message: `Posting Create Status List Request to: ${statusListCreateUrl}`});
     events.emit(`issuance-${req.body.registrationId}`, {type: "debug-message", message: "Request options", data: statusListCreateOptions});
     const statusListResponse = await fetchApiData(statusListCreateUrl, statusListCreateOptions);
-    const { id } = statusListResponse;
-    events.emit(`issuance-${req.body.registrationId}`, {type: "message", message: `Created Status List ID: ${id}`});
+    sdJwtStatusListID = statusListResponse.id;
+    events.emit(`issuance-${req.body.registrationId}`, {type: "message", message: `Created Status List ID: ${sdJwtStatusListID}`});
     sdJwtStatusListCreated = true;
   };
 
-  // Create Credential Exchange records
-  const exchangeCreateUrl = `${API_BASE_URL}/oid4vci/exchange/create`;
+  const isRefresh = req.body['is-refresh'] === 'on';
+  const refreshId = req.body['refresh-id'];
+
   const exchangeCreateOptions = {
     did: issuerDID,
     verification_method: issuerDID+"#0",
@@ -506,50 +509,65 @@ async function issue_sdjwt_credential(req, res) {
       age_is_over_65: false,
     },
   };
-  events.emit(`issuance-${req.body.registrationId}`, {type: "message", message: "Generating Credential Exchange."});
-  events.emit(`issuance-${req.body.registrationId}`, {type: "message", message: `Posting Credential Exchange Creation Request to: ${exchangeCreateUrl}`});
-  events.emit(`issuance-${req.body.registrationId}`, {type: "debug-message", message: "Request options", data: exchangeCreateOptions});
-  const exchangeResponse = await axios.post(exchangeCreateUrl, exchangeCreateOptions);
-  const exchangeId = exchangeResponse.data.exchange_id;
+  
+  let exchangeId;
+  if (isRefresh) {
+    const refreshUrl = `${API_BASE_URL}/oid4vci/credential-refresh/${refreshId}`;
+    events.emit(`issuance-${req.body.registrationId}`, {type: "message", message: `Posting Credential Refresh Request to: ${refreshUrl}`});
+    events.emit(`issuance-${req.body.registrationId}`, {type: "debug-message", message: "Request options", data: exchangeCreateOptions});
+    const exchangeResponse = await axios.patch(refreshUrl, exchangeCreateOptions);
+    exchangeId = exchangeResponse.data.exchange_id;
+  } else {
+    const exchangeCreateUrl = `${API_BASE_URL}/oid4vci/exchange/create`;
+    events.emit(`issuance-${req.body.registrationId}`, {type: "message", message: "Generating Credential Exchange."});
+    events.emit(`issuance-${req.body.registrationId}`, {type: "message", message: `Posting Credential Exchange Creation Request to: ${exchangeCreateUrl}`});
+    events.emit(`issuance-${req.body.registrationId}`, {type: "debug-message", message: "Request options", data: exchangeCreateOptions});
+    const exchangeResponse = await axios.post(exchangeCreateUrl, exchangeCreateOptions);
+    exchangeId = exchangeResponse.data.exchange_id;
+  }
   events.emit(`issuance-${req.body.registrationId}`, {type: "message", message: `Received Credential Exchange ID: ${exchangeId}`});
 
 
-  // Get Credential Offer information
-  const credentialOfferUrl = `${API_BASE_URL}/oid4vci/credential-offer`;
-  const queryParams = {
-    user_pin_required: false,
-    exchange_id: exchangeId,
-  };
-  const credentialOfferOptions = {
-    params: queryParams,
-    headers: headers,
-  };
-  events.emit(`issuance-${req.body.registrationId}`, {type: "message", message: "Requesting Credential Offer."});
-  events.emit(`issuance-${req.body.registrationId}`, {type: "message", message: `Retrieving Credential Offer from: ${credentialOfferUrl}`});
-  events.emit(`issuance-${req.body.registrationId}`, {type: "debug-message", message: "Request options", data: credentialOfferOptions});
-  const offerResponse = await axios.get(credentialOfferUrl, credentialOfferOptions);
-  const credentialOffer = offerResponse.data;
+  if (!isRefresh) {
+    // Get Credential Offer information
+    const credentialOfferUrl = `${API_BASE_URL}/oid4vci/credential-offer`;
+    const queryParams = {
+      user_pin_required: false,
+      exchange_id: exchangeId,
+    };
+    const credentialOfferOptions = {
+      params: queryParams,
+      headers: headers,
+    };
+    events.emit(`issuance-${req.body.registrationId}`, {type: "message", message: "Requesting Credential Offer."});
+    events.emit(`issuance-${req.body.registrationId}`, {type: "message", message: `Retrieving Credential Offer from: ${credentialOfferUrl}`});
+    events.emit(`issuance-${req.body.registrationId}`, {type: "debug-message", message: "Request options", data: credentialOfferOptions});
+    const offerResponse = await axios.get(credentialOfferUrl, credentialOfferOptions);
+    const credentialOffer = offerResponse.data;
 
-  // Generate QRCode and send it to the browser via HTMX events
-  logger.info(JSON.stringify(offerResponse.data));
-  logger.info(exchangeId);
+    // Generate QRCode and send it to the browser via HTMX events
+    logger.info(JSON.stringify(offerResponse.data));
+    logger.info(exchangeId);
 
-  let qrcode;
-  if (credentialOffer.hasOwnProperty("credential_offer")) {
-    // credential offer is passed by value
-    qrcode = credentialOffer.credential_offer
+    let qrcode;
+    if (credentialOffer.hasOwnProperty("credential_offer")) {
+      // credential offer is passed by value
+      qrcode = credentialOffer.credential_offer
+    } else {
+      // credential offer is passed by reference, and the wallet must dereference it using the
+      // /oid4vci/dereference-credential-offer endpoint
+      qrcode = credentialOffer.credential_offer_uri
+    }
+
+    events.emit(`issuance-${req.body.registrationId}`, {type: "message", message: `Sending offer to user: ${qrcode}`});
+    events.emit(`issuance-${req.body.registrationId}`, {type: "qrcode", credentialOffer, exchangeId, qrcode});
+    exchangeCache.set(exchangeId, { exchangeId, credentialOffer, issuerDID, sdJwtSupportedCredID, registrationId: req.body.registrationId });
+
+    // Polling for the credential is an option at this stage, but we opt to just listen for the appropriate webhook instead
+    events.emit(`issuance-${req.body.registrationId}`, {type: "message", message: "Begin listening for credential to be issued."});
   } else {
-    // credential offer is passed by reference, and the wallet must dereference it using the
-    // /oid4vci/dereference-credential-offer endpoint
-    qrcode = credentialOffer.credential_offer_uri
+    events.emit(`issuance-${req.body.registrationId}`, {type: "message", message: "Credential Refresh API call was successful."});
   }
-
-  events.emit(`issuance-${req.body.registrationId}`, {type: "message", message: `Sending offer to user: ${qrcode}`});
-  events.emit(`issuance-${req.body.registrationId}`, {type: "qrcode", credentialOffer, exchangeId, qrcode});
-  exchangeCache.set(exchangeId, { exchangeId, credentialOffer, issuerDID, sdJwtSupportedCredID, registrationId: req.body.registrationId });
-
-  // Polling for the credential is an option at this stage, but we opt to just listen for the appropriate webhook instead
-  events.emit(`issuance-${req.body.registrationId}`, {type: "message", message: "Begin listening for credential to be issued."});
 }
 
 // Begin Issue mDL (mso_mdoc) Credential Flow
@@ -1333,6 +1351,91 @@ await initializeIssuerMetadata();
 await initializeSigningDid();
 
 
+
+// Credential Info route
+app.get("/credential-info", async (req, res, next) => {
+  try {
+    const recordsUrl = `${API_BASE_URL}/oid4vci/exchange/records`;
+    const commonHeaders = {
+      accept: "application/json",
+      "Content-Type": "application/json",
+      "Authorization": "Bearer " + token.token,
+    };
+    if (API_KEY) {
+      commonHeaders["X-API-KEY"] = API_KEY;
+    }
+
+    const response = await fetch(recordsUrl, {
+      method: "GET",
+      headers: commonHeaders
+    });
+    
+    if (response.ok) {
+      const records = await response.json();
+      res.render("credential-info", { "page": "credential-info", records: JSON.stringify(records, null, 2) });
+    } else {
+      const respData = await response.text();
+      res.status(response.status).send(`<div class="w3-panel w3-pale-red w3-border"><p>Failed to fetch records: ${respData}</p></div>`);
+    }
+  } catch (err) {
+    next(err);
+  }
+});
+
+// Update Status routes
+app.get("/update-status", (req, res) => {
+  res.render("update-status-form", {"page": "update-status"});
+});
+app.get("/update-status/select", (req, res) => {
+  res.render(`update-status-fields`, {"page": "update-status"});
+});
+app.post("/update-status", async (req, res, next) => {
+  try {
+    const credType = req.body["credential-type"];
+    const credId = req.body["credential-id"];
+    
+    let defId = "";
+    if (credType === "jwt") {
+      defId = jwtStatusListID;
+    } else if (credType === "sdjwt") {
+      defId = sdJwtStatusListID;
+    } else {
+      return res.status(400).send("Invalid credential type for status update.");
+    }
+    
+    if (!defId) {
+      return res.status(400).send("Status list for this credential type has not been created yet.");
+    }
+
+    const updateUrl = `${API_BASE_URL}/status-list/defs/${defId}/creds/${credId}`;
+    const commonHeaders = {
+      accept: "application/json",
+      "Content-Type": "application/json",
+      "Authorization": "Bearer " + token.token,
+    };
+    if (API_KEY) {
+      commonHeaders["X-API-KEY"] = API_KEY;
+    }
+
+    const response = await fetch(updateUrl, {
+      method: "PATCH",
+      headers: commonHeaders,
+      body: JSON.stringify({ status: "1" })
+    });
+    
+    const respData = await response.text();
+    
+    if (respData.includes("StatusListCred record not found")) {
+      res.send(`<div class="w3-panel w3-pale-red w3-border"><p>${respData}</p></div>`);
+    } else if (response.ok) {
+      res.send(`<div class="w3-panel w3-pale-green w3-border"><p>Status successfully updated for Credential Exchange ID: ${credId}</p></div>`);
+    } else {
+      res.status(response.status).send(`<div class="w3-panel w3-pale-red w3-border"><p>Failed to update status: ${respData}</p></div>`);
+    }
+  } catch (err) {
+    next(err);
+  }
+});
 
 // Render Credential Issuance form
 app.get("/issue", (req, res) => {
