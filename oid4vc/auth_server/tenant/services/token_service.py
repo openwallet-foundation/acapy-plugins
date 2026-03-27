@@ -29,6 +29,23 @@ def _coerce_authorization_details(value: Any) -> list[dict[str, Any]]:
     return []
 
 
+def _coerce_amr(value: Any) -> list[str]:
+    """Return amr as a list of non-empty strings."""
+    if isinstance(value, str):
+        return [value] if value else []
+    if isinstance(value, list):
+        return [item for item in value if isinstance(item, str) and item]
+    return []
+
+
+def _merge_amr(existing: Any, value: str) -> list[str]:
+    """Return unique AMR values preserving order."""
+    amr_values = _coerce_amr(existing)
+    if value not in amr_values:
+        amr_values.append(value)
+    return amr_values
+
+
 class TokenService:
     """Issue/rotate tokens via remote signer, using tenant DB only."""
 
@@ -39,6 +56,7 @@ class TokenService:
         code: str,
         realm: str,
         tx_code: str | None = None,
+        attestation: dict[str, Any] | None = None,
     ):
         """Issue access+refresh from a pre-auth code."""
         grant_repo = GrantRepository(db)
@@ -85,6 +103,9 @@ class TokenService:
             c_nonce_expires_in = settings.ACCESS_TOKEN_TTL
             response_meta["c_nonce"] = c_nonce
             response_meta["c_nonce_expires_in"] = c_nonce_expires_in
+        if isinstance(attestation, dict):
+            response_meta["attestation"] = attestation
+            response_meta["amr"] = _merge_amr(response_meta.get("amr"), "att-pop")
 
         sign_res = await remote_sign_jwt(
             uid=uid,
@@ -119,6 +140,7 @@ class TokenService:
         uid: str,
         refresh_token_value: str,
         realm: str,
+        attestation: dict[str, Any] | None = None,
     ):
         """Rotate tokens using a refresh token."""
         access_repo = AccessTokenRepository(db)
@@ -162,6 +184,24 @@ class TokenService:
             c_nonce_expires_in = settings.ACCESS_TOKEN_TTL
             response_meta["c_nonce"] = c_nonce
             response_meta["c_nonce_expires_in"] = c_nonce_expires_in
+
+        effective_attestation = None
+        if isinstance(attestation, dict):
+            effective_attestation = attestation
+        elif isinstance(prev_meta, dict) and isinstance(
+            prev_meta.get("attestation"), dict
+        ):
+            effective_attestation = prev_meta.get("attestation")
+        if isinstance(effective_attestation, dict):
+            response_meta["attestation"] = effective_attestation
+
+        amr_values = (
+            _coerce_amr(prev_meta.get("amr")) if isinstance(prev_meta, dict) else []
+        )
+        if isinstance(effective_attestation, dict):
+            amr_values = _merge_amr(amr_values, "att-pop")
+        if amr_values:
+            response_meta["amr"] = amr_values
 
         sign_res = await remote_sign_jwt(
             uid=uid,

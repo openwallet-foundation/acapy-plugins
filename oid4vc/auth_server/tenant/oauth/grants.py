@@ -8,7 +8,9 @@ from authlib.oauth2.rfc6749.errors import InvalidRequestError
 from starlette.requests import Request
 
 from core.consts import OAuth2Flow, OAuth2GrantType
+from tenant.config import settings
 from tenant.oauth.integration.context import get_context, update_context
+from tenant.services.attestation_service import validate_client_attestation
 
 
 class _BaseTenantGrant(grants.BaseGrant):
@@ -28,6 +30,7 @@ class PreAuthorizedCodeGrant(_BaseTenantGrant):
 
     _code: str | None = None
     _tx_code: str | None = None
+    _attestation_meta: dict[str, Any] | None = None
 
     async def validate_token_request(self):  # type: ignore[override]
         """Validate pre-authorized_code request."""
@@ -38,6 +41,14 @@ class PreAuthorizedCodeGrant(_BaseTenantGrant):
             raise InvalidRequestError(description="missing pre-authorized_code")
         self._code = str(code)
         self._tx_code = data.get("tx_code") or None
+        client_attestation = data.get("client_attestation") or None
+        headers = getattr(self.request, "headers", {}) or {}
+        dpop_proof = headers.get("DPoP") or headers.get("dpop")
+        self._attestation_meta = validate_client_attestation(
+            client_attestation=client_attestation,
+            dpop_proof=dpop_proof,
+            attestation_required=settings.ATTESTATION_REQUIRED_PRE_AUTH,
+        )
 
     async def create_token_response(self):  # type: ignore[override]
         """Create token response for pre-authorized_code."""
@@ -65,6 +76,7 @@ class PreAuthorizedCodeGrant(_BaseTenantGrant):
                 "uid": uid,
                 "code": self._code or "",
                 "tx_code": self._tx_code,
+                "attestation": self._attestation_meta,
                 "realm": uid,
             },
         )
@@ -88,6 +100,7 @@ class RotatingRefreshTokenGrant(_BaseTenantGrant):
     """Refresh token grant with rotation."""
 
     _refresh_token: str | None = None
+    _attestation_meta: dict[str, Any] | None = None
 
     async def validate_token_request(self):  # type: ignore[override]
         """Validate refresh_token request."""
@@ -97,6 +110,14 @@ class RotatingRefreshTokenGrant(_BaseTenantGrant):
         if not refresh_token:
             raise InvalidRequestError(description="missing refresh_token")
         self._refresh_token = str(refresh_token)
+        client_attestation = data.get("client_attestation") or None
+        headers = getattr(self.request, "headers", {}) or {}
+        dpop_proof = headers.get("DPoP") or headers.get("dpop")
+        self._attestation_meta = validate_client_attestation(
+            client_attestation=client_attestation,
+            dpop_proof=dpop_proof,
+            attestation_required=settings.ATTESTATION_REQUIRED_REFRESH,
+        )
 
     async def create_token_response(self):  # type: ignore[override]
         """Create token response for refresh_token."""
@@ -123,6 +144,7 @@ class RotatingRefreshTokenGrant(_BaseTenantGrant):
                 "flow": OAuth2Flow.REFRESH_TOKEN,
                 "uid": uid,
                 "refresh_token": self._refresh_token or "",
+                "attestation": self._attestation_meta,
                 "realm": uid,
             },
         )

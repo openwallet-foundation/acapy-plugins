@@ -22,6 +22,14 @@ class Settings(BaseSettings):
     INCLUDE_NONCE: bool = False
     NONCE_BYTES: int = 16
 
+    ATTESTATION_REQUIRED_PRE_AUTH: bool = False
+    ATTESTATION_REQUIRED_REFRESH: bool = False
+    ATTESTATION_TRUST_POLICY: str = "auto_trust"
+    ATTESTATION_ALLOW_LIST: list[str] = []
+    ATTESTATION_DENY_LIST: list[str] = []
+    ATTESTATION_BIND_DPOP_JKT: bool = False
+    ATTESTATION_CLOCK_SKEW_SECONDS: int = 60
+
     DB_DRIVER_ASYNC: str = "postgresql+asyncpg"
     DB_DRIVER_SYNC: str = "postgresql+psycopg"
     DB_HOST: str = "localhost"

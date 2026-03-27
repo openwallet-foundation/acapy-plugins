@@ -41,6 +41,7 @@ def get_authorization_server() -> AuthorizationServer:
             if flow == OAuth2Flow.PRE_AUTH_CODE:
                 code = ctx.get("code") or ""
                 tx_code = ctx.get("tx_code")
+                attestation = ctx.get("attestation")
                 (
                     access_token,
                     refresh_token,
@@ -51,6 +52,7 @@ def get_authorization_server() -> AuthorizationServer:
                     code=code,
                     realm=realm,
                     tx_code=tx_code,
+                    attestation=attestation,
                 )
                 token.update(
                     {
@@ -72,10 +74,15 @@ def get_authorization_server() -> AuthorizationServer:
                     token["c_nonce"] = response_meta["c_nonce"]
                 if response_meta.get("c_nonce_expires_in"):
                     token["c_nonce_expires_in"] = int(response_meta["c_nonce_expires_in"])
+                if response_meta.get("attestation"):
+                    token["attestation"] = response_meta["attestation"]
+                if response_meta.get("amr"):
+                    token["amr"] = response_meta["amr"]
                 return
 
             if flow == OAuth2Flow.REFRESH_TOKEN:
                 refresh_token = ctx.get("refresh_token") or ""
+                attestation = ctx.get("attestation")
                 (
                     new_access,
                     new_refresh_token,
@@ -85,6 +92,7 @@ def get_authorization_server() -> AuthorizationServer:
                     uid=uid,
                     refresh_token_value=refresh_token,
                     realm=realm,
+                    attestation=attestation,
                 )
                 token.update(
                     {
@@ -104,6 +112,10 @@ def get_authorization_server() -> AuthorizationServer:
                     token["c_nonce"] = response_meta["c_nonce"]
                 if response_meta.get("c_nonce_expires_in"):
                     token["c_nonce_expires_in"] = int(response_meta["c_nonce_expires_in"])
+                if response_meta.get("attestation"):
+                    token["attestation"] = response_meta["attestation"]
+                if response_meta.get("amr"):
+                    token["amr"] = response_meta["amr"]
                 return
         except FastAPIHTTPException as e:  # map service errors to OAuth errors
             if e.status_code == 400:
