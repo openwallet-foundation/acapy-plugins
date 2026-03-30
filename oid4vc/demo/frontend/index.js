@@ -133,52 +133,84 @@ async function issue_jwt_credential(req, res) {
     headers: commonHeaders,
     body: JSON.stringify({
       cryptographic_binding_methods_supported: ["did"],
-      cryptographic_suites_supported: ["ES256"],
-      display: [
-        {
-          name: "University Credential",
-          locale: "en-US",
-          logo: {
-            url: "https://w3c-ccg.github.io/vc-ed/plugfest-1-2022/images/JFF_LogoLockup.png",
-            alt_text: "a square logo of a university",
-          },
-          background_color: "#12107c",
-          text_color: "#FFFFFF",
-        },
-      ],
+      credential_signing_alg_values_supported: ["ES256"],
       format: "jwt_vc_json",
-      credentialSubject: {
-        degree: {},
-        given_name: {
-          display: [
-            {
-              name: "Given Name",
-              locale: "en-US",
-            },
-          ],
-        },
-        gpa: {
-          display: [
-            {
-              name: "GPA",
-            },
-          ],
-        },
-        last_name: {
-          display: [
-            {
-              name: "Surname",
-              locale: "en-US",
-            },
-          ],
-        },
-      },
-      type: ["VerifiableCredential", "UniversityDegreeCredential"],
       id: "UniversityDegreeCredential",
-      "@context": [
-        "https://www.w3.org/2018/credentials/v1",
-        "https://www.w3.org/2018/credentials/examples/v1",
-      ]
+      proof_types_supported: {
+        jwt: {
+          proof_signing_alg_values_supported: ["ES256"]
+        }
+      },
+      credential_definition: {
+        "@context": [
+          "https://www.w3.org/2018/credentials/v1",
+          "https://www.w3.org/2018/credentials/examples/v1",
+        ],
+        type: [
+          "VerifiableCredential",
+          "UniversityDegreeCredential"
+        ],
+      },
+      credential_metadata: {
+        display: [
+          {
+            name: "University Credential",
+            locale: "en-US",
+            logo: {
+             url: "https://w3c-ccg.github.io/vc-ed/plugfest-1-2022/images/JFF_LogoLockup.png",
+              alt_text: "a square logo of a university",
+            },
+            background_color: "#12107c",
+            text_color: "#FFFFFF",
+          },
+        ],
+        claims: [
+          {
+             path: [
+              "degree"
+             ],
+             display: [
+                {
+                  name: "Degree",
+                  locale: "en-US",
+                },
+             ],
+          },
+          {
+            path: [
+              "given_name"
+            ],
+            display: [
+              {
+                name: "Given Name",
+                locale: "en-US",
+              },
+            ],
+          },
+          {
+            path: [
+              "gpa"
+            ],
+            display: [
+              {
+                name: "GPA Score",
+                locale: "en-US",
+              },
+            ],
+          },
+          {
+            path: [
+              "last_name"
+            ],
+            display: [
+              {
+                name: "Surname",
+                locale: "en-US",
+              },
+            ],
+          },
+        ],
+      },
     }),
   };
 
@@ -235,6 +267,7 @@ async function issue_jwt_credential(req, res) {
   const exchangeCreateUrl = `${API_BASE_URL}/oid4vci/exchange/create`;
   const exchangeCreateOptions = {
     credential_subject: { id: req.body.registrationId, first_name: firstName, last_name: lastName, email },
+    did: issuerDID,
     verification_method: issuerDID+"#0",
     supported_cred_id: jwtVcSupportedCredID,
   };

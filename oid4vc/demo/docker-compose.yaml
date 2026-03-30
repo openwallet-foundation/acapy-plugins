@@ -27,6 +27,7 @@ services:
       STATUS_LIST_FILE_PATH: /tmp/bitstring/{tenant_id}/{list_number}
     entrypoint: >
       /bin/sh -c '/entrypoint.sh aca-py "$$@"' --
+    # Note: --no-transport should be added to start but currently blocks webhooks - fix in ACA-Py main.
     command: >
       start
         --inbound-transport http 0.0.0.0 3000
@@ -46,6 +47,7 @@ services:
         --log-level DEBUG
         --debug-webhooks
         --plugin oid4vc
+        --plugin jwt_vc_json
         --plugin sd_jwt_vc
         --plugin mso_mdoc
         --plugin status_list.v1_0
@@ -54,6 +56,18 @@ services:
         --jwt-secret insecure
         --log-level INFO
         --multitenancy-config wallet_type=single-wallet-askar key_derivation_method=RAW
+        --block-plugin acapy_agent.anoncreds
+        --block-plugin acapy_agent.ledger
+        --block-plugin acapy_agent.revocation
+        --block-plugin acapy_agent.messaging.schemas
+        --block-plugin acapy_agent.messaging.credential_definitions
+        --block-plugin acapy_agent.revocation_anoncreds
+        --block-plugin acapy_agent.anoncreds.default.did_indy
+        --block-plugin acapy_agent.anoncreds.default.did_web
+        --block-plugin acapy_agent.anoncreds.default.legacy_indy
+        --block-plugin acapy_agent.vc
+        --block-plugin acapy_agent.vc.data_integrity
+        --block-plugin acapy_agent.messaging.jsonld
     healthcheck:
       test: curl -s -o /dev/null -w '%{http_code}' "http://localhost:3001/status/live" | grep "200" > /dev/null
       start_period: 30s
@@ -134,11 +148,11 @@ services:
       ADMIN_APP_VERSION: 0.2.0
       ADMIN_APP_ROOT_PATH: /
       ADMIN_MANAGE_AUTH_TOKEN: $ADMIN_MANAGE_AUTH_TOKEN # Access the admin API with this token
-      ADMIN_INTERNAL_AUTH_TOKEN: admininternaltoken # Admin API request to admin API
+      ADMIN_INTERNAL_AUTH_TOKEN: $ADMIN_INTERNAL_AUTH_TOKEN # Admin API request to admin API
       ADMIN_TENANT_DB_NAME: auth_server_tenant
       ADMIN_TENANT_DB_SCHEMA: auth
       TENANT_ADMIN_INTERNAL_BASE_URL: http://auth-server:9000/internal
-      TENANT_ADMIN_INTERNAL_AUTH_TOKEN: admininternaltoken # TODO BUG must match ADMIN_INTERNAL_AUTH_TOKEN
+      TENANT_ADMIN_INTERNAL_AUTH_TOKEN: $TENANT_ADMIN_INTERNAL_AUTH_TOKEN # TODO BUG must match ADMIN_INTERNAL_AUTH_TOKEN
       TENANT_APP_ROOT_PATH: /
       TENANT_DB_HOST: db
       TENANT_DB_PORT: 5432
@@ -146,7 +160,6 @@ services:
     depends_on:
       db:
         condition: service_healthy
-
     healthcheck:
       test: >
         curl -s -o /dev/null -w '%{http_code}' "http://localhost:9000/healthz" | grep "200" > /dev/null &&
