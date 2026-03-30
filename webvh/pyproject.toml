@@ -18,7 +18,7 @@ acapy-agent = { version = ">=1.5.1,<1.6", optional = true }
 did-webvh = "1.0.0"
 jcs = "^0.2.1"
 multiformats = "^0.3.1.post4"
-bitstring = "^4.3.0"
+bitstring = "^4.4.0"
 aries-askar = "^0.5.0"
 
 [tool.poetry.extras]
