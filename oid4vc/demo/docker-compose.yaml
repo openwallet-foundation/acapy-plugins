@@ -28,7 +28,7 @@ services:
     entrypoint: >
       /bin/sh -c '/entrypoint.sh aca-py "$$@"' --
     # Note: --no-transport should be added to start but currently blocks webhooks - fix in ACA-Py main.
-    # A nice feature would be to common sets or perhaps wildcards to --block-plugin.
+    # A nice feature would be to have common sets to --block-plugin.
     command: >
       start
         --inbound-transport http 0.0.0.0 3000
@@ -76,7 +76,6 @@ services:
         --block-plugin acapy_agent.protocols.actionmenu
         --block-plugin acapy_agent.protocols.basicmessage
         --block-plugin acapy_agent.protocols.coordinate_mediation
-        --block-plugin acapy_agent.protocols.did_rotate
         --block-plugin acapy_agent.protocols.didexchange
         --block-plugin acapy_agent.protocols.discovery
         --block-plugin acapy_agent.protocols.endorse_transaction
@@ -90,9 +89,6 @@ services:
         --block-plugin acapy_agent.protocols.routing
         --block-plugin acapy_agent.protocols.trustping
         --block-plugin acapy_agent.resolver
-        --block-plugin acapy_agent.settings
-        --block-plugin acapy_agent.wallet
-        --block-plugin acapy_agent.wallet.keys
     healthcheck:
       test: curl -s -o /dev/null -w '%{http_code}' "http://localhost:3001/status/live" | grep "200" > /dev/null
       start_period: 30s
@@ -194,7 +190,7 @@ services:
       timeout: 5s
       retries: 5
   db:
-    image: postgres:10
+    image: postgres:17
     environment:
       POSTGRES_PASSWORD: postgres
       POSTGRES_USER: postgres
