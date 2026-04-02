@@ -1,6 +1,7 @@
 """Admin server classes."""
 
 import logging
+from importlib.metadata import version
 
 import aiohttp_cors
 from acapy_agent.admin.base_server import BaseAdminServer
@@ -50,6 +51,7 @@ class Oid4vciServer(BaseAdminServer):
             context: The application context instance
             root_profile: The root profile instance
         """
+        LOGGER.info("Initializing OID4VCI server with host=%s, port=%s", host, port)
         self.app = None
         self.host = host
         self.port = port
@@ -57,6 +59,7 @@ class Oid4vciServer(BaseAdminServer):
         self.profile = root_profile
         self.site = None
         self.multitenant_manager = context.inject_or(BaseMultitenantManager)
+        LOGGER.info("OID4VCI server initialization complete")
 
     async def make_application(self) -> web.Application:
         """Get the aiohttp application instance."""
@@ -145,9 +148,12 @@ class Oid4vciServer(BaseAdminServer):
         for route in app.router.routes():
             cors.add(route)
 
-        # get agent label
-        __version__ = 0  # TODO: get dynamically from config
-        version_string = f"v{__version__}"
+        # Get package version for API documentation
+        try:
+            package_version = version("oid4vc")
+        except Exception:
+            package_version = "0.1.0"  # Fallback if package not installed
+        version_string = f"v{package_version}"
 
         setup_aiohttp_apispec(
             app=app, title="OpenID4VCI", version=version_string, swagger_path="/api/doc"
@@ -166,23 +172,33 @@ class Oid4vciServer(BaseAdminServer):
             AdminSetupError: If there was an error starting the webserver
 
         """
+        LOGGER.info("Starting OID4VCI server on %s:%s", self.host, self.port)
 
         self.app = await self.make_application()
+        LOGGER.info("OID4VCI application created")
         runner = web.AppRunner(self.app)
         await runner.setup()
+        LOGGER.info("OID4VCI runner setup complete")
 
         self.site = web.TCPSite(runner, host=self.host, port=self.port)
+        LOGGER.info("OID4VCI TCP site created for %s:%s", self.host, self.port)
 
         try:
             await self.site.start()
             self.app._state["ready"] = True
             self.app._state["alive"] = True
+            LOGGER.info(
+                "OID4VCI server successfully started on %s:%s", self.host, self.port
+            )
             await AppResources.startup()
-        except OSError:
+        except OSError as e:
+            LOGGER.error(
+                "Failed to start OID4VCI server on %s:%s: %s", self.host, self.port, e
+            )
             raise AdminSetupError(
                 "Unable to start webserver with host "
                 + f"'{self.host}' and port '{self.port}'\n"
-            )
+            ) from e
 
     async def stop(self) -> None:
         """Stop the webserver."""

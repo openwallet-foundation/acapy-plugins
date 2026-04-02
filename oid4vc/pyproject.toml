@@ -30,12 +30,14 @@ aiohttp-cors = "^0.7.0"
 marshmallow = "^3.20.1"
 jsonschema = "^4.23.0"
 jsonpath = "^0.82.2"
-cbor2 = { version = "~5", optional = true }
 cbor-diag = { version = "*", optional = true }
 cwt = { version = "~2", optional = true }
+cryptography = ">=42"
 oscrypto = { git = "https://github.com/wbond/oscrypto.git", rev = "1547f53" }  # Resolves https://github.com/wbond/oscrypto/issues/78
 pycose = { version = "^1.0.1", optional = true }
 jsonpointer = { version = "^3.0.0", optional = true }
+# Note: isomdl-uniffi is installed separately via platform-specific wheels from GitHub releases
+# Do not add it as a poetry dependency - it requires Rust compilation which breaks poetry resolution
 
 # Needed to support the statuslist plugin
 bitarray = "^3.0.0"
@@ -43,10 +45,11 @@ filelock = "^3.18.0"
 
 [tool.poetry.extras]
 aca-py = ["acapy-agent"]
-mso_mdoc = ["cbor2", "cbor-diag", "cwt", "pycose"]
+mso_mdoc = ["cbor-diag", "cwt", "pycose"]
 sd_jwt_vc = ["jsonpointer"]
 
 [tool.poetry.group.dev.dependencies]
+cbor2 = "~5"
 ruff = "^0.15.4"
 pytest = "^8.3.5"
 pytest-asyncio = "^1.2.0"
@@ -64,7 +67,7 @@ anoncreds = { version = "0.2.3" }
 line-length = 90
 
 [tool.ruff.lint]
-select = ["E", "F", "C", "D"]
+select = ["E", "F", "C", "D", "PLC0415"]
 ignore = [
     # Google Python Doc Style
     "D203",
@@ -86,15 +89,15 @@ ignore = [
 ]
 
 [tool.ruff.lint.per-file-ignores]
-"**/{tests}/*" = ["F841", "D", "E501"]
-"**/{demo}/*" = ["F841", "D", "E501"]
+"**/{tests}/*" = ["F841", "D", "E501", "PLC0415"]
+"**/{demo}/*" = ["F841", "D", "E501", "PLC0415"]
 
 [tool.pytest.ini_options]
-testpaths = "oid4vc"
+testpaths = ["jwt_vc_json", "mso_mdoc", "oid4vc", "sd_jwt_vc"]
 addopts = """
     -p no:warnings
     --quiet --junitxml=./.test-reports/junit.xml
-    --cov-config .coveragerc --cov=oid4vc --cov-report term --cov-report xml
+    --cov-config .coveragerc --cov=oid4vc --cov=jwt_vc_json --cov=mso_mdoc --cov=sd_jwt_vc --cov-report term --cov-report xml
 """
 markers = []
 junit_family = "xunit1"

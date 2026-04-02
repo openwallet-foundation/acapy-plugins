@@ -6,6 +6,9 @@ from os import getenv
 from acapy_agent.config.base import BaseSettings
 from acapy_agent.config.settings import Settings
 
+DEFAULT_LIST_SIZE = 131072
+DEFAULT_SHARD_SIZE = 16384
+
 
 class ConfigError(ValueError):
     """Base class for configuration errors."""
@@ -37,10 +40,14 @@ class Config:
         assert isinstance(settings, Settings)
         plugin_settings = settings.for_plugin("status_list")
         list_size = int(
-            plugin_settings.get("list_size") or getenv("STATUS_LIST_SIZE") or "0"
+            plugin_settings.get("list_size")
+            or getenv("STATUS_LIST_SIZE")
+            or DEFAULT_LIST_SIZE
         )
         shard_size = int(
-            plugin_settings.get("shard_size") or getenv("STATUS_LIST_SHARD_SIZE") or "0"
+            plugin_settings.get("shard_size")
+            or getenv("STATUS_LIST_SHARD_SIZE")
+            or DEFAULT_SHARD_SIZE
         )
         public_uri = plugin_settings.get("public_uri") or getenv("STATUS_LIST_PUBLIC_URI")
         file_path = plugin_settings.get("file_path") or getenv("STATUS_LIST_FILE_PATH")

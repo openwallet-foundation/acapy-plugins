@@ -10,7 +10,7 @@ from bitarray import bitarray
 from bitarray import util as bitutil
 from marshmallow import fields
 
-from .config import Config
+from .config import Config, DEFAULT_LIST_SIZE, DEFAULT_SHARD_SIZE  # noqa: F401
 from .error import DuplicateListNumberError
 from .feistel import FeistelPermutation
 
@@ -76,9 +76,9 @@ class StatusListDef(BaseRecord):
         if self.status_size is None or self.status_size <= 0:
             self.status_size = 1
         if self.shard_size is None or self.shard_size <= 0:
-            self.shard_size = int(Config.shard_size)
+            self.shard_size = DEFAULT_SHARD_SIZE
         if self.list_size is None or self.list_size <= 0:
-            self.list_size = int(Config.list_size)
+            self.list_size = DEFAULT_LIST_SIZE
         if self.list_index is None or self.list_index < 0:
             self.list_index = 0
         if self.list_numbers is None:

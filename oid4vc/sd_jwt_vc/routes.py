@@ -23,7 +23,7 @@ from marshmallow import RAISE, ValidationError, fields
 from oid4vc.cred_processor import CredProcessors
 
 from oid4vc.models.supported_cred import SupportedCredential, SupportedCredentialSchema
-from oid4vc.routes import supported_cred_is_unique
+from oid4vc.utils import supported_cred_is_unique
 
 
 LOGGER = logging.getLogger(__name__)
