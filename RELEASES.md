@@ -2,6 +2,41 @@
 
 > **Note:** Release notes are also published as [GitHub Releases](https://github.com/openwallet-foundation/acapy-plugins/releases). This file may be phased out in favor of the CHANGELOG and release tags; feedback welcome.
 
+## ACA-Py Release 1.6.0
+
+| Plugin Name | Supported ACA-Py Release |
+| --- | --- |
+|basicmessage_storage | 1.6.0|
+|cache_redis | 1.6.0|
+|cheqd | 1.6.0|
+|connection_update | 1.6.0|
+|connections | 1.6.0|
+|issue_credential | 1.6.0|
+|firebase_push_notifications | 1.6.0|
+|hedera | 1.6.0|
+|multitenant_provider | 1.6.0|
+|oid4vc | 1.6.0|
+|present_proof | 1.6.0|
+|redis_events | 1.6.0|
+|rpc | 1.6.0|
+|status_list | 1.6.0|
+
+### Plugins Upgraded For ACA-Py Release 1.6.0
+ - basicmessage_storage
+ - cache_redis
+ - cheqd
+ - connection_update
+ - connections
+ - issue_credential
+ - firebase_push_notifications
+ - hedera
+ - multitenant_provider
+ - oid4vc
+ - present_proof
+ - redis_events
+ - rpc
+ - status_list
+
 ## ACA-Py Release 1.5.1
 
 | Plugin Name | Supported ACA-Py Release |
