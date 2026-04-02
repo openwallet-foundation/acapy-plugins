@@ -2,15 +2,15 @@
 
 [[package]]
 name = "acapy-agent"
-version = "1.5.1"
+version = "1.6.0"
 description = "(ACA-Py) A Cloud Agent Python is a foundation for building decentralized identity applications and services running in non-mobile environments. "
 optional = true
 python-versions = "<4.0,>=3.13"
 groups = ["main"]
 markers = "extra == \"aca-py\""
 files = [
-    {file = "acapy_agent-1.5.1-py3-none-any.whl", hash = "sha256:fb091da05ee78a9ec583d5663ff6ec71dda4c6df0f0804f2b2feb6187bb0c819"},
-    {file = "acapy_agent-1.5.1.tar.gz", hash = "sha256:9e10678ddebad8d1d7760d0ccb51f8c033c3495e579a28a5a9913274d2227c34"},
+    {file = "acapy_agent-1.6.0-py3-none-any.whl", hash = "sha256:fb69b043e0b54d9e46fa2710637a5383045fb7b1b61f42df199d9014fa99878a"},
+    {file = "acapy_agent-1.6.0.tar.gz", hash = "sha256:2a906f31ddeb549a61ffe99841397be7aa51984e769258088723713b9403e194"},
 ]
 
 [package.dependencies]
@@ -29,7 +29,7 @@ did-peer-4 = ">=0.1.4,<0.2.0"
 did-webvh = ">=1.0.0"
 indy-credx = ">=1.1.1,<1.2.0"
 indy-vdr = ">=0.4.0,<0.5.0"
-jsonpath-ng = ">=1.7.0,<2.0.0"
+jsonpath-ng = ">=1.8.0,<2.0.0"
 Markdown = ">=3.7,<3.11"
 markupsafe = ">=3.0.2,<4.0.0"
 marshmallow = ">=3.26.1,<3.27.0"
@@ -39,14 +39,14 @@ portalocker = ">=3.1.1,<4.0.0"
 prompt_toolkit = ">=3.0,<3.1"
 psycopg = {version = ">=3.2.1,<4.0.0", extras = ["binary", "pool"]}
 pydid = ">=0.5.1,<0.6.0"
-pyjwt = ">=2.10.1,<2.12.0"
+pyjwt = ">=2.10.1,<2.13.0"
 pyld = ">=2.0.4,<3.0.0"
 pynacl = ">=1.5,<1.7"
 python-dateutil = ">=2.9.0,<3.0.0"
 python-json-logger = ">=3.2.1,<4.0.0"
 pyyaml = ">=6.0.2,<6.1.0"
 qrcode = {version = ">=8.1,<9.0", extras = ["pil"]}
-requests = ">=2.32.3,<2.33.0"
+requests = ">=2.32.3,<2.34.0"
 rlp = ">=4.1.0,<5.0.0"
 sd-jwt = ">=0.10.3,<0.11.0"
 unflatten = ">=0.2,<0.3"
@@ -1311,20 +1311,16 @@ files = [
 
 [[package]]
 name = "jsonpath-ng"
-version = "1.7.0"
+version = "1.8.0"
 description = "A final implementation of JSONPath for Python that aims to be standard compliant, including arithmetic and binary comparison operators and providing clear AST for metaprogramming."
 optional = true
 python-versions = "*"
 groups = ["main"]
 markers = "extra == \"aca-py\""
 files = [
-    {file = "jsonpath-ng-1.7.0.tar.gz", hash = "sha256:f6f5f7fd4e5ff79c785f1573b394043b39849fb2bb47bcead935d12b00beab3c"},
-    {file = "jsonpath_ng-1.7.0-py2-none-any.whl", hash = "sha256:898c93fc173f0c336784a3fa63d7434297544b7198124a68f9a3ef9597b0ae6e"},
-    {file = "jsonpath_ng-1.7.0-py3-none-any.whl", hash = "sha256:f3d7f9e848cba1b6da28c55b1c26ff915dc9e0b1ba7e752a53d6da8d5cbd00b6"},
+    {file = "jsonpath_ng-1.8.0-py3-none-any.whl", hash = "sha256:b8dde192f8af58d646fc031fac9c99fe4d00326afc4148f1f043c601a8cfe138"},
+    {file = "jsonpath_ng-1.8.0.tar.gz", hash = "sha256:54252968134b5e549ea5b872f1df1168bd7defe1a52fed5a358c194e1943ddc3"},
 ]
-
-[package.dependencies]
-ply = "*"
 
 [[package]]
 name = "jwcrypto"
@@ -1917,19 +1913,6 @@ files = [
 [package.extras]
 dev = ["pre-commit", "tox"]
 testing = ["pytest", "pytest-benchmark"]
-
-[[package]]
-name = "ply"
-version = "3.11"
-description = "Python Lex & Yacc"
-optional = true
-python-versions = "*"
-groups = ["main"]
-markers = "extra == \"aca-py\""
-files = [
-    {file = "ply-3.11-py2.py3-none-any.whl", hash = "sha256:096f9b8350b65ebd2fd1346b12452efe5b9607f7482813ffca50c22722a807ce"},
-    {file = "ply-3.11.tar.gz", hash = "sha256:00c7c1aaa88358b9c765b6d3000c6eec0ba42abca5351b095321aef446081da3"},
-]
 
 [[package]]
 name = "portalocker"
@@ -3113,4 +3096,4 @@ aca-py = ["acapy-agent"]
 [metadata]
 lock-version = "2.1"
 python-versions = "^3.13"
-content-hash = "b7920fdbadd5e266395c057aa77caddd046af194b03e8b913b94575159f89a56"
+content-hash = "e437d29e94919765bd68e2f540d50ff0e4aa18a1f58806c047f4c945652bc151"
