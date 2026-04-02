@@ -11,7 +11,7 @@ package-mode = false
 python = "^3.13"
 pytest = "^8.3.5"
 pytest-asyncio = "^1.2.0"
-requests = "^2.32.0"
+requests = "^2.33.1"
 aries-askar = "^0.5.0"
 did-peer-4 = "^0.1.4"
 aiohttp = "^3.13.3"
@@ -20,7 +20,7 @@ jsonrpc-api-proxy-client = {git = "https://github.com/Indicio-tech/json-rpc-api-
 pydantic = "~2.12.5"
 
 [tool.poetry.group.dev.dependencies]
-black = "^24.4.2"
+black = "^26.3.1"
 ruff = "^0.15.4"
 
 [tool.pytest.ini_options]
