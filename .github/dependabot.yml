@@ -349,42 +349,6 @@ updates:
       - dependency-name: "*"
         update-types: ["version-update:semver-major"]
 
-  # Maintain dependencies for TypeScript and JavaScript
-  - package-ecosystem: "npm"
-    directory: "/oid4vci/demo/frontend"
-    schedule:
-      interval: "weekly"
-      day: "monday"
-      time: "04:00"
-      timezone: "Canada/Pacific"
-    ignore:
-      - dependency-name: "*"
-        update-types: ["version-update:semver-major", "version-update:semver-patch"]
-
-  # Maintain dependencies for TypeScript and JavaScript
-  - package-ecosystem: "npm"
-    directory: "/oid4vci/demo"
-    schedule:
-      interval: "weekly"
-      day: "monday"
-      time: "04:00"
-      timezone: "Canada/Pacific"
-    ignore:
-      - dependency-name: "*"
-        update-types: ["version-update:semver-major", "version-update:semver-patch"]
-
-  # Maintain dependencies for TypeScript and JavaScript
-  - package-ecosystem: "npm"
-    directory: "/oid4vci/integration/afj"
-    schedule:
-      interval: "weekly"
-      day: "monday"
-      time: "04:00"
-      timezone: "Canada/Pacific"
-    ignore:
-      - dependency-name: "*"
-        update-types: ["version-update:semver-major", "version-update:semver-patch"]
-
   # Maintain dependencies for dev Container
   - package-ecosystem: "devcontainers"
     directory: "/basicmessage_storage/.devcontainer"
