@@ -9,7 +9,7 @@ package-mode = false
 python = "^3.13"
 pytest = "^8.3.5"
 pytest-asyncio = "^1.2.0"
-requests = "^2.32.0"
+requests = "^2.33.1"
 acapy-controller = {git = "https://github.com/indicio-tech/acapy-minimal-example.git", rev = "main"}
 
 [tool.poetry.group.dev.dependencies]
