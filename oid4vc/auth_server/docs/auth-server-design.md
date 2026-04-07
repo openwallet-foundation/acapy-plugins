@@ -378,9 +378,9 @@ sequenceDiagram
 | Endpoint                            | Method | Auth                                      | Description                          |
 | ----------------------------------- | ------ | ----------------------------------------- | ------------------------------------ |
 | `/token`                            | POST   | DPoP + optional attestation PoP           | Token exchange (pre-auth or refresh) |
-| `/introspect`                       | POST   | private_key_jwt \| client_secret_basic \| shared_bearer | Token validation + attestation       |
-| `/grants/pre-authorized-code`       | POST   | private_key_jwt \| client_secret_basic \| shared_bearer | Issue a pre-authorized code grant.   |
-| `/.well-known/openid-configuration` | GET    | None                                      | Auth Server metadata discovery       |
+| `/introspect`                       | POST   | private_key_jwt \| client_secret_basic \| client_secret_jwt | Token validation + attestation       |
+| `/grants/pre-authorized-code`       | POST   | private_key_jwt \| client_secret_basic \| client_secret_jwt | Issue a pre-authorized code grant.   |
+| `/.well-known/oauth-authorization-server/tenants/{uid}` | GET | None | Auth Server metadata discovery (introspection endpoint conditionally shown for internal callers) |
 
 ### Credential Issuer
 
@@ -460,7 +460,7 @@ token_type_hint=access_token
 {
   "active": true,
   "scope": "openid vc_authn vc_business_card",
-  "subject_id": "c26fe7f5-6bd8-41c5-b0af-c2f555ec89f7",
+  "sub": "c26fe7f5-6bd8-41c5-b0af-c2f555ec89f7",
   "token_type": "Bearer",
   "exp": 1721031600,
   "iat": 1721028000,
@@ -627,30 +627,35 @@ GET /.well-known/openid-credential-issuer
 }
 ```
 
-### 🔄 `GET /.well-known/openid-configuration`
+### 🔄 `GET /.well-known/oauth-authorization-server/tenants/{uid}`
 
 **Request**
 
 ```http
-GET /.well-known/openid-configuration
+GET /.well-known/oauth-authorization-server/tenants/{uid}
 ```
 
 **Response**
 
 ```json
 {
-  "issuer": "https://auth.example.com",
-  "token_endpoint": "https://auth.example.com/token",
-  "token_endpoint_auth_methods_supported": ["none"],
+  "issuer": "https://auth.example.com/tenants/{uid}",
+  "token_endpoint": "https://auth.example.com/tenants/{uid}/token",
+  "token_endpoint_auth_methods_supported": [
+    "client_secret_basic",
+    "client_secret_jwt",
+    "private_key_jwt"
+  ],
   "grant_types_supported": [
     "urn:ietf:params:oauth:grant-type:pre-authorized_code",
     "refresh_token"
   ],
   "authorization_details_types_supported": ["openid_credential"],
-  "jwks_uri": "https://auth.example.com/jwks",
-  "introspection_endpoint": "https://auth.example.com/introspect"
+  "jwks_uri": "https://auth.example.com/.well-known/jwks.json/tenants/{uid}"
 }
 ```
+
+> **Note**: `introspection_endpoint` and `introspection_endpoint_auth_methods_supported` are only included in the response when the request originates from a trusted internal network (configured via `TENANT_TRUSTED_NETWORKS`). This keeps the introspection endpoint invisible to external callers.
 
 ### 🔍 Error Handling
 
@@ -681,6 +686,7 @@ erDiagram
 
     SUBJECT {
         INT id PK
+        TEXT uid UK
         JSONB metadata
         TIMESTAMPTZ created_at
         TIMESTAMPTZ updated_at
@@ -690,7 +696,8 @@ erDiagram
         INT id PK
         INT subject_id FK
         TEXT code UK
-      TEXT tx_code
+        TEXT user_pin
+        BOOLEAN user_pin_required
         JSONB authorization_details
         TIMESTAMPTZ expires_at
         TIMESTAMPTZ issued_at
@@ -712,7 +719,7 @@ erDiagram
         INT id PK
         INT subject_id FK
         INT access_token_id FK
-        TEXT token UK
+        TEXT token_hash UK
         TIMESTAMPTZ issued_at
         TIMESTAMPTZ expires_at
         BOOLEAN used
@@ -731,14 +738,6 @@ erDiagram
         TIMESTAMPTZ expires_at
     }
 
-    NONCE {
-        INT id PK
-        TEXT value UK
-        BOOLEAN used
-        TIMESTAMPTZ issued_at
-        TIMESTAMPTZ expires_at
-    }
-
     CLIENT {
         INT id PK
         TEXT client_id UK
@@ -752,7 +751,7 @@ erDiagram
     }
 ```
 
-**Note**: ACCESS_TOKEN.metadata may include amr and attestation outcome.
+**Note**: `ACCESS_TOKEN.metadata` may include `amr` and attestation outcome. The `NONCE` table belongs to the Credential Issuer, not the Authorization Server, and is not included here.
 
 ---
 

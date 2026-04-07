@@ -290,7 +290,7 @@ async def test_authenticate_private_key_jwt_missing_keys(monkeypatch):
 
 
 @pytest.mark.asyncio
-async def test_authenticate_shared_key_jwt_success(monkeypatch):
+async def test_authenticate_client_secret_jwt_success(monkeypatch):
     client = fake_client(
         client_id="client-1",
         client_secret="secret",
@@ -299,7 +299,7 @@ async def test_authenticate_shared_key_jwt_success(monkeypatch):
     decode_mock = MagicMock(return_value={"sub": "client-1"})
     monkeypatch.setattr(client_auth, "_decode_and_validate_jwt", decode_mock)
 
-    result = await client_auth._authenticate_shared_key_jwt(
+    result = await client_auth._authenticate_client_secret_jwt(
         client, "token", make_request(), "client-1"
     )
 
@@ -308,11 +308,11 @@ async def test_authenticate_shared_key_jwt_success(monkeypatch):
 
 
 @pytest.mark.asyncio
-async def test_authenticate_shared_key_jwt_missing_secret():
+async def test_authenticate_client_secret_jwt_missing_secret():
     client = fake_client(client_secret=None, client_auth_signing_alg="HS256")
 
     with pytest.raises(HTTPException) as exc_info:
-        await client_auth._authenticate_shared_key_jwt(
+        await client_auth._authenticate_client_secret_jwt(
             client, "token", make_request(), "client-1"
         )
 
@@ -320,7 +320,7 @@ async def test_authenticate_shared_key_jwt_missing_secret():
 
 
 @pytest.mark.asyncio
-async def test_authenticate_shared_key_jwt_sub_mismatch(monkeypatch):
+async def test_authenticate_client_secret_jwt_sub_mismatch(monkeypatch):
     client = fake_client(client_secret="secret", client_auth_signing_alg="HS256")
     monkeypatch.setattr(
         client_auth,
@@ -329,7 +329,7 @@ async def test_authenticate_shared_key_jwt_sub_mismatch(monkeypatch):
     )
 
     with pytest.raises(HTTPException) as exc_info:
-        await client_auth._authenticate_shared_key_jwt(
+        await client_auth._authenticate_client_secret_jwt(
             client, "token", make_request(), "client-1"
         )
 
@@ -388,6 +388,73 @@ async def test_base_client_auth_private_key_jwt_success(monkeypatch, stub_client
     assert called_client is client
     assert called_token == "token-123"
     assert called_request is request
+
+
+@pytest.mark.asyncio
+async def test_base_client_auth_client_secret_jwt_success(monkeypatch, stub_client_repo):
+    request = make_request()
+    credentials = HTTPAuthorizationCredentials(scheme="Bearer", credentials="token-jwt")
+    client = fake_client(
+        client_id="client-1",
+        client_auth_method=ClientAuthMethod.CLIENT_SECRET_JWT,
+        client_auth_signing_alg="HS256",
+        client_secret="shared-secret",
+        jwks=None,
+        jwks_uri=None,
+    )
+
+    stub_client_repo(lambda _: client)
+    monkeypatch.setattr(
+        client_auth, "jwt_payload_unverified", lambda _: {"sub": "client-1"}
+    )
+    secret_jwt_mock = AsyncMock(return_value={"sub": "client-1"})
+    monkeypatch.setattr(client_auth, "_authenticate_client_secret_jwt", secret_jwt_mock)
+
+    result = await client_auth.base_client_auth(
+        db=AsyncMock(),
+        request=request,
+        credentials=credentials,
+    )
+
+    assert result is client
+    assert request.state.client_id == "client-1"
+    secret_jwt_mock.assert_awaited_once()
+    called_client, called_token, called_request, called_client_id = (
+        secret_jwt_mock.await_args.args
+    )
+    assert called_client is client
+    assert called_token == "token-jwt"
+    assert called_request is request
+    assert called_client_id == "client-1"
+
+
+@pytest.mark.asyncio
+async def test_base_client_auth_client_secret_jwt_wrong_scheme(
+    monkeypatch, stub_client_repo
+):
+    """client_secret_jwt must use Bearer, not Basic."""
+    request = make_request()
+    basic_creds = HTTPBasicCredentials(username="client-1", password="shared-secret")
+    client = fake_client(
+        client_id="client-1",
+        client_auth_method=ClientAuthMethod.CLIENT_SECRET_JWT,
+        client_auth_signing_alg="HS256",
+        client_secret="shared-secret",
+        jwks=None,
+        jwks_uri=None,
+    )
+
+    stub_client_repo(lambda cid: client if cid == "client-1" else None)
+
+    with pytest.raises(HTTPException) as exc_info:
+        await client_auth.base_client_auth(
+            db=AsyncMock(),
+            request=request,
+            basic_creds=basic_creds,
+        )
+
+    assert exc_info.value.status_code == 401
+    assert exc_info.value.detail == "unauthorized_client"
 
 
 @pytest.mark.asyncio

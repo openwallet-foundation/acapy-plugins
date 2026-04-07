@@ -50,13 +50,12 @@ app.add_middleware(
     allow_methods=settings.CORS_ALLOW_METHODS,
     allow_headers=settings.CORS_ALLOW_HEADERS,
     allow_credentials=settings.CORS_ALLOW_CREDENTIALS,
-    
 )
 app.add_middleware(RequestContextMiddleware)
 
-# ProxyHeadersMiddleware is needed to properly populate request.url in OAuth2Request when behind a proxy/load balancer (e.g. in Kubernetes with Ingress). 
-# TODO make sure this is vetted (test only)
-app.add_middleware(ProxyHeadersMiddleware, trusted_hosts="*")
+# ProxyHeadersMiddleware is needed to properly populate request.url in OAuth2Request
+# when behind a proxy/load balancer (e.g. in Kubernetes with Ingress).
+app.add_middleware(ProxyHeadersMiddleware, trusted_hosts=settings.PROXY_TRUSTED_HOSTS)
 
 app.include_router(well_known_router)
 app.include_router(token_router)

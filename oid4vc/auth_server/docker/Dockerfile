@@ -24,7 +24,6 @@ RUN poetry install --no-interaction --no-ansi --without dev
 
 # Set environment variable for Alembic DB URL (can be overridden at runtime)
 ENV ALEMBIC_DB_URL=""
-ENV ALEMBIC_DB_SCHEMA="admin"
 
 # Entrypoint script to initialize DB and run servers
 COPY docker/entrypoint.sh /entrypoint.sh

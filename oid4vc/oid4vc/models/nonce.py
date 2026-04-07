@@ -74,6 +74,7 @@ class Nonce(BaseRecord):
                 return None
             record.used = True
             await record.save(session, reason="mark nonce used")
+            return record
         return None
 
 

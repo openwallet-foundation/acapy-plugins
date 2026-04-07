@@ -98,6 +98,21 @@ async def test_handle_proof_of_posession(profile: Profile):
 
 @pytest.mark.asyncio
 async def test_check_token_valid(monkeypatch, context):
+    # Create IssuerConfiguration with authorization_servers in the DB
+    auth_server = {
+        "public_url": "http://auth-server:9001",
+        "private_url": "http://auth-server:9001",
+        "auth_type": "client_secret_basic",
+        "client_credentials": {"client_id": "client_id", "client_secret": "secret"},
+    }
+    async with context.session() as session:
+        issuer_config = test_module.IssuerConfiguration(
+            configuration_id="default-wallet",
+            authorization_servers=[auth_server],
+            new_with_id=True,
+        )
+        await issuer_config.save(session)
+
     # Patch get_auth_header to return a dummy header
     monkeypatch.setattr(
         "oid4vc.public_routes.get_auth_header",

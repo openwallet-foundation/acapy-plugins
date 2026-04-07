@@ -19,7 +19,7 @@
 
 ## ⚙️ Bootstrap: Initialize Admin DB
 
-- ⚙️ Configure `.env.admin` with admin database settings (driver, host, user, password, name, schema).
+- ⚙️ Supply admin database settings via environment variables (prefixed `ADMIN_`). In local development these come from `.env.admin` loaded by the VS Code debugger; in Kubernetes, inject them via `ConfigMap`/`Secret`.
 - 🛠️ Initialize schema via Alembic (defaults to `upgrade head`):
 
 ```

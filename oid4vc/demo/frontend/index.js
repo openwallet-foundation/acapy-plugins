@@ -1270,7 +1270,7 @@ async function initializeAuthServer() {
       `${AUTHSERVER}/admin/tenants`,
       {
         uid: WALLET_ID,
-        name: "tenant1",
+        name: WALLET_ID,
         active: true,
         notes: "demo tenant"
       },
@@ -1330,7 +1330,7 @@ async function initializeIssuerMetadata() {
       authorization_servers: [
         {
           public_url: `${AUTHSERVER_NGROK_URL}/tenants/${WALLET_ID}`,
-          private_url: `http://auth-server:9000/tenants/${WALLET_ID}`,
+          private_url: `http://auth-server:9001/tenants/${WALLET_ID}`,
           auth_type: "client_secret_basic",
           client_credentials: {
             client_id: "client1",

@@ -79,12 +79,12 @@ async def main() -> None:
             )
             await svc.create_client(tenant.uid, pk_payload)
 
-            # 2) shared_bearer (HS256)
+            # 2) client_secret_jwt (HS256)
             sb_client_id = f"dev-shared-{secrets.token_hex(4)}"
             sb_secret = secrets.token_urlsafe(32)
             sb_payload = ClientIn(
                 client_id=sb_client_id,
-                client_auth_method="shared_bearer",
+                client_auth_method="client_secret_jwt",
                 client_auth_signing_alg="HS256",
                 client_secret=sb_secret,
             )
@@ -108,7 +108,7 @@ async def main() -> None:
             print("  jwks (public):", jwks)
             print("  private_key_pem (keep secret):\n", private_pem)
 
-            print("\nshared_bearer client:")
+            print("\nclient_secret_jwt client:")
             print("  client_id:", sb_client_id)
             print("  signing_alg: HS256")
             print("  shared_secret (keep secret):", sb_secret)

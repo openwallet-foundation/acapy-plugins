@@ -8,14 +8,16 @@ if [ -z "$ADMIN_DB_HOST" ] || [ -z "$ADMIN_DB_USER" ] || [ -z "$ADMIN_DB_PASSWOR
 fi
 
 # Wait for PostgreSQL to be available
-until pg_isready -h "$ADMIN_DB_HOST" -U "postgres"; do
+until pg_isready -h "$ADMIN_DB_HOST" -p "${ADMIN_DB_PORT:-5432}" -U "postgres"; do
   echo "Waiting for PostgreSQL at $ADMIN_DB_HOST..."
   sleep 2
 done
 
 # Only run DB init script if the admin database does not exist.
-# TODO parmaterize the DB admin user and password. Not the same as ADMIN_DB_USER/PASSWORD which are specific to the auth server admin.
-if ! PGPASSWORD="postgres" psql -h "$ADMIN_DB_HOST" -U "postgres" -lqt | cut -d \| -f 1 | grep -qw "$ADMIN_DB_NAME"; then
+# TODO parameterize the DB superuser and password. Not the same as ADMIN_DB_USER/PASSWORD which are specific to the auth server admin.
+# Note: psql -lqt is avoided here because its internal query references daticulocale (PG15 name)
+# which was renamed to datlocale in PostgreSQL 16+, causing a column-not-found error.
+if ! PGPASSWORD="postgres" psql -h "$ADMIN_DB_HOST" -U "postgres" -tc "SELECT 1 FROM pg_database WHERE datname = '$ADMIN_DB_NAME'" | grep -q 1; then
   echo "Database $ADMIN_DB_NAME does not exist. Running init.sql..."
   PGPASSWORD="postgres" psql -h "$ADMIN_DB_HOST" -U "postgres" \
     -v ADMIN_DB_NAME="$ADMIN_DB_NAME" \
@@ -23,16 +25,8 @@ if ! PGPASSWORD="postgres" psql -h "$ADMIN_DB_HOST" -U "postgres" -lqt | cut -d 
     -v ADMIN_DB_PASSWORD="'${ADMIN_DB_PASSWORD}'" \
     -f alembic/sql/init.sql
 else
-  echo "Database $POSTGRES_DB already exists. Skipping init.sql."
+  echo "Database $ADMIN_DB_NAME already exists. Skipping init.sql."
 fi
-
-# Set Alembic DB URL (use sync driver for migrations)
-export ALEMBIC_DB_URL="postgresql+psycopg://$ADMIN_DB_USER:$ADMIN_DB_PASSWORD@$ADMIN_DB_HOST:5432/$POSTGRES_DB"
-export ALEMBIC_DB_SCHEMA="admin"
-
-# If these are not unset, they will interfere with the tenant provisioning in the auth server, which also uses Alembic but needs to connect to the tenant DBs with different credentials. 
-unset ALEMBIC_DB_URL
-unset ALEMBIC_DB_SCHEMA
 
 # Need the authserver endpoint
 TUNNEL_ENDPOINT=${TUNNEL_ENDPOINT:-http://ngrok:4040}

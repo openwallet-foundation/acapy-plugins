@@ -57,21 +57,30 @@ def _aead_decrypt(blob: str) -> str:
         except Exception:
             version = 1
     key = _load_key(version)
+    # If the blob has a version prefix (e.g. "v1:..."), it was produced by
+    # _aead_encrypt and must be decryptable. Returning it as plaintext would
+    # silently expose ciphertext as if it were a valid secret.
+    blob_is_encrypted = blob != b64_blob  # prefix was stripped
     if not key:
-        # fallback: if v1 and no key, return as plaintext
+        if blob_is_encrypted:
+            raise ValueError(
+                f"Cannot decrypt v{version}-encrypted blob: key not configured"
+            )
         return blob
     try:
         raw = _b64url_decode_padded(b64_blob)
     except Exception:
+        if blob_is_encrypted:
+            raise ValueError(f"Cannot decode encrypted blob (v{version})")
         return blob
     if len(raw) < 12 + 16:
-        return blob
+        raise ValueError(f"Encrypted blob too short to be valid (v{version})")
     nonce, ct_tag = raw[:12], raw[12:]
     aesgcm = AESGCM(key)
     try:
         return aesgcm.decrypt(nonce, ct_tag, None).decode("utf-8")
-    except Exception:
-        return blob
+    except Exception as exc:
+        raise ValueError(f"Decryption failed for v{version} blob") from exc
 
 
 def encrypt_private_pem(private_pem: str) -> str:

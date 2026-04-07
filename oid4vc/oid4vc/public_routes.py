@@ -62,7 +62,12 @@ from .models.supported_cred import SupportedCredential
 from .pop_result import PopResult
 from .routes import _parse_cred_offer, CredOfferQuerySchema, CredOfferResponseSchemaVal
 from .status_handler import StatusHandler
-from .utils import get_auth_header, get_tenant_subpath
+from .utils import (
+    get_auth_header,
+    get_auth_server_url,
+    get_first_auth_server,
+    get_tenant_subpath,
+)
 
 LOGGER = logging.getLogger(__name__)
 PRE_AUTHORIZED_CODE_GRANT_TYPE = "urn:ietf:params:oauth:grant-type:pre-authorized_code"
@@ -282,14 +287,15 @@ class GetTokenSchema(OpenAPISchema):
 @form_schema(GetTokenSchema())
 async def token(request: web.Request):
     """Token endpoint to exchange pre_authorized codes for access tokens."""
-    context = request["context"]
-    config = Config.from_settings(context.settings)
-    if config.auth_server_url:
-        subpath = get_tenant_subpath(context.profile)
-        token_url = f"{config.auth_server_url}{subpath}/token"
+    context: AdminRequestContext = request["context"]
+    profile = context.profile
+    async with profile.session() as session:
+        auth_server = await get_first_auth_server(session, profile)
+    if auth_server:
+        public_url = auth_server.get("public_url")
+        token_url = f"{public_url}/token"
         raise web.HTTPTemporaryRedirect(location=token_url)
 
-    context: AdminRequestContext = request["context"]
     form = await request.post()
     LOGGER.debug(f"Token request: {form}")
     if (form.get("grant_type")) != PRE_AUTHORIZED_CODE_GRANT_TYPE:
@@ -346,7 +352,8 @@ async def token(request: web.Request):
             # different; coordinating a new c_nonce separate from a token
             # refresh seems like a pain.
             "c_nonce_expires_in": EXPIRES_IN,
-        }
+        },
+        headers={"Cache-Control": "no-store"},
     )
 
 
@@ -366,14 +373,16 @@ async def check_token(
 
     config = Config.from_settings(context.settings)
     profile = context.profile
+    async with profile.session() as session:
+        auth_server = await get_first_auth_server(session, profile)
 
-    if config.auth_server_url:
+    if auth_server:
+        private_url = get_auth_server_url(auth_server)
         subpath = get_tenant_subpath(profile, tenant_prefix="/tenant")
         issuer_server_url = f"{config.endpoint}{subpath}"
-        auth_server_url = f"{config.auth_server_url}{get_tenant_subpath(profile)}"
-        introspect_endpoint = f"{auth_server_url}/introspect"
+        introspect_endpoint = f"{private_url}/introspect"
         auth_header = await get_auth_header(
-            profile, config, issuer_server_url, introspect_endpoint
+            profile, auth_server, issuer_server_url, introspect_endpoint
         )
         resp = await AppResources.get_http_client().post(
             introspect_endpoint,
@@ -423,11 +432,20 @@ async def handle_proof_of_posession(
     nonce = payload.get("nonce")
     if c_nonce:
         if c_nonce != nonce:
-            raise web.HTTPBadRequest(reason="Invalid proof: wrong nonce.")
+            raise web.HTTPBadRequest(
+                reason="invalid_nonce",
+                body=json.dumps({"error": "invalid_nonce"}).encode(),
+                content_type="application/json",
+            )
     else:
-        redeemed = await Nonce.redeem_by_value(profile.session(), nonce)
+        async with profile.session() as session:
+            redeemed = await Nonce.redeem_by_value(session, nonce)
         if not redeemed:
-            raise web.HTTPBadRequest(reason="Invalid proof: wrong or used nonce.")
+            raise web.HTTPBadRequest(
+                reason="invalid_nonce",
+                body=json.dumps({"error": "invalid_nonce"}).encode(),
+                content_type="application/json",
+            )
 
     decoded_signature = b64_to_bytes(encoded_signature, urlsafe=True)
     verified = key.verify_signature(
@@ -552,7 +570,7 @@ async def issue_cred(request: web.Request):
         "notification_id": ex_record.notification_id,
     }
 
-    return web.json_response(cred_response)
+    return web.json_response(cred_response, headers={"Cache-Control": "no-store"})
 
 
 class OID4VPRequestIDMatchSchema(OpenAPISchema):
@@ -912,7 +930,16 @@ async def get_status_list(request: web.Request):
     status_handler = context.inject_or(StatusHandler)
     if status_handler:
         status_list = await status_handler.get_status_list(context, list_number)
-        return web.Response(text=status_list, content_type="application/statuslist+jwt")
+        # Detect list type from JWT payload: W3C BitstringStatusListCredential
+        # embeds the VC in a "vc" field; IETF Token Status List uses "status_list".
+        content_type = "application/statuslist+jwt"
+        try:
+            payload = b64_to_dict(status_list.split(".")[1])
+            if "vc" in payload:
+                content_type = "application/vc+jwt"
+        except Exception:
+            pass
+        return web.Response(text=status_list, content_type=content_type)
     raise web.HTTPNotFound(reason="Status handler not available")
 
 

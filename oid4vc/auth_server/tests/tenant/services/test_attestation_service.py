@@ -48,6 +48,13 @@ def default_attestation_settings(monkeypatch):
         60,
         raising=False,
     )
+    # Bypass signature verification for tests focused on policy/claim logic.
+    # Dedicated tests for _verify_attestation_signature cover the cryptographic path.
+    monkeypatch.setattr(
+        attestation_service,
+        "_verify_attestation_signature",
+        lambda token: attestation_service._jwt_part(token, 1),
+    )
 
 
 def test_validate_client_attestation_optional_missing_returns_none(
@@ -184,3 +191,60 @@ def test_validate_client_attestation_binds_to_dpop_jkt(
 
     assert isinstance(result, dict)
     assert result["jkt"] == dpop_jkt
+
+
+# ---------------------------------------------------------------------------
+# _verify_attestation_signature — cryptographic path
+# ---------------------------------------------------------------------------
+
+
+def test_verify_attestation_signature_valid():
+    """A properly signed EC JWT passes signature verification."""
+    from authlib.jose import JsonWebKey
+    from authlib.jose import jwt as jose_jwt
+
+    key = JsonWebKey.generate_key("EC", "P-256", is_private=True)
+    public_jwk = key.as_dict(is_private=False)
+    header = {"alg": "ES256", "typ": "JWT", "jwk": public_jwk}
+    payload = {
+        "iss": "https://wallet.example",
+        "sub": "wallet-1",
+        "iat": 1_700_000_000,
+        "exp": 9_999_999_999,
+    }
+    token = jose_jwt.encode(header, payload, key).decode()
+
+    result = attestation_service._verify_attestation_signature(token)
+
+    assert result["sub"] == "wallet-1"
+    assert result["iss"] == "https://wallet.example"
+
+
+def test_verify_attestation_signature_tampered():
+    """A JWT with a tampered signature raises InvalidAttestationError."""
+    from authlib.jose import JsonWebKey
+    from authlib.jose import jwt as jose_jwt
+
+    key = JsonWebKey.generate_key("EC", "P-256", is_private=True)
+    public_jwk = key.as_dict(is_private=False)
+    header = {"alg": "ES256", "typ": "JWT", "jwk": public_jwk}
+    payload = {"iss": "x", "sub": "y", "iat": 1_700_000_000, "exp": 9_999_999_999}
+    token = jose_jwt.encode(header, payload, key).decode()
+
+    parts = token.split(".")
+    tampered = f"{parts[0]}.{parts[1]}.invalidsignature"
+
+    with pytest.raises(attestation_service.InvalidAttestationError) as exc_info:
+        attestation_service._verify_attestation_signature(tampered)
+
+    assert exc_info.value.error == "invalid_attestation"
+
+
+def test_verify_attestation_signature_missing_jwk():
+    """A JWT without an embedded JWK in the header raises InvalidAttestationError."""
+    token = _jwt({"iss": "x", "sub": "y", "iat": 1, "exp": 999})
+
+    with pytest.raises(attestation_service.InvalidAttestationError) as exc_info:
+        attestation_service._verify_attestation_signature(token)
+
+    assert "missing_attestation_jwk" in exc_info.value.description

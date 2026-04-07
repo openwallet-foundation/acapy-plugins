@@ -57,7 +57,12 @@ from .config import Config
 from .models.issuer_config import IssuerConfiguration
 from .models.exchange import OID4VCIExchangeRecord, OID4VCIExchangeRecordSchema
 from .models.supported_cred import SupportedCredential, SupportedCredentialSchema
-from .utils import get_auth_header, get_tenant_subpath
+from .utils import (
+    get_auth_header,
+    get_auth_server_url,
+    get_first_auth_server,
+    get_tenant_subpath,
+)
 
 VCI_SPEC_URI = "https://openid.net/specs/openid-4-verifiable-credential-issuance-1_0.html"
 VP_SPEC_URI = "https://openid.net/specs/openid-4-verifiable-presentations-1_0.html"
@@ -439,21 +444,22 @@ class CredOfferResponseSchemaRef(OpenAPISchema):
 async def _create_pre_auth_code(
     profile: Profile,
     config: Config,
+    auth_server: dict | None,
     subject_id: str,
     credential_configuration_id: str | None = None,
     user_pin: str | None = None,
 ) -> str:
     """Create a secure random pre-authorized code."""
 
-    if config.auth_server_url:
+    if auth_server:
+        private_url = get_auth_server_url(auth_server)
         subpath = get_tenant_subpath(profile, tenant_prefix="/tenant")
         issuer_server_url = f"{config.endpoint}{subpath}"
 
-        auth_server_url = f"{config.auth_server_url}{get_tenant_subpath(profile)}"
-        grants_endpoint = f"{auth_server_url}/grants/pre-authorized-code"
+        grants_endpoint = f"{private_url}/grants/pre-authorized-code"
 
         auth_header = await get_auth_header(
-            profile, config, issuer_server_url, grants_endpoint
+            profile, auth_server, issuer_server_url, grants_endpoint
         )
         resp = await AppResources.get_http_client().post(
             grants_endpoint,
@@ -469,6 +475,9 @@ async def _create_pre_auth_code(
             },
             headers={"Authorization": f"{auth_header}"},
         )
+        if resp.status != 200:
+            body = await resp.text()
+            raise web.HTTPBadGateway(reason=f"Auth server returned {resp.status}: {body}")
         data = await resp.json()
         code = data["pre_authorized_code"]
     else:
@@ -488,9 +497,11 @@ async def _parse_cred_offer(context: AdminRequestContext, exchange_id: str) -> d
             supported = await SupportedCredential.retrieve_by_id(
                 session, record.supported_cred_id
             )
+            auth_server = await get_first_auth_server(session, context.profile)
             record.code = await _create_pre_auth_code(
                 context.profile,
                 config,
+                auth_server,
                 record.refresh_id,
                 supported.identifier,
                 record.pin,

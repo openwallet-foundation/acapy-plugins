@@ -13,6 +13,10 @@ class Settings(BaseSettings):
     APP_VERSION: str = "0.1.0"
     OPENAPI_URL: str = ""
 
+    # Planned: OIDC-based authentication for admin tenant/client management routes.
+    # When implemented, MANAGE_AUTH_TOKEN bearer auth will be replaced by verifying
+    # JWTs issued by this identity provider.
+    # Set these to enable the future OIDC guard (currently unused).
     OAUTH_ISSUER: str = ""
     OAUTH_CLIENT_ID: str = ""
     OAUTH_JWKS_URL: str = ""

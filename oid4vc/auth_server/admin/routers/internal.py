@@ -10,11 +10,11 @@ from admin.schemas.internal import (
     TenantDbResponse,
     TenantJwksResponse,
 )
-from admin.security.bearer import require_interal_auth
+from admin.security.bearer import require_internal_auth
 from admin.services.internal_service import get_tenant_db, get_tenant_jwks
 from admin.services.signing_service import sign_tenant_jwt
 
-router = APIRouter(prefix="/tenants/{uid}", dependencies=[Depends(require_interal_auth)])
+router = APIRouter(prefix="/tenants/{uid}", dependencies=[Depends(require_internal_auth)])
 
 
 @router.get("/db", response_model=TenantDbResponse)

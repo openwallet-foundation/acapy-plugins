@@ -23,12 +23,16 @@
 - Run Admin API (e.g., port 9000): `uvicorn admin.main:app --reload --port 9000`
 - Run Tenant API (e.g., port 9001): `uvicorn tenant.main:app --reload --port 9001`
 
-## 🔐 Environment Files
+## 🔐 Environment Configuration
 
-- Copy the example envs to local files and update values:
+Configuration is provided through environment variables read by pydantic-settings (prefixed `ADMIN_` or `TENANT_`). How they are supplied depends on the runtime:
+
+- **Local development (VS Code):** `.env.admin` and `.env.tenant` files at the workspace root are loaded by the VS Code debugger via `envFile` in `.vscode/launch.json`. Copy the example templates and populate values:
   - `cp resources/.env.admin.example .env.admin`
   - `cp resources/.env.tenant.example .env.tenant`
-- Do not commit real `.env.*` files. The repo ignores them; only `resources/*.example` are tracked.
+- **Kubernetes / production:** Inject env vars directly via `ConfigMap` (non-sensitive) and `Secret` (sensitive values such as DB credentials and auth tokens). No `.env` files are used.
+
+Do not commit real `.env.*` files. They are gitignored; only `resources/*.example` are tracked.
 
 ### Minimal .env.admin
 
@@ -46,8 +50,8 @@ ADMIN_INTERNAL_AUTH_TOKEN=admin-internal-token
 
 ```
 TENANT_ISSUER_BASE_URL=http://localhost:9001
-TENANT_ADMIN_INTERNAL_BASE_URL=http://localhost:9000/internal
-TENANT_ADMIN_INTERNAL_AUTH_TOKEN=admin-internal-token
+TENANT_INTERNAL_BASE_URL=http://localhost:9000/internal
+TENANT_INTERNAL_AUTH_TOKEN=admin-internal-token
 ```
 
 ## ✅ Health Checks

@@ -33,7 +33,7 @@ class ClientService:
         if not signing_alg:
             if method == ClientAuthMethod.PRIVATE_KEY_JWT:
                 signing_alg = "ES256"
-            elif method == ClientAuthMethod.SHARED_KEY_JWT:
+            elif method == ClientAuthMethod.CLIENT_SECRET_JWT:
                 signing_alg = "HS256"
 
         # Validate fields by method
@@ -42,7 +42,7 @@ class ClientService:
             if not (data.jwks or data.jwks_uri):
                 raise HTTPException(status_code=400, detail="jwks_or_uri_required")
         elif method in (
-            ClientAuthMethod.SHARED_KEY_JWT,
+            ClientAuthMethod.CLIENT_SECRET_JWT,
             ClientAuthMethod.CLIENT_SECRET_BASIC,
         ):
             if not data.client_secret:

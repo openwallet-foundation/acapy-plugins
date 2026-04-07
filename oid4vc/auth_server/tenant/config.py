@@ -37,8 +37,8 @@ class Settings(BaseSettings):
 
     TRUSTED_NETWORKS: list[str] = []
 
-    ADMIN_INTERNAL_BASE_URL: str = "http://localhost:9000"
-    ADMIN_INTERNAL_AUTH_TOKEN: str = "admin-internal-auth-token"
+    INTERNAL_BASE_URL: str = "http://localhost:9000"
+    INTERNAL_AUTH_TOKEN: str = "admin-internal-auth-token"
     CONTEXT_CACHE_TTL: int = 900
     WELL_KNOWN_CACHE_TTL: int = 300
 
@@ -50,6 +50,9 @@ class Settings(BaseSettings):
     CORS_ALLOW_METHODS: list[str] = ["GET", "POST", "OPTIONS"]
     CORS_ALLOW_HEADERS: list[str] = ["Authorization", "Content-Type"]
     CORS_ALLOW_CREDENTIALS: bool = False
+
+    # Proxy settings
+    PROXY_TRUSTED_HOSTS: list[str] | str = "127.0.0.1"
 
 
 settings = Settings()

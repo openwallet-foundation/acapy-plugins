@@ -6,6 +6,8 @@ import json
 from datetime import datetime, timezone
 from typing import Any
 
+from authlib.jose import JsonWebKey
+from authlib.jose import jwt as authlib_jwt
 from authlib.oauth2.rfc6749.errors import InvalidRequestError
 
 from tenant.config import settings
@@ -89,14 +91,11 @@ def _thumbprint_b64url(jwk: dict[str, Any]) -> str:
         raise InvalidAttestationError(description="unsupported_jwk_kty")
 
     if any(
-        not isinstance(ordered.get(key), str) or not ordered.get(key)
-        for key in ordered
+        not isinstance(ordered.get(key), str) or not ordered.get(key) for key in ordered
     ):
         raise InvalidAttestationError(description="invalid_dpop_jwk")
 
-    canonical = json.dumps(ordered, separators=(",", ":"), sort_keys=True).encode(
-        "utf-8"
-    )
+    canonical = json.dumps(ordered, separators=(",", ":"), sort_keys=True).encode("utf-8")
     digest = hashlib.sha256(canonical).digest()
     return base64.urlsafe_b64encode(digest).decode("ascii").rstrip("=")
 
@@ -145,6 +144,25 @@ def _apply_policy(subject: str, jkt: str | None) -> tuple[str, str]:
     raise AttestationPolicyError(description="invalid_attestation_policy")
 
 
+def _verify_attestation_signature(token: str) -> dict[str, Any]:
+    """Verify attestation JWT signature using the embedded JWK in the header."""
+    header = _jwt_part(token, 0)
+    jwk_data = header.get("jwk")
+    if not isinstance(jwk_data, dict):
+        raise InvalidAttestationError(description="missing_attestation_jwk")
+    try:
+        key = JsonWebKey.import_key(jwk_data)
+        # jwt.decode verifies the signature; we do time validation manually below
+        claims = authlib_jwt.decode(token, key)
+    except InvalidAttestationError:
+        raise
+    except Exception as ex:
+        raise InvalidAttestationError(description="invalid_attestation_signature") from ex
+    if not isinstance(claims, dict):
+        raise InvalidAttestationError(description="invalid_attestation_signature")
+    return dict(claims)
+
+
 def validate_client_attestation(
     *,
     client_attestation: str | None,
@@ -157,7 +175,7 @@ def validate_client_attestation(
             raise InvalidAttestationError(description="missing_client_attestation")
         return None
 
-    claims = _jwt_part(client_attestation, 1)
+    claims = _verify_attestation_signature(client_attestation)
     issuer = _required_claim_str(claims, "iss")
     subject = _required_claim_str(claims, "sub")
     issued_at = _required_claim_int(claims, "iat")

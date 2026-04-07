@@ -109,10 +109,10 @@ async def _authenticate_private_key_jwt(
     )
 
 
-async def _authenticate_shared_key_jwt(
+async def _authenticate_client_secret_jwt(
     client: AuthClient, token: str, request: Request, presented_client_id: str
 ) -> Mapping[str, Any]:
-    """Validate shared_key_jwt assertions signed with a shared secret."""
+    """Validate client_secret_jwt assertions signed with a shared secret."""
 
     secret = client.client_secret or ""
     if not secret:
@@ -191,7 +191,8 @@ async def base_client_auth(
     if allowed == CLIENT_AUTH_METHOD.CLIENT_SECRET_BASIC and scheme != "basic":
         raise HTTPException(status_code=401, detail="unauthorized_client")
     if (
-        allowed in {CLIENT_AUTH_METHOD.PRIVATE_KEY_JWT, CLIENT_AUTH_METHOD.SHARED_KEY_JWT}
+        allowed
+        in {CLIENT_AUTH_METHOD.PRIVATE_KEY_JWT, CLIENT_AUTH_METHOD.CLIENT_SECRET_JWT}
         and scheme != "bearer"
     ):
         raise HTTPException(status_code=401, detail="unauthorized_client")
@@ -201,8 +202,8 @@ async def base_client_auth(
         request.state.client_id = str(client.client_id)
         return client
 
-    if allowed == CLIENT_AUTH_METHOD.SHARED_KEY_JWT:
-        await _authenticate_shared_key_jwt(client, token, request, str(client_id))
+    if allowed == CLIENT_AUTH_METHOD.CLIENT_SECRET_JWT:
+        await _authenticate_client_secret_jwt(client, token, request, str(client_id))
         request.state.client_id = str(client.client_id)
         return client
 
