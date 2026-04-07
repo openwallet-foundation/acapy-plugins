@@ -72,6 +72,9 @@ const presentationCache = new NodeCache({ stdTTL: 300, checkperiod: 400 });
 
 const API_BASE_URL = process.env.API_BASE_URL || "http://localhost:3001";
 const API_KEY = process.env.API_KEY;
+const AUTHSERVER_NGROK_URL = process.env.AUTHSERVER_NGROK_URL;
+const ADMIN_MANAGE_AUTH_TOKEN = process.env.ADMIN_MANAGE_AUTH_TOKEN;
+const TENANT_SECRET = process.env.TENANT_SECRET;
 let jwtVcSupportedCredCreated = false;
 let sdJwtSupportedCredCreated = false;
 let mdocSupportedCredCreated = false;
@@ -80,6 +83,8 @@ let jwtStatusListCreated = false;
 let jwtVcSupportedCredID = "";
 let sdJwtSupportedCredID = "";
 let mdocSupportedCredID = "";
+let jwtStatusListID = "";
+let sdJwtStatusListID = "";
 
 
 //    ###     ######     ###            ########  ##    ##
@@ -128,52 +133,84 @@ async function issue_jwt_credential(req, res) {
     headers: commonHeaders,
     body: JSON.stringify({
       cryptographic_binding_methods_supported: ["did"],
-      cryptographic_suites_supported: ["ES256"],
-      display: [
-        {
-          name: "University Credential",
-          locale: "en-US",
-          logo: {
-            url: "https://w3c-ccg.github.io/vc-ed/plugfest-1-2022/images/JFF_LogoLockup.png",
-            alt_text: "a square logo of a university",
-          },
-          background_color: "#12107c",
-          text_color: "#FFFFFF",
-        },
-      ],
+      credential_signing_alg_values_supported: ["ES256"],
       format: "jwt_vc_json",
-      credentialSubject: {
-        degree: {},
-        given_name: {
-          display: [
-            {
-              name: "Given Name",
-              locale: "en-US",
-            },
-          ],
-        },
-        gpa: {
-          display: [
-            {
-              name: "GPA",
-            },
-          ],
-        },
-        last_name: {
-          display: [
-            {
-              name: "Surname",
-              locale: "en-US",
-            },
-          ],
-        },
-      },
-      type: ["VerifiableCredential", "UniversityDegreeCredential"],
       id: "UniversityDegreeCredential",
-      "@context": [
-        "https://www.w3.org/2018/credentials/v1",
-        "https://www.w3.org/2018/credentials/examples/v1",
-      ]
+      proof_types_supported: {
+        jwt: {
+          proof_signing_alg_values_supported: ["ES256"]
+        }
+      },
+      credential_definition: {
+        "@context": [
+          "https://www.w3.org/2018/credentials/v1",
+          "https://www.w3.org/2018/credentials/examples/v1",
+        ],
+        type: [
+          "VerifiableCredential",
+          "UniversityDegreeCredential"
+        ],
+      },
+      credential_metadata: {
+        display: [
+          {
+            name: "University Credential",
+            locale: "en-US",
+            logo: {
+             url: "https://w3c-ccg.github.io/vc-ed/plugfest-1-2022/images/JFF_LogoLockup.png",
+              alt_text: "a square logo of a university",
+            },
+            background_color: "#12107c",
+            text_color: "#FFFFFF",
+          },
+        ],
+        claims: [
+          {
+             path: [
+              "degree"
+             ],
+             display: [
+                {
+                  name: "Degree",
+                  locale: "en-US",
+                },
+             ],
+          },
+          {
+            path: [
+              "given_name"
+            ],
+            display: [
+              {
+                name: "Given Name",
+                locale: "en-US",
+              },
+            ],
+          },
+          {
+            path: [
+              "gpa"
+            ],
+            display: [
+              {
+                name: "GPA Score",
+                locale: "en-US",
+              },
+            ],
+          },
+          {
+            path: [
+              "last_name"
+            ],
+            display: [
+              {
+                name: "Surname",
+                locale: "en-US",
+              },
+            ],
+          },
+        ],
+      },
     }),
   };
 
@@ -188,25 +225,7 @@ async function issue_jwt_credential(req, res) {
     jwtVcSupportedCredCreated = true;
   }
 
-  // Create DID for issuance and status list
-  const createDidUrl = `${API_BASE_URL}/did/jwk/create`;
-  const createDidOptions = {
-    method: "POST",
-    headers: commonHeaders,
-    body: JSON.stringify({
-      key_type: "p256",
-    }),
-  };
-
-  events.emit(`issuance-${req.body.registrationId}`, {type: "message", message: "Creating DID."});
-  events.emit(`issuance-${req.body.registrationId}`, {type: "message", message: `Posting Create DID Request to: ${createDidUrl}`});
-  events.emit(`issuance-${req.body.registrationId}`, {type: "debug-message", message: "Request options", data: createDidOptions});
-  const didData = await fetchApiData(createDidUrl, createDidOptions);
-  const { did } = didData;
-  events.emit(`issuance-${req.body.registrationId}`, {type: "message", message: `Created DID: ${did}`});
-  logger.info(did);
-  logger.info(jwtVcSupportedCredID);
-
+   logger.info(jwtVcSupportedCredID);
 
   // Create bitstring status list Configuration
   const statusListCreateUrl = `${API_BASE_URL}/status-list/defs`;
@@ -214,7 +233,7 @@ async function issue_jwt_credential(req, res) {
     method: "POST",
     headers: commonHeaders,
     body: JSON.stringify({
-      issuer_did: did,
+      issuer_did: issuerDID,
       list_size: 131072,
       list_type: "w3c",
       shard_size: 131072,
@@ -231,7 +250,7 @@ async function issue_jwt_credential(req, res) {
     status_purpose: "revocation",
     status_size: 1,
     supported_cred_id: jwtVcSupportedCredID,
-    verification_method: did+"#0"
+    verification_method: issuerDID+"#0"
     })
   };
 
@@ -239,8 +258,8 @@ async function issue_jwt_credential(req, res) {
     events.emit(`issuance-${req.body.registrationId}`, {type: "message", message: `Posting Create Status List Request to: ${statusListCreateUrl}`});
     events.emit(`issuance-${req.body.registrationId}`, {type: "debug-message", message: "Request options", data: statusListCreateOptions});
     const statusListResponse = await fetchApiData(statusListCreateUrl, statusListCreateOptions);
-    const { id } = statusListResponse;
-    events.emit(`issuance-${req.body.registrationId}`, {type: "message", message: `Created Status List ID: ${id}`});
+    jwtStatusListID = statusListResponse.id;
+    events.emit(`issuance-${req.body.registrationId}`, {type: "message", message: `Created Status List ID: ${jwtStatusListID}`});
     jwtStatusListCreated = true;
   };
 
@@ -248,7 +267,8 @@ async function issue_jwt_credential(req, res) {
   const exchangeCreateUrl = `${API_BASE_URL}/oid4vci/exchange/create`;
   const exchangeCreateOptions = {
     credential_subject: { id: req.body.registrationId, first_name: firstName, last_name: lastName, email },
-    verification_method: did+"#0",
+    did: issuerDID,
+    verification_method: issuerDID+"#0",
     supported_cred_id: jwtVcSupportedCredID,
   };
   events.emit(`issuance-${req.body.registrationId}`, {type: "message", message: "Generating Credential Exchange."});
@@ -329,15 +349,34 @@ async function issue_sdjwt_credential(req, res) {
 
 
   // Create credential schema
-  const createCredentialSupportedUrl = `${API_BASE_URL}/oid4vci/credential-supported/create`;
+  const createCredentialSupportedUrl = `${API_BASE_URL}/oid4vci/credential-supported/create/sd-jwt`;
   const createCredentialSupportedOptions = {
     method: "POST",
     headers: commonHeaders,
     body: JSON.stringify({
       format: "vc+sd-jwt",
       id: "IDCard",
-      format_data: {
-        cryptographic_binding_methods_supported: ["jwk"],
+      proof_types_supported: {
+        jwt: {
+          proof_signing_alg_values_supported: [
+            "ES256"
+          ]
+        }
+      },
+      cryptographic_binding_methods_supported: ["jwk"],
+      credential_signing_alg_values_supported: ["ES256K"],
+      vct: "ExampleIDCard",
+      sd_list: [
+          "/given_name",
+          "/family_name",
+          "/age_is_over_12",
+          "/age_is_over_14",
+          "/age_is_over_16",
+          "/age_is_over_18",
+          "/age_is_over_21",
+          "/age_is_over_65"
+        ],
+      credential_metadata: {  
         display: [
           {
             "name": "ID Card",
@@ -346,65 +385,89 @@ async function issue_sdjwt_credential(req, res) {
             "text_color": "#FFFFFF"
           }
         ],
-        vct: "ExampleIDCard",
-        "claims": {
-          "given_name": {
-            "mandatory": true,
-            "value_type": "string",
+        "claims": [
+          {
+          "path": ["given_name"],
+          "display": [
+            {
+              "name": "Given Name",
+              "locale": "en-US"
+            }
+          ]
           },
-          "family_name": {
-            "mandatory": true,
-            "value_type": "string",
+          {
+            "path": ["family_name"],
+            "display": [
+              {
+                "name": "Family Name",
+                "locale": "en-US"
+              }
+            ]
           },
-          "something_nested": {
-            "key1": {
-              "key2": {
-                "key3": {
-                  "mandatory": true,
-                  "value_type": "string",
-                },
-              },
-            },
+          {
+            "path": ["something_nested", "key1", "key2", "key3"],
+            "display": [
+              {
+                "name": "Something Nested",
+                "locale": "en-US"
+              }
+            ]
           },
-          "age_equal_or_over": {
-            "12": {
-              "mandatory": true,
-              "value_type": "boolean",
-            },
-            "14": {
-              "mandatory": true,
-              "value_type": "boolean",
-            },
-            "16": {
-              "mandatory": true,
-              "value_type": "boolean",
-            },
-            "18": {
-              "mandatory": true,
-              "value_type": "boolean",
-            },
-            "21": {
-              "mandatory": true,
-              "value_type": "boolean",
-            },
-            "65": {
-              "mandatory": true,
-              "value_type": "boolean",
-            },
+          {
+            "path": ["is_over_12"],
+            "display": [
+              {
+                "name": "Age 12 or Over",
+                "locale": "en-US"
+              }
+            ]
+          },
+          {
+            "path": ["is_over_14"],
+            "display": [
+              {
+                "name": "Age 14 or Over",
+                "locale": "en-US"
+              }
+            ]
+          },
+          {
+            "path": ["is_over_16"],
+            "display": [
+              {
+                "name": "Age 16 or Over",
+                "locale": "en-US"
+              }
+            ]
+          },
+          {
+            "path": ["is_over_18"],
+            "display": [
+              {
+                "name": "Age 18 or Over",
+                "locale": "en-US"
+              }
+            ]
+          },
+          {
+            "path": ["is_over_21"],
+            "display": [
+              {
+                "name": "Age 21 or Over",
+                "locale": "en-US"
+              }
+            ]
+          },
+          {
+            "path": ["is_over_65"],
+            "display": [
+              {
+                "name": "Age 65 or Over",
+                "locale": "en-US"
+              }
+            ]
           }
-        },
-      },
-      vc_additional_data: {
-        sd_list: [
-          "/given_name",
-          "/family_name",
-          "/age_equal_or_over/12",
-          "/age_equal_or_over/14",
-          "/age_equal_or_over/16",
-          "/age_equal_or_over/18",
-          "/age_equal_or_over/21",
-          "/age_equal_or_over/65"
-        ]
+        ],
       }
     }),
   };
@@ -421,92 +484,123 @@ async function issue_sdjwt_credential(req, res) {
     sdJwtSupportedCredCreated = true;
   }
 
+  logger.info(sdJwtSupportedCredID);
 
-  // Create DID for issuance
-  const createDidUrl = `${API_BASE_URL}/did/jwk/create`;
-  const createDidOptions = {
+  // Create IETF Token status list Configuration
+  const statusListCreateUrl = `${API_BASE_URL}/status-list/defs`;
+  const statusListCreateOptions = {
     method: "POST",
     headers: commonHeaders,
     body: JSON.stringify({
-      key_type: "p256",
-    }),
+      issuer_did: issuerDID,
+      list_size: 131072,
+      list_type: "ietf",
+      shard_size: 131072,
+      status_message: [
+        {
+            status: "0x00",
+            message: "active"
+        },
+        {
+            status: "0x01",
+            message: "inactive"
+        },
+    ],
+    status_purpose: "revocation",
+    status_size: 1,
+    supported_cred_id: sdJwtSupportedCredID,
+    verification_method: issuerDID+"#0"
+    })
   };
 
-  events.emit(`issuance-${req.body.registrationId}`, {type: "message", message: "Creating DID."});
-  events.emit(`issuance-${req.body.registrationId}`, {type: "message", message: `Posting Create DID Request to: ${createDidUrl}`});
-  events.emit(`issuance-${req.body.registrationId}`, {type: "debug-message", message: "Request options", data: createDidOptions});
-  const didData = await fetchApiData(createDidUrl, createDidOptions);
-  const { did } = didData;
-  events.emit(`issuance-${req.body.registrationId}`, {type: "message", message: `Created DID: ${did}`});
-  logger.info(did);
-  logger.info(sdJwtSupportedCredID);
+  if (!sdJwtStatusListCreated){
+    events.emit(`issuance-${req.body.registrationId}`, {type: "message", message: `Posting Create Status List Request to: ${statusListCreateUrl}`});
+    events.emit(`issuance-${req.body.registrationId}`, {type: "debug-message", message: "Request options", data: statusListCreateOptions});
+    const statusListResponse = await fetchApiData(statusListCreateUrl, statusListCreateOptions);
+    sdJwtStatusListID = statusListResponse.id;
+    events.emit(`issuance-${req.body.registrationId}`, {type: "message", message: `Created Status List ID: ${sdJwtStatusListID}`});
+    sdJwtStatusListCreated = true;
+  };
 
+  const isRefresh = req.body['is-refresh'] === 'on';
+  const refreshId = req.body['refresh-id'];
 
-  // Create Credential Exchange records
-  const exchangeCreateUrl = `${API_BASE_URL}/oid4vci/exchange/create`;
   const exchangeCreateOptions = {
-    did: did,
-    verification_method: did+"#0",
+    did: issuerDID,
+    verification_method: issuerDID+"#0",
     supported_cred_id: sdJwtSupportedCredID,
     credential_subject: {
       given_name: firstName,
       family_name: lastName,
       something_nested: {key1: {key2: {key3: "something nested"}}},
       source_document_type: "id_card",
-      age_equal_or_over: {
-        "12": age >= 12,
-        "14": age >= 14,
-        "16": age >= 16,
-        "18": age >= 18,
-        "21": age >= 21,
-        "65": age >= 65,
-      }
+      age_is_over_12: true,
+      age_is_over_14: true,
+      age_is_over_16: true,
+      age_is_over_18: true,
+      age_is_over_21: true,
+      age_is_over_65: false,
     },
   };
-  events.emit(`issuance-${req.body.registrationId}`, {type: "message", message: "Generating Credential Exchange."});
-  events.emit(`issuance-${req.body.registrationId}`, {type: "message", message: `Posting Credential Exchange Creation Request to: ${exchangeCreateUrl}`});
-  events.emit(`issuance-${req.body.registrationId}`, {type: "debug-message", message: "Request options", data: exchangeCreateOptions});
-  const exchangeResponse = await axios.post(exchangeCreateUrl, exchangeCreateOptions);
-  const exchangeId = exchangeResponse.data.exchange_id;
+  
+  let exchangeId;
+  if (isRefresh) {
+    const refreshUrl = `${API_BASE_URL}/oid4vci/credential-refresh/${refreshId}`;
+    events.emit(`issuance-${req.body.registrationId}`, {type: "message", message: `Posting Credential Refresh Request to: ${refreshUrl}`});
+    events.emit(`issuance-${req.body.registrationId}`, {type: "debug-message", message: "Request options", data: exchangeCreateOptions});
+    const exchangeResponse = await axios.patch(refreshUrl, exchangeCreateOptions);
+    exchangeId = exchangeResponse.data.exchange_id;
+  } else {
+    const exchangeCreateUrl = `${API_BASE_URL}/oid4vci/exchange/create`;
+    events.emit(`issuance-${req.body.registrationId}`, {type: "message", message: "Generating Credential Exchange."});
+    events.emit(`issuance-${req.body.registrationId}`, {type: "message", message: `Posting Credential Exchange Creation Request to: ${exchangeCreateUrl}`});
+    events.emit(`issuance-${req.body.registrationId}`, {type: "debug-message", message: "Request options", data: exchangeCreateOptions});
+    const exchangeResponse = await axios.post(exchangeCreateUrl, exchangeCreateOptions);
+    exchangeId = exchangeResponse.data.exchange_id;
+  }
   events.emit(`issuance-${req.body.registrationId}`, {type: "message", message: `Received Credential Exchange ID: ${exchangeId}`});
 
 
-  // Get Credential Offer information
-  const credentialOfferUrl = `${API_BASE_URL}/oid4vci/credential-offer`;
-  const queryParams = {
-    user_pin_required: false,
-    exchange_id: exchangeId,
-  };
-  const credentialOfferOptions = {
-    params: queryParams,
-    headers: headers,
-  };
-  events.emit(`issuance-${req.body.registrationId}`, {type: "message", message: "Requesting Credential Offer."});
-  events.emit(`issuance-${req.body.registrationId}`, {type: "message", message: `Retrieving Credential Offer from: ${credentialOfferUrl}`});
-  events.emit(`issuance-${req.body.registrationId}`, {type: "debug-message", message: "Request options", data: credentialOfferOptions});
-  const offerResponse = await axios.get(credentialOfferUrl, credentialOfferOptions);
-  const credentialOffer = offerResponse.data;
+  if (!isRefresh) {
+    // Get Credential Offer information
+    const credentialOfferUrl = `${API_BASE_URL}/oid4vci/credential-offer`;
+    const queryParams = {
+      user_pin_required: false,
+      exchange_id: exchangeId,
+    };
+    const credentialOfferOptions = {
+      params: queryParams,
+      headers: headers,
+    };
+    events.emit(`issuance-${req.body.registrationId}`, {type: "message", message: "Requesting Credential Offer."});
+    events.emit(`issuance-${req.body.registrationId}`, {type: "message", message: `Retrieving Credential Offer from: ${credentialOfferUrl}`});
+    events.emit(`issuance-${req.body.registrationId}`, {type: "debug-message", message: "Request options", data: credentialOfferOptions});
+    const offerResponse = await axios.get(credentialOfferUrl, credentialOfferOptions);
+    const credentialOffer = offerResponse.data;
 
-  // Generate QRCode and send it to the browser via HTMX events
-  logger.info(JSON.stringify(offerResponse.data));
-  logger.info(exchangeId);
+    // Generate QRCode and send it to the browser via HTMX events
+    logger.info(JSON.stringify(offerResponse.data));
+    logger.info(exchangeId);
 
-  let qrcode;
-  if (credentialOffer.hasOwnProperty("credential_offer")) {
-    // credential offer is passed by value
-    qrcode = credentialOffer.credential_offer
+    let qrcode;
+    if (credentialOffer.hasOwnProperty("credential_offer")) {
+      // credential offer is passed by value
+      qrcode = credentialOffer.credential_offer
+    } else {
+      // credential offer is passed by reference, and the wallet must dereference it using the
+      // /oid4vci/dereference-credential-offer endpoint
+      qrcode = credentialOffer.credential_offer_uri
+    }
+
+    events.emit(`issuance-${req.body.registrationId}`, {type: "message", message: `Sending offer to user: ${qrcode}`});
+    events.emit(`issuance-${req.body.registrationId}`, {type: "qrcode", credentialOffer, exchangeId, qrcode});
+    exchangeCache.set(exchangeId, { exchangeId, credentialOffer, issuerDID, sdJwtSupportedCredID, registrationId: req.body.registrationId });
+
+    // Polling for the credential is an option at this stage, but we opt to just listen for the appropriate webhook instead
+    events.emit(`issuance-${req.body.registrationId}`, {type: "message", message: "Begin listening for credential to be issued."});
   } else {
-    // credential offer is passed by reference, and the wallet must dereference it using the
-    // /oid4vci/dereference-credential-offer endpoint
-    qrcode = credentialOffer.credential_offer_uri
+    events.emit(`issuance-${req.body.registrationId}`, {type: "message", message: "Credential Refresh API call was successful."});
   }
-
-  events.emit(`issuance-${req.body.registrationId}`, {type: "message", message: `Sending offer to user: ${qrcode}`});
-  events.emit(`issuance-${req.body.registrationId}`, {type: "qrcode", credentialOffer, exchangeId, qrcode});
-  exchangeCache.set(exchangeId, { exchangeId, credentialOffer, did, sdJwtSupportedCredID, registrationId: req.body.registrationId });
-
-  // Polling for the credential is an option at this stage, but we opt to just listen for the appropriate webhook instead
-  events.emit(`issuance-${req.body.registrationId}`, {type: "message", message: "Begin listening for credential to be issued."});
 }
 
 // Begin Issue mDL (mso_mdoc) Credential Flow
@@ -548,39 +642,104 @@ async function issue_mdoc_credential(req, res) {
     return await response.json();
   };
 
-  // 1. Create supported credential for mso_mdoc
   const createCredentialSupportedUrl = `${API_BASE_URL}/oid4vci/credential-supported/create/mso-mdoc`;
   const createCredentialSupportedOptions = {
     method: "POST",
     headers: commonHeaders,
     body: JSON.stringify({
       format: "mso_mdoc",
-      cryptographic_binding_methods_supported: ["did:jwk"],
-      cryptographic_suites_supported: [
-        "EdDSA"
-      ],
-      display: [
-        {
-          name: "Sample Driving License",
-          locale: "en-US",
-          background_image: {
-            uri: "data:image/png;base64,iVBORw0KGgoAAAANS",
-            alt_text: "Driver's License Background"
-          }
-        }
-      ], 
       id: "org.iso.18013.5.1.mDL",
-      format_data: {
-        doctype: "org.iso.18013.5.1.mDL",
-        "proof_types_supported": {
-          "jwt": {
-            "proof_signing_alg_values_supported": [
-              "ES256",
-              "EdDSA"
+      doctype: "org.iso.18013.5.1.mDL",
+      cryptographic_binding_methods_supported: ["jwk"],
+      credential_signing_alg_values_supported: [
+        "-7",
+        "-8"
+      ],
+      proof_types_supported: {
+        jwt: {
+          proof_signing_alg_values_supported: [
+            "ES256",
+            "EdDSA"
+          ]
+        }
+      },
+      "credential_metadata": {
+        claims: [
+          { 
+            path: [ "org.iso.18013.5.1", "given_name"],
+            display: [
+              {
+                name: "Given Name",
+                locale: "en-US",
+              }
+            ]
+          },
+          {
+            path: ["org.iso.18013.5.1", "family_name"],
+            display: [
+              {
+                name: "Family Name",
+                locale: "en-US",
+              }
+            ]
+          },
+          {
+            path: ["org.iso.18013.5.1", "birth_date"],
+            display: [
+              {
+                name: "Birth Date",
+                locale: "en-US",
+              }
+            ]
+          },
+          {
+            path: ["org.iso.18013.5.1", "issue_date"],
+            display: [
+              {
+                name: "Issue Date",
+                locale: "en-US",
+              }
+            ]
+          },
+          {
+            path: ["org.iso.18013.5.1", "expiry_date"],
+            display: [
+              {
+                name: "Expiry Date",
+                locale: "en-US",
+              }
+            ]
+          },
+          {
+            path: ["org.iso.18013.5.1", "issuing_authority"],
+            display: [
+              {
+                name: "Issuing Authority",
+                locale: "en-US",
+              }
+            ]
+          },
+          {
+            path: ["org.iso.18013.5.1", "document_number"],
+            display: [
+              {
+                name: "Document Number",
+                locale: "en-US",
+              }
             ]
           }
-        },
-      }
+        ],
+        display: [
+          {
+            name: "Sample Driving License",
+            locale: "en-US",
+            background_image: {
+              uri: "data:image/png;base64,iVBORw0KGgoAAAANS",
+              alt_text: "Driver's License Background"
+            }
+          }
+        ],
+      }   
     }),
   };
 
@@ -596,26 +755,9 @@ async function issue_mdoc_credential(req, res) {
     mdocSupportedCredCreated = true;
   }
 
-  // Create DID for issuance
-  const createDidUrl = `${API_BASE_URL}/did/jwk/create`;
-  const createDidOptions = {
-    method: "POST",
-    headers: commonHeaders,
-    body: JSON.stringify({
-      key_type: "p256",
-    }),
-  };
-
-  events.emit(`issuance-${req.body.registrationId}`, {type: "message", message: "Creating DID."});
-  events.emit(`issuance-${req.body.registrationId}`, {type: "message", message: `Posting Create DID Request to: ${createDidUrl}`});
-  events.emit(`issuance-${req.body.registrationId}`, {type: "debug-message", message: "Request options", data: createDidOptions});
-  const didData = await fetchApiData(createDidUrl, createDidOptions);
-  const { did } = didData;
-  events.emit(`issuance-${req.body.registrationId}`, {type: "message", message: `Created DID: ${did}`});
-  logger.info(did);
   logger.info(mdocSupportedCredID);
   
-  // 2. Create credential exchange
+  // Create credential exchange
   const exchangeCreateUrl = `${API_BASE_URL}/oid4vci/exchange/create`;
  
   console.log("FAMILY NAME", family_name);
@@ -632,7 +774,7 @@ async function issue_mdoc_credential(req, res) {
           document_number,
         }
       },
-      verification_method: did + "#0",
+      verification_method: issuerDID + "#0",
   };
 
   events.emit(`issuance-${req.body.registrationId}`, {type: "message", message: "Generating Credential Exchange."});
@@ -644,7 +786,7 @@ async function issue_mdoc_credential(req, res) {
   events.emit(`issuance-${req.body.registrationId}`, {type: "message", message: `Received Credential Exchange ID: ${exchangeId}`});
   
   
-  // 3. Get credential offer and emit QR code as in other flows
+  // Get credential offer and emit QR code as in other flows
   const credentialOfferUrl = `${API_BASE_URL}/oid4vci/credential-offer`;
   const queryParams = {
     exchange_id: exchangeId,
@@ -1108,6 +1250,225 @@ const token = await fetchApiData(
 
 console.log("_______TOKEN________\n\n\n");
 console.log(token);
+
+const WALLET_ID = token.settings["wallet.id"];
+
+// Configure Auth server tenant
+async function initializeAuthServer() {
+  try {
+ 
+    const AUTHSERVER="http://auth-server:9000"
+
+    const commonHeaders = {
+      accept: "application/json",
+      "Authorization": "Bearer " + ADMIN_MANAGE_AUTH_TOKEN,
+      "Content-Type": "application/json",
+    };
+
+    // Create tenant
+    const tenantRes = await axios.post(
+      `${AUTHSERVER}/admin/tenants`,
+      {
+        uid: WALLET_ID,
+        name: "tenant1",
+        active: true,
+        notes: "demo tenant"
+      },
+      { headers: commonHeaders }
+    );
+    logger.info("Tenant created:", tenantRes.data);
+
+    // Create key for tenant
+    const notBefore = new Date();
+    const notAfter = new Date(new Date().setFullYear(new Date().getFullYear() + 1));
+    console.log("Not before:", notBefore.toISOString());
+    console.log("Not after:", notAfter.toISOString());
+    
+
+    const keyRes = await axios.post(
+      `${AUTHSERVER}/admin/tenants/${WALLET_ID}/keys`,
+      {
+        alg: "ES256",
+        not_before: notBefore.toISOString(),
+        not_after: notAfter.toISOString(),
+        status: "active"
+      },
+      { headers: commonHeaders }
+    );
+    logger.info("Key created:", keyRes.data);
+
+    // Create client for tenant
+    const clientRes = await axios.post(
+      `${AUTHSERVER}/admin/tenants/${WALLET_ID}/clients`,
+      {
+        client_id: "client1",
+        client_auth_method: "client_secret_basic",
+        client_secret: TENANT_SECRET,
+      },
+      { headers: commonHeaders }
+    );
+    logger.info("Client created:", clientRes.data);
+
+  } catch (err) {
+    logger.error("Auth server initialization failed:", err?.response?.data || err.message);
+  }
+}
+
+// Configure the Issuer to use the use the Auth server and define issuer metadata.
+async function initializeIssuerMetadata() {
+  try {
+    const commonHeaders = {
+      accept: "application/json",
+      "Content-Type": "application/json",
+      "Authorization": "Bearer " + token.token,
+    };
+    if (API_KEY) {
+      commonHeaders["X-API-KEY"] = API_KEY;
+    }
+
+    const payload = {
+      authorization_servers: [
+        {
+          public_url: `${AUTHSERVER_NGROK_URL}/tenants/${WALLET_ID}`,
+          private_url: `http://auth-server:9000/tenants/${WALLET_ID}`,
+          auth_type: "client_secret_basic",
+          client_credentials: {
+            client_id: "client1",
+            client_secret: TENANT_SECRET
+          }
+        }
+      ]
+    };
+
+    const response = await axios.put(
+      `${API_BASE_URL}/oid4vci/issuer/configuration`,
+      payload,
+      { headers: commonHeaders }
+    );
+    logger.info("Issuer metadata initialized:", response.data);
+  } catch (err) {
+    logger.error("Issuer metadata initialization failed:", err?.response?.data || err.message);
+  }
+}
+
+// Create Signing DID. Note that this DID is used to sign both the credential and status list (required by IETF token status list spec)
+let issuerDID = null;
+async function initializeSigningDid() {
+  try {
+    const commonHeaders = {
+      accept: "application/json",
+      "Content-Type": "application/json",
+      "Authorization": "Bearer " + token.token,
+    }
+    const createDidUrl = `${API_BASE_URL}/did/jwk/create`;
+    const createDidOptions = {
+      method: "POST",
+      headers: commonHeaders,
+      body: JSON.stringify({
+        key_type: "p256",
+      }),
+    };
+    logger.info(`Posting Create DID Request to: ${createDidUrl}`);
+    logger.info("Request options", createDidOptions);
+    const didData = await fetchApiData(createDidUrl, createDidOptions);
+    const { did } = didData;
+    issuerDID = did;
+    logger.info(`Created signing DID: ${issuerDID}`);
+  } catch (err) {
+    logger.error("Signing DID initialization failed:", err?.response?.data || err.message);
+  }
+}
+
+await initializeAuthServer();
+await initializeIssuerMetadata();
+await initializeSigningDid();
+
+
+
+// Credential Info route
+app.get("/credential-info", async (req, res, next) => {
+  try {
+    const recordsUrl = `${API_BASE_URL}/oid4vci/exchange/records`;
+    const commonHeaders = {
+      accept: "application/json",
+      "Content-Type": "application/json",
+      "Authorization": "Bearer " + token.token,
+    };
+    if (API_KEY) {
+      commonHeaders["X-API-KEY"] = API_KEY;
+    }
+
+    const response = await fetch(recordsUrl, {
+      method: "GET",
+      headers: commonHeaders
+    });
+    
+    if (response.ok) {
+      const records = await response.json();
+      res.render("credential-info", { "page": "credential-info", records: JSON.stringify(records, null, 2) });
+    } else {
+      const respData = await response.text();
+      res.status(response.status).send(`<div class="w3-panel w3-pale-red w3-border"><p>Failed to fetch records: ${respData}</p></div>`);
+    }
+  } catch (err) {
+    next(err);
+  }
+});
+
+// Update Status routes
+app.get("/update-status", (req, res) => {
+  res.render("update-status-form", {"page": "update-status"});
+});
+app.get("/update-status/select", (req, res) => {
+  res.render(`update-status-fields`, {"page": "update-status"});
+});
+app.post("/update-status", async (req, res, next) => {
+  try {
+    const credType = req.body["credential-type"];
+    const credId = req.body["credential-id"];
+    
+    let defId = "";
+    if (credType === "jwt") {
+      defId = jwtStatusListID;
+    } else if (credType === "sdjwt") {
+      defId = sdJwtStatusListID;
+    } else {
+      return res.status(400).send("Invalid credential type for status update.");
+    }
+    
+    if (!defId) {
+      return res.status(400).send("Status list for this credential type has not been created yet.");
+    }
+
+    const updateUrl = `${API_BASE_URL}/status-list/defs/${defId}/creds/${credId}`;
+    const commonHeaders = {
+      accept: "application/json",
+      "Content-Type": "application/json",
+      "Authorization": "Bearer " + token.token,
+    };
+    if (API_KEY) {
+      commonHeaders["X-API-KEY"] = API_KEY;
+    }
+
+    const response = await fetch(updateUrl, {
+      method: "PATCH",
+      headers: commonHeaders,
+      body: JSON.stringify({ status: "1" })
+    });
+    
+    const respData = await response.text();
+    
+    if (respData.includes("StatusListCred record not found")) {
+      res.send(`<div class="w3-panel w3-pale-red w3-border"><p>${respData}</p></div>`);
+    } else if (response.ok) {
+      res.send(`<div class="w3-panel w3-pale-green w3-border"><p>Status successfully updated for Credential Exchange ID: ${credId}</p></div>`);
+    } else {
+      res.status(response.status).send(`<div class="w3-panel w3-pale-red w3-border"><p>Failed to update status: ${respData}</p></div>`);
+    }
+  } catch (err) {
+    next(err);
+  }
+});
 
 // Render Credential Issuance form
 app.get("/issue", (req, res) => {

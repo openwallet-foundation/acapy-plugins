@@ -133,9 +133,10 @@ class SdJwtCredIssueProcessor(Issuer, CredVerifier, PresVerifier):
     def validate_credential_subject(self, supported: SupportedCredential, subject: dict):
         """Validate the credential subject."""
         vc_additional = supported.vc_additional_data
+        LOGGER.info("QWERTY Validating credential subject: %s against supported: %s", subject, supported)
         assert vc_additional
-        assert supported.format_data
-        claims_metadata = supported.format_data.get("claims")
+       # assert supported.format_data
+        claims_metadata = supported.credential_metadata.get("claims")
         sd_list = vc_additional.get("sd_list") or []
 
         # TODO this will only enforce mandatory fields that are selectively disclosable
@@ -147,9 +148,13 @@ class SdJwtCredIssueProcessor(Issuer, CredVerifier, PresVerifier):
                 continue
             pointer = JsonPointer(sd)
 
-            metadata = pointer.resolve(claims_metadata)
-            if metadata:
-                metadata = ClaimMetadata(**metadata)
+            # Find the metadata dict whose "path" matches pointer.parts
+            metadata_dict = next(
+                (meta for meta in claims_metadata if meta.get("path") == pointer.parts),
+                None
+            )
+            if metadata_dict:
+                metadata = ClaimMetadata(**metadata_dict)
             else:
                 metadata = ClaimMetadata()
 

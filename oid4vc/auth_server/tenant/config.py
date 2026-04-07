@@ -19,7 +19,7 @@ class Settings(BaseSettings):
     REFRESH_TOKEN_TTL: int = 604800
     PRE_AUTH_CODE_TTL: int = 600
     TOKEN_BYTES: int = 48
-    INCLUDE_NONCE: bool = False
+    INCLUDE_NONCE: bool = True
     NONCE_BYTES: int = 16
 
     ATTESTATION_REQUIRED_PRE_AUTH: bool = False

@@ -18,9 +18,9 @@ pydantic-settings = "^2.10"
 python-multipart = "^0.0.22"
 httpx = "^0.28.1"
 structlog = "^25.4.0"
+alembic = "^1.16.4"
 
 [tool.poetry.group.dev.dependencies]
-alembic = "^1.16.4"
 sqlacodegen-v2 = "^0.1.4"
 pytest = "^8.3"
 pytest-asyncio = "^1.1"

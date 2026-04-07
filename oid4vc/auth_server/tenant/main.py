@@ -7,6 +7,8 @@ from fastapi import Depends, FastAPI, Request, status
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import ORJSONResponse
 from sqlalchemy.ext.asyncio import AsyncSession
+from uvicorn.middleware.proxy_headers import ProxyHeadersMiddleware
+
 
 from core.observability.observability import (
     RequestContextMiddleware,
@@ -48,8 +50,13 @@ app.add_middleware(
     allow_methods=settings.CORS_ALLOW_METHODS,
     allow_headers=settings.CORS_ALLOW_HEADERS,
     allow_credentials=settings.CORS_ALLOW_CREDENTIALS,
+    
 )
 app.add_middleware(RequestContextMiddleware)
+
+# ProxyHeadersMiddleware is needed to properly populate request.url in OAuth2Request when behind a proxy/load balancer (e.g. in Kubernetes with Ingress). 
+# TODO make sure this is vetted (test only)
+app.add_middleware(ProxyHeadersMiddleware, trusted_hosts="*")
 
 app.include_router(well_known_router)
 app.include_router(token_router)
