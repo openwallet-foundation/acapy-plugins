@@ -14,8 +14,15 @@ if not jsonpointer:
 
 async def setup(context: InjectionContext):
     """Setup the plugin."""
-    processors = context.inject(CredProcessors)
+    processors = context.inject_or(CredProcessors)
+    if not processors:
+        processors = CredProcessors()
+        context.injector.bind_instance(CredProcessors, processors)
     sd_jwt = SdJwtCredIssueProcessor()
     processors.register_issuer("vc+sd-jwt", sd_jwt)
     processors.register_cred_verifier("vc+sd-jwt", sd_jwt)
     processors.register_pres_verifier("vc+sd-jwt", sd_jwt)
+    # dc+sd-jwt is the format identifier used by newer OID4VCI drafts
+    processors.register_issuer("dc+sd-jwt", sd_jwt)
+    processors.register_cred_verifier("dc+sd-jwt", sd_jwt)
+    processors.register_pres_verifier("dc+sd-jwt", sd_jwt)

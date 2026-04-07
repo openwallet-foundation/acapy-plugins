@@ -445,10 +445,13 @@ async def get_status_list(
             status_bits.extend(shard.status_bits)
         bit_bytes = b""
         if definition.list_type == "ietf":
+            # IETF Token Status List uses little-endian bit numbering within each byte
             status_bits = bitarray(status_bits, endian="little")
             bit_bytes = status_bits.tobytes()
             bit_bytes = zlib.compress(bit_bytes)
         elif definition.list_type == "w3c":
+            # W3C Bitstring Status List uses big-endian bit numbering within each byte
+            status_bits = bitarray(status_bits, endian="big")
             bit_bytes = status_bits.tobytes()
             bit_bytes = gzip.compress(bit_bytes)
         base64 = bytes_to_b64(bit_bytes, True)

@@ -1,200 +1,213 @@
-"""Operations supporting mso_mdoc issuance."""
+"""Operations supporting mso_mdoc issuance using isomdl-uniffi.
+
+This module implements ISO/IEC 18013-5:2021 compliant mobile document issuance
+using the isomdl-uniffi Rust library via UniFFI bindings. It provides
+cryptographic operations for creating signed mobile documents (mDocs) including
+mobile driver's licenses (mDLs).
+
+Protocol Compliance:
+- OpenID4VCI 1.0 § E.1.1: mso_mdoc Credential Format
+  https://openid.net/specs/openid-4-verifiable-credential-issuance-1_0.html#appendix-E.1.1
+- ISO/IEC 18013-5:2021 § 8: Mobile document format and structure
+- ISO/IEC 18013-5:2021 § 9: Cryptographic mechanisms
+- RFC 8152: CBOR Object Signing and Encryption (COSE)
+- RFC 8949: Concise Binary Object Representation (CBOR)
+- RFC 7517: JSON Web Key (JWK) format for key material
+
+The mso_mdoc format is defined in OpenID4VCI 1.0 Appendix E.1.1 as a specific
+credential format that follows the ISO 18013-5 mobile document structure.
+"""
 
 import json
 import logging
-import os
-from binascii import hexlify
 from typing import Any, Mapping, Optional
 
-import cbor2
-import base64
+# ISO 18013-5 § 8.4: Presentation session
+# ISO 18013-5 § 9.1.3.5: ECDSA P-256 key pairs
+# ISO 18013-5 § 8.4.1: Session establishment
+# ISO 18013-5 § 8.4.2: Response handling
+# Test mDL generation for ISO 18013-5 compliance
+# Import ISO 18013-5 compliant mDoc operations from isomdl-uniffi
+# These provide cryptographically secure implementations of:
+# - mDoc creation and signing (ISO 18013-5 § 8.3)
+# - Presentation protocols (ISO 18013-5 § 8.4)
+# - P-256 elliptic curve cryptography (ISO 18013-5 § 9.1.3.5)
+from isomdl_uniffi import Mdoc  # ISO 18013-5 § 8.3: Mobile document structure
 
-from acapy_agent.core.profile import Profile
-from acapy_agent.wallet.base import BaseWallet
-from acapy_agent.wallet.default_verification_key_strategy import (
-    BaseVerificationKeyStrategy,
-)
-from acapy_agent.wallet.util import b64_to_bytes, bytes_to_b64
-from pycose.keys import CoseKey
-from pydid import DIDUrl
-
-from ..mso import MsoIssuer
-from ..x509 import selfsigned_x509cert
+from .utils import extract_signing_cert
 
 LOGGER = logging.getLogger(__name__)
 
 
-def dict_to_b64(value: Mapping[str, Any]) -> str:
-    """Encode a dictionary as a b64 string."""
-    return bytes_to_b64(json.dumps(value).encode(), urlsafe=True, pad=False)
+# ISO 18013-5 mandatory data elements for the org.iso.18013.5.1 namespace.
+# These are non-Option fields in the upstream isomdl OrgIso1801351 struct;
+# omitting any of them causes a GeneralConstructionError from the Rust FFI.
+MDL_MANDATORY_FIELDS = (
+    "family_name",
+    "given_name",
+    "birth_date",
+    "issue_date",
+    "expiry_date",
+    "issuing_country",
+    "issuing_authority",
+    "document_number",
+    "portrait",
+    "driving_privileges",
+    "un_distinguishing_sign",
+)
 
 
-def b64_to_dict(value: str) -> Mapping[str, Any]:
-    """Decode a dictionary from a b64 encoded value."""
-    return json.loads(b64_to_bytes(value, urlsafe=True))
+def _prepare_mdl_namespaces(
+    payload: Mapping[str, Any],
+) -> tuple[str, Optional[str]]:
+    """Prepare mDL namespace items for create_and_sign_mdl.
 
+    Args:
+        payload: The credential payload
 
-def nym_to_did(value: str) -> str:
-    """Return a did from nym if passed value is nym, else return value."""
-    return value if value.startswith("did:") else f"did:sov:{value}"
+    Returns:
+        Tuple of (mdl_items_json, aamva_items_json) where aamva_items_json
+        may be None. Both are JSON-serialized dicts; isomdl-uniffi handles
+        CBOR encoding internally.
 
-
-def did_lookup_name(value: str) -> str:
-    """Return the value used to lookup a DID in the wallet.
-
-    If value is did:sov, return the unqualified value. Else, return value.
+    Raises:
+        ValueError: If any ISO 18013-5 mandatory data element is missing.
     """
-    return value.split(":", 3)[2] if value.startswith("did:sov:") else value
+    mdl_payload = payload.get("org.iso.18013.5.1", payload)
+    mdl_items = {k: v for k, v in mdl_payload.items() if k != "org.iso.18013.5.1.aamva"}
+
+    # isomdl-uniffi's create_and_sign_mdl requires driving_privileges even
+    # when none are granted — default to an empty array so callers that omit
+    # the field don't hit a GeneralConstructionError.
+    mdl_items.setdefault("driving_privileges", [])
+
+    # Validate mandatory fields before calling into the Rust FFI so that
+    # callers get a clear error message instead of an opaque
+    # GeneralConstructionError.
+    missing = [f for f in MDL_MANDATORY_FIELDS if f not in mdl_items]
+    if missing:
+        raise ValueError(
+            f"mDL credential_subject is missing mandatory ISO 18013-5 "
+            f"data element(s): {', '.join(missing)}"
+        )
+
+    aamva_payload = payload.get("org.iso.18013.5.1.aamva")
+    aamva_items_json = json.dumps(aamva_payload) if aamva_payload else None
+
+    return json.dumps(mdl_items), aamva_items_json
 
 
-def base64url_decode(input_str):
-    """Decode a base64url encoded string."""
-    padding = "=" * (-len(input_str) % 4)
-    LOGGER.debug(f"base64url decoding input: {input_str} with padding: {padding}")
-    return base64.urlsafe_b64decode(input_str + padding)
+def _prepare_generic_namespaces(doctype: str, payload: Mapping[str, Any]) -> dict:
+    """Prepare namespaces for generic doctypes.
+
+    Args:
+        doctype: The document type
+        payload: The credential payload
+
+    Returns:
+        Dictionary of namespaces with JSON-encoded element values
+        for use with Mdoc.create_and_sign.
+    """
+    encoded_payload = {k: json.dumps(v) for k, v in payload.items()}
+    return {doctype: encoded_payload}
 
 
-def extract_key_from_jwt(jwt_token):
-    """Extract JWK key from a JWT token."""
-    # header_b64, payload_b64, _ = jwt_token.split('.')
-    # key = json.loads(base64url_decode(jwt_token))
-    key = json.loads(jwt_token)
-    LOGGER.debug(f"extracted key from jwt: {key}")
-    #  payload = json.loads(base64url_decode(payload_b64))
-    # The key may be in the header (as 'jwk') or in the payload, depending on your JWT
-    return key
-
-
-async def mso_mdoc_sign(
-    profile: Profile,
+def isomdl_mdoc_sign(
+    jwk: dict,
     headers: Mapping[str, Any],
     payload: Mapping[str, Any],
-    did: Optional[str] = None,
-    verification_method: Optional[str] = None,
+    iaca_cert_pem: str,
+    iaca_key_pem: str,
 ) -> str:
-    """Create a signed mso_mdoc given headers, payload, and signing DID or DID URL."""
-    if verification_method is None:
-        if did is None:
-            raise ValueError("did or verificationMethod required.")
+    """Create a signed mso_mdoc using isomdl-uniffi.
 
-        did = nym_to_did(did)
+    Creates and signs a mobile security object (MSO) compliant with
+    ISO 18013-5 § 9.1.3. The signing uses ECDSA with P-256 curve (ES256)
+    as mandated by ISO 18013-5 § 9.1.3.5 for mDoc cryptographic protection.
 
-        verkey_strat = profile.inject(BaseVerificationKeyStrategy)
-        verification_method = await verkey_strat.get_verification_method_id_for_did(
-            did, profile
-        )
-        if not verification_method:
-            raise ValueError("Could not determine verification method from DID")
-    else:
-        # We look up keys by did for now
-        did = DIDUrl.parse(verification_method).did
-        if not did:
-            raise ValueError("DID URL must be absolute")
+    Protocol Compliance:
+    - ISO 18013-5 § 9.1.3: Mobile security object (MSO) structure
+    - ISO 18013-5 § 9.1.3.5: ECDSA P-256 signature algorithm
+    - RFC 8152: COSE signing for MSO authentication
+    - RFC 7517: JWK format for key material input
 
-    async with profile.session() as session:
-        wallet = session.inject(BaseWallet)
-        LOGGER.info(f"mso_mdoc sign: {did}")
+    Args:
+        jwk: The signing key in JWK format
+        headers: Header parameters including doctype
+        payload: The credential data to sign
+        iaca_cert_pem: Issuer certificate in PEM format
+        iaca_key_pem: Issuer private key in PEM format
 
-        did_info = await wallet.get_local_did(did_lookup_name(did))
-        key_pair = await wallet._session.handle.fetch_key(did_info.verkey)
-        jwk_bytes = key_pair.key.get_jwk_secret()
-        jwk = json.loads(jwk_bytes)
-
-    return mdoc_sign(jwk, headers, payload)
-
-
-def mdoc_sign(jwk: dict, headers: Mapping[str, Any], payload: Mapping[str, Any]) -> str:
-    """Create a signed mso_mdoc given headers, payload, and private key."""
-    jwk_kty = (jwk.get("kty") or "").upper()
-    jwk_crv = (jwk.get("crv") or "").upper().replace("-", "_")
-    cose_kty = "OKP" if jwk_kty == "OKP" else ("EC2" if jwk_kty == "EC" else jwk_kty)
-    cose_crv = "ED25519" if jwk_crv == "ED25519" else jwk_crv
-
-    pk_dict = {
-        "KTY": cose_kty,
-        "CURVE": cose_crv,
-        "ALG": "EdDSA" if cose_kty == "OKP" else "ES256",
-        "D": b64_to_bytes(jwk.get("d") or "", True),  # EdDSA
-        "X": b64_to_bytes(jwk.get("x") or "", True),  # EdDSA, EcDSA
-        "KID": os.urandom(32),
-    }
-    if jwk.get("y"):
-        pk_dict["Y"] = b64_to_bytes(jwk.get("y"), True)  # EcDSA
-
-    cose_key = CoseKey.from_dict(pk_dict)
-
-    LOGGER.info(f"signing mso_mdoc with headers: {headers}, payload: {payload}")
-    if isinstance(headers, dict):
-        doctype = headers.get("doctype") or ""
-        LOGGER.info(f"doctype from headers: {headers.get('deviceKey')}")
-        # need to fix device_key at source
-        jwt_header_key = extract_key_from_jwt(headers.get("deviceKey").lstrip("'\""))
-        if jwt_header_key.get("kty", "").upper() == "OKP":
-            device_key_dict = {
-                "KTY": "OKP",
-                "CURVE": "Ed25519",
-                "ALG": "EdDSA",
-                "X": b64_to_bytes(jwt_header_key.get("x") or "", True),
-            }
-        else:
-            device_key_dict = {
-                "KTY": "EC2",
-                "CURVE": "P_256",
-                "ALG": "ES256",
-                "X": b64_to_bytes(jwt_header_key.get("x") or "", True),
-                "Y": b64_to_bytes(jwt_header_key.get("y") or "", True),
-            }
-        device_key = CoseKey.from_dict(device_key_dict)
-
-    # LOGGER.info(f"extracted device_key: {device_key}")
-    # device_key = headers.get("deviceKey") or ""
-    else:
+    Returns:
+        CBOR-encoded mDoc as string
+    """
+    if not isinstance(headers, dict):
         raise ValueError("missing headers.")
 
-    if isinstance(payload, dict):
-        doctype = headers.get("doctype")
-        data = [{"doctype": doctype, "data": payload}]
-    else:
+    if not isinstance(payload, dict):
         raise ValueError("missing payload.")
 
-    for doc in data:
-        _cert = selfsigned_x509cert(private_key=cose_key)
-        msoi = MsoIssuer(data=doc["data"], private_key=cose_key, x509_cert=_cert)
-        mso = msoi.sign(device_key=device_key, doctype=doctype)
-        issuer_auth = mso.encode()
-        LOGGER.debug(f"issuer_auth signed: {hexlify(issuer_auth)}")
-        issuer_auth = cbor2.loads(issuer_auth).value
-        LOGGER.debug(f"issuer_auth before wrapping: {issuer_auth}")
+    try:
+        doctype = headers.get("doctype")
+        holder_jwk = json.dumps(jwk)
 
-    #
-    # TODO: Multi document support
-    #
-    # document = {
-    #    "docType": doctype,
-    #    "issuerSigned": {
-    #        "nameSpaces": {
-    #            ns: [cbor2.CBORTag(24, cbor2.dumps(v)) for k, v in dgst.items()]
-    #            for ns, dgst in msoi.disclosure_map.items()
-    #        },
-    #        "issuerAuth": issuer_auth,
-    #    },
-    # this is required during the presentation.
-    #  'deviceSigned': {
-    #  # TODO
-    #  }
-    # }
-    # documents.append(document)
+        LOGGER.debug("holder_jwk: %s", holder_jwk)
+        LOGGER.debug("iaca_cert_pem length: %d", len(iaca_cert_pem))
+        LOGGER.debug("iaca_key_pem length: %d", len(iaca_key_pem))
 
-    signed = {
-        #    "version": "1.0", TODO: move back to the loop above?
-        "nameSpaces": {
-            ns: [cbor2.CBORTag(24, cbor2.dumps(v)) for k, v in dgst.items()]
-            for ns, dgst in msoi.disclosure_map.items()
-        },
-        "issuerAuth": issuer_auth,
-        #    "status": 0,
-    }
-    LOGGER.info(f"signed mso_mdoc dict: {signed}")
-    signed_hex = hexlify(cbor2.dumps(signed))
-    LOGGER.info(f"signed mso_mdoc: {signed_hex}")
-    return f"{signed_hex}"
+        # If iaca_cert_pem contains a chain (multiple PEM blocks), Rust's
+        # x509_cert crate only reads the first certificate and silently drops
+        # everything after it.  Extract just the signing cert (first block)
+        # so Rust always receives a single, unambiguous certificate.
+        signing_cert_pem = extract_signing_cert(iaca_cert_pem)
+        if signing_cert_pem != iaca_cert_pem:
+            LOGGER.info(
+                "iaca_cert_pem contained a PEM chain; extracted first certificate "
+                "(%d bytes) as the signing cert",
+                len(signing_cert_pem),
+            )
+
+        # Prepare namespaces based on doctype
+        if doctype == "org.iso.18013.5.1.mDL":
+            # Use the dedicated mDL constructor — accepts JSON strings and
+            # handles CBOR encoding internally (isomdl-uniffi >= create_and_sign_mdl)
+            mdl_items, aamva_items = _prepare_mdl_namespaces(payload)
+            LOGGER.info("Creating mDL mdoc via create_and_sign_mdl")
+            mdoc = Mdoc.create_and_sign_mdl(
+                mdl_items,
+                aamva_items,
+                holder_jwk,
+                signing_cert_pem,
+                iaca_key_pem,
+            )
+        else:
+            namespaces = _prepare_generic_namespaces(doctype, payload)
+            LOGGER.info("Creating mdoc with namespaces: %s", list(namespaces.keys()))
+            mdoc = Mdoc.create_and_sign(
+                doctype,
+                namespaces,
+                holder_jwk,
+                signing_cert_pem,
+                iaca_key_pem,
+            )
+
+        LOGGER.info("Generated mdoc with doctype: %s", mdoc.doctype())
+
+        # Serialize as ISO 18013-5 §8.3 compliant IssuerSigned CBOR (camelCase keys,
+        # nameSpaces as arrays). issuer_signed_b64() uses the upstream IssuerSigned
+        # struct directly, which carries the correct serde renames, eliminating the
+        # need for any post-serialization key patching.
+        return mdoc.issuer_signed_b64()
+
+    except Exception as ex:
+        LOGGER.error("Failed to create mdoc with isomdl: %r", ex)
+        raise ValueError(f"Failed to create mdoc: {ex!r}") from ex
+
+
+def parse_mdoc(cbor_data: str) -> Mdoc:
+    """Parse a CBOR-encoded mDoc string into an Mdoc object."""
+    try:
+        return Mdoc.from_string(cbor_data)
+    except Exception as ex:
+        LOGGER.error("Failed to parse mdoc: %s", ex)
+        raise ValueError(f"Failed to parse mdoc: {ex}") from ex
