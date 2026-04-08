@@ -196,3 +196,4 @@ settings.json
 # Edit the file setupDocs.sh to edit the docs, run to generate
 /docs
 mkdocs.yml
+*.code-workspace

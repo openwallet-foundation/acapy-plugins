@@ -59,7 +59,12 @@ class InputDescriptorMappingSchema(BaseModelSchema):
         model_class = InputDescriptorMapping
         unknown = EXCLUDE
 
-    id = fields.Str(required=True, metadata={"description": "ID"})
+    # PEX 2.0 §5.1.1 technically requires `id` in every descriptor_map entry.
+    # However, some wallets (e.g. waltid) omit it in practice.  Making the
+    # field optional here is a deliberate interoperability relaxation for
+    # non-conformant wallets; the evaluator compensates with positional
+    # matching as a fallback (see PresentationExchangeEvaluator.verify).
+    id = fields.Str(required=False, load_default=None, metadata={"description": "ID"})
     fmt = fields.Str(
         required=True,
         dump_default="ldp_vc",
@@ -213,9 +218,9 @@ class DescriptorEvaluator:
         else:
             raise TypeError("descriptor must be dict or InputDescriptor")
 
+        fields = descriptor.constraint._fields if descriptor.constraint else []
         field_constraints = [
-            ConstraintFieldEvaluator.compile(constraint)
-            for constraint in descriptor.constraint._fields
+            ConstraintFieldEvaluator.compile(constraint) for constraint in fields
         ]
         return cls(descriptor.id, field_constraints)
 
@@ -284,9 +289,19 @@ class PresentationExchangeEvaluator:
 
         descriptor_id_to_claims = {}
         descriptor_id_to_fields = {}
-        for item in submission.descriptor_maps or []:
+        descriptors_list = list(self._id_to_descriptor.values())
+        for idx, item in enumerate(submission.descriptor_maps or []):
             # TODO Check JWT VP generally, if format is jwt_vp
-            evaluator = self._id_to_descriptor.get(item.id)
+            evaluator = self._id_to_descriptor.get(item.id) if item.id else None
+            if not evaluator and item.id is None and idx < len(descriptors_list):
+                # Deliberate interoperability relaxation: PEX 2.0 §5.1.1
+                # requires descriptor_map entries to carry an `id` that
+                # matches an input descriptor id, but some wallets (e.g.
+                # waltid) omit the field entirely.  When id is absent we
+                # fall back to positional matching — the Nth submission entry
+                # is evaluated against the Nth input descriptor.  Named
+                # lookup (above) always takes priority when id IS present.
+                evaluator = descriptors_list[idx]
             if not evaluator:
                 return PexVerifyResult(
                     details=f"Could not find input descriptor corresponding to {item.id}"

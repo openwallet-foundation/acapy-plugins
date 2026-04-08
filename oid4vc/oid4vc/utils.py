@@ -10,8 +10,22 @@ from acapy_agent.messaging.util import datetime_now
 from acapy_agent.wallet.util import b58_to_bytes, bytes_to_b64, str_to_b64, unpad
 from oid4vc.config import Config
 from oid4vc.jwt import jwt_sign
+from oid4vc.models.supported_cred import SupportedCredential
 
 EXPIRES_IN = 300
+
+
+async def supported_cred_is_unique(identifier: str, profile: Profile):
+    """Check whether a record exists with a given identifier."""
+
+    async with profile.session() as session:
+        records = await SupportedCredential.query(
+            session, tag_filter={"identifier": identifier}
+        )
+
+    if len(records) > 0:
+        return False
+    return True
 
 
 def get_tenant_subpath(profile: Profile, tenant_prefix: str = "/tenants") -> str:

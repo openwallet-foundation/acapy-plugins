@@ -1,8 +1,10 @@
 """App resources."""
 
-import logging
-import aiohttp
 import asyncio
+import logging
+import threading
+
+import aiohttp
 
 from .config import Config
 
@@ -16,16 +18,28 @@ class AppResources:
     _http_client: aiohttp.ClientSession | None = None
     _cleanup_task: asyncio.Task | None = None
     _client_shutdown: bool = False
+    _lock = threading.Lock()
 
     @classmethod
     async def startup(cls, config: Config | None = None):
         """Initialize resources."""
-        if config and config.auth_server_url:
-            cls._auth_server_url = config.auth_server_url
-            LOGGER.info("Initializing HTTP client...")
-            cls._http_client = aiohttp.ClientSession()
-            # LOGGER.info("Starting up cleanup task...")
-            # cls._cleanup_task = asyncio.create_task(cls._background_cleanup())
+        with cls._lock:
+            # Prevent multiple initializations
+            if cls._http_client is not None:
+                LOGGER.debug("HTTP client already initialized")
+                return
+
+            if config and config.auth_server_url:
+                cls._auth_server_url = config.auth_server_url
+                LOGGER.info("Initializing HTTP client...")
+                cls._http_client = aiohttp.ClientSession(
+                    timeout=aiohttp.ClientTimeout(total=30, connect=10),
+                    connector=aiohttp.TCPConnector(
+                        limit=100, limit_per_host=10, ttl_dns_cache=300
+                    ),
+                )
+                # LOGGER.info("Starting up cleanup task...")
+                # cls._cleanup_task = asyncio.create_task(cls._background_cleanup())
 
     @classmethod
     async def shutdown(cls):
@@ -51,7 +65,14 @@ class AppResources:
             raise RuntimeError("HTTP client was shut down and cannot be re-initialized")
         if cls._auth_server_url and cls._http_client is None:
             LOGGER.warning("Warning: HTTP client was None, re-initializing.")
-            cls._http_client = aiohttp.ClientSession()
+            with cls._lock:
+                if cls._http_client is None:  # Double-check after acquiring lock
+                    cls._http_client = aiohttp.ClientSession(
+                        timeout=aiohttp.ClientTimeout(total=30, connect=10),
+                        connector=aiohttp.TCPConnector(
+                            limit=100, limit_per_host=10, ttl_dns_cache=300
+                        ),
+                    )
         if cls._http_client is None:
             raise RuntimeError("HTTP client is not initialized")
         return cls._http_client
