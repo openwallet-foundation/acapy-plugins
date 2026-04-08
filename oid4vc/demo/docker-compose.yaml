@@ -190,7 +190,7 @@ services:
       timeout: 5s
       retries: 5
   db:
-    image: postgres:17
+    image: postgres:15
     environment:
       POSTGRES_PASSWORD: postgres
       POSTGRES_USER: postgres

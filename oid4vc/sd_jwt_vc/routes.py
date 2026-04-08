@@ -157,12 +157,13 @@ async def supported_credential_create(request: web.Request):
         body,
     )
 
-    vc_additional_data = {
-        "vct": body.pop("vct", None),
-        "sd_list": body.pop("sd_list", None),
-    }
+    vct = body.pop("vct", None)
+    sd_list = body.pop("sd_list", None)
+    format_data = {"vct": vct} if vct is not None else {}
+    vc_additional_data = {"vct": vct, "sd_list": sd_list}
     record = SupportedCredential(
         **body,
+        format_data=format_data,
         vc_additional_data=vc_additional_data,
     )
 
@@ -213,10 +214,10 @@ async def supported_cred_update_helper(
     )
     record.proof_types_supported = body.get("proof_types_supported", None)
     record.credential_metadata = body.get("credential_metadata", None)
-    record.vc_additional_data = {
-        "vct": body.get("vct", None),
-        "sd_list": body.get("sd_list", None),
-    }
+    vct = body.get("vct", None)
+    sd_list = body.get("sd_list", None)
+    record.format_data = {"vct": vct} if vct is not None else {}
+    record.vc_additional_data = {"vct": vct, "sd_list": sd_list}
 
     await record.save(session)
     return record
