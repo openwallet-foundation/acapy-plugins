@@ -19,7 +19,7 @@ class Settings(BaseSettings):
     REFRESH_TOKEN_TTL: int = 604800
     PRE_AUTH_CODE_TTL: int = 600
     TOKEN_BYTES: int = 48
-    INCLUDE_NONCE: bool = True
+    INCLUDE_NONCE: bool = False
     NONCE_BYTES: int = 16
 
     DB_DRIVER_ASYNC: str = "postgresql+asyncpg"

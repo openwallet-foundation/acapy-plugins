@@ -1,14 +1,15 @@
 #!/bin/bash
 
-TUNNEL_ENDPOINT=${TUNNEL_ENDPOINT:-http://localhost:4040}
+TUNNEL_ENDPOINT=${TUNNEL_ENDPOINT:-http://ngrok:4040}
 
 WAIT_INTERVAL=${WAIT_INTERVAL:-3}
 WAIT_ATTEMPTS=${WAIT_ATTEMPTS:-10}
 
 liveliness_check () {
         for CURRENT_ATTEMPT in $(seq 1 "$WAIT_ATTEMPTS"); do
+                set -o pipefail
                 # Use jq to check if the 'issuer' tunnel is available
-                if curl -s "${1}/api/tunnels" | jq -e '.tunnels[] | select(.name == "issuer" and .public_url != null)' > /dev/null; then
+                if curl -sf "${1}/api/tunnels" | jq -e 'any(.tunnels[]; .name == "authserver" and .public_url != null)' > /dev/null; then
                         break
                 else
                         if [[ $CURRENT_ATTEMPT -ge $WAIT_ATTEMPTS ]]; then
