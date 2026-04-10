@@ -9,7 +9,7 @@ from admin.config import settings
 _security = HTTPBearer(auto_error=False)
 
 
-def require_interal_auth(
+def require_internal_auth(
     credentials: HTTPAuthorizationCredentials | None = Depends(_security),
 ) -> bool:
     """Validate internal routes via Bearer from settings."""

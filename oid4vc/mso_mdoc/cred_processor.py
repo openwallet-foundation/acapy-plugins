@@ -87,44 +87,33 @@ async def _get_trust_anchors(
 class MsoMdocCredProcessor(Issuer, CredVerifier, PresVerifier):
     """Credential processor class for mso_mdoc credential format."""
 
-    def format_data_is_top_level(self) -> bool:
-        """mso_mdoc format_data (doctype, claims, etc.) belongs at top level.
-
-        Per OID4VCI spec Appendix E, mso_mdoc credential configurations must
-        have ``doctype`` and other format fields at the top level of the
-        credential configuration object, NOT inside ``credential_definition``.
-        """
-        return True
-
     # COSE algorithm name → integer identifier mapping (RFC 8152 / IANA COSE registry)
     _COSE_ALG: dict = {"ES256": -7, "ES384": -35, "ES512": -36, "ES256K": -47}
 
-    def transform_issuer_metadata(self, metadata: dict) -> None:
-        """Convert mso_mdoc metadata to OID4VCI 1.0 spec-compliant form.
+    def credential_metadata(self, supported_cred: dict) -> dict:
+        """Shape issuer metadata for mso_mdoc format.
 
-        Performs two transformations required by OID4VCI 1.0:
-
-        1. ``credential_signing_alg_values_supported`` — converts string
-           algorithm names to COSE integer identifiers (e.g. "ES256" → -7)
-           per OID4VCI 1.0 Appendix A.2.2 and ISO 18013-5.
-
-        2. ``claims`` — converts the stored namespace-keyed dict
-           ``{namespace: {claim_name: descriptor}}`` to the spec-compliant
-           flat array ``[{path: [namespace, claim_name], ...}]`` and nests
-           it inside ``credential_metadata`` per OID4VCI 1.0 Appendix A.2.2,
-           Section 12.2.4, and Appendix B.2.
-
-        3. ``display`` — moves the credential display array into
-           ``credential_metadata`` per OID4VCI 1.0 Section 12.2.4.
+        Lifts ``doctype`` from ``format_data`` to the top level, converts the
+        namespace-keyed claims dict to the spec-compliant flat array, moves
+        ``display`` into ``credential_metadata``, and converts COSE algorithm
+        string names to integer identifiers per OID4VCI 1.0 / ISO 18013-5.
         """
-        # Convert algorithm names to COSE integer identifiers
-        algs = metadata.get("credential_signing_alg_values_supported")
+        format_data = supported_cred.pop("format_data", None) or {}
+        supported_cred.pop("vc_additional_data", None)  # trust anchors etc. are internal
+
+        doctype = format_data.get("doctype")
+        claims = format_data.get("claims")
+
+        # Convert COSE algorithm string names to integer identifiers
+        # (e.g. "ES256" → -7).  Numeric strings ("-7") are already converted
+        # by to_issuer_metadata(); this handles name-form values like "ES256".
+        algs = supported_cred.get("credential_signing_alg_values_supported")
         if algs:
-            metadata["credential_signing_alg_values_supported"] = [
+            supported_cred["credential_signing_alg_values_supported"] = [
                 self._COSE_ALG.get(a, a) if isinstance(a, str) else a for a in algs
             ]
 
-        claims = metadata.pop("claims", None)
+        # Convert namespace-keyed claims dict to flat path-array per OID4VCI spec
         if isinstance(claims, dict):
             claims_list = []
             for namespace, claim_map in claims.items():
@@ -137,18 +126,21 @@ class MsoMdocCredProcessor(Issuer, CredVerifier, PresVerifier):
                             if "display" in descriptor:
                                 entry["display"] = descriptor["display"]
                         claims_list.append(entry)
-            credential_metadata = metadata.setdefault("credential_metadata", {})
-            credential_metadata["claims"] = claims_list
-        elif isinstance(claims, list):
-            # Already converted — just ensure it's nested in credential_metadata
-            credential_metadata = metadata.setdefault("credential_metadata", {})
-            credential_metadata["claims"] = claims
+            claims = claims_list
 
-        # Move display into credential_metadata per OID4VCI 1.0 Section 12.2.4
-        display = metadata.pop("display", None)
+        if claims:
+            cred_meta = supported_cred.setdefault("credential_metadata", {})
+            cred_meta["claims"] = claims
+
+        # Move top-level display into credential_metadata per OID4VCI 1.0 §12.2.4
+        display = supported_cred.pop("display", None)
         if display is not None:
-            credential_metadata = metadata.setdefault("credential_metadata", {})
-            credential_metadata["display"] = display
+            cred_meta = supported_cred.setdefault("credential_metadata", {})
+            cred_meta["display"] = display
+
+        if doctype:
+            return {"doctype": doctype, **supported_cred}
+        return supported_cred
 
     def __init__(self):
         """Initialize the processor."""
@@ -368,7 +360,7 @@ class MsoMdocCredProcessor(Issuer, CredVerifier, PresVerifier):
         """
         additional = supported.vc_additional_data or {}
         definition_id = additional.get("status_list_def_id")
-        base_uri = additional.get("status_list_base_uri", "").rstrip("/")
+        base_uri = (additional.get("status_list_base_uri") or "").rstrip("/")
 
         if not definition_id or not base_uri:
             return None

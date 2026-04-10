@@ -41,9 +41,9 @@ async def test_remote_sign_jwt_success(monkeypatch):
         signing_service, "httpx", FakeHttpNamespace(AsyncClient=FakeClient)
     )
     monkeypatch.setattr(
-        signing_service.settings, "ADMIN_INTERNAL_BASE_URL", "https://admin"
+        signing_service.settings, "INTERNAL_BASE_URL", "https://admin"
     )
-    monkeypatch.setattr(signing_service.settings, "ADMIN_INTERNAL_AUTH_TOKEN", "token")
+    monkeypatch.setattr(signing_service.settings, "INTERNAL_AUTH_TOKEN", "token")
     monkeypatch.setattr(signing_service, "current_request_id", lambda: "req-123")
 
     result = await signing_service.remote_sign_jwt(
@@ -82,9 +82,9 @@ async def test_remote_sign_jwt_without_kid(monkeypatch):
         signing_service, "httpx", FakeHttpNamespace(AsyncClient=FakeClient)
     )
     monkeypatch.setattr(
-        signing_service.settings, "ADMIN_INTERNAL_BASE_URL", "https://admin"
+        signing_service.settings, "INTERNAL_BASE_URL", "https://admin"
     )
-    monkeypatch.setattr(signing_service.settings, "ADMIN_INTERNAL_AUTH_TOKEN", "token")
+    monkeypatch.setattr(signing_service.settings, "INTERNAL_AUTH_TOKEN", "token")
     monkeypatch.setattr(signing_service, "current_request_id", lambda: None)
 
     result = await signing_service.remote_sign_jwt(uid="tenant-1", claims={"sub": "abc"})
@@ -112,9 +112,9 @@ async def test_remote_sign_jwt_raises_on_http_error(monkeypatch):
         signing_service, "httpx", FakeHttpNamespace(AsyncClient=FakeClient)
     )
     monkeypatch.setattr(
-        signing_service.settings, "ADMIN_INTERNAL_BASE_URL", "https://admin"
+        signing_service.settings, "INTERNAL_BASE_URL", "https://admin"
     )
-    monkeypatch.setattr(signing_service.settings, "ADMIN_INTERNAL_AUTH_TOKEN", "token")
+    monkeypatch.setattr(signing_service.settings, "INTERNAL_AUTH_TOKEN", "token")
     monkeypatch.setattr(signing_service, "current_request_id", lambda: None)
 
     with pytest.raises(signing_service.httpx.HTTPStatusError):

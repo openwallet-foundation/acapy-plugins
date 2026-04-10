@@ -1,0 +1,40 @@
+<div id="update-status-form-container">
+  <form
+      class="w3-container"
+      hx-post="/update-status"
+      hx-target="#update-result"
+      hx-swap="innerhtml"
+      >
+    <div class="w3-container w3-center">
+      <label
+          class="w3-text-gray"
+          for="credential-type"
+          >
+        Select Credential Type
+      </label>
+      <br />
+      <select
+          style="margin-bottom: 1em;"
+          name="credential-type"
+          hx-get="/update-status/select"
+          hx-target="#fields"
+          >
+        <option value="" disabled selected>Credential Type</option>
+        <option value="jwt">JWT</option>
+        <option value="sdjwt">SD-JWT</option>
+      </select>
+    </div>
+    <div id="fields">
+    </div>
+    <div id="update-result" class="w3-center w3-margin-top">
+    </div>
+  </form>
+</div>
+<div id="navigation" hx-swap-oob="innerhtml">
+  <%- include('navigation.ejs') %>
+</div>
+<div id="content-header" hx-swap-oob="innerhtml">
+  <h1 class="w3-jumbo"><b>OpenID4VCI</b></h1>
+  <h1 class="w3-xxxlarge w3-text-green"><b>Update Status</b></h1>
+  <hr style="width:50px;border:5px solid green" class="w3-round">
+</div>

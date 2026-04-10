@@ -1,0 +1,14 @@
+version: 3
+tunnels:
+  issuer:
+    proto: http
+    addr: issuer:8082
+    domain: issuer.stg.ngrok.io
+  authserver:
+    proto: http
+    addr: auth-server:9001
+    domain: auth.stg.ngrok.io
+  demo:
+    proto: http
+    addr: demo-app:3000
+    domain: demo.stg.ngrok.io

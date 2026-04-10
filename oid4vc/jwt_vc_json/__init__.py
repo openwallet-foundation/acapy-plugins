@@ -5,6 +5,7 @@ from acapy_agent.config.injection_context import InjectionContext
 from oid4vc.cred_processor import CredProcessors
 
 from .cred_processor import JwtVcJsonCredProcessor
+from . import routes as routes  # noqa: F401 — triggers ACA-Py route discovery
 
 
 async def setup(context: InjectionContext):

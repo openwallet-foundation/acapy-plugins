@@ -35,6 +35,7 @@ from .signing_key import (
     MdocSigningKeyImportSchema,
     MdocSigningKeyUpdateSchema,
     generate_ec_p256_key_pem,
+    generate_self_signed_certificate,
     validate_cert_matches_private_key,
 )
 
@@ -219,6 +220,13 @@ async def create_signing_key(request: web.Request):
 
     private_key_pem = generate_ec_p256_key_pem()
     certificate_pem = body.get("certificate_pem")
+
+    if not certificate_pem and body.get("generate_self_signed"):
+        certificate_pem = generate_self_signed_certificate(
+            private_key_pem,
+            common_name=body.get("label") or "mDoc Issuer",
+            country_name=body.get("country_name") or "US",
+        )
 
     if certificate_pem:
         try:

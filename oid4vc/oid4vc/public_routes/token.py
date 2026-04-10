@@ -36,7 +36,7 @@ from ..config import Config
 from ..models.exchange import OID4VCIExchangeRecord
 from ..models.nonce import Nonce
 from ..pop_result import PopResult
-from ..utils import get_auth_header, get_tenant_subpath
+from ..utils import get_auth_header, get_auth_server_url, get_first_auth_server, get_tenant_subpath
 from .constants import (
     EXPIRES_IN,
     LOGGER,
@@ -88,10 +88,16 @@ async def token(request: web.Request):
     """
     context: AdminRequestContext = request["context"]
     config = Config.from_settings(context.settings)
-    if config.auth_server_url:
-        subpath = get_tenant_subpath(context.profile)
-        token_url = f"{config.auth_server_url}{subpath}/token"
-        raise web.HTTPFound(location=token_url)
+    async with context.profile.session() as session:
+        auth_server = await get_first_auth_server(session, context.profile)
+    if auth_server:
+        # The wallet should never reach this endpoint when an external auth server
+        # is configured — it should obtain a token directly from the auth server's
+        # token_endpoint advertised in the AS well-known metadata.  Return an
+        # explicit error rather than silently proxying.
+        raise web.HTTPBadRequest(
+            reason="Token endpoint not available: use the authorization server"
+        )
     form = await request.post()
     LOGGER.debug("Token request form: %s", dict(form))
 
@@ -232,13 +238,16 @@ async def check_token(
     config = Config.from_settings(context.settings)
     profile = context.profile
 
-    if config.auth_server_url:
+    async with profile.session() as session:
+        auth_server = await get_first_auth_server(session, profile)
+
+    if auth_server:
+        private_url = get_auth_server_url(auth_server)
         subpath = get_tenant_subpath(profile, tenant_prefix="/tenant")
         issuer_server_url = f"{config.endpoint}{subpath}"
-        auth_server_url = f"{config.auth_server_url}{get_tenant_subpath(profile)}"
-        introspect_endpoint = f"{auth_server_url}/introspect"
+        introspect_endpoint = f"{private_url}/introspect"
         auth_header = await get_auth_header(
-            profile, config, issuer_server_url, introspect_endpoint
+            profile, auth_server, issuer_server_url, introspect_endpoint
         )
         resp = await AppResources.get_http_client().post(
             introspect_endpoint,

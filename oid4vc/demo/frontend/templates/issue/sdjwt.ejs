@@ -37,6 +37,19 @@
 					value="21"
 					required
 					></input>
+<br>
+<label class="w3-text-gray" for="is-refresh">
+  Refresh Credential
+</label>
+<input class="w3-check" style="margin-bottom:15px; margin-left:10px" type="checkbox" id="is-refresh" name="is-refresh" onchange="document.getElementById('refresh-id-container').style.display = this.checked ? 'block' : 'none';"></input>
+
+<div id="refresh-id-container" style="display: none; margin-bottom: 15px;">
+  <label class="w3-text-gray" for="refresh-id">
+    Refresh ID
+  </label>
+  <input class="w3-input w3-animate" name="refresh-id" id="refresh-id" placeholder="Refresh ID"></input>
+</div>
+
 			<button
 					class="w3-bar w3-btn w3-green"
 					type="submit"

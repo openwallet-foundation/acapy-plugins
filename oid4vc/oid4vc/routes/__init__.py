@@ -34,14 +34,12 @@ from .exchange import (
     get_exchange_by_id,
     list_exchange_records,
 )
+from .issuer_config import get_issuer_configuration, put_issuer_configuration
 from .supported_credential import (
     SupportedCredentialMatchSchema,
     get_supported_credential_by_id,
-    supported_credential_create,
-    supported_credential_create_jwt,
     supported_credential_list,
     supported_credential_remove,
-    update_supported_credential_jwt_vc,
 )
 from ..utils import supported_cred_is_unique
 from .vp_dcql import (
@@ -89,11 +87,8 @@ __all__ = [
     # Supported credential
     "SupportedCredentialMatchSchema",
     "supported_cred_is_unique",
-    "supported_credential_create",
-    "supported_credential_create_jwt",
     "supported_credential_list",
     "get_supported_credential_by_id",
-    "update_supported_credential_jwt_vc",
     "supported_credential_remove",
     # VP request
     "create_oid4vp_request",
@@ -120,6 +115,9 @@ __all__ = [
     "oid4vp_pres_remove",
     # DID JWK
     "create_did_jwk",
+    # Issuer configuration
+    "get_issuer_configuration",
+    "put_issuer_configuration",
     # Registration
     "register",
     "post_process_routes",
@@ -149,11 +147,6 @@ async def register(app: web.Application):
                 allow_head=False,
             ),
             web.delete("/oid4vci/exchange/records/{exchange_id}", exchange_delete),
-            web.post("/oid4vci/credential-supported/create", supported_credential_create),
-            web.post(
-                "/oid4vci/credential-supported/create/jwt",
-                supported_credential_create_jwt,
-            ),
             web.get(
                 "/oid4vci/credential-supported/records",
                 supported_credential_list,
@@ -163,14 +156,6 @@ async def register(app: web.Application):
                 "/oid4vci/credential-supported/records/{supported_cred_id}",
                 get_supported_credential_by_id,
                 allow_head=False,
-            ),
-            web.put(
-                "/oid4vci/credential-supported/records/jwt/{supported_cred_id}",
-                update_supported_credential_jwt_vc,
-            ),
-            web.delete(
-                "/oid4vci/credential-supported/records/jwt/{supported_cred_id}",
-                supported_credential_remove,
             ),
             web.post("/oid4vp/request", create_oid4vp_request),
             web.get("/oid4vp/requests", list_oid4vp_requests),
@@ -198,6 +183,12 @@ async def register(app: web.Application):
             web.get("/oid4vp/dcql/query/{dcql_query_id}", get_dcql_query_by_id),
             web.delete("/oid4vp/dcql/query/{dcql_query_id}", dcql_query_remove),
             web.post("/did/jwk/create", create_did_jwk),
+            web.get(
+                "/oid4vci/issuer/configuration",
+                get_issuer_configuration,
+                allow_head=False,
+            ),
+            web.put("/oid4vci/issuer/configuration", put_issuer_configuration),
         ]
     )
 

@@ -1,4 +1,4 @@
-FROM python:3.13-slim-bookworm AS base
+FROM --platform=linux/amd64 python:3.13-slim-bookworm AS base
 WORKDIR /usr/src/app
 
 # Install and configure poetry
@@ -22,9 +22,10 @@ RUN mkdir mso_mdoc && touch mso_mdoc/__init__.py
 RUN mkdir status_list && touch status_list/__init__.py
 COPY pyproject.toml poetry.lock README.md ./
 RUN poetry install --without dev --all-extras
+RUN .venv/bin/pip install --no-deps https://github.com/Indicio-tech/isomdl-uniffi/releases/download/v0.1.0-indicio.1/isomdl_uniffi-0.1.0-py3-none-manylinux_2_17_x86_64.manylinux2014_x86_64.whl
 USER $user
 
-FROM python:3.13-bookworm
+FROM --platform=linux/amd64 python:3.13-bookworm
 
 WORKDIR /usr/src/app
 COPY --from=base /usr/src/app/.venv /usr/src/app/.venv

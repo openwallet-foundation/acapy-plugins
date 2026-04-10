@@ -20,11 +20,11 @@ class ClientAuthMethod:
 
     CLIENT_SECRET_BASIC = "client_secret_basic"
     PRIVATE_KEY_JWT = "private_key_jwt"
-    SHARED_KEY_JWT = "shared_bearer"
+    CLIENT_SECRET_JWT = "client_secret_jwt"
 
 
 CLIENT_AUTH_METHODS: tuple[str, ...] = (
     ClientAuthMethod.CLIENT_SECRET_BASIC,
     ClientAuthMethod.PRIVATE_KEY_JWT,
-    ClientAuthMethod.SHARED_KEY_JWT,
+    ClientAuthMethod.CLIENT_SECRET_JWT,
 )

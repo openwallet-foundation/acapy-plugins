@@ -46,8 +46,8 @@ async def _fetch_tenant_ctx(uid: str | None = None) -> dict:
     if not uid:
         raise HTTPException(status_code=400, detail="Missing tenant uid.")
 
-    base = f"{settings.ADMIN_INTERNAL_BASE_URL}/tenants/{uid}"
-    headers = {"Authorization": f"Bearer {settings.ADMIN_INTERNAL_AUTH_TOKEN}"}
+    base = f"{settings.INTERNAL_BASE_URL}/tenants/{uid}"
+    headers = {"Authorization": f"Bearer {settings.INTERNAL_AUTH_TOKEN}"}
     rid = current_request_id()
     if rid:
         headers["X-Request-ID"] = rid

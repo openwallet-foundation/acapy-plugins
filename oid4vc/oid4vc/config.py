@@ -30,8 +30,6 @@ class Config:
     # Reads OID4VP_ENDPOINT env var; falls back to OID4VCI endpoint if not set.
     oid4vp_endpoint: str | None = None
     status_handler: str | None = None
-    auth_server_url: str | None = None
-    auth_server_client: str | None = None
 
     @classmethod
     def from_settings(cls, settings: BaseSettings) -> "Config":
@@ -48,12 +46,6 @@ class Config:
         oid4vp_endpoint = getenv("OID4VP_ENDPOINT") or None
         status_handler = plugin_settings.get("status_handler") or getenv(
             "OID4VCI_STATUS_HANDLER"
-        )
-        auth_server_url = plugin_settings.get("auth_server_url") or getenv(
-            "OID4VCI_AUTH_SERVER_URL"
-        )
-        auth_server_client = plugin_settings.get("auth_server_client") or getenv(
-            "OID4VCI_AUTH_SERVER_CLIENT"
         )
         if not host:
             raise ConfigError("host", "OID4VCI_HOST")
@@ -83,6 +75,4 @@ class Config:
             endpoint,
             oid4vp_endpoint=oid4vp_endpoint,
             status_handler=status_handler,
-            auth_server_url=auth_server_url,
-            auth_server_client=auth_server_client,
         )
