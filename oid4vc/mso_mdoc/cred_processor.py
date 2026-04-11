@@ -368,7 +368,7 @@ class MsoMdocCredProcessor(Issuer, CredVerifier, PresVerifier):
         """
         additional = supported.vc_additional_data or {}
         definition_id = additional.get("status_list_def_id")
-        base_uri = additional.get("status_list_base_uri", "").rstrip("/")
+      #  base_uri = additional.get("status_list_base_uri", "").rstrip("/")
 
         if not definition_id or not base_uri:
             return None
