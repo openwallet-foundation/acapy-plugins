@@ -75,6 +75,11 @@ const API_KEY = process.env.API_KEY;
 const AUTHSERVER_NGROK_URL = process.env.AUTHSERVER_NGROK_URL;
 const ADMIN_MANAGE_AUTH_TOKEN = process.env.ADMIN_MANAGE_AUTH_TOKEN;
 const TENANT_SECRET = process.env.TENANT_SECRET;
+
+//certificate and private key to import for mDL issuance
+//expires 2036, private_key is PEM base64 encoded PKCS #8.
+const certificate_pem = "-----BEGIN CERTIFICATE-----\nMIIBnjCCAUSgAwIBAgIIH3WCi+IPznMwCgYIKoZIzj0EAwIwGzELMAkGA1UEBhMC\nQ0ExDDAKBgNVBAgTA09OVDAeFw0yNjA0MTAyMDM4MDBaFw0zNjA0MTAyMDM4MDBa\nMBsxCzAJBgNVBAYTAkNBMQwwCgYDVQQIEwNPTlQwWTATBgcqhkjOPQIBBggqhkjO\nPQMBBwNCAATSnaXduEjwMjS1jXeCf4ZRFOWsJ4durOLEJyenMubcxfdnqDQqM/0S\nnlA9qQlErXSYTd6mJ14JzGw6i5RiLdG5o3IwcDAPBgNVHRMBAf8EBTADAQH/MB0G\nA1UdDgQWBBRAcs28lQhihFxQ6K7mqFu9rG3hSDALBgNVHQ8EBAMCAQYwEQYJYIZI\nAYb4QgEBBAQDAgAHMB4GCWCGSAGG+EIBDQQRFg94Y2EgY2VydGlmaWNhdGUwCgYI\nKoZIzj0EAwIDSAAwRQIhAKVtn3G08iMfxqCi2CR8QFdRVDz8hdhx0eZzu97GCB+7\nAiAgSEMK34eNyUEZF8z6Iut/GQ8zqHdOSWUwsTjI5oBXtA==\n-----END CERTIFICATE-----\n";
+const private_key_pem = "-----BEGIN PRIVATE KEY-----\nMIGHAgEAMBMGByqGSM49AgEGCCqGSM49AwEHBG0wawIBAQQg6Al13xaXxheg2tsc\nIQEdUKWRqaCAdcHCfPxw6+yTufWhRANCAATSnaXduEjwMjS1jXeCf4ZRFOWsJ4du\nrOLEJyenMubcxfdnqDQqM/0SnlA9qQlErXSYTd6mJ14JzGw6i5RiLdG5\n-----END PRIVATE KEY-----\n";
 let jwtVcSupportedCredCreated = false;
 let sdJwtSupportedCredCreated = false;
 let mdocSupportedCredCreated = false;
@@ -617,6 +622,9 @@ async function issue_mdoc_credential(req, res) {
     expiry_date,
     issuing_authority,
     document_number,
+    issuing_country,
+    un_distinguishing_sign,
+    portrait,
   } = req.body;
 
   const headers = {
@@ -650,10 +658,10 @@ async function issue_mdoc_credential(req, res) {
       format: "mso_mdoc",
       id: "org.iso.18013.5.1.mDL",
       doctype: "org.iso.18013.5.1.mDL",
+      signing_key_id: mdocKeyId,
       cryptographic_binding_methods_supported: ["jwk"],
       credential_signing_alg_values_supported: [
-        "-7",
-        "-8"
+        "ES256"
       ],
       proof_types_supported: {
         jwt: {
@@ -665,69 +673,16 @@ async function issue_mdoc_credential(req, res) {
       },
       "credential_metadata": {
         claims: [
-          { 
-            path: [ "org.iso.18013.5.1", "given_name"],
-            display: [
-              {
-                name: "Given Name",
-                locale: "en-US",
-              }
-            ]
-          },
-          {
-            path: ["org.iso.18013.5.1", "family_name"],
-            display: [
-              {
-                name: "Family Name",
-                locale: "en-US",
-              }
-            ]
-          },
-          {
-            path: ["org.iso.18013.5.1", "birth_date"],
-            display: [
-              {
-                name: "Birth Date",
-                locale: "en-US",
-              }
-            ]
-          },
-          {
-            path: ["org.iso.18013.5.1", "issue_date"],
-            display: [
-              {
-                name: "Issue Date",
-                locale: "en-US",
-              }
-            ]
-          },
-          {
-            path: ["org.iso.18013.5.1", "expiry_date"],
-            display: [
-              {
-                name: "Expiry Date",
-                locale: "en-US",
-              }
-            ]
-          },
-          {
-            path: ["org.iso.18013.5.1", "issuing_authority"],
-            display: [
-              {
-                name: "Issuing Authority",
-                locale: "en-US",
-              }
-            ]
-          },
-          {
-            path: ["org.iso.18013.5.1", "document_number"],
-            display: [
-              {
-                name: "Document Number",
-                locale: "en-US",
-              }
-            ]
-          }
+          { path: ["org.iso.18013.5.1", "given_name"], display: [{ name: "Given Name", locale: "en-US" }] },
+          { path: ["org.iso.18013.5.1", "family_name"], display: [{ name: "Family Name", locale: "en-US" }] },
+          { path: ["org.iso.18013.5.1", "birth_date"], display: [{ name: "Birth Date", locale: "en-US" }] },
+          { path: ["org.iso.18013.5.1", "issue_date"], display: [{ name: "Issue Date", locale: "en-US" }] },
+          { path: ["org.iso.18013.5.1", "expiry_date"], display: [{ name: "Expiry Date", locale: "en-US" }] },
+          { path: ["org.iso.18013.5.1", "issuing_authority"], display: [{ name: "Issuing Authority", locale: "en-US" }] },
+          { path: ["org.iso.18013.5.1", "document_number"], display: [{ name: "Document Number", locale: "en-US" }] },
+          { path: ["org.iso.18013.5.1", "issuing_country"], display: [{ name: "Issuing Country", locale: "en-US" }] },
+          { path: ["org.iso.18013.5.1", "un_distinguishing_sign"], display: [{ name: "UN Distinguishing Sign", locale: "en-US" }] },
+          { path: ["org.iso.18013.5.1", "portrait"], display: [{ name: "Portrait", locale: "en-US" }] }
         ],
         display: [
           {
@@ -739,7 +694,7 @@ async function issue_mdoc_credential(req, res) {
             }
           }
         ],
-      }   
+      },
     }),
   };
 
@@ -772,6 +727,9 @@ async function issue_mdoc_credential(req, res) {
           expiry_date,
           issuing_authority,
           document_number,
+          issuing_country,
+          un_distinguishing_sign,
+          portrait,
         }
       },
       verification_method: issuerDID + "#0",
@@ -1379,10 +1337,40 @@ async function initializeSigningDid() {
   }
 }
 
+// Import Certificate and private key.
+let mdocKeyId = null;
+async function initializeMdocSigningKey() {
+  try {
+    const commonHeaders = {
+      accept: "application/json",
+      "Content-Type": "application/json",
+      "Authorization": "Bearer " + token.token,
+    }
+    const createKeyUrl = `${API_BASE_URL}/mso-mdoc/signing-keys/import`;
+    const createKeyOptions = {
+      method: "POST",
+      headers: commonHeaders,
+      body: JSON.stringify({
+          "certificate_pem": certificate_pem,
+          "private_key_pem": private_key_pem,
+          "doctype": "org.iso.18013.5.1.mDL",
+          "label": "mDOC signing key",
+      }),
+    };
+    logger.info(`Importing mDOC Signing Key Request to: ${createKeyUrl}`);
+    logger.info("Request options", createKeyOptions);
+    const keyData = await fetchApiData(createKeyUrl, createKeyOptions);
+    mdocKeyId = keyData.id;
+    logger.info(`Imported mDOC signing key with ID: ${mdocKeyId}`);
+  } catch (err) {
+    logger.error("mDOC signing key initialization failed:", err?.response?.data || err.message);
+  }
+}
+
 await initializeAuthServer();
 await initializeIssuerMetadata();
 await initializeSigningDid();
-
+await initializeMdocSigningKey();
 
 
 // Credential Info route
