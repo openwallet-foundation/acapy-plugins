@@ -1076,6 +1076,105 @@ async function create_sd_jwt_presentation(req, res) {
   // Polling for the credential is an option at this stage, but we opt to just listen for the appropriate webhook instead
 }
 
+// Begin mDOC Presentation Flow (DCQL)
+async function create_mdoc_presentation(req, res) {
+  const presentationId = req.params.id;
+  const commonHeaders = {
+    accept: "application/json",
+    "Content-Type": "application/json",
+    "Authorization": "Bearer " + token.token,
+  };
+  if (API_KEY) {
+    commonHeaders["X-API-KEY"] =  API_KEY;
+  }
+  axios.defaults.withCredentials = true;
+  axios.defaults.headers.common["Access-Control-Allow-Origin"] = API_BASE_URL;
+  axios.defaults.headers.common["X-API-KEY"] = API_KEY;
+  axios.defaults.headers.common["Authorization"] = "Bearer " + token.token;
+
+  const fetchApiData = async (url, options) => {
+    const response = await fetch(url, options);
+    return await response.json();
+  };
+
+  // Create DCQL Query for mDL
+  events.emit(`presentation-${presentationId}`, {type: "message", message: "Creating DCQL Query for mDL."});
+  const dcqlQueryUrl = `${API_BASE_URL}/oid4vp/dcql/queries`;
+  const dcqlQueryOptions = {
+    method: "POST",
+    headers: commonHeaders,
+    body: JSON.stringify({
+      credentials: [
+        {
+          id: "mDL",
+          format: "mso_mdoc",
+          meta: {
+            doctype_value: "org.iso.18013.5.1.mDL"
+          },
+          claims: [
+            { namespace: "org.iso.18013.5.1", claim_name: "family_name" },
+            { namespace: "org.iso.18013.5.1", claim_name: "given_name" },
+            { namespace: "org.iso.18013.5.1", claim_name: "document_number" },
+            { namespace: "org.iso.18013.5.1", claim_name: "issuing_country" },
+            { namespace: "org.iso.18013.5.1", claim_name: "expiry_date" },
+          ],
+        }
+      ]
+    }),
+  };
+  events.emit(`presentation-${presentationId}`, {type: "message", message: `Posting DCQL Query to: ${dcqlQueryUrl}`});
+  events.emit(`presentation-${presentationId}`, {type: "debug-message", message: "Request options", data: dcqlQueryOptions});
+  const dcqlQueryData = await fetchApiData(dcqlQueryUrl, dcqlQueryOptions);
+  const dcqlQueryId = dcqlQueryData.dcql_query_id;
+  events.emit(`presentation-${presentationId}`, {type: "message", message: `Created DCQL Query ID: ${dcqlQueryId}`});
+  events.emit(`presentation-${presentationId}`, {type: "debug-message", message: "Response data", data: dcqlQueryData});
+
+  // Create Presentation Request using the DCQL query
+  const presentationRequestUrl = `${API_BASE_URL}/oid4vp/request`;
+  const presentationRequestOptions = {
+    method: "POST",
+    headers: commonHeaders,
+    body: JSON.stringify({
+      dcql_query_id: dcqlQueryId,
+      vp_formats: {
+        mso_mdoc: {
+          alg: ["ES256"]
+        }
+      },
+    }),
+  };
+  events.emit(`presentation-${presentationId}`, {type: "message", message: `Generating Presentation Request.`});
+  events.emit(`presentation-${presentationId}`, {type: "message", message: `Posting Presentation Request to: ${presentationRequestUrl}`});
+  events.emit(`presentation-${presentationId}`, {type: "debug-message", message: "Request options", data: presentationRequestOptions});
+  const presentationRequestData = await fetchApiData(
+    presentationRequestUrl,
+    presentationRequestOptions
+  );
+  events.emit(`presentation-${presentationId}`, {type: "message", message: `Generated Presentation Request.`});
+  events.emit(`presentation-${presentationId}`, {type: "message", message: `Presentation Request URI: ${presentationRequestData?.request_uri}`});
+  events.emit(`presentation-${presentationId}`, {type: "debug-message", message: "Response data", data: presentationRequestData});
+
+  // Grab the relevant data and store it for later reference while waiting for the webhooks from ACA-Py
+  let code = presentationRequestData.request_uri;
+  presentationCache.set(dcqlQueryId, { dcqlQueryData, presentationRequestData, presentationId: presentationId });
+  logger.trace(JSON.stringify(presentationRequestData, null, 2));
+
+  // Generate a QRCode and return it to the browser (HTMX replaces a div with our current response)
+  var qrcode = new QRCode({
+    content: code,
+    padding: 4,
+    width: 256,
+    height: 256,
+    color: "#000000",
+    background: "#ffffff",
+    ecl: "M",
+  });
+  qrcode = qrcode.svg()
+  qrcode = qrcode.substring(qrcode.indexOf('?>')+2,qrcode.length)
+  res.setHeader('Content-Type', 'text/html; charset=utf-8');
+  res.send(qrcode);
+}
+
 // ##     ## ######## ##     ## ##     ##
 // ##     ##    ##    ###   ###  ##   ##
 // ##     ##    ##    #### ####   ## ##
@@ -1362,6 +1461,19 @@ async function initializeMdocSigningKey() {
     const keyData = await fetchApiData(createKeyUrl, createKeyOptions);
     mdocKeyId = keyData.id;
     logger.info(`Imported mDOC signing key with ID: ${mdocKeyId}`);
+
+    // Register the certificate as a trust anchor
+    const trustAnchorUrl = `${API_BASE_URL}/mso-mdoc/trust-anchors`;
+    const trustAnchorOptions = {
+      method: "POST",
+      headers: commonHeaders,
+      body: JSON.stringify({
+        certificate_pem: certificate_pem,
+      }),
+    };
+    logger.info(`Registering mDOC trust anchor to: ${trustAnchorUrl}`);
+    const trustAnchorData = await fetchApiData(trustAnchorUrl, trustAnchorOptions);
+    logger.info(`Registered mDOC trust anchor:`, trustAnchorData);
   } catch (err) {
     logger.error("mDOC signing key initialization failed:", err?.response?.data || err.message);
   }
@@ -1514,6 +1626,9 @@ app.post("/issue", (req, res, next) => {
       case "sdjwt":
         create_sd_jwt_presentation(req, res).catch(next);
         break;
+      case "mdoc":
+        create_mdoc_presentation(req, res).catch(next);
+        break;
       default:
         res.status(400).send("");
     }
@@ -1552,11 +1667,12 @@ app.post("/issue", (req, res, next) => {
         events.emit(`issuance-${exchange.registrationId}`, {type: "webhook", path: req.path, data: req.body});
       }
       if (req.path == "/webhook/topic/oid4vp/") {
-        // If there's no presentation definition ID, we can't look up the request
-        if (!req.body.pres_def_id) return;
+        // Look up by pres_def_id or dcql_query_id
+        const lookupId = req.body.pres_def_id || req.body.dcql_query_id;
+        if (!lookupId) return;
 
         // Check to see if this belongs to us
-        let exchange = presentationCache.get(req.body.pres_def_id);
+        let exchange = presentationCache.get(lookupId);
         if (!exchange) return;
 
         // Dispatch event
