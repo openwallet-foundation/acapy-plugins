@@ -73,6 +73,10 @@ jobs:
             cd $dir
             echo "Installing dependencies for $dir"
             poetry install --no-interaction --no-root --all-extras
+            # Install isomdl-uniffi from pre-built wheel (not on PyPI)
+            if [ "$dir" = "oid4vc" ]; then
+              poetry run pip install https://github.com/Indicio-tech/isomdl-uniffi/releases/download/v0.1.0-indicio.1/isomdl_uniffi-0.1.0-py3-none-manylinux_2_17_x86_64.manylinux2014_x86_64.whl
+            fi
             cd ..
           done
       #----------------------------------------------
