@@ -14,7 +14,10 @@ def test_get_tenant_subpath(profile):
 async def test_get_auth_header_client_secret_basic(monkeypatch, profile):
     auth_server = {
         "auth_type": "client_secret_basic",
-        "client_credentials": {"client_id": "client_id", "client_secret": "client_secret"},
+        "client_credentials": {
+            "client_id": "client_id",
+            "client_secret": "client_secret",
+        },
     }
     header = await get_auth_header(profile, auth_server, "issuer", "audience")
     assert header.startswith("Basic ")

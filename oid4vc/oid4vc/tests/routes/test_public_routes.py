@@ -1,12 +1,9 @@
-import json
 import importlib
+import json
 from typing import cast
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
-
-_token_module = importlib.import_module("oid4vc.public_routes.token")
-_metadata_module = importlib.import_module("oid4vc.public_routes.metadata")
 from acapy_agent.admin.request_context import AdminRequestContext
 from acapy_agent.core.profile import Profile
 from acapy_agent.wallet.did_info import DIDInfo
@@ -24,6 +21,9 @@ from oid4vc.public_routes import (
     issue_cred,
     receive_notification,
 )
+
+_token_module = importlib.import_module("oid4vc.public_routes.token")
+_metadata_module = importlib.import_module("oid4vc.public_routes.metadata")
 
 
 @pytest.fixture
@@ -46,9 +46,7 @@ async def test_issuer_metadata(context: AdminRequestContext, req: web.Request):
 
     wallet_id = req.match_info.get("wallet_id")
     async with context.session() as session:
-        issuer_config = IssuerConfiguration(
-            configuration_id=wallet_id, new_with_id=True
-        )
+        issuer_config = IssuerConfiguration(configuration_id=wallet_id, new_with_id=True)
         await issuer_config.save(session)
 
         supported = SupportedCredential(
@@ -98,7 +96,8 @@ async def test_handle_proof_of_posession(monkeypatch, profile: Profile):
     # The JWT's aud is an ngrok URL; override the configured endpoint to match
     # so the aud check passes.
     monkeypatch.setattr(
-        _token_module.Config, "from_settings",
+        _token_module.Config,
+        "from_settings",
         lambda settings: MagicMock(endpoint="https://1354-198-91-62-58.ngrok.io"),
     )
     result = await test_module.handle_proof_of_posession(profile, proof, nonce)
@@ -186,7 +185,9 @@ async def test_receive_notification(context):
     request = DummyRequest()
 
     # Patch check_token to always return True
-    with patch("oid4vc.public_routes.notification.check_token", AsyncMock(return_value=True)):
+    with patch(
+        "oid4vc.public_routes.notification.check_token", AsyncMock(return_value=True)
+    ):
         # Patch OID4VCIExchangeRecord.retrieve_by_notification_id to return a mock record
         mock_record = AsyncMock()
         mock_record.state = None
@@ -220,7 +221,8 @@ async def test_issue_cred(monkeypatch, context, dummy_request):
         "c_nonce": "test_nonce",
     }
     monkeypatch.setattr(
-        "oid4vc.public_routes.credential.check_token", AsyncMock(return_value=mock_token_result)
+        "oid4vc.public_routes.credential.check_token",
+        AsyncMock(return_value=mock_token_result),
     )
 
     # Patch OID4VCIExchangeRecord.retrieve_by_refresh_id
@@ -273,7 +275,8 @@ async def test_issue_cred(monkeypatch, context, dummy_request):
     mock_pop.verified = True
     mock_pop.holder_kid = "did:example:123#key-1"
     monkeypatch.setattr(
-        "oid4vc.public_routes.credential.handle_proof_of_posession", AsyncMock(return_value=mock_pop)
+        "oid4vc.public_routes.credential.handle_proof_of_posession",
+        AsyncMock(return_value=mock_pop),
     )
 
     # Patch session context manager
