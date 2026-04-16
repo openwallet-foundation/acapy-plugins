@@ -12,7 +12,12 @@ from ..app_resources import AppResources
 from ..config import Config
 from ..models.exchange import OID4VCIExchangeRecord
 from ..models.supported_cred import SupportedCredential
-from ..utils import get_auth_header, get_auth_server_url, get_first_auth_server, get_tenant_subpath
+from ..utils import (
+    get_auth_header,
+    get_auth_server_url,
+    get_first_auth_server,
+    get_tenant_subpath,
+)
 
 CODE_BYTES = 32
 
@@ -55,9 +60,7 @@ async def _create_pre_auth_code(
         )
         if resp.status != 200:
             body = await resp.text()
-            raise web.HTTPBadGateway(
-                reason=f"Auth server returned {resp.status}: {body}"
-            )
+            raise web.HTTPBadGateway(reason=f"Auth server returned {resp.status}: {body}")
         data = await resp.json()
         code = data["pre_authorized_code"]
     else:

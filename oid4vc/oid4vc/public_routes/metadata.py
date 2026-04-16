@@ -18,7 +18,7 @@ from ..cred_processor import CredProcessors
 from ..did_utils import retrieve_or_create_did_jwk
 from ..jwt import jwt_sign
 from ..models.supported_cred import SupportedCredential
-from ..utils import get_first_auth_server, get_tenant_subpath
+from ..utils import get_first_auth_server
 
 LOGGER = logging.getLogger(__name__)
 

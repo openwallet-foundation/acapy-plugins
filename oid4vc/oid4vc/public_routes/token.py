@@ -36,7 +36,12 @@ from ..config import Config
 from ..models.exchange import OID4VCIExchangeRecord
 from ..models.nonce import Nonce
 from ..pop_result import PopResult
-from ..utils import get_auth_header, get_auth_server_url, get_first_auth_server, get_tenant_subpath
+from ..utils import (
+    get_auth_header,
+    get_auth_server_url,
+    get_first_auth_server,
+    get_tenant_subpath,
+)
 from .constants import (
     EXPIRES_IN,
     LOGGER,
@@ -87,7 +92,6 @@ async def token(request: web.Request):
     OID4VCI v1.0: This step MUST NOT require DID or verification method.
     """
     context: AdminRequestContext = request["context"]
-    config = Config.from_settings(context.settings)
     async with context.profile.session() as session:
         auth_server = await get_first_auth_server(session, context.profile)
     if auth_server:

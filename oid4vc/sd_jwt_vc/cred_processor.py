@@ -307,8 +307,6 @@ class SdJwtCredIssueProcessor(Issuer, CredVerifier, PresVerifier):
         return VerifyResult(result.verified, result.payload)
 
 
-
-
 class SDJWTIssuerACAPy(SDJWTIssuer):
     """SDJWTIssuer class for ACA-Py implementation."""
 

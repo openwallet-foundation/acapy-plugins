@@ -1,16 +1,18 @@
 """Utility functions for OID4VCI plugin."""
 
 import argparse
+import hashlib
+import hmac as _hmac
 import json
-from types import SimpleNamespace
 from typing import Dict, Optional
 
 from acapy_agent.core.profile import Profile, ProfileSession
 from acapy_agent.messaging.util import datetime_now
 from acapy_agent.storage.error import StorageNotFoundError
 from acapy_agent.wallet.util import b58_to_bytes, bytes_to_b64, str_to_b64, unpad
-from oid4vc.config import Config
+
 from oid4vc.jwt import jwt_sign
+from oid4vc.models.issuer_config import IssuerConfiguration
 from oid4vc.models.supported_cred import SupportedCredential
 
 EXPIRES_IN = 300
@@ -44,7 +46,6 @@ async def get_first_auth_server(
     Returns None if no IssuerConfiguration exists for the current wallet or
     no authorization_servers are configured.
     """
-    from oid4vc.models.issuer_config import IssuerConfiguration
 
     wallet_id = get_wallet_id(profile)
     try:
@@ -115,8 +116,7 @@ async def get_auth_header(
             "iat": int(utcnow.timestamp()),
             "exp": int(utcnow.timestamp()) + EXPIRES_IN,
         }
-        import hashlib
-        import hmac as _hmac
+
         header = {"alg": "HS256", "typ": "JWT"}
         header_b64 = unpad(bytes_to_b64(json.dumps(header).encode(), urlsafe=True))
         payload_b64 = unpad(bytes_to_b64(json.dumps(payload).encode(), urlsafe=True))

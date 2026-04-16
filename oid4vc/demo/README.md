@@ -11,6 +11,8 @@ export NGROK_AUTHTOKEN=....
 docker compose up
 ```
 
+**Important** The ngrok config only works with the paid version
+
 ### Demo Functionality
 
 * Issue credentials via OpendID4VCI 1.0 - JWT, SD-JWT and mDOC

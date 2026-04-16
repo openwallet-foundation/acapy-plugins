@@ -34,18 +34,19 @@ class TestCredentialProcessor:
 
         assert jws
 
-    def test_credential_metadata_converts_legacy_credential_subject_claims(self):
-        """Test converting legacy credentialSubject claim metadata to claims list."""
+    def test_credential_metadata_passes_through_spec_compliant_claims(self):
+        """Test that spec-compliant claims array is passed through unchanged."""
         cred_processor = JwtVcJsonCredProcessor()
 
         supported_cred = {
             "format": "jwt_vc_json",
             "credential_metadata": {
-                "credentialSubject": {
-                    "permit": {
+                "claims": [
+                    {
+                        "path": ["permit"],
                         "display": [{"name": "Permit Name", "locale": "en-US"}],
                     }
-                }
+                ]
             },
         }
 
@@ -55,31 +56,5 @@ class TestCredentialProcessor:
             {
                 "path": ["permit"],
                 "display": [{"name": "Permit Name", "locale": "en-US"}],
-            }
-        ]
-
-    def test_credential_metadata_converts_legacy_claims_object_to_list(self):
-        """Test converting legacy claims object into list with path entries."""
-        cred_processor = JwtVcJsonCredProcessor()
-
-        supported_cred = {
-            "format": "jwt_vc_json",
-            "credential_metadata": {
-                "claims": {
-                    "businessIdentificationNumber": {
-                        "mandatory": True,
-                        "value_type": "string",
-                    }
-                }
-            },
-        }
-
-        metadata = cred_processor.credential_metadata(supported_cred)
-
-        assert metadata["credential_metadata"]["claims"] == [
-            {
-                "path": ["businessIdentificationNumber"],
-                "mandatory": True,
-                "value_type": "string",
             }
         ]

@@ -6,7 +6,6 @@ issuer uses to communicate with the auth server.  It is keyed by wallet_id.
 """
 
 import logging
-from typing import Optional
 
 from acapy_agent.admin.decorators.auth import tenant_authentication
 from acapy_agent.admin.request_context import AdminRequestContext

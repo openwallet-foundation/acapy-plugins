@@ -5,7 +5,6 @@ services:
   issuer:
     # from .. run
     # DOCKER_DEFAULT_PLATFORM=linux/amd64 docker build -f ./docker/Dockerfile --tag oid4vci .
-    platform: linux/amd64
     image: oid4vc
     build:
       dockerfile: docker/Dockerfile
@@ -109,6 +108,7 @@ services:
     environment:
       - HTTP_PORT=8080
 
+ #removed the healthcheck as it is unreliable. Authserver and issuer check for tunnels before starting.
   ngrok:
     image: ngrok/ngrok
     restart: unless-stopped
@@ -177,7 +177,7 @@ services:
       ADMIN_TENANT_DB_NAME: auth_server_tenant
       ADMIN_TENANT_DB_SCHEMA: auth
       TENANT_INTERNAL_BASE_URL: http://auth-server:9000/internal
-      TENANT_INTERNAL_AUTH_TOKEN: $TENANT_INTERNAL_AUTH_TOKEN # TODO BUG must match ADMIN_INTERNAL_AUTH_TOKEN
+      TENANT_INTERNAL_AUTH_TOKEN: $TENANT_INTERNAL_AUTH_TOKEN # match ADMIN_INTERNAL_AUTH_TOKEN
       TENANT_APP_ROOT_PATH: /
       TENANT_DB_HOST: db
       TENANT_DB_PORT: 5432

@@ -50,7 +50,6 @@ app.add_middleware(
     allow_methods=settings.CORS_ALLOW_METHODS,
     allow_headers=settings.CORS_ALLOW_HEADERS,
     allow_credentials=settings.CORS_ALLOW_CREDENTIALS,
-    
 )
 app.add_middleware(RequestContextMiddleware)
 
