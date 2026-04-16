@@ -41,7 +41,7 @@ jsonpointer = { version = "^3.0.0", optional = true }
 
 # Needed to support the statuslist plugin
 bitarray = "^3.0.0"
-filelock = "^3.18.0"
+filelock = "^3.20.3"
 
 [tool.poetry.extras]
 aca-py = ["acapy-agent"]
