@@ -704,6 +704,15 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
+  <a href="#developer-documentation" class="md-nav__link">
+    <span class="md-ellipsis">
+      Developer Documentation
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#openid4vci-plugin-demo-with-sphereon-wallet" class="md-nav__link">
     <span class="md-ellipsis">
       OpenID4VCI Plugin Demo with Sphereon Wallet
@@ -1215,6 +1224,15 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
+  <a href="#developer-documentation" class="md-nav__link">
+    <span class="md-ellipsis">
+      Developer Documentation
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#openid4vci-plugin-demo-with-sphereon-wallet" class="md-nav__link">
     <span class="md-ellipsis">
       OpenID4VCI Plugin Demo with Sphereon Wallet
@@ -1446,12 +1464,51 @@
 
 
 <h1 id="openid4vci-plugin-for-aca-py">OpenID4VCI Plugin for ACA-Py<a class="headerlink" href="#openid4vci-plugin-for-aca-py" title="Permanent link">&para;</a></h1>
-<p>This plugin implements <a href="https://openid.net/specs/openid-4-verifiable-credential-issuance-1_0.html">OpenID4VCI v1.0</a>.</p>
-<blockquote>
-<p>[!WARNING]
-This plugin is under active development.
-Treat it as experimental; endpoints and records may change as implementation details evolve.</p>
-</blockquote>
+<p>This plugin implements <a href="https://openid.net/specs/openid-4-verifiable-credential-issuance-1_0.html">OpenID4VCI 1.0</a>. This implementation follows the OpenID4VCI 1.0 final specification and is not backwards compatible with earlier drafts.</p>
+<h2 id="developer-documentation">Developer Documentation<a class="headerlink" href="#developer-documentation" title="Permanent link">&para;</a></h2>
+<table>
+<thead>
+<tr>
+<th>Document</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><a href="docs/getting-started.md">Getting Started</a></td>
+<td>Prerequisites, installation, configuration, Docker quick-start</td>
+</tr>
+<tr>
+<td><a href="docs/architecture.md">Architecture</a></td>
+<td>Two-server design, plugin lifecycle, credential format registry</td>
+</tr>
+<tr>
+<td><a href="docs/admin-api-reference.md">Admin API Reference</a></td>
+<td>All <code>/oid4vci/*</code>, <code>/oid4vp/*</code>, <code>/mso_mdoc/*</code>, <code>/did/*</code> endpoints</td>
+</tr>
+<tr>
+<td><a href="docs/public-api-reference.md">Public API Reference</a></td>
+<td>OID4VCI/OID4VP wallet-facing endpoints</td>
+</tr>
+<tr>
+<td><a href="docs/cookbook-issuance.md">Issuance Cookbook</a></td>
+<td>Step-by-step curl examples for <code>jwt_vc_json</code>, <code>sd_jwt_vc</code>, <code>mso_mdoc</code></td>
+</tr>
+<tr>
+<td><a href="docs/cookbook-verification.md">Verification Cookbook</a></td>
+<td>PEX and DCQL-based VP flows with curl examples</td>
+</tr>
+<tr>
+<td><a href="docs/credential-formats.md">Credential Formats</a></td>
+<td>Format-specific schema details, selective disclosure, mDOC namespaces</td>
+</tr>
+<tr>
+<td><a href="docs/troubleshooting.md">Troubleshooting</a></td>
+<td>Error codes, common failures, debugging tips</td>
+</tr>
+</tbody>
+</table>
+<p>The plugin's admin endpoints appear automatically in the ACA-Py Swagger UI at <code>http://&lt;admin-host&gt;:&lt;admin-port&gt;/api/doc</code> under the <code>oid4vci</code>, <code>oid4vp</code>, <code>mso_mdoc</code>, and <code>did</code> tag groups.</p>
 <h2 id="openid4vci-plugin-demo-with-sphereon-wallet">OpenID4VCI Plugin Demo with Sphereon Wallet<a class="headerlink" href="#openid4vci-plugin-demo-with-sphereon-wallet" title="Permanent link">&para;</a></h2>
 <h3 id="demo-overview">Demo Overview<a class="headerlink" href="#demo-overview" title="Permanent link">&para;</a></h3>
 <p>This repository showcases a simplified demonstration of the OID4VCI (OpenID for Verifiable Credential Issuers) integration with the <a href="https://github.com/Sphereon-Opensource/ssi-mobile-wallet">Sphereon Wallet app</a>. Follow the steps below to run the demo successfully.</p>
@@ -1470,7 +1527,7 @@ Treat it as experimental; endpoints and records may change as implementation det
 <a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a>docker-compose<span class="w"> </span>down<span class="w"> </span>-v<span class="w">  </span><span class="c1"># Clean up</span>
 </code></pre></div>
 <p>If you're using Apple Silicon, you may have to separately build the image with the appropriate platform flag (from the <code>demo</code> directory):</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a><span class="nv">DOCKER_DEFAULT_PLATFORM</span><span class="o">=</span>linux/amd64<span class="w"> </span>docker<span class="w"> </span>build<span class="w"> </span>-f<span class="w"> </span>../docker/Dockerfile<span class="w"> </span>--tag<span class="w"> </span>oid4vc<span class="w"> </span>..
+<div class="highlight"><pre><span></span><code><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a><span class="nv">DOCKER_DEFAULT_PLATFORM</span><span class="o">=</span>linux/amd64<span class="w"> </span>docker<span class="w"> </span>build<span class="w"> </span>-f<span class="w"> </span>docker/Dockerfile<span class="w"> </span>--tag<span class="w"> </span>oid4vc<span class="w"> </span>../..
 </code></pre></div>
 <h3 id="demo-flow">Demo Flow<a class="headerlink" href="#demo-flow" title="Permanent link">&para;</a></h3>
 <p>Navigate to <code>http://localhost:3002</code> in your browser. You will start at the landing page. The sidebar has buttons to take you to the issuance and presentation pages.</p>
@@ -1520,7 +1577,7 @@ Treat it as experimental; endpoints and records may change as implementation det
 <p>Example Configuration:
 <div class="highlight"><pre><span></span><code><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a>     OID4VCI_STATUS_HANDLER: status_list.v1_0.status_handler
 <a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a>     STATUS_LIST_SIZE: 131072
-<a id="__codelineno-2-3" name="__codelineno-2-3" href="#__codelineno-2-3"></a>     STATUS_LIST_SHARD_SIZE: 131072
+<a id="__codelineno-2-3" name="__codelineno-2-3" href="#__codelineno-2-3"></a>     STATUS_LIST_SHARD_SIZE: 1024
 <a id="__codelineno-2-4" name="__codelineno-2-4" href="#__codelineno-2-4"></a>     STATUS_LIST_PUBLIC_URI: https://localhost:8082/tenant/{tenant_id}/status/{list_number}
 <a id="__codelineno-2-5" name="__codelineno-2-5" href="#__codelineno-2-5"></a>     STATUS_LIST_FILE_PATH: /tmp/bitstring/{tenant_id}/{list_number}
 </code></pre></div>
@@ -1530,8 +1587,8 @@ Treat it as experimental; endpoints and records may change as implementation det
 <p>Example JSON Body (list_type can be either "w3c" or "ietf"):
 <div class="highlight"><pre><span></span><code><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a>      {
 <a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a>        &quot;issuer_did&quot;: &quot;did....&quot;,
-<a id="__codelineno-3-3" name="__codelineno-3-3" href="#__codelineno-3-3"></a>        &quot;list_size&quot;: 131072,
-<a id="__codelineno-3-4" name="__codelineno-3-4" href="#__codelineno-3-4"></a>        &quot;list_type&quot;: &quot;ietf&quot;,
+<a id="__codelineno-3-3" name="__codelineno-3-3" href="#__codelineno-3-3"></a>        &quot;list_type&quot;: &quot;w3c&quot;,
+<a id="__codelineno-3-4" name="__codelineno-3-4" href="#__codelineno-3-4"></a>        &quot;list_size&quot;: 131072,
 <a id="__codelineno-3-5" name="__codelineno-3-5" href="#__codelineno-3-5"></a>        &quot;shard_size&quot;: 1024,
 <a id="__codelineno-3-6" name="__codelineno-3-6" href="#__codelineno-3-6"></a>        &quot;status_message&quot;: [
 <a id="__codelineno-3-7" name="__codelineno-3-7" href="#__codelineno-3-7"></a>          {
@@ -1543,7 +1600,7 @@ Treat it as experimental; endpoints and records may change as implementation det
 <a id="__codelineno-3-13" name="__codelineno-3-13" href="#__codelineno-3-13"></a>            &quot;message&quot;: &quot;revoked&quot;
 <a id="__codelineno-3-14" name="__codelineno-3-14" href="#__codelineno-3-14"></a>          },
 <a id="__codelineno-3-15" name="__codelineno-3-15" href="#__codelineno-3-15"></a>        ],
-<a id="__codelineno-3-16" name="__codelineno-3-16" href="#__codelineno-3-16"></a>        &quot;status_purpose&quot;: &quot;revocation&quot;,
+<a id="__codelineno-3-16" name="__codelineno-3-16" href="#__codelineno-3-16"></a>        &quot;status_purpose&quot;: &quot;message&quot;,
 <a id="__codelineno-3-17" name="__codelineno-3-17" href="#__codelineno-3-17"></a>        &quot;status_size&quot;: 1,
 <a id="__codelineno-3-18" name="__codelineno-3-18" href="#__codelineno-3-18"></a>        &quot;supported_cred_id&quot;: &quot;string&quot;,
 <a id="__codelineno-3-19" name="__codelineno-3-19" href="#__codelineno-3-19"></a>        &quot;verification_method&quot;: &quot;did....&quot;
@@ -1775,17 +1832,21 @@ controller -&gt;&gt; holder: result</code></pre>
 </code></pre></div>
 <h2 id="contributing">Contributing<a class="headerlink" href="#contributing" title="Permanent link">&para;</a></h2>
 <p>This project is managed using Poetry. To get started:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a>poetry<span class="w"> </span>install
+<div class="highlight"><pre><span></span><code><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a>poetry<span class="w"> </span>install<span class="w"> </span>--all-extras
 <a id="__codelineno-6-2" name="__codelineno-6-2" href="#__codelineno-6-2"></a>poetry<span class="w"> </span>run<span class="w"> </span>pre-commit<span class="w"> </span>install
 <a id="__codelineno-6-3" name="__codelineno-6-3" href="#__codelineno-6-3"></a>poetry<span class="w"> </span>run<span class="w"> </span>pre-commit<span class="w"> </span>install<span class="w"> </span>--hook-type<span class="w"> </span>commit-msg
 </code></pre></div>
-<blockquote>
-<p>TODO: Pre-commit should move to the repo root</p>
-</blockquote>
+<h4 id="installing-mso_mdoc-dependencies-optional">Installing mso_mdoc Dependencies (Optional)<a class="headerlink" href="#installing-mso_mdoc-dependencies-optional" title="Permanent link">&para;</a></h4>
+<p>The <code>mso_mdoc</code> module requires the <code>isomdl-uniffi</code> library, which needs Rust to compile. </p>
+<p><strong>⚠️ Note</strong>: Automated installation through Poetry/pip doesn't currently work due to build system limitations.</p>
+<p>For manual installation instructions, see <a href="mso_mdoc/README.md">mso_mdoc/README.md</a>.</p>
 <h3 id="unit-tests">Unit Tests<a class="headerlink" href="#unit-tests" title="Permanent link">&para;</a></h3>
 <p>To run unit tests:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-7-1" name="__codelineno-7-1" href="#__codelineno-7-1"></a><span class="c1"># Run only unit tests; leaving off the directory will attempt to run integration tests</span>
-<a id="__codelineno-7-2" name="__codelineno-7-2" href="#__codelineno-7-2"></a>poetry<span class="w"> </span>run<span class="w"> </span>pytest<span class="w"> </span>tests/
+<div class="highlight"><pre><span></span><code><a id="__codelineno-7-1" name="__codelineno-7-1" href="#__codelineno-7-1"></a><span class="c1"># Run all tests except mso_mdoc (which requires isomdl-uniffi)</span>
+<a id="__codelineno-7-2" name="__codelineno-7-2" href="#__codelineno-7-2"></a>poetry<span class="w"> </span>run<span class="w"> </span>pytest<span class="w"> </span>jwt_vc_json/tests/<span class="w"> </span>oid4vc/tests/<span class="w"> </span>sd_jwt_vc/tests/
+<a id="__codelineno-7-3" name="__codelineno-7-3" href="#__codelineno-7-3"></a>
+<a id="__codelineno-7-4" name="__codelineno-7-4" href="#__codelineno-7-4"></a><span class="c1"># Or run all tests including mso_mdoc (requires isomdl-uniffi installed)</span>
+<a id="__codelineno-7-5" name="__codelineno-7-5" href="#__codelineno-7-5"></a>poetry<span class="w"> </span>run<span class="w"> </span>pytest
 </code></pre></div>
 <h3 id="integration-tests">Integration Tests<a class="headerlink" href="#integration-tests" title="Permanent link">&para;</a></h3>
 <p>This plugin includes two sets of integration tests:</p>
