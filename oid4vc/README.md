@@ -255,10 +255,33 @@ The Plugin expects the following configuration options. These options can either
   - `credential_issuer` endpoint, seen in the Credential Offer
 - `OID4VCI_CRED_HANDLER` or `oid4vci.cred_handler`
   - Dict of credential handlers. e.g. `{"jwt_vc_json": "jwt_vc_json"}`
-- `OID4VCI_AUTH_SERVER_URL` or `oid4vci.auth_server_url`
-  - Optional authorization server URL
-- `OID4VCI_AUTH_SERVER_CLIENT` or `oid4vci.auth_server_client`
-  - Optional authorization server client credential, e.g. `{"auth_type": "client_secret_basic", "client_id": "client_id", "client_secret": "client_secret"}`
+
+#### Authorization Server (Per-Tenant)
+
+Authorization server configuration is managed per-tenant via the `IssuerConfiguration` record, not through global environment variables. Use the admin API:
+
+- `PUT /oid4vci/issuer/configuration` — create or update the issuer configuration
+- `GET /oid4vci/issuer/configuration` — retrieve the current configuration
+
+Example payload to configure an external authorization server:
+
+```json
+{
+  "authorization_servers": [
+    {
+      "public_url": "https://auth.example.com/tenant/abc123",
+      "private_url": "https://auth-internal:8080/tenant/abc123",
+      "auth_type": "client_secret_basic",
+      "client_credentials": {
+        "client_id": "issuer-client",
+        "client_secret": "secret"
+      }
+    }
+  ]
+}
+```
+
+Supported `auth_type` values: `client_secret_basic`, `client_secret_jwt`, `private_key_jwt`.
 
 ### Creating Supported Credential Records
 
@@ -425,6 +448,29 @@ docker compose down -v  # Clean up
 ```
 
 For Apple Silicon, the `DOCKER_DEFAULT_PLATFORM=linux/amd64` environment variable will be required.
+
+## Development Setup
+
+After cloning the repo and installing dependencies with `poetry install --all-extras`, you must install the `isomdl-uniffi` package separately. It provides the Rust-based ISO 18013-5 mDoc signing bindings and is not on PyPI — only pre-built wheels are available from GitHub releases.
+
+Pick the wheel for your platform:
+
+**macOS (Apple Silicon):**
+```bash
+poetry run pip install https://github.com/Indicio-tech/isomdl-uniffi/releases/download/v0.1.0-indicio.1/isomdl_uniffi-0.1.0-py3-none-macosx_11_0_arm64.whl
+```
+
+**macOS (Intel):**
+```bash
+poetry run pip install https://github.com/Indicio-tech/isomdl-uniffi/releases/download/v0.1.0-indicio.1/isomdl_uniffi-0.1.0-py3-none-macosx_10_12_x86_64.whl
+```
+
+**Linux (x86_64):**
+```bash
+poetry run pip install https://github.com/Indicio-tech/isomdl-uniffi/releases/download/v0.1.0-indicio.1/isomdl_uniffi-0.1.0-py3-none-manylinux_2_17_x86_64.manylinux2014_x86_64.whl
+```
+
+Without this, importing `mso_mdoc` will fail with `ModuleNotFoundError: No module named 'isomdl_uniffi'`.
 
 ## Not Implemented
 
