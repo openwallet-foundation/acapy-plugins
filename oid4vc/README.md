@@ -1,10 +1,21 @@
 # OpenID4VCI Plugin for ACA-Py
 
-This plugin implements [OpenID4VCI v1.0][oid4vci].
+This plugin implements [OpenID4VCI 1.0][oid4vci]. This implementation follows the OpenID4VCI 1.0 final specification and is not backwards compatible with earlier drafts.
 
-> [!WARNING]
-> This plugin is under active development.
-> Treat it as experimental; endpoints and records may change as implementation details evolve.
+## Developer Documentation
+
+| Document | Description |
+|---|---|
+| [Getting Started](docs/getting-started.md) | Prerequisites, installation, configuration, Docker quick-start |
+| [Architecture](docs/architecture.md) | Two-server design, plugin lifecycle, credential format registry |
+| [Admin API Reference](docs/admin-api-reference.md) | All `/oid4vci/*`, `/oid4vp/*`, `/mso_mdoc/*`, `/did/*` endpoints |
+| [Public API Reference](docs/public-api-reference.md) | OID4VCI/OID4VP wallet-facing endpoints |
+| [Issuance Cookbook](docs/cookbook-issuance.md) | Step-by-step curl examples for `jwt_vc_json`, `sd_jwt_vc`, `mso_mdoc` |
+| [Verification Cookbook](docs/cookbook-verification.md) | PEX and DCQL-based VP flows with curl examples |
+| [Credential Formats](docs/credential-formats.md) | Format-specific schema details, selective disclosure, mDOC namespaces |
+| [Troubleshooting](docs/troubleshooting.md) | Error codes, common failures, debugging tips |
+
+The plugin's admin endpoints appear automatically in the ACA-Py Swagger UI at `http://<admin-host>:<admin-port>/api/doc` under the `oid4vci`, `oid4vp`, `mso_mdoc`, and `did` tag groups.
 
 ## OpenID4VCI Plugin Demo with Sphereon Wallet
 
@@ -33,7 +44,7 @@ docker-compose down -v  # Clean up
 If you're using Apple Silicon, you may have to separately build the image with the appropriate platform flag (from the `demo` directory):
 
 ```sh
-DOCKER_DEFAULT_PLATFORM=linux/amd64 docker build -f ../docker/Dockerfile --tag oid4vc ..
+DOCKER_DEFAULT_PLATFORM=linux/amd64 docker build -f docker/Dockerfile --tag oid4vc ../..
 ```
 
 ### Demo Flow
@@ -80,7 +91,7 @@ Documentation for the [Status List Plugin] (https://github.com/openwallet-founda
 ```
      OID4VCI_STATUS_HANDLER: status_list.v1_0.status_handler
      STATUS_LIST_SIZE: 131072
-     STATUS_LIST_SHARD_SIZE: 131072
+     STATUS_LIST_SHARD_SIZE: 1024
      STATUS_LIST_PUBLIC_URI: https://localhost:8082/tenant/{tenant_id}/status/{list_number}
      STATUS_LIST_FILE_PATH: /tmp/bitstring/{tenant_id}/{list_number}
 ```
@@ -94,8 +105,8 @@ Documentation for the [Status List Plugin] (https://github.com/openwallet-founda
 ```
       {
         "issuer_did": "did....",
+        "list_type": "w3c",
         "list_size": 131072,
-        "list_type": "ietf",
         "shard_size": 1024,
         "status_message": [
           {
@@ -107,7 +118,7 @@ Documentation for the [Status List Plugin] (https://github.com/openwallet-founda
             "message": "revoked"
           },
         ],
-        "status_purpose": "revocation",
+        "status_purpose": "message",
         "status_size": 1,
         "supported_cred_id": "string",
         "verification_method": "did...."
@@ -371,20 +382,29 @@ When the Controller sets up a Supported Credential record using the Admin API, t
 This project is managed using Poetry. To get started:
 
 ```shell
-poetry install
+poetry install --all-extras
 poetry run pre-commit install
 poetry run pre-commit install --hook-type commit-msg
 ```
 
-> TODO: Pre-commit should move to the repo root
+#### Installing mso_mdoc Dependencies (Optional)
+
+The `mso_mdoc` module requires the `isomdl-uniffi` library, which needs Rust to compile. 
+
+**⚠️ Note**: Automated installation through Poetry/pip doesn't currently work due to build system limitations.
+
+For manual installation instructions, see [mso_mdoc/README.md](mso_mdoc/README.md).
 
 ### Unit Tests
 
 To run unit tests:
 
 ```shell
-# Run only unit tests; leaving off the directory will attempt to run integration tests
-poetry run pytest tests/
+# Run all tests except mso_mdoc (which requires isomdl-uniffi)
+poetry run pytest jwt_vc_json/tests/ oid4vc/tests/ sd_jwt_vc/tests/
+
+# Or run all tests including mso_mdoc (requires isomdl-uniffi installed)
+poetry run pytest
 ```
 
 ### Integration Tests

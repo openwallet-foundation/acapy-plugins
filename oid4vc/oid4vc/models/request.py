@@ -45,7 +45,12 @@ class OID4VPRequest(BaseRecord):
     @property
     def record_value(self) -> dict:
         """Return dict representation of the exchange record for storage."""
-        return {prop: getattr(self, prop) for prop in ("vp_formats",)}
+        result: dict = {"vp_formats": self.vp_formats}
+        if self.pres_def_id is not None:
+            result["pres_def_id"] = self.pres_def_id
+        if self.dcql_query_id is not None:
+            result["dcql_query_id"] = self.dcql_query_id
+        return result
 
 
 class OID4VPRequestSchema(BaseRecordSchema):
