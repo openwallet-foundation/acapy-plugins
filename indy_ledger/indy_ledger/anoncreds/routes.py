@@ -1,24 +1,25 @@
 """AnonCreds revocation registry routes."""
 
 import logging
+import re
 
 from acapy_agent.admin.decorators.auth import tenant_authentication
 from acapy_agent.admin.request_context import AdminRequestContext
 from acapy_agent.anoncreds.base import AnonCredsObjectNotFound, AnonCredsResolutionError
+from acapy_agent.anoncreds.events import REV_LIST_UPDATE_FAILED_EVENT
 from acapy_agent.anoncreds.routes.revocation import REVOCATION_TAG_TITLE
 from acapy_agent.anoncreds.routes.revocation.registry import (
     AnonCredsRevRegIdMatchInfoSchema,
 )
+from acapy_agent.core.event_bus import EventBus, EventWithMetadata
+from acapy_agent.core.profile import Profile
 from acapy_agent.messaging.models.openapi import OpenAPISchema
 from acapy_agent.utils.profiles import is_not_anoncreds_profile_raise_web_exception
 from aiohttp import web
-from aiohttp_apispec import (
-    docs,
-    match_info_schema,
-    response_schema,
-)
+from aiohttp_apispec import docs, match_info_schema, response_schema
 from marshmallow import fields
 
+from .recover import fix_and_publish_from_invalid_accum_err
 from .registry import LegacyIndyRegistry
 
 LOGGER = logging.getLogger(__name__)
@@ -75,6 +76,29 @@ async def get_rev_reg_indy_recs(request: web.BaseRequest):
         reason="Indy registry does not support revocation registry "
         f"identified by {rev_reg_id}"
     )
+    
+def register_events(event_bus: EventBus):
+    """Subscribe to any events we need to support."""
+    # If revocation list requires endorsement and fails to update, this event is emitted
+    # to trigger retry logic and notify of failure
+    event_bus.subscribe(
+        re.compile(REV_LIST_UPDATE_FAILED_EVENT),
+        notify_issuer_about_update_failure_due_to_endorsement,
+    )
+
+
+async def notify_issuer_about_update_failure_due_to_endorsement(
+    profile: Profile,
+    event: EventWithMetadata,
+) -> None:
+    """Notify issuer about a failure that couldn't be automatically recovered.
+
+    Args:
+        profile (Profile): The profile context
+        event (EventWithMetadata): Failure message describing the endorsement failure
+
+    """
+    await fix_and_publish_from_invalid_accum_err(profile, event.payload["msg"])
 
 
 async def register(app: web.Application) -> None:
