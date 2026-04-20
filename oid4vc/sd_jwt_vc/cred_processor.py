@@ -64,26 +64,20 @@ class ClaimMetadata:
 class SdJwtCredIssueProcessor(Issuer, CredVerifier, PresVerifier):
     """Credential processor class for sd_jwt_vc format."""
 
-    def format_data_is_top_level(self) -> bool:
-        """SD-JWT VC format_data (vct, claims, etc.) belongs at top level.
+    def credential_metadata(self, supported_cred: dict) -> dict:
+        """Shape issuer metadata for sd_jwt_vc format.
 
-        Per OID4VCI spec, SD-JWT VC credential configurations must have
-        ``vct`` and other format fields at the top level of the credential
-        configuration object, NOT inside ``credential_definition``.
+        Lifts ``vct`` from ``format_data`` to the top level (required by
+        OID4VCI spec for SD-JWT VC) and converts the stored claims dict to
+        the spec-compliant array form per OID4VCI 1.0 spec §E.2.2.
         """
-        return True
+        format_data = supported_cred.pop("format_data", None) or {}
+        supported_cred.pop("vc_additional_data", None)  # sd_list is internal
 
-    def transform_issuer_metadata(self, metadata: dict) -> None:
-        """Convert SD-JWT claims dict to array format required by OID4VCI spec.
+        vct = format_data.get("vct")
 
-        The OIDF conformance suite requires ``claims`` to be an array of
-        per-claim objects (not a dict) per OID4VCI 1.0 spec §E.2.2.
-        Stored format_data uses the legacy dict form
-        ``{claim_name: {display: [...], mandatory: bool}}``; this method
-        converts it in-place to the spec-compliant array form:
-        ``[{path: [claim_name], display: [...], mandatory: bool}]``.
-        """
-        claims = metadata.get("claims")
+        cred_metadata = supported_cred.get("credential_metadata") or {}
+        claims = cred_metadata.get("claims")
         if isinstance(claims, dict):
             claims_arr = []
             for claim_name, claim_meta in claims.items():
@@ -94,7 +88,12 @@ class SdJwtCredIssueProcessor(Issuer, CredVerifier, PresVerifier):
                     if "mandatory" in claim_meta:
                         entry["mandatory"] = claim_meta["mandatory"]
                 claims_arr.append(entry)
-            metadata["claims"] = claims_arr
+            cred_metadata["claims"] = claims_arr
+            supported_cred["credential_metadata"] = cred_metadata
+
+        if vct:
+            return {"vct": vct, **supported_cred}
+        return supported_cred
 
     async def issue(
         self,
@@ -194,8 +193,8 @@ class SdJwtCredIssueProcessor(Issuer, CredVerifier, PresVerifier):
         """Validate the credential subject."""
         vc_additional = supported.vc_additional_data
         assert vc_additional
-        assert supported.format_data
-        claims_metadata = supported.format_data.get("claims")
+        # assert supported.format_data
+        claims_metadata = supported.credential_metadata.get("claims")
         sd_list = vc_additional.get("sd_list") or []
 
         # TODO this will only enforce mandatory fields that are selectively disclosable
@@ -306,50 +305,6 @@ class SdJwtCredIssueProcessor(Issuer, CredVerifier, PresVerifier):
 
         result = await sd_jwt_verify(profile, credential)
         return VerifyResult(result.verified, result.payload)
-
-    def credential_metadata(self, supported_cred: dict) -> dict:
-        """Transform and return metadata for a supported SD-JWT credential."""
-
-        cred_metadata = supported_cred.get("credential_metadata", {})
-        vc_additional_data = supported_cred.get("vc_additional_data", {})
-        vct = vc_additional_data.pop("vct", None) or cred_metadata.pop("vct", None)
-
-        # Convert map-style legacy claims metadata into claims list format
-        claim_map = cred_metadata.get("claims")
-        if claim_map and isinstance(claim_map, dict):
-            allowed_claim_keys = ("mandatory", "display")
-            claims = []
-            for key, value in claim_map.items():
-                claim = {"path": [key]}
-                if isinstance(value, dict):
-                    claim.update(
-                        {
-                            field: value[field]
-                            for field in allowed_claim_keys
-                            if field in value
-                        }
-                    )
-                claims.append(claim)
-
-            cred_metadata["claims"] = claims
-        elif claim_map and isinstance(claim_map, list):
-            cred_metadata["claims"] = [
-                {
-                    "path": claim.get("path"),
-                    **{
-                        field: claim[field]
-                        for field in ("mandatory", "display")
-                        if field in claim
-                    },
-                }
-                for claim in claim_map
-                if isinstance(claim, dict) and "path" in claim
-            ]
-
-        return {
-            "vct": vct,
-            **supported_cred,
-        }
 
 
 class SDJWTIssuerACAPy(SDJWTIssuer):

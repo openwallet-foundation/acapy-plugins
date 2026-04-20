@@ -251,10 +251,6 @@ async def _issue_cred_inner(context, token_result, refresh_id, req_body):
     # which validates nonces issued by the /nonce endpoint with replay protection.
     c_nonce = token_result.payload.get("c_nonce") or ex_record.nonce
 
-    if supported.format_data is None:
-        LOGGER.error("No format_data for supported credential %s.", supported.format)
-        raise web.HTTPInternalServerError()
-
     # Normalize proof: accept both 'proof' (singular, draft spec) and
     # 'proofs.jwt' (plural array, OID4VCI 1.0 final spec)
     if "proof" in req_body:
@@ -296,12 +292,9 @@ async def _issue_cred_inner(context, token_result, refresh_id, req_body):
         await ex_record.save(session, reason="Credential issued")
 
     # OID4VCI 1.0 §7.3.1: response MUST contain `credentials` (array) or `transaction_id`.
-    # Also include the singular `credential` key (draft-era field) for wallets such as
-    # waltid that still parse only the top-level `credential` field and NPE when absent.
-    cred_response: dict = {
-        "credential": credential,
-        # OID4VCI 1.0 §7.3.1: each entry in `credentials` MUST include `format`.
-        "credentials": [{"format": supported.format, "credential": credential}],
+    # Only return the 'credentials' array (OID4VCI 1.0), not the legacy 'credential' key.
+    cred_response = {
+        "credentials": [{"format": supported.format, "credential": credential}]
     }
     if ex_record.notification_id:
         cred_response["notification_id"] = ex_record.notification_id

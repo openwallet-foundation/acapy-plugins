@@ -27,11 +27,11 @@ async def remote_sign_jwt(
     *, uid: str, claims: dict, kid: str | None = None
 ) -> dict[str, Any]:
     """Sign a JWT via the admin API (with retries for transient errors)."""
-    url = f"{settings.ADMIN_INTERNAL_BASE_URL}/tenants/{uid}/jwts"
+    url = f"{settings.INTERNAL_BASE_URL}/tenants/{uid}/jwts"
     payload: dict[str, Any] = {"claims": claims}
     if kid:
         payload["kid"] = kid
-    headers = {"Authorization": f"Bearer {settings.ADMIN_INTERNAL_AUTH_TOKEN}"}
+    headers = {"Authorization": f"Bearer {settings.INTERNAL_AUTH_TOKEN}"}
     rid = current_request_id()
     if rid:
         headers["X-Request-ID"] = rid

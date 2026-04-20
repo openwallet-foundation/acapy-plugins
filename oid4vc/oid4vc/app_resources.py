@@ -14,7 +14,6 @@ LOGGER = logging.getLogger(__name__)
 class AppResources:
     """Application-wide resources like HTTP client and cleanup tasks."""
 
-    _auth_server_url: str | None = None
     _http_client: aiohttp.ClientSession | None = None
     _cleanup_task: asyncio.Task | None = None
     _client_shutdown: bool = False
@@ -29,17 +28,13 @@ class AppResources:
                 LOGGER.debug("HTTP client already initialized")
                 return
 
-            if config and config.auth_server_url:
-                cls._auth_server_url = config.auth_server_url
-                LOGGER.info("Initializing HTTP client...")
-                cls._http_client = aiohttp.ClientSession(
-                    timeout=aiohttp.ClientTimeout(total=30, connect=10),
-                    connector=aiohttp.TCPConnector(
-                        limit=100, limit_per_host=10, ttl_dns_cache=300
-                    ),
-                )
-                # LOGGER.info("Starting up cleanup task...")
-                # cls._cleanup_task = asyncio.create_task(cls._background_cleanup())
+            LOGGER.info("Initializing HTTP client...")
+            cls._http_client = aiohttp.ClientSession(
+                timeout=aiohttp.ClientTimeout(total=30, connect=10),
+                connector=aiohttp.TCPConnector(
+                    limit=100, limit_per_host=10, ttl_dns_cache=300
+                ),
+            )
 
     @classmethod
     async def shutdown(cls):
@@ -63,7 +58,7 @@ class AppResources:
         """Get the initialized HTTP client."""
         if cls._client_shutdown:
             raise RuntimeError("HTTP client was shut down and cannot be re-initialized")
-        if cls._auth_server_url and cls._http_client is None:
+        if cls._http_client is None:
             LOGGER.warning("Warning: HTTP client was None, re-initializing.")
             with cls._lock:
                 if cls._http_client is None:  # Double-check after acquiring lock

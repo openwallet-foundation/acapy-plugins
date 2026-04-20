@@ -19,7 +19,7 @@ class Settings(BaseSettings):
     REFRESH_TOKEN_TTL: int = 604800
     PRE_AUTH_CODE_TTL: int = 600
     TOKEN_BYTES: int = 48
-    INCLUDE_NONCE: bool = False
+    INCLUDE_NONCE: bool = True
     NONCE_BYTES: int = 16
 
     DB_DRIVER_ASYNC: str = "postgresql+asyncpg"
@@ -29,8 +29,8 @@ class Settings(BaseSettings):
 
     TRUSTED_NETWORKS: list[str] = []
 
-    ADMIN_INTERNAL_BASE_URL: str = "http://localhost:9000"
-    ADMIN_INTERNAL_AUTH_TOKEN: str = "admin-internal-auth-token"
+    INTERNAL_BASE_URL: str = "http://localhost:9000"
+    INTERNAL_AUTH_TOKEN: str = "admin-internal-auth-token"
     CONTEXT_CACHE_TTL: int = 900
     WELL_KNOWN_CACHE_TTL: int = 300
 
@@ -42,6 +42,9 @@ class Settings(BaseSettings):
     CORS_ALLOW_METHODS: list[str] = ["GET", "POST", "OPTIONS"]
     CORS_ALLOW_HEADERS: list[str] = ["Authorization", "Content-Type"]
     CORS_ALLOW_CREDENTIALS: bool = False
+
+    # Proxy settings
+    PROXY_TRUSTED_HOSTS: list[str] | str = "127.0.0.1"
 
 
 settings = Settings()

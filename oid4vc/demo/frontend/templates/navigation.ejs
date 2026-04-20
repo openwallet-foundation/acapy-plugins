@@ -10,4 +10,15 @@
 		hx-swap="innerhtml"
 		class="w3-bar-item w3-button w3-hover-white <%= locals.page=='present' ? 'w3-pale-green' : '' %>"
 		>Present Credential</button>
-
+<button
+		hx-get="/update-status"
+		hx-target="#content"
+		hx-swap="innerhtml"
+		class="w3-bar-item w3-button w3-hover-white <%= locals.page=='update-status' ? 'w3-pale-green' : '' %>"
+		>Update Status</button>
+<button
+		hx-get="/credential-info"
+		hx-target="#content"
+		hx-swap="innerhtml"
+		class="w3-bar-item w3-button w3-hover-white <%= locals.page=='credential-info' ? 'w3-pale-green' : '' %>"
+		>Credential Info</button>

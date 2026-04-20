@@ -128,47 +128,22 @@ class JwtVcJsonCredProcessor(Issuer, CredVerifier, PresVerifier):
         return await self.verify(profile, presentation)
 
     def credential_metadata(self, supported_cred: dict) -> dict:
-        """Transform and return metadata for a supported JWT VC credential."""
+        """Shape issuer metadata for jwt_vc_json format.
 
-        cred_metadata = supported_cred.get("credential_metadata", {})
-        credential_definition = {}
+        Lifts ``vc_additional_data`` (stores ``@context`` and ``type``) into
+        the ``credential_definition`` block required by OID4VCI spec for
+        jwt_vc_json.  Falls back to ``format_data`` for legacy records.
+        """
+        vc_additional_data = supported_cred.pop("vc_additional_data", None) or {}
+        format_data = supported_cred.pop("format_data", None) or {}
+        raw = vc_additional_data or format_data
 
-        if "claims" not in cred_metadata:
-            if cred_sub := cred_metadata.pop("credentialSubject", None):
-                if isinstance(cred_sub, dict):
-                    cred_metadata["claims"] = [
-                        {"path": [key], **value}
-                        if isinstance(value, dict)
-                        else {"path": [key]}
-                        for key, value in cred_sub.items()
-                    ]
-                else:
-                    cred_metadata["claims"] = [cred_sub]
-        elif isinstance(cred_metadata.get("claims"), dict):
-            claims = cred_metadata["claims"]
-            cred_metadata["claims"] = [
-                {"path": [key], **value} if isinstance(value, dict) else {"path": [key]}
-                for key, value in claims.items()
-            ]
-
-        cred_type = cred_metadata.get("type") or cred_metadata.get("types")
-        if cred_type:
-            credential_definition["type"] = cred_type
-            cred_metadata.pop("type", None)
-            cred_metadata.pop("types", None)
-        if context := cred_metadata.pop("context", None):
+        credential_definition = dict(raw)
+        context = credential_definition.pop("context", None)
+        if context:
             credential_definition["@context"] = context
 
-        vc_additional_data = supported_cred.get("vc_additional_data")
-        if vc_additional_data:
-            credential_definition = {**vc_additional_data, **credential_definition}
-            del supported_cred["vc_additional_data"]
-
-        supported_cred["credential_definition"] = credential_definition
-
-        cred_metadata.pop("context", None)
-        cred_metadata.pop("order", None)
-
-        return {
-            **supported_cred,
+        supported_cred["credential_definition"] = {
+            k: v for k, v in credential_definition.items() if v is not None
         }
+        return supported_cred

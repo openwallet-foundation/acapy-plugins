@@ -122,6 +122,15 @@ class IssuerConfigurationSchema(BaseRecordSchema):
                 {
                     "public_url": "https://auth.example.com",
                     "private_url": "https://intra.example.com",
+                    "auth_type": "client_secret_jwt",
+                    "client_credentials": {
+                        "client_id": "abc123",
+                        "client_secret": "xyz456",
+                    },
+                },
+                {
+                    "public_url": "https://auth.example.com",
+                    "private_url": "https://intra.example.com",
                     "auth_type": "private_key_jwt",
                     "client_credentials": {
                         "client_id": "abc123",

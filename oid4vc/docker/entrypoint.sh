@@ -1,34 +1,33 @@
 #!/bin/bash
 
-TUNNEL_ENDPOINT=${TUNNEL_ENDPOINT:-http://localhost:4040}
+TUNNEL_ENDPOINT=${TUNNEL_ENDPOINT:-http://ngrok:4040}
 
 WAIT_INTERVAL=${WAIT_INTERVAL:-3}
 WAIT_ATTEMPTS=${WAIT_ATTEMPTS:-10}
 
 liveliness_check () {
         for CURRENT_ATTEMPT in $(seq 1 "$WAIT_ATTEMPTS"); do
-                if ! curl -s -o /dev/null -w '%{http_code}' "${1}/api/tunnels/command_line" | grep "200" > /dev/null; then
-			if [[ $CURRENT_ATTEMPT -gt $WAIT_ATTEMPTS ]]
-			then
-				echo "Failed while waiting for 200 status from ${1}"
-				exit 1
-			fi
-			
-			echo "Waiting for tunnel..." 1>&2
+                # Use jq to check if the 'issuer' tunnel is available
+                if curl -s "${1}/api/tunnels" | jq -e '.tunnels[] | select(.name == "issuer" and .public_url != null)' > /dev/null; then
+                        break
+                else
+                        if [[ $CURRENT_ATTEMPT -ge $WAIT_ATTEMPTS ]]; then
+                                echo "Failed while waiting for 'issuer' tunnel in ${1}/api/tunnels"
+                                exit 1
+                        fi
+                        echo "Waiting for 'issuer' tunnel..." 1>&2
                         sleep "$WAIT_INTERVAL" &
                         wait $!
-                else
-                        break
                 fi
         done
 }
 
 liveliness_check "${TUNNEL_ENDPOINT}"
 
-# Capture the JSON response from the endpoint
-OID4VCI_ENDPOINT=$(curl --silent "${TUNNEL_ENDPOINT}/api/tunnels/command_line" | python -c "import sys, json; print(json.load(sys.stdin)['public_url'])")
-# Print the response for debugging purposes
-# echo "JSON Response: $RESPONSE"
-export OID4VCI_ENDPOINT=${OID4VCI_ENDPOINT}
+export OID4VCI_ENDPOINT=$(curl --silent "${TUNNEL_ENDPOINT}/api/tunnels" | jq -r '.tunnels[] | select(.name == "issuer") | .public_url')
+
 export STATUS_LIST_PUBLIC_URI=${OID4VCI_ENDPOINT}/tenant/{tenant_id}/status/{list_number}
+
+echo "STATUS_LIST_PUBLIC_URI: $STATUS_LIST_PUBLIC_URI"
+
 exec "$@"

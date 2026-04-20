@@ -46,8 +46,8 @@ ADMIN_INTERNAL_AUTH_TOKEN=admin-internal-token
 
 ```
 TENANT_ISSUER_BASE_URL=http://localhost:9001
-TENANT_ADMIN_INTERNAL_BASE_URL=http://localhost:9000/internal
-TENANT_ADMIN_INTERNAL_AUTH_TOKEN=admin-internal-token
+TENANT_INTERNAL_BASE_URL=http://localhost:9000/internal
+TENANT_INTERNAL_AUTH_TOKEN=admin-internal-token
 ```
 
 ## ✅ Health Checks

@@ -18,7 +18,7 @@ from ..cred_processor import CredProcessors
 from ..did_utils import retrieve_or_create_did_jwk
 from ..jwt import jwt_sign
 from ..models.supported_cred import SupportedCredential
-from ..utils import get_tenant_subpath
+from ..utils import get_first_auth_server
 
 LOGGER = logging.getLogger(__name__)
 
@@ -78,15 +78,15 @@ async def credential_issuer_metadata(request: web.Request):
     async with context.session() as session:
         # TODO If there's a lot, this will be a problem
         credentials_supported = await SupportedCredential.query(session)
+        auth_server = await get_first_auth_server(session, context.profile)
 
         wallet_id = request.match_info.get("wallet_id")
         subpath = f"/tenant/{wallet_id}" if wallet_id else ""
         metadata: dict[str, Any] = {"credential_issuer": f"{public_url}{subpath}"}
-        if config.auth_server_url:
-            auth_tenant_subpath = get_tenant_subpath(context.profile)
-            metadata["authorization_servers"] = [
-                f"{config.auth_server_url}{auth_tenant_subpath}"
-            ]
+        if auth_server:
+            # Point directly at the auth server's public URL so the wallet
+            # performs OAuth discovery and token requests against the auth server.
+            metadata["authorization_servers"] = [auth_server["public_url"]]
         else:
             # When ACA-Py is its own authorization server (no external auth server),
             # include token_endpoint directly in the credential issuer metadata.
@@ -180,6 +180,7 @@ async def openid_configuration(request: web.Request):
     async with context.session() as session:
         # TODO If there's a lot, this will be a problem
         credentials_supported = await SupportedCredential.query(session)
+        auth_server = await get_first_auth_server(session, context.profile)
 
         wallet_id = request.match_info.get("wallet_id")
         subpath = f"/tenant/{wallet_id}" if wallet_id else ""
@@ -229,11 +230,8 @@ async def openid_configuration(request: web.Request):
             "credential_configurations_supported": cred_configs,
         }
 
-        if config.auth_server_url:
-            auth_tenant_subpath = get_tenant_subpath(context.profile)
-            metadata["authorization_servers"] = [
-                f"{config.auth_server_url}{auth_tenant_subpath}"
-            ]
+        if auth_server:
+            metadata["authorization_servers"] = [auth_server["public_url"]]
 
     LOGGER.debug("OPENID CONFIG: %s", metadata)
 

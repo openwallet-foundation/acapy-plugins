@@ -38,7 +38,11 @@ def build_oauth_auth_server(uid: str, request: Request) -> dict:
     doc = {
         "issuer": base_url,
         "token_endpoint": f"{base_url}/token",
-        "token_endpoint_auth_methods_supported": ["none"],
+        "token_endpoint_auth_methods_supported": [
+            "client_secret_basic",
+            "client_secret_jwt",
+            "private_key_jwt",
+        ],
         "grant_types_supported": [
             OAuth2GrantType.PRE_AUTH_CODE,
             OAuth2GrantType.REFRESH_TOKEN,
@@ -50,9 +54,9 @@ def build_oauth_auth_server(uid: str, request: Request) -> dict:
     if is_internal_request(request):
         doc["introspection_endpoint"] = f"{base_url}/introspect"
         doc["introspection_endpoint_auth_methods_supported"] = [
-            "private_key_jwt",
             "client_secret_basic",
-            "shared_bearer",
+            "client_secret_jwt",
+            "private_key_jwt",
         ]
         doc["introspection_endpoint_auth_signing_alg_values_supported"] = [
             "ES256",

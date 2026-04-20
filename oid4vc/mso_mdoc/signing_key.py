@@ -18,11 +18,13 @@ use ``POST /mso-mdoc/signing-keys/import`` to load the private key and
 certificate in a single step.
 """
 
+import datetime
 from typing import Optional
 
 from cryptography import x509
-from cryptography.hazmat.primitives import serialization
+from cryptography.hazmat.primitives import hashes, serialization
 from cryptography.hazmat.primitives.asymmetric import ec
+from cryptography.x509.oid import NameOID
 from acapy_agent.messaging.models.base_record import BaseRecord, BaseRecordSchema
 from acapy_agent.messaging.models.openapi import OpenAPISchema
 from marshmallow import fields
@@ -51,6 +53,39 @@ def public_key_pem_from_private(private_key_pem: str) -> str:
         )
         .decode("utf-8")
     )
+
+
+def generate_self_signed_certificate(
+    private_key_pem: str, common_name: str = "mDoc Issuer", country_name: str = "US"
+) -> str:
+    """Generate a self-signed X.509 certificate for the given EC private key.
+
+    Intended for development and demo environments only.  The resulting
+    certificate is signed by the same key it certifies (self-signed) and
+    should not be used in production where a proper IACA-signed certificate
+    is required.
+    """
+    private_key = serialization.load_pem_private_key(
+        private_key_pem.encode("utf-8"), password=None
+    )
+    subject = issuer = x509.Name(
+        [
+            x509.NameAttribute(NameOID.COUNTRY_NAME, country_name),
+            x509.NameAttribute(NameOID.COMMON_NAME, common_name),
+        ]
+    )
+    now = datetime.datetime.now(datetime.timezone.utc)
+    cert = (
+        x509.CertificateBuilder()
+        .subject_name(subject)
+        .issuer_name(issuer)
+        .public_key(private_key.public_key())
+        .serial_number(x509.random_serial_number())
+        .not_valid_before(now)
+        .not_valid_after(now + datetime.timedelta(days=365))
+        .sign(private_key, hashes.SHA256())
+    )
+    return cert.public_bytes(serialization.Encoding.PEM).decode("utf-8")
 
 
 def validate_cert_matches_private_key(private_key_pem: str, certificate_pem: str) -> None:
@@ -200,6 +235,27 @@ class MdocSigningKeyCreateSchema(OpenAPISchema):
             "description": (
                 "PEM-encoded X.509 certificate. Can be attached now or later via PUT."
             )
+        },
+    )
+    generate_self_signed = fields.Bool(
+        required=False,
+        load_default=False,
+        metadata={
+            "description": (
+                "If true and no certificate_pem is provided, generate a self-signed "
+                "certificate automatically. Intended for development/demo use only."
+            )
+        },
+    )
+    country_name = fields.Str(
+        required=False,
+        load_default="US",
+        metadata={
+            "description": (
+                "ISO 3166-1 alpha-2 country code for the certificate subject DN. "
+                "Required by ISO 18013-5. Used only when generate_self_signed is true."
+            ),
+            "example": "US",
         },
     )
 
