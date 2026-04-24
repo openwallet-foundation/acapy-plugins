@@ -4,10 +4,8 @@ import gzip
 import logging
 import math
 import os
-import queue
 import shutil
 import tempfile
-import threading
 import time
 import zlib
 from datetime import datetime, timedelta, timezone
@@ -21,7 +19,6 @@ from acapy_agent.core.profile import ProfileSession
 from acapy_agent.storage.error import StorageNotFoundError
 from acapy_agent.wallet.util import bytes_to_b64, unpad
 from bitarray import bitarray
-from filelock import FileLock, Timeout
 
 from .config import Config
 from .error import StatusListError
@@ -29,24 +26,6 @@ from .jwt import jwt_sign
 from .models import StatusListCred, StatusListDef, StatusListReg, StatusListShard
 
 LOGGER = logging.getLogger(__name__)
-
-delete_queue = queue.Queue()
-
-
-def deletion_worker():
-    """Worker thread to handle file deletions."""
-    while True:
-        file_path, delay = delete_queue.get()
-        if delay > 0:
-            time.sleep(delay)
-        try:
-            Path(file_path).unlink()
-        except Exception:
-            pass
-        delete_queue.task_done()
-
-
-threading.Thread(target=deletion_worker, daemon=True).start()
 
 
 def with_retries(max_attempts: int = 3, delay: float = 2.0):
@@ -69,15 +48,6 @@ def with_retries(max_attempts: int = 3, delay: float = 2.0):
     return decorator
 
 
-def alt_name(p: Path) -> Path:
-    """Return alternative file name: 'a.txt' -> 'a.alt.txt', 'foo' -> 'foo.alt'."""
-    return (
-        p.with_name(f"{p.stem}.alt{''.join(p.suffixes)}")
-        if p.suffixes
-        else p.with_name(p.name + ".alt")
-    )
-
-
 def unlink_file(file_path: Path | str | None, delay_seconds: int = 0) -> None:
     """Unlink a file with an optional delay (best-effort)."""
     if not file_path:
@@ -96,47 +66,30 @@ def unlink_file(file_path: Path | str | None, delay_seconds: int = 0) -> None:
 def write_to_file(
     path: str | Path,
     data: bytes | bytearray | memoryview,
-    with_alt: bool = False,
 ) -> None:
-    """Atomically write `data` to `path`; optionally publish an atomic `.alt` sibling."""
+    """Write `data` to `path`.
+
+    Writes to a local temp file first, then copies to the destination.
+    Compatible with both local and network/SMB filesystems (e.g. Azure Files).
+    The target file is set to 0644 so nginx (or any other reader) can serve it.
+    """
     full_path = Path(path).absolute()
     full_path.parent.mkdir(parents=True, exist_ok=True)
-    lock_path = full_path.with_suffix(full_path.suffix + ".lock")
-    alt_path: Path | None = None
-    alt_temp: Path | None = None
-    temp_path: Path | None = None
-    LOGGER.debug(f"Writing to local file: {full_path}")
+    LOGGER.debug(f"Writing to file: {full_path}")
 
+    tmp_local: Path | None = None
     try:
-        with FileLock(str(lock_path), timeout=10):
-            with tempfile.NamedTemporaryFile(dir=full_path.parent, delete=False) as tmp:
-                tmp.write(memoryview(data))
-                tmp.flush()
-                os.fsync(tmp.fileno())
-                temp_path = Path(tmp.name)
+        with tempfile.NamedTemporaryFile(delete=False) as tmp:
+            tmp.write(memoryview(data))
+            tmp.flush()
+            os.fsync(tmp.fileno())
+            tmp_local = Path(tmp.name)
 
-            if with_alt:
-                alt_path = alt_name(full_path)
-                alt_temp = alt_path.with_suffix(alt_path.suffix + ".tmp")
-                shutil.copy(temp_path, alt_temp)
-                with open(alt_temp, "rb", buffering=0) as f:
-                    os.fsync(f.fileno())
-                os.replace(alt_temp, alt_path)
-
-            os.replace(temp_path, full_path)
-            LOGGER.debug("Write to local file completed.")
-
-    except (OSError, Timeout) as e:
-        LOGGER.error(f"Failed to write to file {full_path}: {e}")
-        raise
+        shutil.copy2(tmp_local, full_path)
+        full_path.chmod(0o644)
+        LOGGER.debug(f"Write to {full_path} completed.")
     finally:
-        unlink_file(temp_path)
-        unlink_file(lock_path)
-        if with_alt:
-            unlink_file(alt_temp)
-            # Instead of spawning a thread per file, use the queue
-            if alt_path:
-                delete_queue.put((alt_path, 5))
+        unlink_file(tmp_local)
 
 
 def get_wallet_id(context: AdminRequestContext):

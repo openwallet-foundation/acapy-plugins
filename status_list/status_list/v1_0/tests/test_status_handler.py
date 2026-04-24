@@ -1,8 +1,8 @@
 import pytest
 import os
+import shutil
 from bitarray import util as bitutil
 from unittest.mock import MagicMock, Mock, patch
-from filelock import Timeout
 
 from acapy_agent.admin.request_context import AdminRequestContext
 
@@ -64,47 +64,32 @@ def test_write_to_file_success(tmp_path):
     assert file_path.exists()
     assert file_path.read_bytes() == content
 
+    # Test retry: patch shutil.copy2 to fail once then succeed
     file_path = tmp_path / "test_retry.txt"
     content = b"retry test"
-
-    # Patch os.replace to fail once then succeed
     call_tracker = {"count": 0}
+    original_copy2 = shutil.copy2
 
-    def flaky_replace(src, dst):
+    def flaky_copy2(src, dst, **kwargs):
         if call_tracker["count"] == 0:
             call_tracker["count"] += 1
             raise OSError("Simulated failure")
-        return original_replace(src, dst)
+        return original_copy2(src, dst, **kwargs)
 
-    original_replace = os.replace
-
-    with patch("status_list.v1_0.status_handler.os.replace", side_effect=flaky_replace):
+    with patch("status_list.v1_0.status_handler.shutil.copy2", side_effect=flaky_copy2):
         status_handler.write_to_file(str(file_path), content)
 
     assert file_path.exists()
     assert file_path.read_bytes() == content
 
+    # When shutil.copy2 always fails, write_to_file raises
     file_path = tmp_path / "fail.txt"
     content = b"should fail"
 
-    # Patch os.replace to always raise
     with patch(
-        "status_list.v1_0.status_handler.os.replace", side_effect=OSError("always fail")
+        "status_list.v1_0.status_handler.shutil.copy2", side_effect=OSError("always fail")
     ):
         with pytest.raises(OSError, match="always fail"):
-            status_handler.write_to_file(str(file_path), content)
-
-    # Final file should not exist
-    assert not file_path.exists()
-
-    file_path = tmp_path / "locked.txt"
-    content = b"locked"
-
-    # Patch FileLock to raise Timeout
-    with patch(
-        "status_list.v1_0.status_handler.FileLock", side_effect=Timeout("lock timeout")
-    ):
-        with pytest.raises(Timeout, match="lock timeout"):
             status_handler.write_to_file(str(file_path), content)
 
     assert not file_path.exists()
