@@ -15,14 +15,14 @@ SQLAlchemy = { version = "^2.0", extras = ["asyncio"] }
 asyncpg = "^0.30"
 psycopg = { extras = ["binary"], version = "^3.2.9" }
 pydantic-settings = "^2.10"
-python-multipart = "^0.0.22"
+python-multipart = ">=0.0.22,<0.0.27"
 httpx = "^0.28.1"
 structlog = "^25.4.0"
 alembic = "^1.16.4"
 
 [tool.poetry.group.dev.dependencies]
 sqlacodegen-v2 = "^0.1.4"
-pytest = "^8.3"
+pytest = ">=8.3,<10.0"
 pytest-asyncio = "^1.1"
 pytest-cov = "^6.0"
 coverage = "^7.6"
