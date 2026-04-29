@@ -146,7 +146,7 @@ jobs:
       # ----------------------------------------------
       - name: Create Release
         if: steps.should_create_release.outputs.should_create_release == 'true'  
-        uses: softprops/action-gh-release@v2
+        uses: softprops/action-gh-release@v3
         with:
           token: ${{ secrets.BOT_PR_PAT }}
           name: ${{ steps.prepare_release.outputs.tag }}
