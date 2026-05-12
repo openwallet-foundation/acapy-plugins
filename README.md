@@ -42,6 +42,16 @@ Run `python repo_manager.py` and you will be met with a number of options. Run t
   plugins.
 - (7) This option is used for upgrading a particular library for all plugins.
   It's useful for when you don't want to do a general upgrade for every library. 
+- (8) This option is used for closing a range of PR's that are related to the same
+  shared dependency update. You use the lower and upper bounds of the PR numbers to close all the related PR's. This is useful for keeping the repo clean and reducing the number of PR's that need to be reviewed. You can included PR numbers which have already been merged or closed and the script will skip them. You should be careful when using this option as it will close all PR's in the range regardless of their status. Make sure to double check the PR numbers before running this option. If you do accidentally close a PR that shouldn't be closed, you can always reopen it.
+
+## Dependabot Management
+
+Currently dependabot is configured to manage plugin dependencies individually. This is fine for libraries which aren't shared across plugins but will create numerous PR's for plugins that share dependencies. If you want to update a shared dependency across plugins, you can use option (7) in the repo management script to do so.
+
+Then create a general grouped PR for the dependabot updates. This will update the shared dependency across all plugins and reduce the number of PR's created by dependabot.
+
+Then you can manually use option (8) in the repo management script to close a range of PR's that are related to the same shared dependency update. This will help keep the repo clean and reduce the number of PR's that need to be reviewed.
 
 ## Lite plugins
 
