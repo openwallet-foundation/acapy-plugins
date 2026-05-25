@@ -1,5 +1,4 @@
 import pytest
-import os
 import shutil
 from bitarray import util as bitutil
 from unittest.mock import MagicMock, Mock, patch

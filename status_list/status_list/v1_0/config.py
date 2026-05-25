@@ -2,6 +2,7 @@
 
 from dataclasses import dataclass
 from os import getenv
+from typing import Optional
 
 from acapy_agent.config.base import BaseSettings
 from acapy_agent.config.settings import Settings
@@ -31,7 +32,7 @@ class Config:
     list_size: int
     shard_size: int
     public_uri: str
-    file_path: str
+    file_path: Optional[str]
 
     @classmethod
     def from_settings(cls, settings: BaseSettings) -> "Config":
@@ -57,7 +58,5 @@ class Config:
             raise ConfigError("shard_size", "STATUS_LIST_SHARD_SIZE")
         if not public_uri:
             raise ConfigError("public_uri", "STATUS_LIST_PUBLIC_URI")
-        if not file_path:
-            raise ConfigError("file_path", "STATUS_LIST_FILE_PATH")
 
-        return cls(list_size, shard_size, public_uri, file_path)
+        return cls(list_size, shard_size, public_uri, file_path or None)

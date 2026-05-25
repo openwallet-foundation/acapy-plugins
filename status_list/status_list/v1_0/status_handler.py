@@ -362,12 +362,16 @@ async def update_status_list_entry(
     shard.status_bits = status_bits
     await shard.save(session, reason="Update status list entry.")
 
-    # Emit event
     shard.state = "updated"
     payload = shard.serialize()
     payload["credential_id"] = credential_id
     payload["list_index"] = entry_index
     payload["status"] = bitstring
+    # Log and remove large bitstring data from payload before emitting event
+    LOGGER.debug("Shard event payload: %s", payload)
+    payload.pop("status_encoded", None)
+    payload.pop("mask_encoded", None)
+    # Emit event
     await shard.emit_event(session, payload)
 
     return {
