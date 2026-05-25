@@ -5,6 +5,7 @@ import hmac
 import json
 import time
 from datetime import UTC
+from secrets import token_urlsafe
 from typing import Any, Dict
 from urllib.parse import urlparse
 
@@ -197,15 +198,26 @@ async def token(request: web.Request):
         )
 
     # Create a nonce for the wallet to use in its credential proof.
-    # The /nonce endpoint also serves nonces (OID4VCI 1.0 §8); both are valid.
-    c_nonce_record = await create_nonce(context.profile, NONCE_BYTES, EXPIRES_IN)
+    config = Config.from_settings(context.settings)
+    if config.enable_nonce_endpoint:
+        # Nonce endpoint is available — create a DB-backed nonce so it can be
+        # redeemed later via Nonce.redeem_by_value().
+        c_nonce_record = await create_nonce(context.profile, NONCE_BYTES, EXPIRES_IN)
+        c_nonce_value = c_nonce_record.nonce_value
+    else:
+        # No nonce endpoint — generate a random nonce without hitting the DB.
+        # Store it on the exchange record for later comparison during PoP validation.
+        c_nonce_value = token_urlsafe(NONCE_BYTES)
+        async with context.profile.session() as session:
+            record.nonce = c_nonce_value
+            await record.save(session, reason="Stored c_nonce for PoP validation")
 
     return web.json_response(
         {
             "access_token": record.token,
             "token_type": "Bearer",
             "expires_in": EXPIRES_IN,
-            "c_nonce": c_nonce_record.nonce_value,
+            "c_nonce": c_nonce_value,
             "c_nonce_expires_in": EXPIRES_IN,
         }
     )
@@ -421,20 +433,11 @@ async def handle_proof_of_posession(
 
     # OID4VCI 1.0 final spec uses "nonce"; older draft wallets may use "c_nonce".
     nonce = payload.get("nonce") or payload.get("c_nonce")
-    if c_nonce:
-        if c_nonce != nonce:
-            raise web.HTTPBadRequest(
-                text=json.dumps(
-                    {
-                        "error": "invalid_nonce",
-                        "error_description": "nonce mismatch",
-                    }
-                ),
-                content_type="application/json",
-            )
-    else:
-        # OID4VCI 1.0: nonce was obtained from the /nonce endpoint.
-        # Open a session to redeem it (marks it used for replay protection).
+
+    config = Config.from_settings(profile.settings)
+    if config.enable_nonce_endpoint:
+        # The /nonce endpoint is published — nonces are managed locally in the DB.
+        # Use DB-based redemption regardless of any c_nonce from the access token.
         async with profile.session() as session:
             redeemed = await Nonce.redeem_by_value(session, nonce)
         if not redeemed:
@@ -443,6 +446,28 @@ async def handle_proof_of_posession(
                     {
                         "error": "invalid_nonce",
                         "error_description": "invalid or already-used nonce",
+                    }
+                ),
+                content_type="application/json",
+            )
+    else:
+        # No local nonce endpoint — rely on c_nonce from the access token.
+        if not c_nonce:
+            raise web.HTTPBadRequest(
+                text=json.dumps(
+                    {
+                        "error": "invalid_nonce",
+                        "error_description": "no c_nonce available to verify proof",
+                    }
+                ),
+                content_type="application/json",
+            )
+        if c_nonce != nonce:
+            raise web.HTTPBadRequest(
+                text=json.dumps(
+                    {
+                        "error": "invalid_nonce",
+                        "error_description": "nonce mismatch",
                     }
                 ),
                 content_type="application/json",

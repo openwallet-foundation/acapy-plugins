@@ -94,12 +94,31 @@ async def test_handle_proof_of_posession(monkeypatch, profile: Profile):
     }
     nonce = "2I1w-E_6E-s07vAIo3q98g"
     # The JWT's aud is an ngrok URL; override the configured endpoint to match
-    # so the aud check passes.
+    # so the aud check passes. enable_nonce_endpoint=True exercises DB redemption.
     monkeypatch.setattr(
         _token_module.Config,
         "from_settings",
-        lambda settings: MagicMock(endpoint="https://1354-198-91-62-58.ngrok.io"),
+        lambda settings: MagicMock(
+            endpoint="https://1354-198-91-62-58.ngrok.io",
+            enable_nonce_endpoint=True,
+        ),
     )
+    # Create a Nonce record in the DB so DB-based redemption succeeds
+    from oid4vc.models.nonce import Nonce
+    from acapy_agent.messaging.util import datetime_now, datetime_to_str
+    import datetime
+
+    issued_at = datetime_now()
+    expires_at = issued_at + datetime.timedelta(seconds=86400)
+    nonce_record = Nonce(
+        nonce_value=nonce,
+        used=False,
+        issued_at=datetime_to_str(issued_at),
+        expires_at=datetime_to_str(expires_at),
+    )
+    async with profile.session() as session:
+        await nonce_record.save(session, reason="test nonce")
+
     result = await test_module.handle_proof_of_posession(profile, proof, nonce)
     assert isinstance(result.verified, bool)
 

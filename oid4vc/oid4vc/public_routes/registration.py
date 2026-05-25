@@ -3,6 +3,7 @@
 from acapy_agent.config.injection_context import InjectionContext
 from aiohttp import web
 
+from ..config import Config
 from ..status_handler import StatusHandler
 from .credential import dereference_cred_offer, issue_cred
 from .metadata import credential_issuer_metadata, openid_configuration
@@ -36,6 +37,7 @@ async def register(app: web.Application, multitenant: bool, context: InjectionCo
 
     Adds the subpath with Wallet ID as a path parameter if multitenant is True.
     """
+    config = Config.from_settings(context.settings)
     subpath = "/tenant/{wallet_id}" if multitenant else ""
     routes = [
         web.get(
@@ -44,18 +46,18 @@ async def register(app: web.Application, multitenant: bool, context: InjectionCo
             allow_head=False,
         ),
         web.get(
-            f"{subpath}/.well-known/openid-credential-issuer",
+            f".well-known/openid-credential-issuer/{subpath}",
             credential_issuer_metadata,
             allow_head=False,
         ),
-        # OID4VCI 1.0 spec uses underscore; dash variant is kept for compatibility
+        # OID4VCI 1.0 spec uses dash; underscore variant is kept for compatibility
         web.get(
-            f"{subpath}/.well-known/openid_credential_issuer",
+            f".well-known/openid_credential_issuer/{subpath}",
             credential_issuer_metadata_deprecated,
             allow_head=False,
         ),
         web.get(
-            f"{subpath}/.well-known/openid-configuration",
+            f".well-known/openid-configuration/{subpath}",
             openid_configuration,
             allow_head=False,
         ),
@@ -63,7 +65,7 @@ async def register(app: web.Application, multitenant: bool, context: InjectionCo
         # conformance suite (VCIFetchOAuthorizationServerMetadata). ACA-Py serves
         # the same content as /.well-known/openid-configuration.
         web.get(
-            f"{subpath}/.well-known/oauth-authorization-server",
+            f".well-known/oauth-authorization-server/{subpath}",
             openid_configuration,
             allow_head=False,
         ),
@@ -72,13 +74,12 @@ async def register(app: web.Application, multitenant: bool, context: InjectionCo
         web.post(f"{subpath}/token", token),
         web.post(f"{subpath}/notification", receive_notification),
         web.post(f"{subpath}/credential", issue_cred),
-        # OID4VCI nonce endpoint — provides server-generated nonces for proof-of-
-        # possession in HAIP and other profiles that require nonce_endpoint in metadata.
-        web.post(f"{subpath}/nonce", get_nonce),
-        web.get(f"{subpath}/nonce", get_nonce),
         web.get(f"{subpath}/oid4vp/request/{{request_id}}", get_request),
         web.post(f"{subpath}/oid4vp/response/{{presentation_id}}", post_response),
     ]
+    # Conditionally register the /nonce endpoint
+    if config.enable_nonce_endpoint:
+        routes.append(web.post(f"{subpath}/nonce", get_nonce))
     # Conditionally add status route
     if context.inject_or(StatusHandler):
         routes.append(

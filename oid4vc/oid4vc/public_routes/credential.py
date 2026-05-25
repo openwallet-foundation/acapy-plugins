@@ -246,9 +246,10 @@ async def _issue_cred_inner(context, token_result, refresh_id, req_body):
                 f"{supported.identifier} is not authorized by the token.",
             )
 
-    # c_nonce may be None when the OID4VCI 1.0 /nonce endpoint is used.
-    # handle_proof_of_posession handles c_nonce=None by calling Nonce.redeem_by_value,
-    # which validates nonces issued by the /nonce endpoint with replay protection.
+    # When enable_nonce_endpoint=False, c_nonce is needed for PoP validation.
+    # Sources (in priority order):
+    #   1. token introspect payload (external auth server)
+    #   2. exchange record (local token endpoint stores it at issuance time)
     c_nonce = token_result.payload.get("c_nonce") or ex_record.nonce
 
     # Normalize proof: accept both 'proof' (singular, draft spec) and
