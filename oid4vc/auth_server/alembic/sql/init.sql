@@ -1,11 +1,17 @@
--- create :ADMIN_DB_USER user
-CREATE ROLE :ADMIN_DB_USER
+--
+-- create auth_server_admin user
+--
+CREATE ROLE auth_server_admin
 WITH
-    LOGIN PASSWORD :ADMIN_DB_PASSWORD NOSUPERUSER CREATEDB CREATEROLE INHERIT NOBYPASSRLS NOREPLICATION;
+    LOGIN PASSWORD 'auth_server_admin' NOSUPERUSER CREATEDB CREATEROLE INHERIT NOBYPASSRLS NOREPLICATION;
 
--- create :ADMIN_DB_NAME database
-CREATE DATABASE :ADMIN_DB_NAME OWNER :ADMIN_DB_USER ENCODING 'UTF8' TEMPLATE template0;
+--
+-- create auth_server_admin database
+--
+CREATE DATABASE auth_server_admin OWNER auth_server_admin ENCODING 'UTF8' TEMPLATE template0;
 
--- grant permissions to :ADMIN_DB_USER
+--
+-- grant permissions to auth_server_admin
+--
 GRANT CONNECT,
-CREATE ON DATABASE :ADMIN_DB_NAME TO :ADMIN_DB_USER;
+CREATE ON DATABASE auth_server_admin TO auth_server_admin;
