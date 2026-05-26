@@ -38,26 +38,26 @@ async def register(app: web.Application, multitenant: bool, context: InjectionCo
     Adds the subpath with Wallet ID as a path parameter if multitenant is True.
     """
     config = Config.from_settings(context.settings)
-    subpath = "tenant/{wallet_id}" if multitenant else ""
+    subpath = "/tenant/{wallet_id}" if multitenant else ""
     routes = [
         web.get(
-            f"/{subpath}/oid4vci/dereference-credential-offer",
+            f"{subpath}/oid4vci/dereference-credential-offer",
             dereference_cred_offer,
             allow_head=False,
         ),
         web.get(
-            f"/.well-known/openid-credential-issuer/{subpath}",
+            f"/.well-known/openid-credential-issuer{subpath}",
             credential_issuer_metadata,
             allow_head=False,
         ),
         # OID4VCI 1.0 spec uses dash; underscore variant is kept for compatibility
         web.get(
-            f"/.well-known/openid_credential_issuer/{subpath}",
+            f"/.well-known/openid_credential_issuer{subpath}",
             credential_issuer_metadata_deprecated,
             allow_head=False,
         ),
         web.get(
-            f"/.well-known/openid-configuration/{subpath}",
+            f"/.well-known/openid-configuration{subpath}",
             openid_configuration,
             allow_head=False,
         ),
@@ -65,26 +65,26 @@ async def register(app: web.Application, multitenant: bool, context: InjectionCo
         # conformance suite (VCIFetchOAuthorizationServerMetadata). ACA-Py serves
         # the same content as /.well-known/openid-configuration.
         web.get(
-            f"/.well-known/oauth-authorization-server/{subpath}",
+            f"/.well-known/oauth-authorization-server{subpath}",
             openid_configuration,
             allow_head=False,
         ),
         # TODO Add .well-known/did-configuration.json
         # Spec: https://identity.foundation/.well-known/resources/did-configuration/
-        web.post(f"/{subpath}/token", token),
-        web.post(f"/{subpath}/notification", receive_notification),
-        web.post(f"/{subpath}/credential", issue_cred),
-        web.get(f"/{subpath}/oid4vp/request/{{request_id}}", get_request),
-        web.post(f"/{subpath}/oid4vp/response/{{presentation_id}}", post_response),
+        web.post(f"{subpath}/token", token),
+        web.post(f"{subpath}/notification", receive_notification),
+        web.post(f"{subpath}/credential", issue_cred),
+        web.get(f"{subpath}/oid4vp/request/{{request_id}}", get_request),
+        web.post(f"{subpath}/oid4vp/response/{{presentation_id}}", post_response),
     ]
     # Conditionally register the /nonce endpoint
     if config.enable_nonce_endpoint:
-        routes.append(web.post(f"/{subpath}/nonce", get_nonce))
+        routes.append(web.post(f"{subpath}/nonce", get_nonce))
     # Conditionally add status route
     if context.inject_or(StatusHandler):
         routes.append(
             web.get(
-                f"/{subpath}/status/{{list_number}}", get_status_list, allow_head=False
+                f"{subpath}/status/{{list_number}}", get_status_list, allow_head=False
             )
         )
     # Add the routes to the application
