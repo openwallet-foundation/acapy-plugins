@@ -39,7 +39,7 @@ Run `python repo_manager.py` and you will be met with a number of options. Run t
   has been released if their changes were not reverted than the plugin has been
   updated to the new version of ACA-Py.
 - (6) This option will run a general update for all poetry lock files in all
-  plugins.
+  plugins. **THIS OPTION IS NOT CURRENTLY WORKING PROPERLY AND SHOULD BE USED WITH CAUTION**.
 - (7) This option is used for upgrading a particular library for all plugins.
   It's useful for when you don't want to do a general upgrade for every library. 
 - (8) This option is used for closing a range of PR's that are related to the same
@@ -47,11 +47,13 @@ Run `python repo_manager.py` and you will be met with a number of options. Run t
 
 ## Dependabot Management
 
-Currently dependabot is configured to manage plugin dependencies individually. This is fine for libraries which aren't shared across plugins but will create numerous PR's for plugins that share dependencies. If you want to update a shared dependency across plugins, you can use option (7) in the repo management script to do so.
+Currently dependabot is configured to manage plugin dependencies individually. This is fine for libraries which aren't shared across plugins but will create numerous PR's for plugins that share dependencies. Here is the current strategy for applying the dependabot updates on a weekly basis without having to update/approve/merge each PR individually:
 
-Then create a general grouped PR for the dependabot updates. This will update the shared dependency across all plugins and reduce the number of PR's created by dependabot.
-
-Then you can manually use option (8) in the repo management script to close a range of PR's that are related to the same shared dependency update. This will help keep the repo clean and reduce the number of PR's that need to be reviewed.
+- Scan the open dependabot PRs and identify the libraries that are being updated (e.g. "ruff", "idna").
+- Create a "weekly update" branch in your repo.
+- For each identified library, execute option (7) of the `repo_manager.py` script to update that library across all plugins. For example, `python repo_manager.py 7 ruff`.
+- Submit the result as the "weekly update" PR, with all updates included in the same PR.
+- While dependabot should close all the no longer needed PRs it opened after the weekly update PR is merged, you can use the option 8 of the `repo_manager.py` script to proactively close all the dependabot-created PRs. For example `python repo_manager.py 8 123 130`. Careful you don't close any PRs that you shouldn't!
 
 ## Lite plugins
 
