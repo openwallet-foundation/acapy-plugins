@@ -177,9 +177,7 @@ class OpenID4VCIClient:
                 )
             nonce = await self.fetch_nonce(metadata.nonce_endpoint)
 
-        proofs = await crypto.proof_of_possession(
-            key, offer.credential_issuer, nonce
-        )
+        proofs = await crypto.proof_of_possession(key, offer.credential_issuer, nonce)
         if isinstance(proofs.get("jwt"), str):
             proofs["jwt"] = [proofs["jwt"]]
 
