@@ -123,6 +123,99 @@ async def test_handle_proof_of_posession(monkeypatch, profile: Profile):
     assert isinstance(result.verified, bool)
 
 
+# Proof JWT reused from test_handle_proof_of_posession; nonce payload claim is
+# "2I1w-E_6E-s07vAIo3q98g" and aud is the ngrok URL set below.
+_PROOF = {
+    "proof_type": "jwt",
+    "jwt": "eyJ0eXAiOiJvcGVuaWQ0dmNpLXByb29mK2p3dCIsImFsZyI6IkVTMjU2SyIsImtpZCI6ImRpZDpqd2s6ZXlKaGJHY2lPaUpGVXpJMU5rc2lMQ0oxYzJVaU9pSnphV2NpTENKcmRIa2lPaUpGUXlJc0ltTnlkaUk2SW5ObFkzQXlOVFpyTVNJc0luZ2lPaUpzTWtKbU1GVXlabHA1TFdaMVl6WkJOM3BxYmxwTVJXbFNiM2xzV0VsNWJrMUdOM1JHYUVOd2RqUm5JaXdpZVNJNklrYzBSRlJaUVhGZlEwZHdjVEJ2UkdKQmNVWkxWMWxLTFZoRmRDMUZiVFl6TXpGV2QwcHRjaTFpUkdNaWZRIzAifQ.eyJpYXQiOjE3MDExMjczMTUuMjQ3LCJleHAiOjE3MDExMjc5NzUuMjQ3LCJhdWQiOiJodHRwczovLzEzNTQtMTk4LTkxLTYyLTU4Lm5ncm9rLmlvIiwibm9uY2UiOiIySTF3LUVfNkUtczA3dkFJbzNxOThnIiwiaXNzIjoic3BoZXJlb246c3NpLXdhbGxldCIsImp0aSI6IjdjNzJmODg3LTI4YjQtNDg5Mi04MTUxLWNhZWMxNDRjMzBmMSJ9.XUfMcLMddw1DEqfQvQkk41FTwTmOk-dR3M51PsC76VWn3Ln3KlmPBUEwmFjEEqoEpVIm6kV7K_9svYNc2_ZX4w",
+}
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    "c_nonce, expect_error",
+    [
+        ("2I1w-E_6E-s07vAIo3q98g", None),  # match → success
+        ("wrong-nonce", "invalid_nonce"),  # mismatch
+        (None, "invalid_nonce"),  # missing
+    ],
+)
+async def test_handle_pop_no_nonce_endpoint(
+    monkeypatch, profile: Profile, c_nonce, expect_error
+):
+    """`enable_nonce_endpoint=False` → direct c_nonce comparison (no DB)."""
+    monkeypatch.setattr(
+        _token_module.Config,
+        "from_settings",
+        lambda _: MagicMock(
+            endpoint="https://1354-198-91-62-58.ngrok.io",
+            enable_nonce_endpoint=False,
+        ),
+    )
+    if expect_error:
+        with pytest.raises(web.HTTPBadRequest) as exc:
+            await test_module.handle_proof_of_posession(profile, _PROOF, c_nonce)
+        assert expect_error in exc.value.text
+    else:
+        result = await test_module.handle_proof_of_posession(profile, _PROOF, c_nonce)
+        assert isinstance(result.verified, bool)
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("enable_nonce_endpoint", [True, False])
+async def test_get_token_nonce_behavior(monkeypatch, context, enable_nonce_endpoint):
+    """Token response carries c_nonce only when Nonce Endpoint is disabled."""
+    record = OID4VCIExchangeRecord(
+        state=OID4VCIExchangeRecord.STATE_OFFER_CREATED,
+        verification_method="did:example:123#k",
+        issuer_id="did:example:123",
+        supported_cred_id="cred-id",
+        credential_subject={"name": "alice"},
+        code="pre-auth-code-token-test",
+    )
+    async with context.profile.session() as session:
+        await record.save(session, reason="test")
+
+    monkeypatch.setattr(
+        _token_module.Config,
+        "from_settings",
+        lambda _: MagicMock(
+            endpoint="http://localhost:8020",
+            enable_nonce_endpoint=enable_nonce_endpoint,
+        ),
+    )
+    monkeypatch.setattr(
+        _token_module, "get_first_auth_server", AsyncMock(return_value=None)
+    )
+    monkeypatch.setattr(
+        _token_module,
+        "retrieve_or_create_did_jwk",
+        AsyncMock(return_value=MagicMock(did="did:jwk:fake")),
+    )
+    monkeypatch.setattr(_token_module, "jwt_sign", AsyncMock(return_value="tok"))
+
+    request = MagicMock()
+    request.__getitem__ = lambda _, k: {"context": context}[k]
+    request.post = AsyncMock(
+        return_value={
+            "grant_type": "urn:ietf:params:oauth:grant-type:pre-authorized_code",
+            "pre-authorized_code": record.code,
+        }
+    )
+
+    resp = await _token_module.token(cast(web.Request, request))
+    body = json.loads(resp.body)
+    async with context.profile.session() as session:
+        reloaded = await OID4VCIExchangeRecord.retrieve_by_id(session, record.exchange_id)
+
+    if enable_nonce_endpoint:
+        assert "c_nonce" not in body and "c_nonce_expires_in" not in body
+        assert reloaded.nonce is None
+    else:
+        assert body["c_nonce"] and body["c_nonce_expires_in"]
+        assert reloaded.nonce == body["c_nonce"]
+
+
 @pytest.mark.asyncio
 async def test_check_token_valid(monkeypatch, context):
     # No IssuerConfiguration in test DB → check_token falls through to jwt_verify

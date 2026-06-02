@@ -14,7 +14,6 @@ until pg_isready -h "$ADMIN_DB_HOST" -U "postgres"; do
 done
 
 # Only run DB init script if the admin database does not exist.
-# TODO parmaterize the DB admin user and password. Not the same as ADMIN_DB_USER/PASSWORD which are specific to the auth server admin.
 if ! PGPASSWORD="postgres" psql -h "$ADMIN_DB_HOST" -U "postgres" -lqt | cut -d \| -f 1 | grep -qw "$ADMIN_DB_NAME"; then
   echo "Database $ADMIN_DB_NAME does not exist. Running init.sql..."
   PGPASSWORD="postgres" psql -h "$ADMIN_DB_HOST" -U "postgres" \

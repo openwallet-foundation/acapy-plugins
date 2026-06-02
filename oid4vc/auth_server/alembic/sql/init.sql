@@ -1,17 +1,20 @@
 --
--- create auth_server_admin user
+-- create :ADMIN_DB_USER user
+-- Run with:
+--   psql -v ADMIN_DB_USER=... -v ADMIN_DB_PASSWORD=... -v ADMIN_DB_NAME=... \
+--        -f alembic/sql/init.sql
 --
-CREATE ROLE auth_server_admin
+CREATE ROLE :ADMIN_DB_USER
 WITH
-    LOGIN PASSWORD 'auth_server_admin' NOSUPERUSER CREATEDB CREATEROLE INHERIT NOBYPASSRLS NOREPLICATION;
+    LOGIN PASSWORD :'ADMIN_DB_PASSWORD' NOSUPERUSER CREATEDB CREATEROLE INHERIT NOBYPASSRLS NOREPLICATION;
 
 --
--- create auth_server_admin database
+-- create :ADMIN_DB_NAME database
 --
-CREATE DATABASE auth_server_admin OWNER auth_server_admin ENCODING 'UTF8' TEMPLATE template0;
+CREATE DATABASE :ADMIN_DB_NAME OWNER :ADMIN_DB_USER ENCODING 'UTF8' TEMPLATE template0;
 
 --
--- grant permissions to auth_server_admin
+-- grant permissions to :ADMIN_DB_USER
 --
 GRANT CONNECT,
-CREATE ON DATABASE auth_server_admin TO auth_server_admin;
+CREATE ON DATABASE :ADMIN_DB_NAME TO :ADMIN_DB_USER;

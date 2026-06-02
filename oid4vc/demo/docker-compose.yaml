@@ -151,8 +151,6 @@ services:
     ports:
       - "9000:9000"
       - "9001:9001"
-    volumes:
-      - ./init.sql:/usr/src/app/alembic/sql/init.sql:ro
     environment:
       ADMIN_DB_HOST: db
       ADMIN_DB_USER: auth_server_admin
