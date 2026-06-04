@@ -1733,7 +1733,43 @@ controller -&gt;&gt; holder: result</code></pre>
 <li><code>credential_issuer</code> endpoint, seen in the Credential Offer</li>
 <li><code>OID4VCI_CRED_HANDLER</code> or <code>oid4vci.cred_handler</code></li>
 <li>Dict of credential handlers. e.g. <code>{"jwt_vc_json": "jwt_vc_json"}</code></li>
+<li><code>OID4VCI_ENABLE_NONCE_ENDPOINT</code> or <code>oid4vci.enable_nonce_endpoint</code></li>
+<li>When <code>true</code> (default), the <code>/nonce</code> endpoint is published and nonce validation uses DB-based single-use redemption. When <code>false</code>, the <code>/nonce</code> endpoint is not registered and nonce validation relies on <code>c_nonce</code> from the access token (either via auth server introspect or the exchange record).</li>
 </ul>
+<h4 id="nonce-handling">Nonce Handling<a class="headerlink" href="#nonce-handling" title="Permanent link">&para;</a></h4>
+<p>The plugin supports four deployment scenarios depending on whether an external authorization server is configured and whether the nonce endpoint is enabled:</p>
+<table>
+<thead>
+<tr>
+<th>Scenario</th>
+<th>Token Source</th>
+<th>Nonce Validation</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>External auth server + nonce endpoint</td>
+<td>Auth server (introspect)</td>
+<td>DB redemption (<code>Nonce.redeem_by_value</code>)</td>
+</tr>
+<tr>
+<td>External auth server + no nonce endpoint</td>
+<td>Auth server (introspect)</td>
+<td><code>c_nonce</code> from introspect payload vs proof JWT</td>
+</tr>
+<tr>
+<td>Local token endpoint + nonce endpoint</td>
+<td>Local JWT</td>
+<td>DB redemption</td>
+</tr>
+<tr>
+<td>Local token endpoint + no nonce endpoint</td>
+<td>Local JWT</td>
+<td><code>c_nonce</code> from exchange record vs proof JWT</td>
+</tr>
+</tbody>
+</table>
+<p>When an external auth server is configured, the wallet obtains its token from the auth server's token endpoint. If the auth server provides a <code>c_nonce</code> in the token response, the wallet will typically use that nonce directly rather than calling the <code>/nonce</code> endpoint. To use DB-based nonce redemption with an auth server, disable nonce generation on the auth server side so the wallet calls the plugin's <code>/nonce</code> endpoint.</p>
 <h4 id="authorization-server-per-tenant">Authorization Server (Per-Tenant)<a class="headerlink" href="#authorization-server-per-tenant" title="Permanent link">&para;</a></h4>
 <p>Authorization server configuration is managed per-tenant via the <code>IssuerConfiguration</code> record, not through global environment variables. Use the admin API:</p>
 <ul>
@@ -1915,9 +1951,8 @@ controller -&gt;&gt; holder: result</code></pre>
 <ul>
 <li><code>ldp_vc</code></li>
 <li>Authorization Code Flow</li>
-<li>GET /.well-known/openid-configuration</li>
-<li>GET /.well-known/oauth-authorization-server</li>
 <li>Batch Credential Issuance</li>
+<li>Full DPoP support (RFC 9449) — DPoP tokens are accepted but the proof is not cryptographically verified</li>
 <li>We're limited to DID Methods that ACA-Py supports for issuance (more can be added by Plugin, e.g. DID Web); <code>did:sov</code>, <code>did:key</code></li>
 </ul>
 
