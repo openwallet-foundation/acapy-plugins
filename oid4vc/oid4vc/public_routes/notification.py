@@ -12,7 +12,7 @@ from aiohttp_apispec import docs
 from marshmallow import fields
 
 from ..models.exchange import OID4VCIExchangeRecord
-from .token import check_token, handle_proof_of_posession
+from .token import check_token
 
 LOGGER = logging.getLogger(__name__)
 
@@ -103,32 +103,6 @@ async def _receive_notification_inner(request: web.Request) -> web.Response:
         ) from exc
 
     LOGGER.debug("Notification request: %s", body)
-
-    # OID4VCI 1.0 §11: if the request body includes a proof or proofs.jwt, the
-    # notification endpoint MUST validate the JWT proof and check for nonce replay.
-    # (handle_proof_of_posession with c_nonce=None uses Nonce.redeem_by_value.)
-    proof_value = None
-    if "proof" in body and isinstance(body["proof"], dict):
-        proof_value = body["proof"]
-    elif "proofs" in body and isinstance(body.get("proofs"), dict):
-        jwt_list = body["proofs"].get("jwt", [])
-        if jwt_list:
-            proof_value = {"proof_type": "jwt", "jwt": jwt_list[0]}
-
-    if proof_value:
-        try:
-            # c_nonce=None: replay protection via Nonce.redeem_by_value.
-            await handle_proof_of_posession(context.profile, proof_value, c_nonce=None)
-        except web.HTTPBadRequest as proof_exc:
-            # Propagate proof errors (invalid_nonce, invalid_proof) as-is
-            try:
-                err_body = json.loads(proof_exc.text or "{}")
-            except Exception:
-                err_body = {
-                    "error": "invalid_proof",
-                    "error_description": proof_exc.reason,
-                }
-            return web.json_response(err_body, status=400)
 
     # Manually validate required fields — OID4VCI 1.0 §11 requires 400 for errors.
     notification_id = body.get("notification_id")

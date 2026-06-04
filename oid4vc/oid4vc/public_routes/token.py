@@ -5,6 +5,7 @@ import hmac
 import json
 import time
 from datetime import UTC
+from secrets import token_urlsafe
 from typing import Any, Dict
 from urllib.parse import urlparse
 
@@ -48,7 +49,6 @@ from .constants import (
     NONCE_BYTES,
     PRE_AUTHORIZED_CODE_GRANT_TYPE,
 )
-from .nonce import create_nonce
 
 
 class GetTokenSchema(OpenAPISchema):
@@ -196,19 +196,28 @@ async def token(request: web.Request):
             reason="Created new token",
         )
 
-    # Create a nonce for the wallet to use in its credential proof.
-    # The /nonce endpoint also serves nonces (OID4VCI 1.0 §8); both are valid.
-    c_nonce_record = await create_nonce(context.profile, NONCE_BYTES, EXPIRES_IN)
+    # Nonce handling per OID4VCI 1.0:
+    #   - enable_nonce_endpoint=True: do NOT generate or return a c_nonce here.
+    #     The wallet obtains a fresh nonce per credential request from POST
+    #     /nonce (spec §7), which is redeemed during PoP validation.
+    #   - enable_nonce_endpoint=False: no Nonce Endpoint is published, so we
+    #     fall back to the legacy flow — return c_nonce in the token response
+    #     and store it on the exchange record for later comparison.
+    config = Config.from_settings(context.settings)
+    response: Dict[str, Any] = {
+        "access_token": record.token,
+        "token_type": "Bearer",
+        "expires_in": EXPIRES_IN,
+    }
+    if not config.enable_nonce_endpoint:
+        c_nonce_value = token_urlsafe(NONCE_BYTES)
+        async with context.profile.session() as session:
+            record.nonce = c_nonce_value
+            await record.save(session, reason="Stored c_nonce for PoP validation")
+        response["c_nonce"] = c_nonce_value
+        response["c_nonce_expires_in"] = EXPIRES_IN
 
-    return web.json_response(
-        {
-            "access_token": record.token,
-            "token_type": "Bearer",
-            "expires_in": EXPIRES_IN,
-            "c_nonce": c_nonce_record.nonce_value,
-            "c_nonce_expires_in": EXPIRES_IN,
-        }
-    )
+    return web.json_response(response)
 
 
 async def check_token(
@@ -285,7 +294,18 @@ async def check_token(
 async def handle_proof_of_posession(
     profile: Profile, proof: Dict[str, Any], c_nonce: str | None = None
 ):
-    """Handle proof of posession."""
+    """Validate the proof of possession JWT in a Credential Request.
+
+    Nonce validation strategy depends on ``config.enable_nonce_endpoint``:
+      - True: nonce is redeemed via the local DB (``Nonce.redeem_by_value``).
+        The ``c_nonce`` argument is ignored — when the Nonce Endpoint is
+        published, the issuer is the sole authority on nonce lifecycle, and
+        any c_nonce that may have been carried in an external AS's token
+        response is irrelevant.
+      - False: nonce is validated by direct comparison against ``c_nonce``,
+        which the caller obtains from the token introspect payload (external
+        AS) or the exchange record (built-in token endpoint).
+    """
     encoded_headers, encoded_payload, encoded_signature = proof["jwt"].split(".", 3)
     headers = b64_to_dict(encoded_headers)
 
@@ -421,20 +441,11 @@ async def handle_proof_of_posession(
 
     # OID4VCI 1.0 final spec uses "nonce"; older draft wallets may use "c_nonce".
     nonce = payload.get("nonce") or payload.get("c_nonce")
-    if c_nonce:
-        if c_nonce != nonce:
-            raise web.HTTPBadRequest(
-                text=json.dumps(
-                    {
-                        "error": "invalid_nonce",
-                        "error_description": "nonce mismatch",
-                    }
-                ),
-                content_type="application/json",
-            )
-    else:
-        # OID4VCI 1.0: nonce was obtained from the /nonce endpoint.
-        # Open a session to redeem it (marks it used for replay protection).
+
+    config = Config.from_settings(profile.settings)
+    if config.enable_nonce_endpoint:
+        # The /nonce endpoint is published — nonces are managed locally in the DB.
+        # Use DB-based redemption regardless of any c_nonce from the access token.
         async with profile.session() as session:
             redeemed = await Nonce.redeem_by_value(session, nonce)
         if not redeemed:
@@ -443,6 +454,28 @@ async def handle_proof_of_posession(
                     {
                         "error": "invalid_nonce",
                         "error_description": "invalid or already-used nonce",
+                    }
+                ),
+                content_type="application/json",
+            )
+    else:
+        # No local nonce endpoint — rely on c_nonce from the access token.
+        if not c_nonce:
+            raise web.HTTPBadRequest(
+                text=json.dumps(
+                    {
+                        "error": "invalid_nonce",
+                        "error_description": "no c_nonce available to verify proof",
+                    }
+                ),
+                content_type="application/json",
+            )
+        if c_nonce != nonce:
+            raise web.HTTPBadRequest(
+                text=json.dumps(
+                    {
+                        "error": "invalid_nonce",
+                        "error_description": "nonce mismatch",
                     }
                 ),
                 content_type="application/json",

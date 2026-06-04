@@ -98,7 +98,8 @@ async def credential_issuer_metadata(request: web.Request):
             metadata["token_endpoint"] = f"{public_url}{subpath}/token"
         metadata["credential_endpoint"] = f"{public_url}{subpath}/credential"
         metadata["notification_endpoint"] = f"{public_url}{subpath}/notification"
-        metadata["nonce_endpoint"] = f"{public_url}{subpath}/nonce"
+        if config.enable_nonce_endpoint:
+            metadata["nonce_endpoint"] = f"{public_url}{subpath}/nonce"
         processors = context.inject(CredProcessors)
         cred_configs = {}
         for supported in credentials_supported:
@@ -223,12 +224,14 @@ async def openid_configuration(request: web.Request):
             "credential_issuer": base_url,
             "credential_endpoint": f"{base_url}/credential",
             "notification_endpoint": f"{base_url}/notification",
+            "credential_configurations_supported": cred_configs,
+        }
+
+        if config.enable_nonce_endpoint:
             # OID4VCI nonce endpoint for server-generated nonces (HAIP required).
             # Wallets call this before building a credential proof to get a fresh
             # nonce that ACA-Py validates in the JWT proof `nonce` claim.
-            "nonce_endpoint": f"{base_url}/nonce",
-            "credential_configurations_supported": cred_configs,
-        }
+            metadata["nonce_endpoint"] = f"{base_url}/nonce"
 
         if auth_server:
             metadata["authorization_servers"] = [auth_server["public_url"]]
