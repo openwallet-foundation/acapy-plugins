@@ -50,7 +50,7 @@ Run `python repo_manager.py` and you will be met with a number of options. Run t
 Currently dependabot is configured to manage plugin dependencies individually. This is fine for libraries which aren't shared across plugins but will create numerous PR's for plugins that share dependencies. Here is the current strategy for applying the dependabot updates on a weekly basis without having to update/approve/merge each PR individually:
 
 - Scan the open dependabot PRs and identify the libraries that are being updated (e.g. "ruff", "idna").
-- Create a "weekly update" branch in your repo.
+- Update the `main` branch in your fork to the latest and create a "weekly update" branch.
 - For each identified library, execute option (7) of the `repo_manager.py` script to update that library across all plugins. For example, `python repo_manager.py 7 ruff`.
 - Submit the result as the "weekly update" PR, with all updates included in the same PR.
 - While dependabot should close all the no longer needed PRs it opened after the weekly update PR is merged, you can use the option 8 of the `repo_manager.py` script to proactively close all the dependabot-created PRs. For example `python repo_manager.py 8 123 130`. Careful you don't close any PRs that you shouldn't!

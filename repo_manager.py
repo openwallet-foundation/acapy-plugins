@@ -3,6 +3,7 @@ import re
 import shutil
 import subprocess
 import sys
+from concurrent.futures import ThreadPoolExecutor, as_completed
 from copy import deepcopy
 from enum import Enum
 from pathlib import Path
@@ -308,21 +309,39 @@ def is_plugin_directory(plugin_name: str, exclude_lite_plugins: bool = False) ->
 
 
 def update_all_poetry_locks():
+    dirs = []
     for root, _, files in os.walk("."):
         if "poetry.lock" in files:
-            print(f"Updating poetry.lock in {root}")
-            subprocess.run(["poetry", "lock"], cwd=root)
+            dirs.append(root)
+
+    def run_lock(root):
+        print(f"Updating poetry.lock in {root}")
+        subprocess.run(["poetry", "lock"], cwd=root)
+
+    with ThreadPoolExecutor(max_workers=6) as executor:
+        futures = {executor.submit(run_lock, d): d for d in dirs}
+        for future in as_completed(futures):
+            future.result()
 
 
 def upgrade_library_in_all_plugins(library: str = None):
+    dirs = []
     for root, _, files in os.walk("."):
         if "poetry.lock" in files:
             with open(f"{root}/poetry.lock", "r") as file:
                 for line in file:
                     if f'name = "{library}"' in line:
-                        print(f"Updating poetry.lock in {root}")
-                        subprocess.run(["poetry", "update", library], cwd=root)
+                        dirs.append(root)
                         break
+
+    def run_update(root):
+        print(f"Updating poetry.lock in {root}")
+        subprocess.run(["poetry", "update", "--lock", library], cwd=root)
+
+    with ThreadPoolExecutor(max_workers=6) as executor:
+        futures = {executor.submit(run_update, d): d for d in dirs}
+        for future in as_completed(futures):
+            future.result()
 
 
 def close_pr_range(start: int, end: int):
