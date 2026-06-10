@@ -24,7 +24,7 @@ jobs:
       #       Get docker compose
       #----------------------------------------------
       - name: Initialize Docker Compose
-        uses: isbang/compose-action@v1.5.1
+        uses: isbang/compose-action@v3.0.0
       #----------------------------------------------
       #       Get changed files
       #----------------------------------------------
