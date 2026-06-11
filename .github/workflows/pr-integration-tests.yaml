@@ -21,11 +21,6 @@ jobs:
       - name: Check out repository
         uses: actions/checkout@v6
       #----------------------------------------------
-      #       Get docker compose
-      #----------------------------------------------
-      - name: Initialize Docker Compose
-        uses: isbang/compose-action@v1.5.1
-      #----------------------------------------------
       #       Get changed files
       #----------------------------------------------
       - name: Get changed files
