@@ -1270,11 +1270,11 @@
 <h2 id="dependabot-management">Dependabot Management<a class="headerlink" href="#dependabot-management" title="Permanent link">&para;</a></h2>
 <p>Currently dependabot is configured to manage plugin dependencies individually. This is fine for libraries which aren't shared across plugins but will create numerous PR's for plugins that share dependencies. Here is the current strategy for applying the dependabot updates on a weekly basis without having to update/approve/merge each PR individually:</p>
 <ul>
-<li>Scan the open dependabot PRs and identify the libraries that are being updated (e.g. "ruff", "idna").</li>
+<li>Run <code>python ls_dep_libs.py</code> to list the unique set of libraries with open dependabot PRs. Use <code>--debug</code> for a fuller view showing each PR and the libraries it updates.</li>
 <li>Update the <code>main</code> branch in your fork to the latest and create a "weekly update" branch.</li>
-<li>For each identified library, execute option (7) of the <code>repo_manager.py</code> script to update that library across all plugins. For example, <code>python repo_manager.py 7 ruff</code>.</li>
+<li>Run option (7) of the <code>repo_manager.py</code> script using the output of <code>ls_dep_libs.py</code> to update all libraries across all plugins in one step: <code>python repo_manager.py 7 $(python ls_dep_libs.py)</code>.</li>
 <li>Submit the result as the "weekly update" PR, with all updates included in the same PR.</li>
-<li>While dependabot should close all the no longer needed PRs it opened after the weekly update PR is merged, you can use the option 8 of the <code>repo_manager.py</code> script to proactively close all the dependabot-created PRs. For example <code>python repo_manager.py 8 123 130</code>. Careful you don't close any PRs that you shouldn't!</li>
+<li>Once the weekly update PR is merged, dependabot will automatically close the PRs it opened that are no longer needed.</li>
 </ul>
 <h2 id="lite-plugins">Lite plugins<a class="headerlink" href="#lite-plugins" title="Permanent link">&para;</a></h2>
 <p>Sometimes is desirable to have a plugin that doesn't need integration tests or
