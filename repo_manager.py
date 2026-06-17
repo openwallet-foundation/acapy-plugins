@@ -324,19 +324,19 @@ def update_all_poetry_locks():
             future.result()
 
 
-def upgrade_library_in_all_plugins(library: str = None):
+def upgrade_library_in_all_plugins(libraries: str = None):
+    names = libraries.split() if libraries else []
     dirs = []
     for root, _, files in os.walk("."):
         if "poetry.lock" in files:
             with open(f"{root}/poetry.lock", "r") as file:
-                for line in file:
-                    if f'name = "{library}"' in line:
-                        dirs.append(root)
-                        break
+                content = file.read()
+            if any(f'name = "{name}"' in content for name in names):
+                dirs.append(root)
 
     def run_update(root):
         print(f"Updating poetry.lock in {root}")
-        subprocess.run(["poetry", "update", "--lock", library], cwd=root)
+        subprocess.run(["poetry", "update", "--lock", *names], cwd=root)
 
     with ThreadPoolExecutor(max_workers=6) as executor:
         futures = {executor.submit(run_update, d): d for d in dirs}
@@ -358,7 +358,7 @@ def main(arg_1=None, arg_2=None, arg_3=None):
         (4) Update plugins description with supported acapy-agent version
         (5) Get the plugins that upgraded since last release
         (6) Update all poetry.lock files
-        (7) Upgrade a specific library in all plugins
+        (7) Upgrade one or more libraries in all plugins
         (8) Close a range of PRs
         (9) Exit \n\nInput:  """
 
@@ -535,7 +535,7 @@ def main(arg_1=None, arg_2=None, arg_3=None):
         print("Updating all poetry.lock files in nested directories...")
         update_all_poetry_locks()
     elif selection == "7":
-        print("Upgrading a specific library in all plugins...")
+        print("Upgrading libraries in all plugins...")
         upgrade_library_in_all_plugins(arg_2)
     elif selection == "8":
         print(f"Closing a range prs from {arg_2} to {arg_3}...")
@@ -551,8 +551,8 @@ def main(arg_1=None, arg_2=None, arg_3=None):
 if __name__ == "__main__":
     try:
         main(
-            sys.argv[1],
-            sys.argv[2] if len(sys.argv) > 2 else None,
+            sys.argv[1] if len(sys.argv) > 1 else None,
+            " ".join(sys.argv[2:]) if len(sys.argv) > 2 else None,
             sys.argv[3] if len(sys.argv) > 3 else None,
         )
     except Exception:
