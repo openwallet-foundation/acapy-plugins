@@ -1,4 +1,4 @@
-FROM node:18
+FROM node:22
 WORKDIR /app
 
 # Install jq for JSON parsing in entrypoint.sh
