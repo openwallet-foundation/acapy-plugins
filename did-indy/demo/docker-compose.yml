@@ -1,0 +1,140 @@
+version: '3'
+
+services:
+
+  agent:
+    image: acapy-did-web
+    build:
+      context: ..
+    ports:
+      - "3000:3000"
+      - "3001:3001"
+    volumes:
+      - ./entrypoint.sh:/entrypoint.sh:ro,z
+    environment:
+      RUST_LOG: warn
+    entrypoint: >
+      /bin/sh -c 'aca-py "$$@"' --
+    command: >
+      start
+        --inbound-transport http 0.0.0.0 3000
+        --outbound-transport http
+        --endpoint http://agent:3000
+        --admin 0.0.0.0 3001
+        --admin-insecure-mode
+        --genesis-url https://raw.githubusercontent.com/Indicio-tech/indicio-network/main/genesis_files/pool_transactions_testnet_genesis
+        --wallet-type askar-anoncreds
+        --emit-new-didcomm-prefix
+        --wallet-storage-type default
+        --wallet-name issuer
+        --wallet-key insecure
+        --auto-provision
+        --log-level debug
+        --debug-webhooks
+        --plugin acapy_plugin_did_indy
+        --plugin-config-value acapy_plugin_did_indy.driver_uri=http://driver
+        --plugin-config-value acapy_plugin_did_indy.api_key=insecure-api-key
+        --plugin-config-value acapy_plugin_did_indy.ledgers_from_driver=True
+        --plugin-config-value acapy_plugin_did_indy.ledgers."indicio:test"=https://raw.githubusercontent.com/Indicio-tech/indicio-network/main/genesis_files/pool_transactions_testnet_genesis
+        --plugin-config-value acapy_plugin_did_indy.ledgers."indicio:demo"=https://raw.githubusercontent.com/Indicio-tech/indicio-network/main/genesis_files/pool_transactions_demonet_genesis
+    healthcheck:
+      test: curl -s -o /dev/null -w '%{http_code}' "http://localhost:3001/status/live" | grep "200" > /dev/null
+      start_period: 30s
+      interval: 7s
+      timeout: 5s
+      retries: 5
+    depends_on:
+      didweb:
+        condition: service_started
+      driver:
+        condition: service_healthy
+
+  holder-agent:
+    image: acapy-did-web
+    build:
+      context: ..
+    ports:
+      - "3002:3002"
+      - "3003:3003"
+    volumes:
+      - ./entrypoint.sh:/entrypoint.sh:ro,z
+    environment:
+      RUST_LOG: warn
+    entrypoint: >
+      /bin/sh -c 'aca-py "$$@"' --
+    command: >
+      start
+        --inbound-transport http 0.0.0.0 3002
+        --outbound-transport http
+        --endpoint http://holder-agent:3002
+        --admin 0.0.0.0 3003
+        --admin-insecure-mode
+        --genesis-url https://raw.githubusercontent.com/Indicio-tech/indicio-network/main/genesis_files/pool_transactions_testnet_genesis
+        --wallet-type askar-anoncreds
+        --emit-new-didcomm-prefix
+        --wallet-storage-type default
+        --wallet-name issuer
+        --wallet-key insecure
+        --auto-provision
+        --log-level debug
+        --debug-webhooks
+        --plugin acapy_plugin_did_indy
+        --plugin-config-value acapy_plugin_did_indy.api_key=insecure-api-key
+        --plugin-config-value acapy_plugin_did_indy.ledgers."indicio:test"=https://raw.githubusercontent.com/Indicio-tech/indicio-network/main/genesis_files/pool_transactions_testnet_genesis
+        --plugin-config-value acapy_plugin_did_indy.ledgers."indicio:demo"=https://raw.githubusercontent.com/Indicio-tech/indicio-network/main/genesis_files/pool_transactions_demonet_genesis
+    healthcheck:
+      test: curl -s -o /dev/null -w '%{http_code}' "http://localhost:3003/status/live" | grep "200" > /dev/null
+      start_period: 30s
+      interval: 7s
+      timeout: 5s
+      retries: 5
+    depends_on:
+      didweb:
+        condition: service_started
+      driver:
+        condition: service_healthy
+
+  didweb:
+    image: did-web-server
+    build:
+      context: ..
+      dockerfile: Dockerfile.server
+
+  driver:
+    image: ghcr.io/indicio-tech/did-indy-py:py3.12-nightly
+    ports:
+      - "8080:80"
+    volumes:
+      - "./demo.ledgers.toml:/run/secrets/ledgers.toml:z"
+    environment:
+      ISSUER: "http://driver"
+      PASSPHRASE: "insecure-passphrase"
+      AUTH: "api-key"
+      CLIENT_TOKEN_SECRET: "insecure-secret"
+      ADMIN_API_KEY: "insecure-api-key"
+      LOG_LEVEL: "DEBUG"
+    healthcheck:
+      test: python healthcheck.py localhost 80
+      start_period: 10s
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  demo:
+    image: acapy-did-web-demo
+    build:
+      context: ..
+      dockerfile: demo/Dockerfile
+    environment:
+      AGENT: http://agent:3001
+      HOLDER: http://holder-agent:3003
+      DRIVER: http://driver
+    depends_on:
+      agent:
+        condition: service_healthy
+      holder-agent:
+        condition: service_healthy
+      didweb:
+        condition: service_started
+      driver:
+        condition: service_healthy
