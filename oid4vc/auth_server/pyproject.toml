@@ -15,7 +15,7 @@ SQLAlchemy = { version = "^2.0", extras = ["asyncio"] }
 asyncpg = "^0.30"
 psycopg = { extras = ["binary"], version = "^3.2.9" }
 pydantic-settings = "^2.10"
-python-multipart = ">=0.0.22,<0.0.28"
+python-multipart = ">=0.0.22,<0.0.32"
 httpx = "^0.28.1"
 structlog = "^25.4.0"
 alembic = "^1.16.4"
