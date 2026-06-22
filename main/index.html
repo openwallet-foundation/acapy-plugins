@@ -448,6 +448,21 @@
     </span>
   </a>
   
+    <nav class="md-nav" aria-label="Dependabot Management">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#following-up-on-prs-not-closed-automatically" class="md-nav__link">
+    <span class="md-ellipsis">
+      Following up on PRs not closed automatically
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
 </li>
       
         <li class="md-nav__item">
@@ -1129,6 +1144,21 @@
     </span>
   </a>
   
+    <nav class="md-nav" aria-label="Dependabot Management">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#following-up-on-prs-not-closed-automatically" class="md-nav__link">
+    <span class="md-ellipsis">
+      Following up on PRs not closed automatically
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
 </li>
       
         <li class="md-nav__item">
@@ -1263,19 +1293,89 @@
 <li>(6) This option will run a general update for all poetry lock files in all
   plugins. <strong>THIS OPTION IS NOT CURRENTLY WORKING PROPERLY AND SHOULD BE USED WITH CAUTION</strong>.</li>
 <li>(7) This option is used for upgrading a particular library for all plugins.
-  It's useful for when you don't want to do a general upgrade for every library. </li>
+  It's useful for when you don't want to do a general upgrade for every library.</li>
 <li>(8) This option is used for closing a range of PR's that are related to the same
   shared dependency update. You use the lower and upper bounds of the PR numbers to close all the related PR's. This is useful for keeping the repo clean and reducing the number of PR's that need to be reviewed. You can included PR numbers which have already been merged or closed and the script will skip them. You should be careful when using this option as it will close all PR's in the range regardless of their status. Make sure to double check the PR numbers before running this option. If you do accidentally close a PR that shouldn't be closed, you can always reopen it.</li>
+<li>(9) This option finds open Dependabot PRs that update a <code>pyproject.toml</code> version
+  constraint (rather than just a <code>poetry.lock</code> entry), extracts each change, and
+  reports which local <code>pyproject.toml</code> files still carry the old version or a
+  different version. Pass <code>--apply</code> on the command line (<code>python repo_manager.py 9
+  --apply</code>) to have the script update the exact-match files in place and
+  regenerate their <code>poetry.lock</code> files automatically. Files flagged as having a
+  <em>different</em> version are listed for manual review but are never modified
+  automatically.</li>
 </ul>
 <h2 id="dependabot-management">Dependabot Management<a class="headerlink" href="#dependabot-management" title="Permanent link">&para;</a></h2>
 <p>Currently dependabot is configured to manage plugin dependencies individually. This is fine for libraries which aren't shared across plugins but will create numerous PR's for plugins that share dependencies. Here is the current strategy for applying the dependabot updates on a weekly basis without having to update/approve/merge each PR individually:</p>
+<ol>
+<li>Update the <code>main</code> branch in your fork to the latest and create a "weekly
+   update" branch.</li>
+<li>
+<p>Run option (7) without arguments to preview which libraries have open
+   Dependabot PRs (use <code>--debug</code> for full per-PR detail):
+   <div class="highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a>python repo_manager.py 7
+<a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a>python repo_manager.py 7 --debug
+</code></pre></div>
+   Review the list. When it looks correct, re-run with <code>--apply</code> to update all
+   <code>poetry.lock</code> files across all plugins:
+   <div class="highlight"><pre><span></span><code><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a>python repo_manager.py 7 --apply
+</code></pre></div>
+   Option (7) queries open Dependabot PRs to determine which libraries need
+   updating, then searches each <code>poetry.lock</code> and runs
+   <code>poetry update --lock &lt;package&gt;</code> in every directory that contains the package.
+   It handles Poetry's internal hyphen-to-underscore normalisation automatically.
+   It only updates lock files — it does not modify <code>pyproject.toml</code>.</p>
+</li>
+<li>
+<p>Run option (9) to check whether any Dependabot PRs required a <code>pyproject.toml</code>
+   version-constraint change that option (7) cannot make:
+   <div class="highlight"><pre><span></span><code><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a>python repo_manager.py 9
+</code></pre></div>
+   Review the output. If files are listed under "Needs update", re-run with
+   <code>--apply</code> to update those <code>pyproject.toml</code> files and regenerate their lock
+   files automatically:
+   <div class="highlight"><pre><span></span><code><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a>python repo_manager.py 9 --apply
+</code></pre></div>
+   Files listed under "Has a different version" require manual review and
+   editing — inspect the constraint and decide whether it needs updating before
+   committing.</p>
+</li>
+<li>
+<p>Submit the result as the "weekly update" PR, with all updates included in the
+   same PR. Call the PR by the current date, e.g. <code>Weekly Update - YYYYMMDD</code></p>
+</li>
+<li>If the PR's integration tests fail, a library update has likely broken
+   something in one or more plugins. Investigate the failure (the CI logs and an
+   AI assistant are both useful here) to identify which package is responsible.
+   Back out only the affected <code>poetry.lock</code> change(s) — restore the previous
+   lock entry for that package — and push the correction to the same branch. Once
+   the remaining updates pass and the PR is merged, the Dependabot PR(s) for the
+   backed-out package(s) will <strong>not</strong> be closed automatically. Follow up on those
+   using the instructions in the <a href="#following-up-on-prs-not-closed-automatically">section below</a>.</li>
+<li>Once the weekly update PR is merged, Dependabot will automatically close the
+   PRs it opened that are no longer needed. <strong>Do not close those PRs manually</strong> —
+   let the automation handle it.</li>
+</ol>
+<h3 id="following-up-on-prs-not-closed-automatically">Following up on PRs not closed automatically<a class="headerlink" href="#following-up-on-prs-not-closed-automatically" title="Permanent link">&para;</a></h3>
+<p>After the weekly update PR is merged and you receive the "close" messages, check
+for any Dependabot PRs that were <strong>not</strong> closed automatically:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a>python repo_manager.py 7 --debug
+</code></pre></div>
+<p>A PR that remains open after the merge means one of the following:</p>
 <ul>
-<li>Run <code>python ls_dep_libs.py</code> to list the unique set of libraries with open dependabot PRs. Use <code>--debug</code> for a fuller view showing each PR and the libraries it updates.</li>
-<li>Update the <code>main</code> branch in your fork to the latest and create a "weekly update" branch.</li>
-<li>Run option (7) of the <code>repo_manager.py</code> script using the output of <code>ls_dep_libs.py</code> to update all libraries across all plugins in one step: <code>python repo_manager.py 7 $(python ls_dep_libs.py)</code>.</li>
-<li>Submit the result as the "weekly update" PR, with all updates included in the same PR.</li>
-<li>Once the weekly update PR is merged, dependabot will automatically close the PRs it opened that are no longer needed.</li>
+<li>The version it targets is still not satisfied by the updated constraints —
+  option (9) "Has a different version" output is the first place to look.</li>
+<li>The update was backed out of the weekly PR because it broke integration tests
+  (see step 6 above). In this case the library upgrade is valid but requires a
+  code change in the affected plugin(s) alongside it. Investigate the failure,
+  fix the plugin code, and submit a separate follow-up PR that includes both the
+  <code>poetry.lock</code> update and the code fix together.</li>
+<li>The PR covers a plugin or dependency that is intentionally pinned and should
+  not be updated at this time — in that case, leave the PR open or close it
+  deliberately after confirming with the team.</li>
 </ul>
+<p>Each remaining PR must be reviewed and resolved individually before it can be
+considered handled.</p>
 <h2 id="lite-plugins">Lite plugins<a class="headerlink" href="#lite-plugins" title="Permanent link">&para;</a></h2>
 <p>Sometimes is desirable to have a plugin that doesn't need integration tests or
 extra scaffolding. However, we need a way to avoid these plugins running
@@ -1324,52 +1424,52 @@ your agent swagger is available at <a href="http://localhost:3001/api/doc">http:
 <p>For production use, plugins should be installed as libraries to an ACA-Py image.</p>
 <p>This requires having a Dockerfile and a config file for your agent.</p>
 <p>Example Dockerfile:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="l l-Scalar l-Scalar-Plain">FROM ghcr.io/openwallet-foundation/acapy:py3.12-1.1.0</span>
-<a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a>
-<a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a><span class="l l-Scalar l-Scalar-Plain">USER root</span>
-<a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a>
-<a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a><span class="l l-Scalar l-Scalar-Plain"># install plugins as binaries</span>
-<a id="__codelineno-0-6" name="__codelineno-0-6" href="#__codelineno-0-6"></a><span class="l l-Scalar l-Scalar-Plain">RUN pip install git+https://github.com/openwallet-foundation/acapy-plugins@main#subdirectory=basicmessage_storage</span>
-<a id="__codelineno-0-7" name="__codelineno-0-7" href="#__codelineno-0-7"></a><span class="l l-Scalar l-Scalar-Plain">RUN pip install git+https://github.com/openwallet-foundation/acapy-plugins@main#subdirectory=connection_update</span>
-<a id="__codelineno-0-8" name="__codelineno-0-8" href="#__codelineno-0-8"></a>
-<a id="__codelineno-0-9" name="__codelineno-0-9" href="#__codelineno-0-9"></a><span class="l l-Scalar l-Scalar-Plain">USER $user</span>
-<a id="__codelineno-0-10" name="__codelineno-0-10" href="#__codelineno-0-10"></a><span class="l l-Scalar l-Scalar-Plain">COPY ./configs configs</span>
-<a id="__codelineno-0-11" name="__codelineno-0-11" href="#__codelineno-0-11"></a>
-<a id="__codelineno-0-12" name="__codelineno-0-12" href="#__codelineno-0-12"></a><span class="l l-Scalar l-Scalar-Plain">CMD [&quot;ACA-Py&quot;]</span>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a><span class="l l-Scalar l-Scalar-Plain">FROM ghcr.io/openwallet-foundation/acapy:py3.12-1.1.0</span>
+<a id="__codelineno-5-2" name="__codelineno-5-2" href="#__codelineno-5-2"></a>
+<a id="__codelineno-5-3" name="__codelineno-5-3" href="#__codelineno-5-3"></a><span class="l l-Scalar l-Scalar-Plain">USER root</span>
+<a id="__codelineno-5-4" name="__codelineno-5-4" href="#__codelineno-5-4"></a>
+<a id="__codelineno-5-5" name="__codelineno-5-5" href="#__codelineno-5-5"></a><span class="l l-Scalar l-Scalar-Plain"># install plugins as binaries</span>
+<a id="__codelineno-5-6" name="__codelineno-5-6" href="#__codelineno-5-6"></a><span class="l l-Scalar l-Scalar-Plain">RUN pip install git+https://github.com/openwallet-foundation/acapy-plugins@main#subdirectory=basicmessage_storage</span>
+<a id="__codelineno-5-7" name="__codelineno-5-7" href="#__codelineno-5-7"></a><span class="l l-Scalar l-Scalar-Plain">RUN pip install git+https://github.com/openwallet-foundation/acapy-plugins@main#subdirectory=connection_update</span>
+<a id="__codelineno-5-8" name="__codelineno-5-8" href="#__codelineno-5-8"></a>
+<a id="__codelineno-5-9" name="__codelineno-5-9" href="#__codelineno-5-9"></a><span class="l l-Scalar l-Scalar-Plain">USER $user</span>
+<a id="__codelineno-5-10" name="__codelineno-5-10" href="#__codelineno-5-10"></a><span class="l l-Scalar l-Scalar-Plain">COPY ./configs configs</span>
+<a id="__codelineno-5-11" name="__codelineno-5-11" href="#__codelineno-5-11"></a>
+<a id="__codelineno-5-12" name="__codelineno-5-12" href="#__codelineno-5-12"></a><span class="l l-Scalar l-Scalar-Plain">CMD [&quot;ACA-Py&quot;]</span>
 </code></pre></div>
 <p>Example config file (local single tenant):</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a><span class="nt">label</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">plugins-agent</span>
-<a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a>
-<a id="__codelineno-1-3" name="__codelineno-1-3" href="#__codelineno-1-3"></a><span class="nt">admin-insecure-mode</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">true</span>
-<a id="__codelineno-1-4" name="__codelineno-1-4" href="#__codelineno-1-4"></a><span class="nt">admin</span><span class="p">:</span><span class="w"> </span><span class="p p-Indicator">[</span><span class="nv">0.0.0.0</span><span class="p p-Indicator">,</span><span class="w"> </span><span class="nv">9061</span><span class="p p-Indicator">]</span>
-<a id="__codelineno-1-5" name="__codelineno-1-5" href="#__codelineno-1-5"></a>
-<a id="__codelineno-1-6" name="__codelineno-1-6" href="#__codelineno-1-6"></a><span class="nt">inbound-transport</span><span class="p">:</span>
-<a id="__codelineno-1-7" name="__codelineno-1-7" href="#__codelineno-1-7"></a><span class="w">   </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="p p-Indicator">[</span><span class="nv">http</span><span class="p p-Indicator">,</span><span class="w"> </span><span class="nv">0.0.0.0</span><span class="p p-Indicator">,</span><span class="w"> </span><span class="nv">9060</span><span class="p p-Indicator">]</span>
-<a id="__codelineno-1-8" name="__codelineno-1-8" href="#__codelineno-1-8"></a><span class="nt">outbound-transport</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">http</span>
-<a id="__codelineno-1-9" name="__codelineno-1-9" href="#__codelineno-1-9"></a><span class="nt">endpoint</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">http://host.docker.internal:9060</span>
-<a id="__codelineno-1-10" name="__codelineno-1-10" href="#__codelineno-1-10"></a>
-<a id="__codelineno-1-11" name="__codelineno-1-11" href="#__codelineno-1-11"></a><span class="nt">genesis-url</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">http://test.bcovrin.vonx.io/genesis</span>
-<a id="__codelineno-1-12" name="__codelineno-1-12" href="#__codelineno-1-12"></a>
-<a id="__codelineno-1-13" name="__codelineno-1-13" href="#__codelineno-1-13"></a><span class="nt">emit-new-didcomm-prefix</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">true</span>
-<a id="__codelineno-1-14" name="__codelineno-1-14" href="#__codelineno-1-14"></a><span class="nt">wallet-type</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">askar</span>
-<a id="__codelineno-1-15" name="__codelineno-1-15" href="#__codelineno-1-15"></a><span class="nt">wallet-storage-type</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">default</span>
-<a id="__codelineno-1-16" name="__codelineno-1-16" href="#__codelineno-1-16"></a>
-<a id="__codelineno-1-17" name="__codelineno-1-17" href="#__codelineno-1-17"></a><span class="nt">auto-provision</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">true</span>
-<a id="__codelineno-1-18" name="__codelineno-1-18" href="#__codelineno-1-18"></a><span class="nt">debug-connections</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">true</span>
-<a id="__codelineno-1-19" name="__codelineno-1-19" href="#__codelineno-1-19"></a><span class="nt">auto-accept-invites</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">true</span>
-<a id="__codelineno-1-20" name="__codelineno-1-20" href="#__codelineno-1-20"></a><span class="nt">auto-accept-requests</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">true</span>
-<a id="__codelineno-1-21" name="__codelineno-1-21" href="#__codelineno-1-21"></a><span class="nt">auto-ping-connection</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">true</span>
-<a id="__codelineno-1-22" name="__codelineno-1-22" href="#__codelineno-1-22"></a><span class="nt">auto-respond-messages</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">true</span>
-<a id="__codelineno-1-23" name="__codelineno-1-23" href="#__codelineno-1-23"></a>
-<a id="__codelineno-1-24" name="__codelineno-1-24" href="#__codelineno-1-24"></a><span class="nt">log-level</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">info</span>
-<a id="__codelineno-1-25" name="__codelineno-1-25" href="#__codelineno-1-25"></a>
-<a id="__codelineno-1-26" name="__codelineno-1-26" href="#__codelineno-1-26"></a><span class="nt">plugin</span><span class="p">:</span>
-<a id="__codelineno-1-27" name="__codelineno-1-27" href="#__codelineno-1-27"></a><span class="w">  </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">basicmessage_storage.v1_0</span>
-<a id="__codelineno-1-28" name="__codelineno-1-28" href="#__codelineno-1-28"></a><span class="w">  </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">connection_update.v1_0</span>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a><span class="nt">label</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">plugins-agent</span>
+<a id="__codelineno-6-2" name="__codelineno-6-2" href="#__codelineno-6-2"></a>
+<a id="__codelineno-6-3" name="__codelineno-6-3" href="#__codelineno-6-3"></a><span class="nt">admin-insecure-mode</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">true</span>
+<a id="__codelineno-6-4" name="__codelineno-6-4" href="#__codelineno-6-4"></a><span class="nt">admin</span><span class="p">:</span><span class="w"> </span><span class="p p-Indicator">[</span><span class="nv">0.0.0.0</span><span class="p p-Indicator">,</span><span class="w"> </span><span class="nv">9061</span><span class="p p-Indicator">]</span>
+<a id="__codelineno-6-5" name="__codelineno-6-5" href="#__codelineno-6-5"></a>
+<a id="__codelineno-6-6" name="__codelineno-6-6" href="#__codelineno-6-6"></a><span class="nt">inbound-transport</span><span class="p">:</span>
+<a id="__codelineno-6-7" name="__codelineno-6-7" href="#__codelineno-6-7"></a><span class="w">   </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="p p-Indicator">[</span><span class="nv">http</span><span class="p p-Indicator">,</span><span class="w"> </span><span class="nv">0.0.0.0</span><span class="p p-Indicator">,</span><span class="w"> </span><span class="nv">9060</span><span class="p p-Indicator">]</span>
+<a id="__codelineno-6-8" name="__codelineno-6-8" href="#__codelineno-6-8"></a><span class="nt">outbound-transport</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">http</span>
+<a id="__codelineno-6-9" name="__codelineno-6-9" href="#__codelineno-6-9"></a><span class="nt">endpoint</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">http://host.docker.internal:9060</span>
+<a id="__codelineno-6-10" name="__codelineno-6-10" href="#__codelineno-6-10"></a>
+<a id="__codelineno-6-11" name="__codelineno-6-11" href="#__codelineno-6-11"></a><span class="nt">genesis-url</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">http://test.bcovrin.vonx.io/genesis</span>
+<a id="__codelineno-6-12" name="__codelineno-6-12" href="#__codelineno-6-12"></a>
+<a id="__codelineno-6-13" name="__codelineno-6-13" href="#__codelineno-6-13"></a><span class="nt">emit-new-didcomm-prefix</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">true</span>
+<a id="__codelineno-6-14" name="__codelineno-6-14" href="#__codelineno-6-14"></a><span class="nt">wallet-type</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">askar</span>
+<a id="__codelineno-6-15" name="__codelineno-6-15" href="#__codelineno-6-15"></a><span class="nt">wallet-storage-type</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">default</span>
+<a id="__codelineno-6-16" name="__codelineno-6-16" href="#__codelineno-6-16"></a>
+<a id="__codelineno-6-17" name="__codelineno-6-17" href="#__codelineno-6-17"></a><span class="nt">auto-provision</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">true</span>
+<a id="__codelineno-6-18" name="__codelineno-6-18" href="#__codelineno-6-18"></a><span class="nt">debug-connections</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">true</span>
+<a id="__codelineno-6-19" name="__codelineno-6-19" href="#__codelineno-6-19"></a><span class="nt">auto-accept-invites</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">true</span>
+<a id="__codelineno-6-20" name="__codelineno-6-20" href="#__codelineno-6-20"></a><span class="nt">auto-accept-requests</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">true</span>
+<a id="__codelineno-6-21" name="__codelineno-6-21" href="#__codelineno-6-21"></a><span class="nt">auto-ping-connection</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">true</span>
+<a id="__codelineno-6-22" name="__codelineno-6-22" href="#__codelineno-6-22"></a><span class="nt">auto-respond-messages</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">true</span>
+<a id="__codelineno-6-23" name="__codelineno-6-23" href="#__codelineno-6-23"></a>
+<a id="__codelineno-6-24" name="__codelineno-6-24" href="#__codelineno-6-24"></a><span class="nt">log-level</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">info</span>
+<a id="__codelineno-6-25" name="__codelineno-6-25" href="#__codelineno-6-25"></a>
+<a id="__codelineno-6-26" name="__codelineno-6-26" href="#__codelineno-6-26"></a><span class="nt">plugin</span><span class="p">:</span>
+<a id="__codelineno-6-27" name="__codelineno-6-27" href="#__codelineno-6-27"></a><span class="w">  </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">basicmessage_storage.v1_0</span>
+<a id="__codelineno-6-28" name="__codelineno-6-28" href="#__codelineno-6-28"></a><span class="w">  </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">connection_update.v1_0</span>
 </code></pre></div>
 <p>Now you can deploy a agent with as many plugins as you want as long as they are declared in your build config file and installed.</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a>docker<span class="w"> </span>build<span class="w"> </span>-f<span class="w"> </span>&lt;Dockerfile&gt;<span class="w"> </span>--tag<span class="w"> </span>acapy_plugins<span class="w"> </span>.
-<a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a>docker<span class="w"> </span>run<span class="w"> </span>-it<span class="w"> </span>-p<span class="w"> </span><span class="m">9060</span>:9060<span class="w"> </span>-p<span class="w"> </span><span class="m">9061</span>:9061<span class="w"> </span>--rm<span class="w"> </span>acapy_plugins<span class="w"> </span>start<span class="w"> </span>--arg-file<span class="o">=</span>&lt;config-file&gt;<span class="w"> </span>--&gt;
+<div class="highlight"><pre><span></span><code><a id="__codelineno-7-1" name="__codelineno-7-1" href="#__codelineno-7-1"></a>docker<span class="w"> </span>build<span class="w"> </span>-f<span class="w"> </span>&lt;Dockerfile&gt;<span class="w"> </span>--tag<span class="w"> </span>acapy_plugins<span class="w"> </span>.
+<a id="__codelineno-7-2" name="__codelineno-7-2" href="#__codelineno-7-2"></a>docker<span class="w"> </span>run<span class="w"> </span>-it<span class="w"> </span>-p<span class="w"> </span><span class="m">9060</span>:9060<span class="w"> </span>-p<span class="w"> </span><span class="m">9061</span>:9061<span class="w"> </span>--rm<span class="w"> </span>acapy_plugins<span class="w"> </span>start<span class="w"> </span>--arg-file<span class="o">=</span>&lt;config-file&gt;<span class="w"> </span>--&gt;
 </code></pre></div>
 
 
