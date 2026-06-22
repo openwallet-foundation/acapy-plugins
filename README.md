@@ -41,19 +41,94 @@ Run `python repo_manager.py` and you will be met with a number of options. Run t
 - (6) This option will run a general update for all poetry lock files in all
   plugins. **THIS OPTION IS NOT CURRENTLY WORKING PROPERLY AND SHOULD BE USED WITH CAUTION**.
 - (7) This option is used for upgrading a particular library for all plugins.
-  It's useful for when you don't want to do a general upgrade for every library. 
+  It's useful for when you don't want to do a general upgrade for every library.
 - (8) This option is used for closing a range of PR's that are related to the same
   shared dependency update. You use the lower and upper bounds of the PR numbers to close all the related PR's. This is useful for keeping the repo clean and reducing the number of PR's that need to be reviewed. You can included PR numbers which have already been merged or closed and the script will skip them. You should be careful when using this option as it will close all PR's in the range regardless of their status. Make sure to double check the PR numbers before running this option. If you do accidentally close a PR that shouldn't be closed, you can always reopen it.
+- (9) This option finds open Dependabot PRs that update a `pyproject.toml` version
+  constraint (rather than just a `poetry.lock` entry), extracts each change, and
+  reports which local `pyproject.toml` files still carry the old version or a
+  different version. Pass `--apply` on the command line (`python repo_manager.py 9
+  --apply`) to have the script update the exact-match files in place and
+  regenerate their `poetry.lock` files automatically. Files flagged as having a
+  *different* version are listed for manual review but are never modified
+  automatically.
 
 ## Dependabot Management
 
 Currently dependabot is configured to manage plugin dependencies individually. This is fine for libraries which aren't shared across plugins but will create numerous PR's for plugins that share dependencies. Here is the current strategy for applying the dependabot updates on a weekly basis without having to update/approve/merge each PR individually:
 
-- Run `python ls_dep_libs.py` to list the unique set of libraries with open dependabot PRs. Use `--debug` for a fuller view showing each PR and the libraries it updates.
-- Update the `main` branch in your fork to the latest and create a "weekly update" branch.
-- Run option (7) of the `repo_manager.py` script using the output of `ls_dep_libs.py` to update all libraries across all plugins in one step: `python repo_manager.py 7 $(python ls_dep_libs.py)`.
-- Submit the result as the "weekly update" PR, with all updates included in the same PR.
-- Once the weekly update PR is merged, dependabot will automatically close the PRs it opened that are no longer needed.
+1. Update the `main` branch in your fork to the latest and create a "weekly
+   update" branch.
+2. Run option (7) without arguments to preview which libraries have open
+   Dependabot PRs (use `--debug` for full per-PR detail):
+   ```
+   python repo_manager.py 7
+   python repo_manager.py 7 --debug
+   ```
+   Review the list. When it looks correct, re-run with `--apply` to update all
+   `poetry.lock` files across all plugins:
+   ```
+   python repo_manager.py 7 --apply
+   ```
+   Option (7) queries open Dependabot PRs to determine which libraries need
+   updating, then searches each `poetry.lock` and runs
+   `poetry update --lock <package>` in every directory that contains the package.
+   It handles Poetry's internal hyphen-to-underscore normalisation automatically.
+   It only updates lock files — it does not modify `pyproject.toml`.
+
+3. Run option (9) to check whether any Dependabot PRs required a `pyproject.toml`
+   version-constraint change that option (7) cannot make:
+   ```
+   python repo_manager.py 9
+   ```
+   Review the output. If files are listed under "Needs update", re-run with
+   `--apply` to update those `pyproject.toml` files and regenerate their lock
+   files automatically:
+   ```
+   python repo_manager.py 9 --apply
+   ```
+   Files listed under "Has a different version" require manual review and
+   editing — inspect the constraint and decide whether it needs updating before
+   committing.
+
+4. Submit the result as the "weekly update" PR, with all updates included in the
+   same PR. Call the PR by the current date, e.g. `Weekly Update - YYYYMMDD`
+5. If the PR's integration tests fail, a library update has likely broken
+   something in one or more plugins. Investigate the failure (the CI logs and an
+   AI assistant are both useful here) to identify which package is responsible.
+   Back out only the affected `poetry.lock` change(s) — restore the previous
+   lock entry for that package — and push the correction to the same branch. Once
+   the remaining updates pass and the PR is merged, the Dependabot PR(s) for the
+   backed-out package(s) will **not** be closed automatically. Follow up on those
+   using the instructions in the [section below](#following-up-on-prs-not-closed-automatically).
+6. Once the weekly update PR is merged, Dependabot will automatically close the
+   PRs it opened that are no longer needed. **Do not close those PRs manually** —
+   let the automation handle it.
+
+### Following up on PRs not closed automatically
+
+After the weekly update PR is merged and you receive the "close" messages, check
+for any Dependabot PRs that were **not** closed automatically:
+
+```
+python repo_manager.py 7 --debug
+```
+
+A PR that remains open after the merge means one of the following:
+
+- The version it targets is still not satisfied by the updated constraints —
+  option (9) "Has a different version" output is the first place to look.
+- The update was backed out of the weekly PR because it broke integration tests
+  (see step 6 above). In this case the library upgrade is valid but requires a
+  code change in the affected plugin(s) alongside it. Investigate the failure,
+  fix the plugin code, and submit a separate follow-up PR that includes both the
+  `poetry.lock` update and the code fix together.
+- The PR covers a plugin or dependency that is intentionally pinned and should
+  not be updated at this time — in that case, leave the PR open or close it
+  deliberately after confirming with the team.
+
+Each remaining PR must be reviewed and resolved individually before it can be
+considered handled.
 
 ## Lite plugins
 

@@ -1,9 +1,11 @@
+import json
 import os
 import re
 import shutil
 import subprocess
 import sys
 from concurrent.futures import ThreadPoolExecutor, as_completed
+
 from copy import deepcopy
 from enum import Enum
 from pathlib import Path
@@ -324,15 +326,19 @@ def update_all_poetry_locks():
             future.result()
 
 
-def upgrade_library_in_all_plugins(libraries: str = None):
-    names = libraries.split() if libraries else []
+def _run_poetry_update(names: list):
+    """Update poetry.lock for every directory that contains any of the named packages."""
     dirs = []
     for root, _, files in os.walk("."):
         if "poetry.lock" in files:
             with open(f"{root}/poetry.lock", "r") as file:
                 content = file.read()
-            if any(f'name = "{name}"' in content for name in names):
+            if any(f'name = "{v}"' in content for name in names for v in (name, name.replace("-", "_"))):
                 dirs.append(root)
+
+    if not dirs:
+        print("No poetry.lock files found containing the specified packages.")
+        return
 
     def run_update(root):
         print(f"Updating poetry.lock in {root}")
@@ -344,9 +350,215 @@ def upgrade_library_in_all_plugins(libraries: str = None):
             future.result()
 
 
+def upgrade_library_in_all_plugins(arg: str = None):
+    from ls_dep_libs import extract_libraries, get_open_dependabot_prs
+
+    if arg is not None and not arg.startswith("--"):
+        print(
+            "\nOption (7) has changed and no longer accepts library names directly.\n\n"
+            "Usage:\n"
+            "  python repo_manager.py 7           List libraries with open Dependabot PRs\n"
+            "  python repo_manager.py 7 --debug   Same, with PR number and title detail\n"
+            "  python repo_manager.py 7 --apply   Upgrade all those libraries across all plugins\n"
+        )
+        return
+
+    prs = get_open_dependabot_prs()
+    if not prs:
+        print("No open Dependabot PRs found.")
+        return
+
+    all_libraries: set[str] = set()
+    pr_libs = []
+    for pr in prs:
+        libs = sorted(set(extract_libraries(pr["title"], pr["body"])))
+        all_libraries.update(libs)
+        pr_libs.append((pr, libs))
+
+    if arg == "--debug":
+        print(f"{'PR':>6}  {'Library/Libraries':<35}  Title")
+        print("-" * 110)
+        for pr, libs in pr_libs:
+            lib_str = ", ".join(libs) if libs else "(unknown)"
+            print(f"#{pr['number']:>5}  {lib_str:<35}  {pr['title']}")
+        return
+
+    if arg is None:
+        for lib in sorted(all_libraries):
+            print(lib)
+        return
+
+    # --apply
+    if not all_libraries:
+        print("No libraries to update.")
+        return
+    names = sorted(all_libraries)
+    print(f"Upgrading libraries across all plugins: {', '.join(names)}\n")
+    _run_poetry_update(names)
+
+
 def close_pr_range(start: int, end: int):
     for i in range(start, end + 1):
         os.system(f"gh pr close {i}")
+
+
+def find_dependabot_toml_updates(apply: bool = False):
+    """Find open Dependabot PRs that modify pyproject.toml, extract the version changes,
+    and list any local pyproject.toml files that still carry the old version.
+    Pass apply=True to update the exact-match files and regenerate their lock files."""
+    result = subprocess.run(
+        [
+            "gh", "pr", "list",
+            "--author", "app/dependabot",
+            "--state", "open",
+            "--limit", "200",
+            "--json", "number,title",
+        ],
+        capture_output=True,
+        text=True,
+        check=True,
+    )
+    prs = json.loads(result.stdout)
+
+    if not prs:
+        print("No open Dependabot PRs found.")
+        return
+
+    # (pkg, old_ver, new_ver) -> sorted list of PR numbers
+    all_changes: dict[tuple, list] = {}
+
+    for pr in prs:
+        diff_result = subprocess.run(
+            ["gh", "pr", "diff", str(pr["number"])],
+            capture_output=True,
+            text=True,
+        )
+        diff = diff_result.stdout
+
+        if "pyproject.toml" not in diff:
+            continue
+
+        # Split into per-file sections on the "diff --git" boundary
+        file_sections = re.split(r"^diff --git ", diff, flags=re.MULTILINE)
+
+        for section in file_sections:
+            first_line = section.split("\n", 1)[0]
+            if "pyproject.toml" not in first_line:
+                continue
+
+            removed: dict[str, str] = {}
+            added: dict[str, str] = {}
+
+            for line in section.split("\n"):
+                # Skip the unified-diff file header lines
+                if line.startswith("---") or line.startswith("+++"):
+                    continue
+                m = re.match(r'^-([\w][\w.-]*)\s*=\s*"([^"]+)"', line)
+                if m:
+                    removed[m.group(1)] = m.group(2)
+                m = re.match(r'^\+([\w][\w.-]*)\s*=\s*"([^"]+)"', line)
+                if m:
+                    added[m.group(1)] = m.group(2)
+
+            for pkg, old_ver in removed.items():
+                new_ver = added.get(pkg)
+                if new_ver and new_ver != old_ver:
+                    key = (pkg, old_ver, new_ver)
+                    if pr["number"] not in all_changes.get(key, []):
+                        all_changes.setdefault(key, []).append(pr["number"])
+
+    if not all_changes:
+        print("No open Dependabot PRs found that update pyproject.toml files.")
+        return
+
+    print("Dependabot PRs with pyproject.toml version changes:\n")
+
+    # (path, pkg, old_ver, new_ver) — only exact-old-version matches, for --apply
+    exact_matches: list[tuple[str, str, str, str]] = []
+
+    for (pkg, old_ver, new_ver), pr_nums in sorted(all_changes.items()):
+        pr_list = ", ".join(f"#{n}" for n in sorted(pr_nums))
+        print(f"  {pkg}: \"{old_ver}\" -> \"{new_ver}\"  [{pr_list}]")
+
+        any_ver_pattern = re.compile(
+            rf'^{re.escape(pkg)}\s*=\s*"([^"]+)"',
+            re.MULTILINE,
+        )
+        old_ver_files = []
+        other_ver_files = []
+        for root, dirs, files in os.walk("."):
+            # Skip virtual-environment trees
+            dirs[:] = [d for d in dirs if d not in (".venv", "venv", "__pycache__")]
+            if "pyproject.toml" in files:
+                path = os.path.join(root, "pyproject.toml")
+                with open(path) as f:
+                    content = f.read()
+                m = any_ver_pattern.search(content)
+                if not m:
+                    continue
+                found_ver = m.group(1)
+                if found_ver == old_ver:
+                    old_ver_files.append(path)
+                    exact_matches.append((path, pkg, old_ver, new_ver))
+                elif found_ver != new_ver:
+                    other_ver_files.append((path, found_ver))
+
+        if old_ver_files:
+            print(f"    Needs update (has old version \"{old_ver}\"):")
+            for path in sorted(old_ver_files):
+                print(f"      {path}")
+        if other_ver_files:
+            print(f"    Has a different version (also needs review):")
+            for path, ver in sorted(other_ver_files):
+                print(f"      {path}  (\"{ver}\")")
+        if not old_ver_files and not other_ver_files:
+            print("    (no local pyproject.toml files reference this package with an outdated version)")
+        print()
+
+    if not apply:
+        return
+
+    if not exact_matches:
+        print("Nothing to apply (no exact old-version matches found).")
+        return
+
+    print("The following pyproject.toml files will be updated:")
+    for path, pkg, old_ver, new_ver in sorted(exact_matches):
+        print(f"  {path}  ({pkg}: \"{old_ver}\" -> \"{new_ver}\")")
+
+    confirm = input("\nAre you sure? (y/N): ").strip().lower()
+    if confirm != "y":
+        print("Aborted.")
+        return
+
+    # Apply the version string replacements
+    for path, pkg, old_ver, new_ver in exact_matches:
+        content = Path(path).read_text()
+        new_content = re.sub(
+            rf'^({re.escape(pkg)}\s*=\s*"){re.escape(old_ver)}"',
+            rf'\g<1>{new_ver}"',
+            content,
+            flags=re.MULTILINE,
+        )
+        Path(path).write_text(new_content)
+        print(f"Updated {path}")
+
+    # Regenerate lock files — group packages by directory so one poetry call handles
+    # multiple package updates in the same directory.
+    pkgs_by_dir: dict[str, set] = {}
+    for path, pkg, _, _ in exact_matches:
+        d = os.path.dirname(path) or "."
+        pkgs_by_dir.setdefault(d, set()).add(pkg)
+
+    def update_lock(dir_path: str, pkgs: set):
+        print(f"Updating poetry.lock in {dir_path} ...")
+        subprocess.run(["poetry", "update", "--lock", *sorted(pkgs)], cwd=dir_path)
+
+    print("\nRegenerating poetry.lock files...")
+    with ThreadPoolExecutor(max_workers=6) as executor:
+        futures = {executor.submit(update_lock, d, pkgs): d for d, pkgs in pkgs_by_dir.items()}
+        for future in as_completed(futures):
+            future.result()
 
 
 def main(arg_1=None, arg_2=None, arg_3=None):
@@ -358,9 +570,10 @@ def main(arg_1=None, arg_2=None, arg_3=None):
         (4) Update plugins description with supported acapy-agent version
         (5) Get the plugins that upgraded since last release
         (6) Update all poetry.lock files
-        (7) Upgrade one or more libraries in all plugins
+        (7) List/upgrade libraries from open Dependabot PRs (--debug for detail, --apply to upgrade)
         (8) Close a range of PRs
-        (9) Exit \n\nInput:  """
+        (9) Find Dependabot PRs with pyproject.toml updates and affected local files
+        (10) Exit \n\nInput:  """
 
     if arg_1:
         selection = arg_1
@@ -535,12 +748,13 @@ def main(arg_1=None, arg_2=None, arg_3=None):
         print("Updating all poetry.lock files in nested directories...")
         update_all_poetry_locks()
     elif selection == "7":
-        print("Upgrading libraries in all plugins...")
         upgrade_library_in_all_plugins(arg_2)
     elif selection == "8":
         print(f"Closing a range prs from {arg_2} to {arg_3}...")
         close_pr_range(int(arg_2), int(arg_3))
     elif selection == "9":
+        find_dependabot_toml_updates(apply=arg_2 == "--apply")
+    elif selection == "10":
         print("Exiting...")
         exit(0)
     else:
