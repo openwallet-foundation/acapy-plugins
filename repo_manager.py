@@ -350,9 +350,30 @@ def _run_poetry_update(names: list):
             future.result()
 
 
-def upgrade_library_in_all_plugins(arg: str = None):
-    from ls_dep_libs import extract_libraries, get_open_dependabot_prs
+def get_open_dependabot_prs():
+    result = subprocess.run(
+        [
+            "gh", "pr", "list",
+            "--author", "app/dependabot",
+            "--state", "open",
+            "--limit", "200",
+            "--json", "number,title,body",
+        ],
+        capture_output=True,
+        text=True,
+        check=True,
+    )
+    return json.loads(result.stdout)
 
+
+def extract_libraries(title: str, body: str) -> list[str]:
+    match = re.search(r"bump (\S+) from ", title)
+    if match:
+        return [match.group(1)]
+    return re.findall(r"Updates `([^`]+)`", body)
+
+
+def upgrade_library_in_all_plugins(arg: str = None):
     if arg is not None and not arg.startswith("--"):
         print(
             "\nOption (7) has changed and no longer accepts library names directly.\n\n"
