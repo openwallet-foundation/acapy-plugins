@@ -29,6 +29,24 @@ RUN apt-get update && apt-get install -y git build-essential && apt-get clean
 RUN git clone https://github.com/Indicio-tech/isomdl-uniffi.git
 RUN curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y
 ENV PATH="/root/.cargo/bin:${PATH}"
+
+# isomdl-uniffi's cargo config uses zig as the C linker (mise/scripts/*-cc.sh) for
+# reproducible cross-linking; its mise.toml pins zig = "0.16", so match that here.
+ENV ZIG_VERSION=0.16.0
+RUN set -eux; \
+    ARCH="$(uname -m)"; \
+    case "$ARCH" in \
+        x86_64) ZIG_ARCH=x86_64-linux; ZIG_SHA256=70e49664a74374b48b51e6f3fdfbf437f6395d42509050588bd49abe52ba3d00 ;; \
+        aarch64) ZIG_ARCH=aarch64-linux; ZIG_SHA256=ea4b09bfb22ec6f6c6ceac57ab63efb6b46e17ab08d21f69f3a48b38e1534f17 ;; \
+        *) echo "Unsupported architecture for zig: $ARCH" >&2; exit 1 ;; \
+    esac; \
+    curl -sSL -o /tmp/zig.tar.xz "https://ziglang.org/download/${ZIG_VERSION}/zig-${ZIG_ARCH}-${ZIG_VERSION}.tar.xz"; \
+    echo "${ZIG_SHA256}  /tmp/zig.tar.xz" | sha256sum -c -; \
+    tar -xJf /tmp/zig.tar.xz -C /usr/local; \
+    ln -s "/usr/local/zig-${ZIG_ARCH}-${ZIG_VERSION}/zig" /usr/local/bin/zig; \
+    rm /tmp/zig.tar.xz
+ENV PATH="/usr/local/bin:${PATH}"
+
 WORKDIR /usr/src/app/isomdl-uniffi/python
 RUN python build.py
 
