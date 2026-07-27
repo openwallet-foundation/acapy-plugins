@@ -1,13 +1,14 @@
-from redis import asyncio as aioredis
 import json
 import logging
+from collections.abc import Sequence
+from typing import Any
 
 from acapy_agent.cache.base import BaseCache, CacheKeyLock
-from acapy_agent.core.profile import Profile
 from acapy_agent.core.error import BaseError
+from acapy_agent.core.profile import Profile
+from redis import asyncio as aioredis
 from redis.asyncio import RedisCluster
-from redis.exceptions import RedisError, RedisClusterException
-from typing import Any, Sequence, Text, Union
+from redis.exceptions import RedisClusterException, RedisError
 
 LOGGER = logging.getLogger(__name__)
 
@@ -102,10 +103,10 @@ class RedisBaseCache(BaseCache):
             else:
                 LOGGER.info("Using an existing provided instance of RedisCluster.")
 
-    def _getKey(self, key: Text) -> Text:
+    def _getKey(self, key: str) -> str:
         return f"{self.prefix}:{key}"
 
-    async def get(self, key: Text):
+    async def get(self, key: str):
         """
         Get an item from the cache.
 
@@ -121,7 +122,7 @@ class RedisBaseCache(BaseCache):
             response = json.loads(response)
         return response
 
-    async def set(self, keys: Union[Text, Sequence[Text]], value: Any, ttl: int = None):
+    async def set(self, keys: str | Sequence[str], value: Any, ttl: int | None = None):
         """
         Add an item to the cache with an optional ttl.
 
@@ -133,7 +134,7 @@ class RedisBaseCache(BaseCache):
         """
         LOGGER.debug("set:%s value:%s ttl:%d", keys, value, ttl)
         try:
-            for key in [keys] if isinstance(keys, Text) else keys:
+            for key in [keys] if isinstance(keys, str) else keys:
                 # self._cache[key] = {"expires": expires_ts, "value": value}
                 await self.redis.set(self._getKey(key), json.dumps(value), ex=ttl)
         except (
@@ -145,7 +146,7 @@ class RedisBaseCache(BaseCache):
                 "Unexpected redis client exception"
             ) from error
 
-    async def clear(self, key: Text):
+    async def clear(self, key: str):
         """
         Remove an item from the cache, if present.
 
@@ -178,7 +179,7 @@ class RedisBaseCache(BaseCache):
 
 
 class RedisLock(CacheKeyLock):
-    def __init__(self, cache: BaseCache, key: Text):
+    def __init__(self, cache: BaseCache, key: str):
         super().__init__(cache, key)
         self.redis_lock = cache.redis.lock(key, timeout=1)
 
