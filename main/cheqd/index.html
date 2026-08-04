@@ -1367,6 +1367,14 @@
 <a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a>poetry<span class="w"> </span>run<span class="w"> </span>pytest
 </code></pre></div>
 A coverage report is created when ran from the devcontainer. </p>
+<blockquote>
+<p><strong>Note:</strong> <a href="./conftest.py"><code>conftest.py</code></a> at the plugin root contains a temporary
+compatibility shim for <code>aioresponses</code>, which is not yet compatible with
+aiohttp 3.14's new required <code>stream_writer</code> argument. See the comment in
+that file for details and removal instructions once
+<a href="https://github.com/pnuckowski/aioresponses/pull/288">aioresponses#288</a> is
+released.</p>
+</blockquote>
 <h3 id="integration-tests">Integration Tests<a class="headerlink" href="#integration-tests" title="Permanent link">&para;</a></h3>
 <p>All integrations tests and configurations are in <code>integration</code> folder.
 To run the integration tests:</p>
