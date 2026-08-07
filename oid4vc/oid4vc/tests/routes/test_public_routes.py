@@ -81,6 +81,228 @@ async def test_issuer_metadata(context: AdminRequestContext, req: web.Request):
 
 
 @pytest.mark.asyncio
+async def test_metadata_overlays_issuer_configuration(
+    context: AdminRequestContext, req: web.Request
+):
+    """IssuerConfiguration values override default generated metadata fields.
+
+    Also verifies that when an external authorization server is configured, no
+    `token_endpoint` is advertised in either metadata document.
+    """
+
+    wallet_id = req.match_info.get("wallet_id")
+    display = [
+        {
+            "name": "University Credential",
+            "locale": "en-US",
+            "logo": {
+                "uri": "https://exampleuniversity.com/public/logo.png",
+                "alt_text": "a square logo of a university",
+            },
+        }
+    ]
+    request_encryption = {
+        "keys": [
+            {
+                "kty": "EC",
+                "crv": "P-256",
+                "x": "f83OJ3D2xF4Jqk8rVqYf5UEoR2L7iB42t1R6kzjzA6o",
+                "y": "x_FEzRu9yQ1rZtQxCkVwYg1oHc3mG5m0kYqf9u0Qf6A",
+                "use": "enc",
+                "alg": "ECDH-ES",
+                "kid": "ec-p256-enc-1",
+            }
+        ]
+    }
+    response_encryption = {
+        "alg_values_supported": ["ECDH-ES", "ECDH-ES+A256KW"],
+        "enc_values_supported": ["A256GCM", "A128GCM"],
+        "encryption_required": True,
+        "zip_values_supported": ["DEF"],
+    }
+    async with context.session() as session:
+        issuer_config = IssuerConfiguration(
+            configuration_id=wallet_id,
+            new_with_id=True,
+            credential_issuer="https://issuer.example.com",
+            authorization_servers=[
+                {
+                    "public_url": "https://auth.example.com",
+                    "private_url": "https://auth.internal",
+                    "auth_type": "client_secret_basic",
+                    "client_credentials": {"client_id": "abc", "client_secret": "xyz"},
+                }
+            ],
+            credential_endpoint="https://issuer.example.com/custom-credential",
+            nonce_endpoint="https://issuer.example.com/custom-nonce",
+            deferred_credential_endpoint="https://issuer.example.com/deferred",
+            notification_endpoint="https://issuer.example.com/notify",
+            credential_request_encryption=request_encryption,
+            credential_response_encryption=response_encryption,
+            batch_credential_issuance={"batch_size": 100},
+            display=display,
+        )
+        await issuer_config.save(session)
+
+        supported = SupportedCredential(
+            format="jwt_vc_json",
+            identifier="StoredConfigCredential",
+            credential_metadata={"claims": [{"path": ["name"]}]},
+        )
+        await supported.save(session)
+
+    for endpoint in (
+        test_module.credential_issuer_metadata,
+        test_module.openid_configuration,
+    ):
+        with patch.object(_metadata_module, "web", autospec=True) as mock_web:
+            await endpoint(req)
+        metadata = mock_web.json_response.call_args.args[0]
+
+        # DB overrides the mandatory fields
+        assert metadata["credential_issuer"] == "https://issuer.example.com"
+        assert (
+            metadata["credential_endpoint"]
+            == "https://issuer.example.com/custom-credential"
+        )
+        # authorization_servers normalized to public URLs (§12.2.4)
+        assert metadata["authorization_servers"] == ["https://auth.example.com"]
+        # All configured optional fields flow through the overlay
+        assert metadata["nonce_endpoint"] == "https://issuer.example.com/custom-nonce"
+        assert (
+            metadata["deferred_credential_endpoint"]
+            == "https://issuer.example.com/deferred"
+        )
+        assert metadata["notification_endpoint"] == "https://issuer.example.com/notify"
+        assert metadata["credential_request_encryption"] == request_encryption
+        assert metadata["credential_response_encryption"] == response_encryption
+        assert metadata["batch_credential_issuance"] == {"batch_size": 100}
+        assert metadata["display"] == display
+        # server-derived credentials are not clobbered by the overlay
+        assert "StoredConfigCredential" in metadata["credential_configurations_supported"]
+        # external AS present -> no token_endpoint at the credential issuer
+        assert "token_endpoint" not in metadata
+
+
+@pytest.mark.asyncio
+async def test_authorization_servers_drops_entries_without_public_url(
+    context: AdminRequestContext, req: web.Request
+):
+    """§12.2.4: authorization_servers is an array of strings, non-empty.
+
+    Filter out DB entries missing `public_url` so we never publish `null`.
+    """
+    wallet_id = req.match_info.get("wallet_id")
+    async with context.session() as session:
+        issuer_config = IssuerConfiguration(
+            configuration_id=wallet_id,
+            new_with_id=True,
+            authorization_servers=[
+                {"private_url": "https://intra.example.com"},  # no public_url
+                {"public_url": "https://auth.example.com"},
+            ],
+        )
+        await issuer_config.save(session)
+
+    with patch.object(_metadata_module, "web", autospec=True) as mock_web:
+        await test_module.credential_issuer_metadata(req)
+    metadata = mock_web.json_response.call_args.args[0]
+    assert metadata["authorization_servers"] == ["https://auth.example.com"]
+    assert None not in metadata["authorization_servers"]
+
+
+@pytest.mark.asyncio
+async def test_signed_metadata_uses_spec_typ_header(
+    monkeypatch, context: AdminRequestContext, req: web.Request
+):
+    """§12.2.3: signed metadata JWT MUST use typ=openidvci-issuer-metadata+jwt.
+
+    Also verifies `sub` matches the (possibly DB-overridden) credential_issuer.
+    """
+    from types import SimpleNamespace
+
+    req.headers = {"Accept": "application/jwt"}
+
+    wallet_id = req.match_info.get("wallet_id")
+    async with context.session() as session:
+        await IssuerConfiguration(
+            configuration_id=wallet_id,
+            new_with_id=True,
+            credential_issuer="https://issuer.example.com",
+        ).save(session)
+
+    monkeypatch.setattr(
+        _metadata_module,
+        "retrieve_or_create_did_jwk",
+        AsyncMock(
+            return_value=SimpleNamespace(
+                # did:jwk:<base64url({"kty":"OKP","crv":"Ed25519","x":"AA"})>
+                did="did:jwk:eyJrdHkiOiJPS1AiLCJjcnYiOiJFZDI1NTE5IiwieCI6IkFBIn0"
+            )
+        ),
+    )
+    captured = {}
+
+    async def fake_sign(profile, headers, payload, verification_method):
+        captured["headers"] = headers
+        captured["payload"] = payload
+        return "signed.jwt.value"
+
+    monkeypatch.setattr(_metadata_module, "jwt_sign", fake_sign)
+
+    with patch.object(_metadata_module, "web", autospec=True) as mock_web:
+        mock_web.Response.return_value = MagicMock()
+        await test_module.credential_issuer_metadata(req)
+
+    assert captured["headers"]["typ"] == "openidvci-issuer-metadata+jwt"
+    # §12.2.3: sub REQUIRED = Credential Issuer Identifier; iat REQUIRED.
+    assert captured["payload"]["sub"] == "https://issuer.example.com"
+    assert captured["payload"]["sub"] == captured["payload"]["credential_issuer"]
+    assert isinstance(captured["payload"]["iat"], int)
+
+
+@pytest.mark.asyncio
+async def test_metadata_suppresses_nonce_endpoint_when_disabled(
+    monkeypatch, context: AdminRequestContext, req: web.Request
+):
+    """DB-configured `nonce_endpoint` is suppressed when local nonce is off.
+
+    PoP validation uses direct c_nonce comparison when `enable_nonce_endpoint`
+    is False, so publishing a nonce endpoint would advertise a flow the server
+    cannot validate. The overlay is preserved for every other DB field.
+    """
+    wallet_id = req.match_info.get("wallet_id")
+    async with context.session() as session:
+        issuer_config = IssuerConfiguration(
+            configuration_id=wallet_id,
+            new_with_id=True,
+            nonce_endpoint="https://issuer.example.com/custom-nonce",
+            display=[{"name": "Example Issuer", "locale": "en"}],
+        )
+        await issuer_config.save(session)
+
+    monkeypatch.setattr(
+        _metadata_module.Config,
+        "from_settings",
+        lambda settings: MagicMock(
+            endpoint="http://localhost:8020",
+            enable_nonce_endpoint=False,
+        ),
+    )
+
+    for endpoint in (
+        test_module.credential_issuer_metadata,
+        test_module.openid_configuration,
+    ):
+        with patch.object(_metadata_module, "web", autospec=True) as mock_web:
+            await endpoint(req)
+        metadata = mock_web.json_response.call_args.args[0]
+        assert "nonce_endpoint" not in metadata
+        # Other DB overlay fields still flow through
+        assert metadata["display"] == [{"name": "Example Issuer", "locale": "en"}]
+
+
+@pytest.mark.asyncio
 async def test_get_token(context: AdminRequestContext, req: web.Request):
     """Test token issuance endpoint."""
 
