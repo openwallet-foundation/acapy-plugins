@@ -80,17 +80,22 @@ async def _parse_cred_offer(context: AdminRequestContext, exchange_id: str) -> d
             supported = await SupportedCredential.retrieve_by_id(
                 session, record.supported_cred_id
             )
-            auth_server = await get_first_auth_server(session, context.profile)
-            record.code = await _create_pre_auth_code(
-                context.profile,
-                config,
-                auth_server,
-                record.refresh_id,
-                supported.identifier,
-                record.pin,
-            )
-            record.state = OID4VCIExchangeRecord.STATE_OFFER_CREATED
-            await record.save(session, reason="Credential offer created")
+            if record.state == OID4VCIExchangeRecord.STATE_CREATED:
+                auth_server = await get_first_auth_server(session, context.profile)
+                record.code = await _create_pre_auth_code(
+                    context.profile,
+                    config,
+                    auth_server,
+                    record.refresh_id,
+                    supported.identifier,
+                    record.pin,
+                )
+                record.state = OID4VCIExchangeRecord.STATE_OFFER_CREATED
+                await record.save(session, reason="Credential offer created")
+            elif record.state != OID4VCIExchangeRecord.STATE_OFFER_CREATED:
+                raise web.HTTPBadRequest(
+                    reason="This exchange record has already been used."
+                )
     except (StorageError, BaseModelError) as err:
         raise web.HTTPBadRequest(reason=err.roll_up) from err
 
