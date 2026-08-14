@@ -9,6 +9,9 @@ from admin.repositories.tenant_repository import TenantRepository
 from admin.schemas.migration import MigrationAction, MigrationRequest
 from admin.services.alembic_service import run_tenant_migration
 from admin.utils.db_utils import resolve_tenant_urls
+from core.utils.logging import get_logger
+
+logger = get_logger(__name__)
 
 router = APIRouter(dependencies=[Depends(require_admin_auth)])
 
@@ -33,11 +36,17 @@ async def migrate_tenant(
                 sync_url=sync_url, schema=schema, action="upgrade", rev=rev
             )
         else:
+            if not body.confirm:
+                raise HTTPException(
+                    status_code=400,
+                    detail="downgrade requires confirm=true",
+                )
             rev = body.rev or "-1"
             run_tenant_migration(
                 sync_url=sync_url, schema=schema, action="downgrade", rev=rev
             )
     except Exception as ex:
-        raise HTTPException(status_code=500, detail=f"Alembic failed: {ex}") from ex
+        logger.exception("Alembic migration failed for tenant %s", uid)
+        raise HTTPException(status_code=500, detail="migration_failed") from ex
 
     return {"status": "ok", "action": body.action, "rev": rev, "tenant": uid}

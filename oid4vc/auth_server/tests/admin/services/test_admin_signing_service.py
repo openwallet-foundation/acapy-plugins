@@ -49,12 +49,14 @@ async def test_sign_tenant_jwt_success(monkeypatch):
         signing_service, "datetime", SimpleNamespace(now=lambda tz=None: now)
     )
     monkeypatch.setattr(signing_service, "decrypt_private_pem", lambda pem: "private-key")
-    monkeypatch.setattr(signing_service.JsonWebKey, "import_key", lambda pem: "jwk")
+    monkeypatch.setattr(signing_service.jwk, "import_key", lambda pem, kty=None: "jwk")
 
     class FakeJwt:
         @staticmethod
         def encode(header, claims, jwk):
-            return "token".encode()
+            return "token"
+
+        JWTClaimsRegistry = None
 
     monkeypatch.setattr(signing_service, "jwt", FakeJwt)
 

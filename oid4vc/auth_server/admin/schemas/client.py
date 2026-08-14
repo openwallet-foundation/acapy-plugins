@@ -13,15 +13,15 @@ class ClientIn(BaseModel):
         default=None,
     )
     client_auth_method: str | None = Field(
-        description="Auth method: client_secret_basic|client_secret_jwt|private_key_jwt",
+        description="Auth method: client_secret_basic|private_key_jwt",
         default=None,
     )
     client_auth_signing_alg: str | None = Field(
-        description="e.g., ES256 or HS256",
+        description="e.g., ES256",
         default=None,
     )
     client_secret: str | None = Field(
-        description="For client_secret_basic or client_secret_jwt",
+        description="For client_secret_basic",
         default=None,
     )
     jwks: dict[str, Any] | None = Field(

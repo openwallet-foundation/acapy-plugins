@@ -71,3 +71,26 @@ class TenantKey(Base):
     updated_at: Mapped[datetime | None] = mapped_column(
         TIMESTAMP(timezone=True), nullable=True, onupdate=func.now()
     )
+
+
+class WalletProvider(Base):
+    """Trusted wallet provider for attestation verification (allow list)."""
+
+    __tablename__ = "wallet_provider"
+    __table_args__ = (
+        UniqueConstraint("iss", name="uq_wallet_provider_iss"),
+        {"schema": settings.DB_SCHEMA},
+    )
+
+    id: Mapped[int] = mapped_column(BigInteger, primary_key=True, autoincrement=True)
+    iss: Mapped[str] = mapped_column(Text, nullable=False)
+    jwks: Mapped[dict | None] = mapped_column(JSONB, nullable=True)
+    jwks_uri: Mapped[str | None] = mapped_column(Text, nullable=True)
+    name: Mapped[str | None] = mapped_column(Text, nullable=True)
+    active: Mapped[bool] = mapped_column(Boolean, nullable=False, default=True)
+    created_at: Mapped[datetime] = mapped_column(
+        TIMESTAMP(timezone=True), nullable=False, default=func.now()
+    )
+    updated_at: Mapped[datetime | None] = mapped_column(
+        TIMESTAMP(timezone=True), nullable=True, onupdate=func.now()
+    )

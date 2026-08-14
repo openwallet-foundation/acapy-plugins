@@ -1,21 +1,29 @@
-"""Per-tenant dependencies: DB session + JWKS, cached by tenant uid via Admin API."""
+"""Tenant deps: DB session + JWKS resolution, cached per uid."""
 
+import re
 import time
-from functools import lru_cache
+from collections import OrderedDict
 from typing import AsyncIterator
 
 import httpx
 from fastapi import Depends, HTTPException, Request
 from sqlalchemy import text
-from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
+from sqlalchemy.ext.asyncio import AsyncSession
 
-from core.observability.observability import current_request_id
+from core.db.cached_session import (
+    _session_factory,
+    dispose_cached_engines,
+)
+from core.observability.observability import internal_api_headers
 from core.utils.retry import with_retries
 from tenant.config import settings
 
-# In-memory cache: uid -> (timestamp, ctx)
-_CACHE: dict[str, tuple[float, dict]] = {}
+# In-memory cache: uid -> (timestamp, ctx), LRU-bounded
+_CACHE: OrderedDict[str, tuple[float, dict]] = OrderedDict()
+_MAX_CACHE = 256
 _TTL = settings.CONTEXT_CACHE_TTL
+# Allowlist blocks / \ % and null — the only chars that enable URL path traversal
+_UID_RE = re.compile(r"^[a-zA-Z0-9._-]{1,64}$")
 
 
 @with_retries(
@@ -33,7 +41,7 @@ _TTL = settings.CONTEXT_CACHE_TTL
     ),
 )
 async def _get_admin_json(client: httpx.AsyncClient, url: str, headers: dict) -> dict:
-    """GET JSON from Admin with retries on transient errors."""
+    """GET JSON from admin; retries configured by decorator."""
     res = await client.get(url, headers=headers)
     if res.status_code >= 500:
         raise httpx.HTTPStatusError("server error", request=res.request, response=res)
@@ -42,21 +50,19 @@ async def _get_admin_json(client: httpx.AsyncClient, url: str, headers: dict) ->
 
 
 async def _fetch_tenant_ctx(uid: str | None = None) -> dict:
-    """Fetch DB and JWKS from Admin and update cache."""
+    """Fetch tenant DB + JWKS from admin, update local cache."""
     if not uid:
         raise HTTPException(status_code=400, detail="Missing tenant uid.")
+    if not _UID_RE.match(uid):
+        raise HTTPException(status_code=400, detail="invalid_tenant")
 
     base = f"{settings.INTERNAL_BASE_URL}/tenants/{uid}"
-    headers = {"Authorization": f"Bearer {settings.INTERNAL_AUTH_TOKEN}"}
-    rid = current_request_id()
-    if rid:
-        headers["X-Request-ID"] = rid
+    headers = internal_api_headers(settings.INTERNAL_AUTH_TOKEN)
 
     async with httpx.AsyncClient(timeout=10) as client:
         try:
             db_data = await _get_admin_json(client, f"{base}/db", headers)
         except Exception as ex:
-            # Fatal: cannot operate without DB coordinates for the tenant
             raise HTTPException(
                 status_code=503, detail="admin_tenant_db_service_unavailable"
             ) from ex
@@ -76,18 +82,21 @@ async def _fetch_tenant_ctx(uid: str | None = None) -> dict:
         "jwks": jwks_data,
     }
     _CACHE[uid] = (time.time(), ctx)
+    _CACHE.move_to_end(uid)
+    while len(_CACHE) > _MAX_CACHE:
+        _CACHE.popitem(last=False)
     return ctx
 
 
-async def _load_tenant_ctx(request: Request, force: bool = False) -> dict:
-    """Resolve tenant ctx (db + jwks) from Admin and cache by TTL."""
+async def _load_tenant_ctx(request: Request) -> dict:
+    """Load tenant context from cache or fetch from admin."""
     uid: str | None = request.path_params.get("uid")
     if not uid:
         raise HTTPException(status_code=400, detail="tenant uid missing in path")
 
     now = time.time()
     cached = _CACHE.get(uid)
-    if not force and cached is not None:
+    if cached is not None:
         ts, ctx = cached
         if now - ts < _TTL:
             return ctx
@@ -96,7 +105,7 @@ async def _load_tenant_ctx(request: Request, force: bool = False) -> dict:
 
 
 async def get_tenant_ctx(uid: str, key: str) -> dict:
-    """Return a specific section of the tenant ctx ("db" or "jwks")."""
+    """Get a section of tenant context by key."""
     now = time.time()
     cached = _CACHE.get(uid)
     if cached is not None:
@@ -114,7 +123,7 @@ async def get_tenant_ctx(uid: str, key: str) -> dict:
 
 
 async def get_tenant_jwks(uid: str) -> dict:
-    """Helper for `.well-known/jwks.json`."""
+    """Return normalized JWKS for a tenant."""
     jwks = await get_tenant_ctx(uid, "jwks")
     # Pass through if already spec-compliant; otherwise normalize sensibly
     if isinstance(jwks, dict) and isinstance(jwks.get("keys"), list):
@@ -124,26 +133,27 @@ async def get_tenant_jwks(uid: str) -> dict:
     return {"keys": []}
 
 
-@lru_cache(maxsize=256)
-def _sessionmaker_for(url: str, schema: str) -> async_sessionmaker[AsyncSession]:
-    """Cache a sessionmaker per (url, schema)."""
-    engine = create_async_engine(
-        url,
-        pool_pre_ping=True,
-        connect_args={"server_settings": {"search_path": schema}},
-    )
-    return async_sessionmaker(engine, expire_on_commit=False)
+_MAX_ENGINES = 128
+
+
+def _sessionmaker_for(url: str, schema: str):
+    """Delegate to shared engine cache with tenant-sized limit."""
+    return _session_factory(url, schema, max_engines=_MAX_ENGINES)
+
+
+async def dispose_engines() -> None:
+    """Shutdown hook — dispose pooled engines."""
+    await dispose_cached_engines()
 
 
 async def get_db_session(
     request: Request,
     ctx: dict = Depends(_load_tenant_ctx),
 ) -> AsyncIterator[AsyncSession]:
-    """FastAPI dependency to inject an AsyncSession per request."""
+    """Yield a per-request async DB session for the tenant."""
 
     def open_session(db: dict) -> AsyncSession:
-        sm = _sessionmaker_for(db["url"], db["schema"])  # cached by (url, schema)
-        return sm()
+        return _sessionmaker_for(db["url"], db["schema"])()
 
     db = ctx["db"]
     session = open_session(db)
@@ -151,7 +161,7 @@ async def get_db_session(
         try:
             await session.execute(text("SELECT 1"))
         except Exception:
-            # Close the broken session and refresh ctx, then retry once
+            # Stale connection — refresh ctx and retry once
             await session.close()
             uid = request.path_params.get("uid")
             fresh = await _fetch_tenant_ctx(uid)
@@ -159,5 +169,8 @@ async def get_db_session(
             await session.execute(text("SELECT 1"))
         # Yield exactly once
         yield session
+    except Exception:
+        await session.rollback()
+        raise
     finally:
         await session.close()

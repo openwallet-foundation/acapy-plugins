@@ -1,6 +1,6 @@
 """OIDC discovery and JWKS endpoints (thin router)."""
 
-from fastapi import APIRouter, Path, Request, Response
+from fastapi import APIRouter, HTTPException, Path, Request, Response
 from fastapi.responses import ORJSONResponse
 
 from tenant.config import settings
@@ -21,9 +21,12 @@ async def openid_configuration(
     request: Request, response: Response, uid: str = Path(...)
 ):
     """Return OIDC discovery for the tenant."""
-    payload = build_oauth_auth_server(uid, request)
+    try:
+        payload = await build_oauth_auth_server(uid, request)
+    except HTTPException:
+        raise HTTPException(status_code=404, detail="tenant_not_found")
     ttl = settings.CONTEXT_CACHE_TTL
-    response.headers["Cache-Control"] = f"public, max-age={ttl}"
+    response.headers["Cache-Control"] = f"private, max-age={ttl}"
     return payload
 
 
@@ -38,7 +41,10 @@ async def jwks(
     uid: str = Path(...),
 ):
     """Return JWKS (RFC 7517) for the tenant."""
-    keys = await load_tenant_jwks(uid)
+    try:
+        keys = await load_tenant_jwks(uid)
+    except HTTPException:
+        raise HTTPException(status_code=404, detail="tenant_not_found")
     ttl = settings.CONTEXT_CACHE_TTL
     response.headers["Cache-Control"] = f"public, max-age={ttl}"
     return keys
