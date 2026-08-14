@@ -34,7 +34,7 @@ async def test_introspect_returns_active_payload(monkeypatch):
             "realm": "tenant-1",
             "iss": "https://issuer",
             "authorization_details": [{"type": "openid_credential"}],
-            "amr": ["dpop"],
+            "amr": ["att-pop"],
             "attestation": {"type": "device"},
             "scope": "openid",
             "c_nonce": "nonce",
@@ -54,7 +54,7 @@ async def test_introspect_returns_active_payload(monkeypatch):
 
     assert resp["active"] is True
     assert resp["sub"] == "subject-1"
-    assert resp["token_type"] == "DPoP"
+    assert resp["token_type"] == "Bearer"
     assert resp["realm"] == "tenant-1"
     assert resp["iss"] == "https://issuer"
     assert resp["authorization_details"] == [{"type": "openid_credential"}]

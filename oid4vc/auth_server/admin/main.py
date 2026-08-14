@@ -10,7 +10,7 @@ from sqlalchemy import text
 
 from admin.config import settings
 from admin.deps import db_manager
-from admin.routers import internal, migrations, tenants
+from admin.routers import internal, migrations, tenants, wallet_providers
 from core.observability.observability import (
     RequestContextMiddleware,
     setup_structlog_json,
@@ -26,6 +26,11 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
     # Startup logic
     setup_structlog_json()
     db_manager.init(settings.DB_URL)
+    # Load wallet providers into JWKS cache
+    async with db_manager.session() as session:
+        from admin.services.internal_service import load_wallet_providers
+
+        await load_wallet_providers(session)
     # Warn if encryption keys are not configured; secrets will be stored in plaintext
     try:
         active_ver = str(getattr(settings, "KEY_ENC_VERSION", 1))
@@ -64,6 +69,7 @@ app.add_middleware(
 app.add_middleware(RequestContextMiddleware)
 
 app.include_router(tenants.router, prefix="/admin", tags=["tenants"])
+app.include_router(wallet_providers.router, prefix="/admin", tags=["wallet-providers"])
 app.include_router(migrations.router, prefix="/admin", tags=["migrations"])
 app.include_router(internal.router, prefix="/internal", tags=["internal"])
 
@@ -76,11 +82,10 @@ async def health_check():
             await session.execute(text("SELECT 1"))
         return ORJSONResponse(content={"status": "ok"}, status_code=status.HTTP_200_OK)
     except Exception as ex:
-        error_message = f"database_unavailable: {ex}"
-        logger.error(f"Health check failed: {error_message}")
+        logger.error("Health check failed: %s", ex)
         return ORJSONResponse(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            content={"status": "fail", "error": error_message},
+            content={"status": "fail", "error": "database_unavailable"},
         )
 
 

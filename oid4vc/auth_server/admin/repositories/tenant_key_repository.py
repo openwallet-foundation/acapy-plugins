@@ -1,5 +1,8 @@
 """Data-access layer for tenant keys."""
 
+from datetime import datetime, timezone
+
+from sqlalchemy import update
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from admin.models import TenantKey
@@ -18,9 +21,6 @@ class TenantKeyRepository:
 
     async def update_status(self, tenant_id: int, kid: str, status: str) -> int:
         """Update key status for a tenant key; returns number of rows changed."""
-        from datetime import datetime, timezone
-
-        from sqlalchemy import update
 
         stmt = (
             update(TenantKey)

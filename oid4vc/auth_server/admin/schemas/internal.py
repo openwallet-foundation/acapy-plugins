@@ -1,20 +1,20 @@
-"""Schemas for signing JWTs for tenants."""
+"""Internal API schemas."""
 
 from typing import Literal
 from pydantic import BaseModel
 
 
 class JwtSignRequest(BaseModel):
-    """Payload for signing a JWT."""
+    """JWT signing input."""
 
-    alg: Literal["ES256"] | None = None
+    alg: Literal["ES256", "ES384", "EdDSA"] | None = None
     kid: str | None = None
     claims: dict
     ttl_seconds: int | None = None  # if exp not in claims
 
 
 class JwtSignResponse(BaseModel):
-    """Response for signing a JWT."""
+    """Signed JWT output."""
 
     jwt: str
     kid: str
@@ -23,13 +23,13 @@ class JwtSignResponse(BaseModel):
 
 
 class TenantDbResponse(BaseModel):
-    """Response model for tenant database connection."""
+    """Tenant DB coordinates."""
 
     db_url: str
     db_schema: str
 
 
 class TenantJwksResponse(BaseModel):
-    """Response model for tenant JWKS (JSON Web Key Set)."""
+    """Tenant public keyset."""
 
     keys: list[dict]

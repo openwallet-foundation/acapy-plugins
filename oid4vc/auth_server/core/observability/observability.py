@@ -74,7 +74,7 @@ class RequestContextMiddleware(BaseHTTPMiddleware):
     """Bind request_id/method/path to logs and set X-Request-ID."""
 
     def __init__(self, app, header_name: str = "X-Request-ID") -> None:
-        """Constructor."""
+        """Attach X-Request-ID propagation."""
         super().__init__(app)
         self.header_name = header_name
         self._logger = logging.getLogger(__name__)
@@ -84,7 +84,7 @@ class RequestContextMiddleware(BaseHTTPMiddleware):
         request: Request,
         call_next: typing.Callable[[Request], typing.Awaitable[Response]],
     ):
-        """Bind request_id to logs and set X-Request-ID header."""
+        """Bind request context and propagate X-Request-ID."""
         request_id = request.headers.get(self.header_name)
         if not request_id:
             request_id = str(uuid.uuid4())
@@ -143,3 +143,12 @@ def current_request_id(default: str | None = None) -> str | None:
         except Exception:
             return default
     return default
+
+
+def internal_api_headers(token: str) -> dict[str, str]:
+    """Build headers for internal API calls (auth + request-ID propagation)."""
+    headers = {"Authorization": f"Bearer {token}"}
+    rid = current_request_id()
+    if rid:
+        headers["X-Request-ID"] = rid
+    return headers
