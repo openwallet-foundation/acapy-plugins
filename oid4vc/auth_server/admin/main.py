@@ -25,7 +25,12 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
     """Lifespan event handler."""
     # Startup logic
     setup_structlog_json()
-    db_manager.init(settings.DB_URL)
+    db_manager.init(
+        settings.DB_URL,
+        pool_size=settings.DB_POOL_SIZE,
+        max_overflow=settings.DB_MAX_OVERFLOW,
+        pool_recycle=settings.DB_POOL_RECYCLE,
+    )
     # Load wallet providers into JWKS cache
     async with db_manager.session() as session:
         from admin.services.internal_service import load_wallet_providers

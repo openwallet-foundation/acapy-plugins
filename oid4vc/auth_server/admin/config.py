@@ -28,6 +28,10 @@ class Settings(BaseSettings):
     DB_SCHEMA: str = "admin"
     DB_USER: str = "postgres"
     DB_PASSWORD: str = "postgres"
+    # Sized per replica: total connections = replicas x (size + overflow)
+    DB_POOL_SIZE: int = 5
+    DB_MAX_OVERFLOW: int = 10
+    DB_POOL_RECYCLE: int = 1800
 
     # Tenant database
     TENANT_DB_NAME: str = "auth_server_tenant"
