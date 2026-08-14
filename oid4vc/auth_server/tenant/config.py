@@ -35,6 +35,10 @@ class Settings(BaseSettings):
     DB_DRIVER_SYNC: str = "postgresql+psycopg"
     DB_HOST: str = "localhost"
     DB_PORT: int = 5432
+    # Sized per replica: total connections = replicas x tenant DBs x (size + overflow)
+    DB_POOL_SIZE: int = 5
+    DB_MAX_OVERFLOW: int = 10
+    DB_POOL_RECYCLE: int = 1800
 
     # Networking
     TRUSTED_NETWORKS: list[str] = []

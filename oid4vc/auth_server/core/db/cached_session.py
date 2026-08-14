@@ -17,7 +17,13 @@ _DEFAULT_MAX = 64
 
 
 def _session_factory(
-    async_url: str, schema: str, *, max_engines: int = _DEFAULT_MAX
+    async_url: str,
+    schema: str,
+    *,
+    max_engines: int = _DEFAULT_MAX,
+    pool_size: int = 5,
+    max_overflow: int = 10,
+    pool_recycle: int = 1800,
 ) -> async_sessionmaker[AsyncSession]:
     """Get or create a sessionmaker, evicting LRU engines over max."""
     key = (async_url, schema)
@@ -27,6 +33,9 @@ def _session_factory(
         _engines[key] = create_async_engine(
             async_url,
             pool_pre_ping=True,
+            pool_size=pool_size,
+            max_overflow=max_overflow,
+            pool_recycle=pool_recycle,
             connect_args={"server_settings": {"search_path": schema}},
         )
         while len(_engines) > max_engines:

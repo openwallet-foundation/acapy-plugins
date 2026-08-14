@@ -138,7 +138,14 @@ _MAX_ENGINES = 128
 
 def _sessionmaker_for(url: str, schema: str):
     """Delegate to shared engine cache with tenant-sized limit."""
-    return _session_factory(url, schema, max_engines=_MAX_ENGINES)
+    return _session_factory(
+        url,
+        schema,
+        max_engines=_MAX_ENGINES,
+        pool_size=settings.DB_POOL_SIZE,
+        max_overflow=settings.DB_MAX_OVERFLOW,
+        pool_recycle=settings.DB_POOL_RECYCLE,
+    )
 
 
 async def dispose_engines() -> None:
