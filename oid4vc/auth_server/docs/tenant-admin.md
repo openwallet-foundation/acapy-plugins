@@ -66,6 +66,8 @@ sequenceDiagram
   - DELETE `/admin/tenants/{uid}/clients/{client_id}`
 - Migrations
   - POST `/admin/tenants/{uid}/migrations`
+    - Body: `{ "action": "upgrade"|"downgrade", "rev": "<optional>", "confirm": true }`
+    - Downgrade requires `confirm: true` (returns 400 otherwise)
 
 ### 🔑 Key Management
 
@@ -107,11 +109,10 @@ graph
     PRE_AUTH_CODE[PRE_AUTH_CODE]
     ACCESS_TOKEN[ACCESS_TOKEN]
     REFRESH_TOKEN[REFRESH_TOKEN]
-    DPOP_JTI[DPOP_JTI]
+    JTI_SEEN[JTI_SEEN]
     SUBJECT -->|has| PRE_AUTH_CODE
     SUBJECT -->|has| ACCESS_TOKEN
     SUBJECT -->|has| REFRESH_TOKEN
-    SUBJECT -->|has| DPOP_JTI
     TENANT_ANCHOR((( )))
   end
 

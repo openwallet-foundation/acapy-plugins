@@ -8,6 +8,8 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from tenant.services import token_service
 
+_FAR_FUTURE = datetime(2099, 1, 1, tzinfo=timezone.utc)
+
 
 class DummySession(AsyncSession):
     def __init__(self):
@@ -26,6 +28,8 @@ async def test_issue_by_pre_auth_code_excludes_realm_from_claims(monkeypatch):
     pac = SimpleNamespace(
         id=1,
         tx_code=None,
+        used=False,
+        expires_at=_FAR_FUTURE,
         subject=SimpleNamespace(uid="sub-123"),
         subject_id=10,
         authorization_details=[{"type": "openid_credential", "format": "mso_mdoc"}],
@@ -275,6 +279,8 @@ async def test_issue_by_pre_auth_code_includes_nonce_when_enabled(monkeypatch):
     pac = SimpleNamespace(
         id=5,
         tx_code=None,
+        used=False,
+        expires_at=_FAR_FUTURE,
         subject=SimpleNamespace(uid="sub-789"),
         subject_id=77,
         authorization_details=None,
@@ -458,3 +464,114 @@ async def test_rotate_by_refresh_token_preserves_authorization_details(monkeypat
     refresh_meta = refresh_repo_instance.created_with.get("token_metadata")
     assert refresh_meta is not None
     assert refresh_meta["realm"] == "tenant-rot"
+
+
+def _rotation_stubs(monkeypatch, prev_access, *, now):
+    """Wire the repositories and helpers used by rotate_by_refresh_token."""
+    access_exp = now + timedelta(minutes=10)
+    refresh_exp = now + timedelta(days=3)
+
+    class StubAccessRepo:
+        def __init__(self, _db):
+            self.created_with = None
+
+        async def create(self, **kwargs):
+            self.created_with = kwargs
+            return SimpleNamespace(id=88, token=kwargs["token"])
+
+        async def get_by_id(self, _access_token_id):
+            return prev_access
+
+    class StubRefreshRepo:
+        def __init__(self, _db):
+            self.created_with = None
+
+        async def consume_valid(self, token_hash, now):
+            return (55, prev_access.id)
+
+        async def create(self, **kwargs):
+            self.created_with = kwargs
+            return SimpleNamespace()
+
+    monkeypatch.setattr(token_service, "AccessTokenRepository", StubAccessRepo)
+    monkeypatch.setattr(token_service, "RefreshTokenRepository", StubRefreshRepo)
+    monkeypatch.setattr(token_service, "hash_token", lambda value: f"hash-{value}")
+    monkeypatch.setattr(token_service, "utcnow", lambda: now)
+    monkeypatch.setattr(token_service, "compute_access_exp", lambda _now: access_exp)
+    monkeypatch.setattr(token_service, "compute_refresh_exp", lambda _now: refresh_exp)
+    monkeypatch.setattr(token_service, "new_refresh_token", lambda: "refresh-new")
+    monkeypatch.setattr(token_service.settings, "INCLUDE_NONCE", False, raising=False)
+    monkeypatch.setattr(
+        token_service, "remote_sign_jwt", AsyncMock(return_value={"jwt": "new-signed"})
+    )
+
+
+async def test_rotate_requires_matching_attestation_key(monkeypatch):
+    """draft-07 10.3: refreshing MUST present the bound client instance key."""
+    now = datetime(2025, 2, 2, tzinfo=timezone.utc)
+    prev_access = SimpleNamespace(
+        id=77,
+        subject=SimpleNamespace(uid="sub-456"),
+        token_metadata={"realm": "tenant-2"},
+        cnf_jkt="bound-jkt",
+    )
+    _rotation_stubs(monkeypatch, prev_access, now=now)
+
+    with pytest.raises(HTTPException) as exc_info:
+        await token_service.TokenService.rotate_by_refresh_token(
+            db=DummySession(),
+            uid="tenant-2",
+            refresh_token_value="existing-refresh",
+            realm="tenant-2",
+            attestation={"cnf_jkt": "different-jkt"},
+        )
+    assert exc_info.value.status_code == 401
+
+
+async def test_rotate_rejects_missing_attestation_when_bound(monkeypatch):
+    """A bound refresh token cannot be redeemed without any attestation."""
+    now = datetime(2025, 2, 2, tzinfo=timezone.utc)
+    prev_access = SimpleNamespace(
+        id=77,
+        subject=SimpleNamespace(uid="sub-456"),
+        token_metadata={"realm": "tenant-2"},
+        cnf_jkt="bound-jkt",
+    )
+    _rotation_stubs(monkeypatch, prev_access, now=now)
+
+    with pytest.raises(HTTPException) as exc_info:
+        await token_service.TokenService.rotate_by_refresh_token(
+            db=DummySession(),
+            uid="tenant-2",
+            refresh_token_value="existing-refresh",
+            realm="tenant-2",
+            attestation=None,
+        )
+    assert exc_info.value.status_code == 401
+
+
+async def test_rotate_accepts_matching_attestation_key(monkeypatch):
+    """Presenting the bound key rotates successfully and stays bound."""
+    now = datetime(2025, 2, 2, tzinfo=timezone.utc)
+    prev_access = SimpleNamespace(
+        id=77,
+        subject=SimpleNamespace(uid="sub-456"),
+        token_metadata={"realm": "tenant-2"},
+        cnf_jkt="bound-jkt",
+    )
+    _rotation_stubs(monkeypatch, prev_access, now=now)
+
+    (
+        access_token,
+        refresh_token,
+        _meta,
+    ) = await token_service.TokenService.rotate_by_refresh_token(
+        db=DummySession(),
+        uid="tenant-2",
+        refresh_token_value="existing-refresh",
+        realm="tenant-2",
+        attestation={"cnf_jkt": "bound-jkt"},
+    )
+
+    assert access_token.token == "new-signed"
+    assert refresh_token == "refresh-new"

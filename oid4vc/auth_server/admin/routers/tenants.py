@@ -15,7 +15,7 @@ router = APIRouter(dependencies=[Depends(require_admin_auth)])
 
 @router.get("/tenants", response_model=list[TenantOut])
 async def list_tenants(db: AsyncSession = Depends(get_db_session)):
-    """List tenants via repository."""
+    """List tenants."""
     svc = TenantService(db)
     rows = await svc.list()
     return [TenantOut.model_validate(r) for r in rows]
@@ -23,7 +23,7 @@ async def list_tenants(db: AsyncSession = Depends(get_db_session)):
 
 @router.get("/tenants/{uid}", response_model=TenantOut)
 async def get_tenant(uid: str, db: AsyncSession = Depends(get_db_session)):
-    """Get a specific tenant via repository."""
+    """Get a tenant by uid."""
     svc = TenantService(db)
     row = await svc.get(uid)
     if not row:
@@ -33,7 +33,7 @@ async def get_tenant(uid: str, db: AsyncSession = Depends(get_db_session)):
 
 @router.post("/tenants", response_model=TenantOut, status_code=201)
 async def create_tenant(body: TenantIn, db: AsyncSession = Depends(get_db_session)):
-    """Create a new tenant via repository."""
+    """Create a tenant."""
     svc = TenantService(db)
     row = await svc.create(body)
     return TenantOut.model_validate(row)
@@ -43,7 +43,7 @@ async def create_tenant(body: TenantIn, db: AsyncSession = Depends(get_db_sessio
 async def update_tenant(
     uid: str, body: TenantIn, db: AsyncSession = Depends(get_db_session)
 ):
-    """Update a tenant via repository."""
+    """Update a tenant."""
     svc = TenantService(db)
     await svc.update(uid, body)
     return {"status": "updated", "uid": uid}
@@ -51,7 +51,7 @@ async def update_tenant(
 
 @router.delete("/tenants/{uid}")
 async def delete_tenant(uid: str, db: AsyncSession = Depends(get_db_session)):
-    """Delete a tenant via repository."""
+    """Delete a tenant."""
     svc = TenantService(db)
     deleted = await svc.delete(uid)
     if deleted == 0:
@@ -66,7 +66,7 @@ async def delete_tenant(uid: str, db: AsyncSession = Depends(get_db_session)):
 
 @router.get("/tenants/{uid}/keys")
 async def get_tenant_keys(uid: str, db: AsyncSession = Depends(get_db_session)):
-    """Get jwks for a tenant via service."""
+    """Get JWKS for a tenant."""
     return await get_tenant_jwks(db, uid)
 
 
@@ -74,7 +74,7 @@ async def get_tenant_keys(uid: str, db: AsyncSession = Depends(get_db_session)):
 async def generate_tenant_keypair(
     uid: str, body: KeyGenIn, db: AsyncSession = Depends(get_db_session)
 ):
-    """Generate a keypair for a tenant via service."""
+    """Generate a signing keypair."""
     svc = TenantService(db)
     return await svc.generate_keypair(uid, body)
 
@@ -98,7 +98,7 @@ async def update_key_status(
 
 @router.get("/tenants/{uid}/clients", response_model=list[ClientOut])
 async def list_clients(uid: str, db: AsyncSession = Depends(get_db_session)):
-    """List clients via repository."""
+    """List clients."""
     svc = TenantService(db)
     rows = await svc.list_clients(uid)
     return [ClientOut.model_validate(r) for r in rows]
@@ -108,7 +108,7 @@ async def list_clients(uid: str, db: AsyncSession = Depends(get_db_session)):
 async def get_client(
     uid: str, client_id: str, db: AsyncSession = Depends(get_db_session)
 ):
-    """Get a specific client via repository."""
+    """Get a client by ID."""
     svc = TenantService(db)
     row = await svc.get_client(uid, client_id)
     if not row:
@@ -120,7 +120,7 @@ async def get_client(
 async def create_client(
     uid: str, body: ClientIn, db: AsyncSession = Depends(get_db_session)
 ):
-    """Create a new client via repository."""
+    """Create a client."""
     svc = TenantService(db)
     row = await svc.create_client(uid, body)
     return ClientOut.model_validate(row)
@@ -130,7 +130,7 @@ async def create_client(
 async def update_client(
     uid: str, client_id: str, body: ClientIn, db: AsyncSession = Depends(get_db_session)
 ):
-    """Update a client via repository."""
+    """Update a client."""
     svc = TenantService(db)
     await svc.update_client(uid, client_id, body)
     return {"status": "updated", "client_id": client_id}
@@ -140,7 +140,7 @@ async def update_client(
 async def delete_client(
     uid: str, client_id: str, db: AsyncSession = Depends(get_db_session)
 ):
-    """Delete a client via repository."""
+    """Delete a client."""
     svc = TenantService(db)
     deleted = await svc.delete_client(uid, client_id)
     if deleted == 0:

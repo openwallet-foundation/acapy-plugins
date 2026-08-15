@@ -16,13 +16,20 @@ class DatabaseSessionManager:
     """Async SQLAlchemy session manager."""
 
     def __init__(self, *, search_path: str | None = None) -> None:
-        """Constructor."""
+        """Set up with optional schema search_path."""
         self._engine: AsyncEngine | None = None
         self._sessionmaker: async_sessionmaker[AsyncSession] | None = None
         self._search_path = search_path
 
-    def init(self, url: str) -> None:
-        """Initialize engine and sessionmaker."""
+    def init(
+        self,
+        url: str,
+        *,
+        pool_size: int = 5,
+        max_overflow: int = 10,
+        pool_recycle: int = 1800,
+    ) -> None:
+        """Create engine and bind sessionmaker."""
         connect_args = {}
         if self._search_path:
             connect_args["server_settings"] = {"search_path": self._search_path}
@@ -30,6 +37,9 @@ class DatabaseSessionManager:
         self._engine = create_async_engine(
             url,
             pool_pre_ping=True,
+            pool_size=pool_size,
+            max_overflow=max_overflow,
+            pool_recycle=pool_recycle,
             connect_args=connect_args or None,
             future=True,
         )

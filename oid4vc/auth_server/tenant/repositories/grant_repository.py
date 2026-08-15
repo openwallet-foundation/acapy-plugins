@@ -45,6 +45,30 @@ class GrantRepository:
         res = await self.db.execute(stmt)
         return bool(res.rowcount and res.rowcount > 0)
 
+    async def increment_tx_code_attempts(self, pac_id: int, max_attempts: int) -> int:
+        """Bump attempt counter; burns the code if limit hit. Returns new count."""
+        stmt = (
+            update(PreAuthCode)
+            .where(
+                PreAuthCode.id == pac_id,
+                PreAuthCode.used.is_(False),
+            )
+            .values(tx_code_attempts=PreAuthCode.tx_code_attempts + 1)
+            .returning(PreAuthCode.tx_code_attempts)
+        )
+        res = await self.db.execute(stmt)
+        new_count = res.scalar_one_or_none()
+        if new_count is None:
+            return max_attempts  # already consumed
+        if new_count >= max_attempts:
+            consume_stmt = (
+                update(PreAuthCode)
+                .where(PreAuthCode.id == pac_id, PreAuthCode.used.is_(False))
+                .values(used=True)
+            )
+            await self.db.execute(consume_stmt)
+        return new_count
+
     async def create_pre_auth_code(
         self,
         *,

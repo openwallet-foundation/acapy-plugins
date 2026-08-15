@@ -4,7 +4,7 @@ from typing import Any
 
 import httpx
 
-from core.observability.observability import current_request_id
+from core.observability.observability import internal_api_headers
 from core.utils.retry import with_retries
 from tenant.config import settings
 
@@ -31,10 +31,7 @@ async def remote_sign_jwt(
     payload: dict[str, Any] = {"claims": claims}
     if kid:
         payload["kid"] = kid
-    headers = {"Authorization": f"Bearer {settings.INTERNAL_AUTH_TOKEN}"}
-    rid = current_request_id()
-    if rid:
-        headers["X-Request-ID"] = rid
+    headers = internal_api_headers(settings.INTERNAL_AUTH_TOKEN)
     async with httpx.AsyncClient(timeout=10.0) as client:
         res = await client.post(url, json=payload, headers=headers)
         # 4xx and 5xx will be handled by decorator's should_retry predicate
