@@ -1343,7 +1343,7 @@
 <a id="__codelineno-0-12" name="__codelineno-0-12" href="#__codelineno-0-12"></a><span class="k">USER</span><span class="w"> </span><span class="s">$user</span>
 <a id="__codelineno-0-13" name="__codelineno-0-13" href="#__codelineno-0-13"></a><span class="k">COPY</span><span class="w"> </span>./configs<span class="w"> </span>configs
 <a id="__codelineno-0-14" name="__codelineno-0-14" href="#__codelineno-0-14"></a>
-<a id="__codelineno-0-15" name="__codelineno-0-15" href="#__codelineno-0-15"></a><span class="k">ENTRYPOINT</span><span class="w"> </span><span class="p">[</span><span class="s2">&quot;aca-py&quot;</span><span class="p">]</span>
+<a id="__codelineno-0-15" name="__codelineno-0-15" href="#__codelineno-0-15"></a><span class="k">ENTRYPOINT</span><span class="w"> </span><span class="p">[</span><span class="s2">"aca-py"</span><span class="p">]</span>
 </code></pre></div>
 <p>More complete example (including complete dependencies setup) can be found <a href="https://github.com/openwallet-foundation/acapy-plugins/blob/main/hedera/docker/Dockerfile">in docker folder</a> </p>
 <h3 id="create-a-did">Create a DID<a class="headerlink" href="#create-a-did" title="Permanent link">&para;</a></h3>
@@ -1354,19 +1354,19 @@
 <a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a>seed - DID owner key seed
 </code></pre></div></p>
 <h4 id="example-request">Example request<a class="headerlink" href="#example-request" title="Permanent link">&para;</a></h4>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a>curl -X &#39;POST&#39; \
-<a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a>  &#39;{acapy_url}/hedera/did/register&#39; \
-<a id="__codelineno-2-3" name="__codelineno-2-3" href="#__codelineno-2-3"></a>  -H &#39;accept: application/json&#39; \
-<a id="__codelineno-2-4" name="__codelineno-2-4" href="#__codelineno-2-4"></a>  -H &#39;Content-Type: application/json&#39; \
-<a id="__codelineno-2-5" name="__codelineno-2-5" href="#__codelineno-2-5"></a>  -d &#39;{
-<a id="__codelineno-2-6" name="__codelineno-2-6" href="#__codelineno-2-6"></a>  &quot;key_type&quot;: &quot;Ed25519&quot;
-<a id="__codelineno-2-7" name="__codelineno-2-7" href="#__codelineno-2-7"></a>}&#39;
+<div class="highlight"><pre><span></span><code><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a>curl -X 'POST' \
+<a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a>  '{acapy_url}/hedera/did/register' \
+<a id="__codelineno-2-3" name="__codelineno-2-3" href="#__codelineno-2-3"></a>  -H 'accept: application/json' \
+<a id="__codelineno-2-4" name="__codelineno-2-4" href="#__codelineno-2-4"></a>  -H 'Content-Type: application/json' \
+<a id="__codelineno-2-5" name="__codelineno-2-5" href="#__codelineno-2-5"></a>  -d '{
+<a id="__codelineno-2-6" name="__codelineno-2-6" href="#__codelineno-2-6"></a>  "key_type": "Ed25519"
+<a id="__codelineno-2-7" name="__codelineno-2-7" href="#__codelineno-2-7"></a>}'
 </code></pre></div>
 <h4 id="example-response">Example response<a class="headerlink" href="#example-response" title="Permanent link">&para;</a></h4>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a><span class="p">{</span>
-<a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a><span class="w">  </span><span class="nt">&quot;did&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;did:hedera:testnet:zFQ5MrvqeoBzvCJJFUopRH7jfcAzCdD5ntBc1KnrAZ8F9_0.0.5466776&quot;</span><span class="p">,</span>
-<a id="__codelineno-3-3" name="__codelineno-3-3" href="#__codelineno-3-3"></a><span class="w">  </span><span class="nt">&quot;verkey&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;FQ5MrvqeoBzvCJJFUopRH7jfcAzCdD5ntBc1KnrAZ8F9&quot;</span><span class="p">,</span>
-<a id="__codelineno-3-4" name="__codelineno-3-4" href="#__codelineno-3-4"></a><span class="w">  </span><span class="nt">&quot;key_type&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;ed25519&quot;</span>
+<a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a><span class="w">  </span><span class="nt">"did"</span><span class="p">:</span><span class="w"> </span><span class="s2">"did:hedera:testnet:zFQ5MrvqeoBzvCJJFUopRH7jfcAzCdD5ntBc1KnrAZ8F9_0.0.5466776"</span><span class="p">,</span>
+<a id="__codelineno-3-3" name="__codelineno-3-3" href="#__codelineno-3-3"></a><span class="w">  </span><span class="nt">"verkey"</span><span class="p">:</span><span class="w"> </span><span class="s2">"FQ5MrvqeoBzvCJJFUopRH7jfcAzCdD5ntBc1KnrAZ8F9"</span><span class="p">,</span>
+<a id="__codelineno-3-4" name="__codelineno-3-4" href="#__codelineno-3-4"></a><span class="w">  </span><span class="nt">"key_type"</span><span class="p">:</span><span class="w"> </span><span class="s2">"ed25519"</span>
 <a id="__codelineno-3-5" name="__codelineno-3-5" href="#__codelineno-3-5"></a><span class="p">}</span>
 </code></pre></div>
 <h2 id="development">Development<a class="headerlink" href="#development" title="Permanent link">&para;</a></h2>
