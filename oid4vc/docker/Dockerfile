@@ -28,6 +28,8 @@ USER $user
 
 FROM python:3.13-bookworm
 
+ARG TARGETARCH
+
 WORKDIR /usr/src/app
 COPY --from=base /usr/src/app/.venv /usr/src/app/.venv
 ENV PATH="/usr/src/app/.venv/bin:$PATH"
@@ -39,8 +41,17 @@ COPY oid4vc/ oid4vc/
 ADD https://github.com/openwallet-foundation/acapy-plugins.git#main:status_list/status_list/ status_list/
 COPY docker/*.yml ./
 
+
 # Using isomdl library from indicio
-RUN pip install --no-cache-dir https://github.com/Indicio-tech/isomdl-uniffi/releases/download/v0.1.0-indicio.1/isomdl_uniffi-0.1.0-py3-none-manylinux_2_17_x86_64.manylinux2014_x86_64.whl
+RUN if [ "$TARGETARCH" = "amd64" ]; then \
+        pip install --no-cache-dir https://github.com/Indicio-tech/isomdl-uniffi/releases/download/v0.1.0-indicio.1/isomdl_uniffi-0.1.0-py3-none-manylinux_2_17_x86_64.manylinux2014_x86_64.whl; \
+    elif [ "$TARGETARCH" = "arm64" ]; then \
+        pip install --no-cache-dir https://github.com/Indicio-tech/isomdl-uniffi/releases/download/v0.1.0-indicio.1/isomdl_uniffi-0.1.0-py3-none-macosx_11_0_arm64.whl \
+    else \
+        echo "Unsupported architecture: $TARGETARCH"; \
+        exit 1; \
+    fi
+
 
 ENTRYPOINT ["/bin/bash", "-c", "aca-py \"$@\"", "--"]
 CMD ["start", "--arg-file", "default.yml"]
