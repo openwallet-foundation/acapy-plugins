@@ -1,11 +1,84 @@
+# Local WebVH server (not sandbox.bcvh.vonx.io).
+# did:webvh resolution is HTTPS-only, so Caddy terminates TLS for hostname "webvh".
+# Agents trust the test CA via SSL_CERT_FILE (bundle includes public CAs for tails).
+
+x-plugin-agent: &plugin-agent
+  image: plugin-image
+  build:
+    context: ..
+    dockerfile: docker/Dockerfile
+    args:
+      - install_flags=--no-interaction --with integration --extras aca-py
+  environment:
+    SSL_CERT_FILE: /certs/ca-bundle.pem
+    REQUESTS_CA_BUNDLE: /certs/ca-bundle.pem
+    CURL_CA_BUNDLE: /certs/ca-bundle.pem
+  volumes:
+    - webvh-certs:/certs:ro
+  depends_on:
+    webvh-certs:
+      condition: service_completed_successfully
+    webvh-server:
+      condition: service_healthy
+    webvh:
+      condition: service_healthy
+
 services:
+  webvh-certs:
+    image: alpine:3.21
+    volumes:
+      - webvh-certs:/certs
+      - ./certs/entrypoint.sh:/entrypoint.sh:ro
+    entrypoint: ["/bin/sh", "/entrypoint.sh"]
+
+  webvh-server:
+    image: ghcr.io/decentralized-identity/didwebvh-server-py:0.5.0
+    environment:
+      WEBVH_DOMAIN: webvh
+      APP_PORT: "8000"
+      APP_WORKERS: "1"
+      WEBVH_WITNESS: "false"
+      WEBVH_PREROTATION: "false"
+      WEBVH_PORTABILITY: "false"
+      WEBVH_ENDORSEMENT: "false"
+      ENABLE_TAILS: "false"
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          "python3 -c \"import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/api/server/status')\"",
+        ]
+      interval: 5s
+      timeout: 5s
+      retries: 12
+      start_period: 20s
+    depends_on:
+      webvh-certs:
+        condition: service_completed_successfully
+
+  webvh:
+    image: caddy:2-alpine
+    volumes:
+      - webvh-certs:/certs:ro
+      - ./caddy/Caddyfile:/etc/caddy/Caddyfile:ro
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          "wget -qO- http://webvh-server:8000/api/server/status | grep -q ok",
+        ]
+      interval: 5s
+      timeout: 5s
+      retries: 12
+      start_period: 5s
+    depends_on:
+      webvh-certs:
+        condition: service_completed_successfully
+      webvh-server:
+        condition: service_healthy
+
   witness:
-    image: plugin-image
-    build:
-      context: ..
-      dockerfile: docker/Dockerfile
-      args:
-        - install_flags=--no-interaction --with integration --extras aca-py
+    <<: *plugin-agent
     command: >
       start
         --label Witness
@@ -23,7 +96,8 @@ services:
         --notify-revocation
         --plugin webvh
         --plugin-config-value webvh.witness=true
-        --plugin-config-value webvh.server_url=https://sandbox.bcvh.vonx.io
+        --plugin-config-value webvh.server_url=https://webvh
+        --plugin-config-value webvh.strict_ssl=true
         --tails-server-base-url https://tails.anoncreds.vc
         --auto-provision
         --seed 00000000000000000000000000000000
@@ -32,12 +106,7 @@ services:
         --auto-respond-messages
 
   controller:
-    image: plugin-image
-    build:
-      context: ..
-      dockerfile: docker/Dockerfile
-      args:
-        - install_flags=--no-interaction --with integration --extras aca-py
+    <<: *plugin-agent
     command: >
       start
         --label Controller
@@ -55,17 +124,13 @@ services:
         --monitor-revocation-notification
         --plugin webvh
         --plugin-config-value webvh.witness=false
-        --plugin-config-value webvh.server_url=https://sandbox.bcvh.vonx.io
+        --plugin-config-value webvh.server_url=https://webvh
+        --plugin-config-value webvh.strict_ssl=true
         --auto-accept-invites
         --auto-respond-messages
 
   no_witness:
-    image: plugin-image
-    build:
-      context: ..
-      dockerfile: docker/Dockerfile
-      args:
-        - install_flags=--no-interaction --with integration --extras aca-py
+    <<: *plugin-agent
     command: >
       start
         --label NoWitness
@@ -83,24 +148,41 @@ services:
         --notify-revocation
         --plugin webvh
         --plugin-config-value webvh.witness=false
-        --plugin-config-value webvh.server_url=https://sandbox.bcvh.vonx.io
+        --plugin-config-value webvh.server_url=https://webvh
+        --plugin-config-value webvh.strict_ssl=true
         --plugin-config-value webvh.endorsement=false
         --tails-server-base-url https://tails.anoncreds.vc
         --auto-accept-invites
         --auto-respond-messages
 
   tests:
-      container_name: juggernaut
-      build:
-        context: .
-        dockerfile: Dockerfile.test.runner
-      environment:
-        - WAIT_BEFORE=3
-        - WAIT_HOSTS=witness:3000, controller:3000, no_witness:3000
-        - WAIT_TIMEOUT=60
-        - WAIT_SLEEP_INTERVAL=1
-        - WAIT_HOST_CONNECT_TIMEOUT=30
-      depends_on:
-        - witness
-        - controller
-        - no_witness
+    container_name: juggernaut
+    build:
+      context: .
+      dockerfile: Dockerfile.test.runner
+    environment:
+      - WAIT_BEFORE=3
+      - WAIT_HOSTS=webvh:443, witness:3000, controller:3000, no_witness:3000
+      - WAIT_TIMEOUT=90
+      - WAIT_SLEEP_INTERVAL=1
+      - WAIT_HOST_CONNECT_TIMEOUT=30
+      - WEBVH_DOMAIN=webvh
+      - WEBVH_SERVER_URL=https://webvh
+      - SSL_CERT_FILE=/certs/ca-bundle.pem
+      - REQUESTS_CA_BUNDLE=/certs/ca-bundle.pem
+    volumes:
+      - webvh-certs:/certs:ro
+    depends_on:
+      webvh-certs:
+        condition: service_completed_successfully
+      webvh:
+        condition: service_healthy
+      witness:
+        condition: service_started
+      controller:
+        condition: service_started
+      no_witness:
+        condition: service_started
+
+volumes:
+  webvh-certs:
