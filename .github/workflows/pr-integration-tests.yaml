@@ -88,6 +88,21 @@ jobs:
         id: integration-tests
         shell: bash
         run: |
+          # Persist compose logs before `down`/`prune` so they can be uploaded
+          # as a job artifact. Per-service files make agent logs (e.g. bob)
+          # easy to download without scraping the Actions log.
+          save_integration_logs() {
+            local plugin="$1"
+            local dest="${GITHUB_WORKSPACE}/integration-logs/${plugin}"
+            mkdir -p "$dest"
+            docker compose logs --no-color > "$dest/compose.log" 2>/dev/null || true
+            local svc
+            for svc in $(docker compose config --services 2>/dev/null); do
+              docker compose logs --no-color "$svc" > "$dest/${svc}.log" 2>/dev/null || true
+            done
+            echo "📦 Saved docker compose logs under integration-logs/${plugin}/"
+          }
+
           for dir in ${{ steps.changed-plugins.outputs.changed-plugins }}; do
 
             if [[ "$dir" == "cheqd" ]]; then
@@ -149,6 +164,7 @@ jobs:
 
               if [[ $attempt -lt $MAX_ATTEMPTS ]]; then
                 echo "⚠️  Attempt $attempt failed for $dir - retrying in case of a transient external server issue..."
+                save_integration_logs "${dir}-attempt-${attempt}"
                 docker compose down --remove-orphans
                 sleep 15
               fi
@@ -158,7 +174,8 @@ jobs:
 
             if [[ $TEST_EXIT -ne 0 ]]; then
               echo "❌ Tests failed for $dir after $MAX_ATTEMPTS attempts - dumping logs:"
-              docker compose logs || true
+              docker compose logs --no-color || true
+              save_integration_logs "$dir"
               docker compose down --remove-orphans
               docker system prune -af --volumes
               exit $TEST_EXIT
@@ -169,3 +186,11 @@ jobs:
             docker system prune -af --volumes
             cd ../..
           done
+      - name: Upload integration logs
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: integration-logs
+          path: integration-logs/
+          if-no-files-found: ignore
+          retention-days: 14
