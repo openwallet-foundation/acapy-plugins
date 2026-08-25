@@ -25,7 +25,10 @@ LOGGER = logging.getLogger(__name__)
 
 # Total wait sits above the common 30s proxy cut so we observe the reset, then
 # recover with GET rather than aborting while the server is still writing.
-HTTP_TIMEOUT = ClientTimeout(total=45, connect=10, sock_connect=10)
+# Applied only to attested-resource GET/POST. A short connect cap fails TLS
+# against a slow sandbox (did.jsonl, identifier, whois) before the request
+# starts. Connect is left unbounded; aiohttp still honors total.
+RESOURCE_HTTP_TIMEOUT = ClientTimeout(total=45)
 
 
 def _already_exists(body) -> bool:
@@ -63,7 +66,7 @@ class WebVHWatcherClient:
     async def notify_watchers(self, did: str, watchers: str):
         """Notify watchers."""
 
-        async with ClientSession(timeout=HTTP_TIMEOUT) as http_session:
+        async with ClientSession() as http_session:
             for watcher in watchers:
                 async with http_session.post(f"{watcher}/log?did={did}") as response:
                     await response.read()
@@ -94,7 +97,7 @@ class WebVHServerClient:
 
     async def request_identifier(self, namespace, identifier) -> tuple:
         """Contact the webvh server to request an identifier."""
-        async with ClientSession(timeout=HTTP_TIMEOUT) as session:
+        async with ClientSession() as session:
             try:
                 async with session.get(
                     await get_server_url(self.profile),
@@ -139,7 +142,7 @@ class WebVHServerClient:
         """Submit a log entry to the WebVH server."""
         did = log_entry.get("state", {}).get("id")
         namespace, identifier = itemgetter(4, 5)(did.split(":"))
-        async with ClientSession(timeout=HTTP_TIMEOUT) as session:
+        async with ClientSession() as session:
             async with session.post(
                 f"{await get_server_url(self.profile)}/{namespace}/{identifier}",
                 json={"logEntry": log_entry, "witnessSignature": witness_signature},
@@ -161,7 +164,7 @@ class WebVHServerClient:
     async def fetch_jsonl(self, did: str):
         """Fetch a JSONL file from the given URL."""
         namespace, identifier = itemgetter(4, 5)(did.split(":"))
-        async with ClientSession(timeout=HTTP_TIMEOUT) as session:
+        async with ClientSession() as session:
             async with session.get(
                 f"{await get_server_url(self.profile)}"
                 f"/{namespace}/{identifier}/did.jsonl",
@@ -192,7 +195,7 @@ class WebVHServerClient:
         """Submit a whois Verifiable Presentation for a given identifier."""
         holder_id = vp.get("holder")
         namespace, identifier = itemgetter(4, 5)(holder_id.split(":"))
-        async with ClientSession(timeout=HTTP_TIMEOUT) as http_session:
+        async with ClientSession() as http_session:
             try:
                 async with http_session.post(
                     f"""
@@ -232,7 +235,7 @@ class WebVHServerClient:
         server_url = (await get_server_url(self.profile)).rstrip("/")
         url = self._derive_update_url(server_url, resource_id)
         try:
-            async with ClientSession(timeout=HTTP_TIMEOUT) as session:
+            async with ClientSession(timeout=RESOURCE_HTTP_TIMEOUT) as session:
                 async with session.get(url, ssl=(await self._ssl())) as response:
                     if response.status == http.HTTPStatus.NOT_FOUND:
                         return None
@@ -318,7 +321,7 @@ class WebVHServerClient:
         ssl = await self._ssl()
 
         try:
-            async with ClientSession(timeout=HTTP_TIMEOUT) as http_session:
+            async with ClientSession(timeout=RESOURCE_HTTP_TIMEOUT) as http_session:
                 if use_put:
                     async with http_session.put(
                         put_url, json=put_payload, ssl=ssl

@@ -263,3 +263,52 @@ class TestUploadAttestedResource(IsolatedAsyncioTestCase):
                 await self.client.upload_attested_resource(TEST_RESOURCE)
 
         assert self.calls == ["POST", "GET"]
+
+    async def test_resource_session_uses_total_timeout_without_connect_cap(self):
+        captured = []
+
+        def handler(method, url, kwargs):
+            self.calls.append(method)
+            if method == "POST":
+                return _FakeResponse(201, STORED_RESOURCE)
+            raise AssertionError(f"unexpected {method} {url}")
+
+        def session_factory(*args, **kwargs):
+            captured.append(kwargs)
+            return _FakeSession(handler)
+
+        with patch(
+            "webvh.did.server_client.ClientSession",
+            side_effect=session_factory,
+        ):
+            await self.client.upload_attested_resource(TEST_RESOURCE)
+
+        assert captured
+        timeout = captured[0].get("timeout")
+        assert timeout is not None
+        assert timeout.total == 45
+        assert timeout.connect is None
+        assert timeout.sock_connect is None
+
+    async def test_did_identifier_session_has_no_timeout(self):
+        captured = []
+        payload = {
+            "parameters": {"method": "webvh", "proof": {"type": "DataIntegrityProof"}},
+            "state": {"id": "did:webvh:QmScid:sandbox.bcvh.vonx.io:test:abc"},
+        }
+
+        def handler(method, url, kwargs):
+            return _FakeResponse(200, payload)
+
+        def session_factory(*args, **kwargs):
+            captured.append(kwargs)
+            return _FakeSession(handler)
+
+        with patch(
+            "webvh.did.server_client.ClientSession",
+            side_effect=session_factory,
+        ):
+            await self.client.request_identifier("test", "abc")
+
+        assert captured
+        assert "timeout" not in captured[0]
