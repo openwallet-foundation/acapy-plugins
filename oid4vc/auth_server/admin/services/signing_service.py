@@ -2,7 +2,7 @@
 
 from datetime import datetime, timezone
 
-from authlib.jose import JsonWebKey, jwt
+from joserfc import jwk, jwt
 from fastapi import HTTPException
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -11,6 +11,7 @@ from admin.models import Tenant, TenantKey
 from admin.schemas.internal import JwtSignRequest, JwtSignResponse
 from admin.utils.crypto import decrypt_private_pem
 from admin.utils.keys import select_signing_key
+from core.consts import SUPPORTED_SIGNING_ALGS, ALG_KEY_FAMILY
 
 MAX_TTL_SECONDS = 3600
 
@@ -36,7 +37,7 @@ async def sign_tenant_jwt(
         raise HTTPException(status_code=404, detail="signing_key_not_found")
 
     alg = req.alg or key.alg
-    if alg != "ES256":
+    if alg not in SUPPORTED_SIGNING_ALGS:
         raise HTTPException(status_code=400, detail="unsupported_alg")
 
     # Claims validation
@@ -66,8 +67,9 @@ async def sign_tenant_jwt(
 
     # Sign
     pem = decrypt_private_pem(key.private_pem_enc)  # type: ignore
-    jwk_key = JsonWebKey.import_key(pem)  # type: ignore
+    key_family = ALG_KEY_FAMILY.get(alg, "EC")
+    jwk_key = jwk.import_key(pem, key_family)
     header = {"alg": alg, "kid": key.kid, "typ": "JWT"}
-    token = jwt.encode(header, claims, jwk_key).decode()
+    token = jwt.encode(header, claims, jwk_key)
 
     return JwtSignResponse(jwt=token, kid=key.kid, alg=alg, exp=exp_val)

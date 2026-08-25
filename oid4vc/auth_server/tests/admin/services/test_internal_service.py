@@ -4,6 +4,7 @@ from typing import cast
 
 import pytest
 from fastapi import HTTPException
+from joserfc import jwk as jose_jwk
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from admin.services import internal_service
@@ -122,7 +123,7 @@ async def test_get_tenant_jwks_filters_keys(monkeypatch):
     def _import_key(jwk):
         return SimpleNamespace(as_dict=lambda **kwargs: {**jwk, **kwargs})
 
-    monkeypatch.setattr(internal_service.JsonWebKey, "import_key", _import_key)
+    monkeypatch.setattr(internal_service.jwk, "import_key", _import_key)
 
     session = cast(AsyncSession, DummySession(DummyListResult(rows)))
 
@@ -139,3 +140,42 @@ async def test_get_tenant_jwks_empty_when_no_rows(monkeypatch):
     result = await internal_service.get_tenant_jwks(session, "tenant-1")
 
     assert result == {"keys": []}
+
+
+@pytest.mark.asyncio
+async def test_lookup_revalidates_stale_provider_from_db(monkeypatch):
+    """A stale cache entry is refreshed from the DB before use."""
+    key = jose_jwk.ECKey.generate_key("P-256")
+    jwks = {"keys": [key.as_dict(private=False, kid="k1")]}
+    row = SimpleNamespace(iss="https://wp.example", jwks=jwks, jwks_uri=None, active=True)
+
+    internal_service._provider_jwks_cache.invalidate(row.iss)
+    session = cast(AsyncSession, DummySession(DummyScalarResult(row)))
+
+    result = await internal_service.lookup_wallet_provider(session, row.iss)
+
+    assert result is not None
+    assert len(result["keys"]) == 1
+
+
+@pytest.mark.asyncio
+async def test_lookup_drops_deactivated_provider_on_revalidation(monkeypatch):
+    """A provider deactivated in another worker stops being trusted once stale."""
+    key = jose_jwk.ECKey.generate_key("P-256")
+    jwks = {"keys": [key.as_dict(private=False, kid="k1")]}
+    iss = "https://revoked.example"
+
+    # Seed the cache as if this worker had loaded it at startup.
+    internal_service._provider_jwks_cache.put(iss, jwks, jwks_uri=None)
+    assert internal_service._provider_jwks_cache.get_keyset(iss) is not None
+
+    # Force staleness; the DB now reports the provider as inactive.
+    monkeypatch.setattr(
+        internal_service._provider_jwks_cache, "is_stale", lambda _key: True
+    )
+    inactive = SimpleNamespace(iss=iss, jwks=jwks, jwks_uri=None, active=False)
+    session = cast(AsyncSession, DummySession(DummyScalarResult(inactive)))
+
+    result = await internal_service.lookup_wallet_provider(session, iss)
+
+    assert result is None

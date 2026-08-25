@@ -7,6 +7,8 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from core.security.utils import utcnow
 from tenant.repositories.access_token_repository import AccessTokenRepository
 
+_INACTIVE: dict[str, Any] = {"active": False}
+
 
 async def introspect_access_token(
     db: AsyncSession, tenant_uid: str, token_str: str
@@ -15,28 +17,32 @@ async def introspect_access_token(
     repo = AccessTokenRepository(db)
 
     token = await repo.get_by_token(token_str)
-    if token is None:
-        return {"active": False}
 
-    if token.revoked or token.expires_at is None or token.expires_at <= utcnow():
-        return {"active": False}
+    # Evaluate all conditions regardless of outcome to normalize timing
+    active = token is not None
+    if active:
+        active = not token.revoked
+    if active:
+        active = token.expires_at is not None and token.expires_at > utcnow()
+    if active:
+        active = bool(token.subject and token.subject.uid)
+    if active:
+        meta = token.token_metadata or {}
+        active = meta.get("realm") == tenant_uid
+    else:
+        meta = {}
 
-    if not token.subject or not token.subject.uid:
-        return {"active": False}
+    if not active:
+        return _INACTIVE
 
-    meta = token.token_metadata or {}
-    realm = meta.get("realm")
-    if realm is not None and realm != tenant_uid:
-        return {"active": False}
-
-    token_type = meta.get("token_type") or ("DPoP" if token.cnf_jkt else "Bearer")
+    token_type = meta.get("token_type") or "Bearer"
     resp: dict[str, Any] = {
         "active": True,
         "token_type": token_type,
         "sub": token.subject.uid,
         "exp": int(token.expires_at.timestamp()),
         "iat": int(token.issued_at.timestamp()),
-        "realm": realm,
+        "realm": meta.get("realm"),
     }
     if token.cnf_jkt:
         resp["cnf"] = {"jkt": token.cnf_jkt}
