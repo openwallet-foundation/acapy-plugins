@@ -17,7 +17,7 @@ x-plugin-agent: &plugin-agent
     - webvh-certs:/certs:ro
   depends_on:
     webvh-certs:
-      condition: service_completed_successfully
+      condition: service_healthy
     webvh-server:
       condition: service_healthy
     webvh:
@@ -30,6 +30,12 @@ services:
       - webvh-certs:/certs
       - ./certs/entrypoint.sh:/entrypoint.sh:ro
     entrypoint: ["/bin/sh", "/entrypoint.sh"]
+    healthcheck:
+      test: ["CMD", "test", "-f", "/certs/ca-bundle.pem"]
+      interval: 2s
+      timeout: 2s
+      retries: 20
+      start_period: 5s
 
   webvh-server:
     image: ghcr.io/decentralized-identity/didwebvh-server-py:0.5.0
@@ -54,7 +60,7 @@ services:
       start_period: 20s
     depends_on:
       webvh-certs:
-        condition: service_completed_successfully
+        condition: service_healthy
 
   webvh:
     image: caddy:2-alpine
@@ -73,7 +79,7 @@ services:
       start_period: 5s
     depends_on:
       webvh-certs:
-        condition: service_completed_successfully
+        condition: service_healthy
       webvh-server:
         condition: service_healthy
 
@@ -174,7 +180,7 @@ services:
       - webvh-certs:/certs:ro
     depends_on:
       webvh-certs:
-        condition: service_completed_successfully
+        condition: service_healthy
       webvh:
         condition: service_healthy
       witness:
