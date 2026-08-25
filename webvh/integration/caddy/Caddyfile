@@ -2,7 +2,7 @@
 	auto_https disable_redirects
 }
 
-webvh:443 {
+webvh.test:443 {
 	tls /certs/webvh.crt /certs/webvh.key
 	reverse_proxy webvh-server:8000
 }

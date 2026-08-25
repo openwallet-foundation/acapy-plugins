@@ -1,5 +1,6 @@
 # Local WebVH server (not sandbox.bcvh.vonx.io).
-# did:webvh resolution is HTTPS-only, so Caddy terminates TLS for hostname "webvh".
+# did:webvh resolution is HTTPS-only, so Caddy terminates TLS.
+# Hostname must be two DNS labels (did_webvh DomainPath.validate); "webvh" is rejected.
 # Agents trust the test CA via SSL_CERT_FILE (bundle includes public CAs for tails).
 
 x-plugin-agent: &plugin-agent
@@ -40,7 +41,7 @@ services:
   webvh-server:
     image: ghcr.io/decentralized-identity/didwebvh-server-py:0.5.0
     environment:
-      WEBVH_DOMAIN: webvh
+      WEBVH_DOMAIN: webvh.test
       APP_PORT: "8000"
       APP_WORKERS: "1"
       WEBVH_WITNESS: "false"
@@ -64,6 +65,11 @@ services:
 
   webvh:
     image: caddy:2-alpine
+    hostname: webvh.test
+    networks:
+      default:
+        aliases:
+          - webvh.test
     volumes:
       - webvh-certs:/certs:ro
       - ./caddy/Caddyfile:/etc/caddy/Caddyfile:ro
@@ -102,7 +108,7 @@ services:
         --notify-revocation
         --plugin webvh
         --plugin-config-value webvh.witness=true
-        --plugin-config-value webvh.server_url=https://webvh
+        --plugin-config-value webvh.server_url=https://webvh.test
         --plugin-config-value webvh.strict_ssl=true
         --tails-server-base-url https://tails.anoncreds.vc
         --auto-provision
@@ -130,7 +136,7 @@ services:
         --monitor-revocation-notification
         --plugin webvh
         --plugin-config-value webvh.witness=false
-        --plugin-config-value webvh.server_url=https://webvh
+        --plugin-config-value webvh.server_url=https://webvh.test
         --plugin-config-value webvh.strict_ssl=true
         --auto-accept-invites
         --auto-respond-messages
@@ -154,7 +160,7 @@ services:
         --notify-revocation
         --plugin webvh
         --plugin-config-value webvh.witness=false
-        --plugin-config-value webvh.server_url=https://webvh
+        --plugin-config-value webvh.server_url=https://webvh.test
         --plugin-config-value webvh.strict_ssl=true
         --plugin-config-value webvh.endorsement=false
         --tails-server-base-url https://tails.anoncreds.vc
@@ -168,12 +174,12 @@ services:
       dockerfile: Dockerfile.test.runner
     environment:
       - WAIT_BEFORE=3
-      - WAIT_HOSTS=webvh:443, witness:3000, controller:3000, no_witness:3000
+      - WAIT_HOSTS=webvh.test:443, witness:3000, controller:3000, no_witness:3000
       - WAIT_TIMEOUT=90
       - WAIT_SLEEP_INTERVAL=1
       - WAIT_HOST_CONNECT_TIMEOUT=30
-      - WEBVH_DOMAIN=webvh
-      - WEBVH_SERVER_URL=https://webvh
+      - WEBVH_DOMAIN=webvh.test
+      - WEBVH_SERVER_URL=https://webvh.test
       - SSL_CERT_FILE=/certs/ca-bundle.pem
       - REQUESTS_CA_BUNDLE=/certs/ca-bundle.pem
     volumes:
