@@ -9,15 +9,6 @@ on:
       - main
   merge_group:
 
-# Several plugins' integration tests hit shared external test servers (e.g.
-# webvh's sandbox.bcvh.vonx.io, a bare uvicorn instance with a small
-# connection backlog). Serialize runs across the whole repo, rather than per
-# branch/PR, so concurrent CI runs from different PRs don't pile onto that
-# shared server at once and trip connection refusals.
-concurrency:
-  group: integration-tests-shared-external-servers
-  cancel-in-progress: false
-
 jobs:
   integration-tests:
     name: "Integration Tests"
