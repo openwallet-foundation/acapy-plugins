@@ -135,12 +135,21 @@ jobs:
                 docker compose up -d
 
                 echo "🧪 Running tests container..."
-                docker compose run --rm tests
-                TEST_EXIT=$?
+                # `if` guards the command from bash's `set -e` (used by GitHub
+                # Actions' `shell: bash`), which would otherwise abort the
+                # whole step here instead of letting the loop retry.
+                if docker compose run --rm tests; then
+                  TEST_EXIT=0
+                else
+                  TEST_EXIT=$?
+                fi
               else
                 # Normal plugin flow
-                docker compose up --exit-code-from tests
-                TEST_EXIT=$?
+                if docker compose up --exit-code-from tests; then
+                  TEST_EXIT=0
+                else
+                  TEST_EXIT=$?
+                fi
               fi
 
               if [[ $TEST_EXIT -eq 0 ]]; then
