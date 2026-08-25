@@ -1,4 +1,5 @@
 from unittest import IsolatedAsyncioTestCase
+import json
 import uuid
 
 from acapy_agent.connections.models.conn_record import ConnRecord
@@ -15,7 +16,7 @@ from ..handlers import WitnessRequestHandler, WitnessResponseHandler
 from ..record import PendingAttestedResourceRecord
 from ..messages import WitnessRequest, WitnessResponse
 from ...states import WitnessingState
-from ....tests.fixtures import TEST_RESOLVER
+from ....tests.fixtures import TEST_RESOLVER, aiohttp_response_cm
 
 record = PendingAttestedResourceRecord()
 
@@ -127,18 +128,28 @@ class TestAttestedResourceProtocol(IsolatedAsyncioTestCase):
 
     @mock.patch(
         "aiohttp.ClientSession.post",
-        mock.AsyncMock(
-            return_value=mock.MagicMock(
-                status=200,
-                headers={"Content-Type": "application/json"},
-                json=mock.AsyncMock(
-                    return_value={
-                        "id": TEST_RESOURCE_ID,
-                        "content": {},
-                        "proof": {},
-                    }
-                ),
-                text=mock.AsyncMock(return_value="{}"),
+        mock.MagicMock(
+            return_value=aiohttp_response_cm(
+                mock.MagicMock(
+                    status=200,
+                    headers={"Content-Type": "application/json"},
+                    json=mock.AsyncMock(
+                        return_value={
+                            "id": TEST_RESOURCE_ID,
+                            "content": {"schema_name": "Test Schema"},
+                            "proof": {},
+                        }
+                    ),
+                    text=mock.AsyncMock(
+                        return_value=json.dumps(
+                            {
+                                "id": TEST_RESOURCE_ID,
+                                "content": {"schema_name": "Test Schema"},
+                                "proof": {},
+                            }
+                        )
+                    ),
+                )
             )
         ),
     )

@@ -11,7 +11,7 @@ from acapy_agent.utils.testing import create_test_profile
 from acapy_agent.wallet.keys.manager import MultikeyManager
 from acapy_agent.wallet.key_type import KeyTypes
 
-from ....tests.fixtures import TEST_RESOLVER
+from ....tests.fixtures import TEST_RESOLVER, aiohttp_response_cm
 from ...states import WitnessingState
 from ....config.config import set_config
 from ..handlers import WitnessRequestHandler, WitnessResponseHandler
@@ -79,12 +79,14 @@ class TestLogEntryProtocol(IsolatedAsyncioTestCase):
 
     @mock.patch(
         "aiohttp.ClientSession.post",
-        mock.AsyncMock(
-            return_value=mock.MagicMock(
-                json=mock.AsyncMock(
-                    return_value={
-                        "state": {"id": TEST_DID},
-                    }
+        mock.MagicMock(
+            return_value=aiohttp_response_cm(
+                mock.MagicMock(
+                    json=mock.AsyncMock(
+                        return_value={
+                            "state": {"id": TEST_DID},
+                        }
+                    )
                 )
             )
         ),

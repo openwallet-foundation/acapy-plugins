@@ -11,11 +11,12 @@ from acapy_agent.wallet.key_type import KeyTypes
 from acapy_agent.wallet.keys.manager import MultikeyManager
 
 from ...config.config import set_config
+from ...protocols.states import WitnessingState
+from ...protocols.log_entry.record import PendingLogEntryRecord
+from ...tests.fixtures import aiohttp_response_cm
 from ..manager import ControllerManager
 from ..witness import WitnessManager
 from ..exceptions import ConfigurationError
-from ...protocols.states import WitnessingState
-from ...protocols.log_entry.record import PendingLogEntryRecord
 
 SCID_PLACEHOLDER = "{SCID}"
 TEST_DOMAIN = "sandbox.bcvh.vonx.io"
@@ -163,12 +164,14 @@ class TestOperationsManager(IsolatedAsyncioTestCase):
     @mock.patch("asyncio.sleep", mock.AsyncMock())
     @mock.patch(
         "aiohttp.ClientSession.post",
-        mock.AsyncMock(
-            return_value=mock.MagicMock(
-                json=mock.AsyncMock(
-                    return_value={
-                        "state": {"id": TEST_DID},
-                    }
+        mock.MagicMock(
+            return_value=aiohttp_response_cm(
+                mock.MagicMock(
+                    json=mock.AsyncMock(
+                        return_value={
+                            "state": {"id": TEST_DID},
+                        }
+                    )
                 )
             )
         ),

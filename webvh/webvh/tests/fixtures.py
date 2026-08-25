@@ -21,3 +21,11 @@ TEST_RESOLVER.resolve_with_metadata = mock.AsyncMock(
         ),
     )
 )
+
+
+def aiohttp_response_cm(response):
+    """Return an async context manager that yields a mocked aiohttp response."""
+    cm = mock.MagicMock()
+    cm.__aenter__ = mock.AsyncMock(return_value=response)
+    cm.__aexit__ = mock.AsyncMock(return_value=False)
+    return cm
