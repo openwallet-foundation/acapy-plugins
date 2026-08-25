@@ -106,32 +106,62 @@ jobs:
 
             docker compose build
 
-            if [[ "$dir" == "cache_redis" ]]; then
+            # webvh's integration tests depend on a shared external test server
+            # (sandbox.bcvh.vonx.io) that occasionally has transient
+            # connectivity blips. Retry the whole stack once, since a fresh
+            # `up` re-establishes all DID/connection state cleanly rather than
+            # trying to patch up individual failed tests.
+            MAX_ATTEMPTS=1
+            if [[ "$dir" == "webvh" ]]; then
+              MAX_ATTEMPTS=2
+            fi
+            attempt=1
+            TEST_EXIT=1
+            while [[ $attempt -le $MAX_ATTEMPTS ]]; do
+              echo "🧪 Attempt $attempt/$MAX_ATTEMPTS for $dir"
 
-              # Start everything in the background
-              echo "🚀 Starting docker compose stack..."
-              docker compose up -d
+              if [[ "$dir" == "cache_redis" ]]; then
+                # Start everything in the background
+                echo "🚀 Starting docker compose stack..."
+                docker compose up -d
 
-              echo "🧪 Running tests container..."
-              docker compose run --rm tests
-              TEST_EXIT=$?
-
-              if [[ $TEST_EXIT -ne 0 ]]; then
-                echo "❌ Tests failed for $dir - dumping logs:"
-                docker compose logs || true
-                docker compose down --remove-orphans
-                docker system prune -af --volumes
-                exit $TEST_EXIT
+                echo "🧪 Running tests container..."
+                # `if` guards the command from bash's `set -e` (used by GitHub
+                # Actions' `shell: bash`), which would otherwise abort the
+                # whole step here instead of letting the loop retry.
+                if docker compose run --rm tests; then
+                  TEST_EXIT=0
+                else
+                  TEST_EXIT=$?
+                fi
+              else
+                # Normal plugin flow
+                if docker compose up --exit-code-from tests; then
+                  TEST_EXIT=0
+                else
+                  TEST_EXIT=$?
+                fi
               fi
-            else
-              # Normal plugin flow
-              if ! docker compose up --exit-code-from tests; then
-                echo "❌ Tests failed for $dir - dumping logs:"
-                docker compose logs
-                docker compose down --remove-orphans
-                docker system prune -af --volumes
-                exit 1
+
+              if [[ $TEST_EXIT -eq 0 ]]; then
+                break
               fi
+
+              if [[ $attempt -lt $MAX_ATTEMPTS ]]; then
+                echo "⚠️  Attempt $attempt failed for $dir - retrying in case of a transient external server issue..."
+                docker compose down --remove-orphans
+                sleep 15
+              fi
+
+              attempt=$((attempt + 1))
+            done
+
+            if [[ $TEST_EXIT -ne 0 ]]; then
+              echo "❌ Tests failed for $dir after $MAX_ATTEMPTS attempts - dumping logs:"
+              docker compose logs || true
+              docker compose down --remove-orphans
+              docker system prune -af --volumes
+              exit $TEST_EXIT
             fi
 
             echo "✅ Tests passed for $dir"
