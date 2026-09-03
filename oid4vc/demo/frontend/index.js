@@ -1651,7 +1651,7 @@ app.post("/issue", (req, res, next) => {
   // webhooks showcase the current state of ACA-Py flows and can be acted upon to
   // give users up-to-date and realtime info.
 
-    app.post("/webhook/*", (req, res, next) => {
+    app.post("/webhook/*topic", (req, res, next) => {
       logger.trace("Webhook received");
       logger.trace(req.path);
       logger.trace(JSON.stringify(req.body));
