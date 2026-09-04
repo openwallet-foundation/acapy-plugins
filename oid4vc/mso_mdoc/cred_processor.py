@@ -100,9 +100,7 @@ class MsoMdocCredProcessor(Issuer, CredVerifier, PresVerifier):
         string names to integer identifiers per OID4VCI 1.0 / ISO 18013-5.
         """
         format_data = supported_cred.pop("format_data", None) or {}
-        supported_cred.pop(
-            "vc_additional_data", None
-        )  # trust anchors etc. are internal
+        supported_cred.pop("vc_additional_data", None)  # trust anchors etc. are internal
 
         doctype = format_data.get("doctype")
         claims = format_data.get("claims")
@@ -426,9 +424,7 @@ class MsoMdocCredProcessor(Issuer, CredVerifier, PresVerifier):
             # Optionally assign a status list entry and embed the status claim.
             # Passed to isomdl_mdoc_sign separately (rather than merged into
             # payload) since it's an MSO-level field, not a namespace element.
-            status_claim = await self._assign_status_entry(
-                context, supported, ex_record
-            )
+            status_claim = await self._assign_status_entry(context, supported, ex_record)
 
             # Resolve signing key — check MdocSigningKeyRecord first, then
             # fall back to vc_additional_data and env vars
@@ -515,9 +511,7 @@ class MsoMdocCredProcessor(Issuer, CredVerifier, PresVerifier):
             # Log full exception for debugging before raising a generic error
             LOGGER.exception("mso_mdoc issuance error: %s", ex)
             # Surface the underlying exception text in the CredProcessorError
-            raise CredProcessorError(
-                f"Failed to issue mso_mdoc credential: {ex}"
-            ) from ex
+            raise CredProcessorError(f"Failed to issue mso_mdoc credential: {ex}") from ex
 
         # issuer_signed_b64() already returns base64url without padding
         # (ISO 18013-5 §8.3 compliant) — exactly what OID4VCI 1.0 §7.3.1 requires.
@@ -533,9 +527,7 @@ class MsoMdocCredProcessor(Issuer, CredVerifier, PresVerifier):
     def _normalize_mdoc_result(self, result: Any) -> str:
         return normalize_mdoc_result(result)
 
-    def validate_credential_subject(
-        self, supported: SupportedCredential, subject: dict
-    ):
+    def validate_credential_subject(self, supported: SupportedCredential, subject: dict):
         """Validate the credential subject."""
         if not subject:
             raise CredProcessorError("Credential subject cannot be empty")

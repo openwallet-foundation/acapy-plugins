@@ -142,7 +142,10 @@ async def check_status_list_claim(status_claim: Optional[dict]) -> Optional[str]
 
     if idx is None or not uri:
         LOGGER.warning("Malformed status_list claim — missing idx or uri")
-        return "Could not verify credential status: malformed status_list claim (missing idx or uri)"
+        return (
+            "Could not verify credential status: malformed status_list claim "
+            "(missing idx or uri)"
+        )
 
     # Fetch the published status list JWT
     try:
@@ -165,12 +168,17 @@ async def check_status_list_claim(status_claim: Optional[dict]) -> Optional[str]
         jwt_payload = _json.loads(base64.urlsafe_b64decode(payload_b64))
     except Exception as exc:
         LOGGER.warning("Failed to decode status list JWT from %r: %s", uri, exc)
-        return f"Could not verify credential status: failed to decode status list JWT: {exc}"
+        return (
+            f"Could not verify credential status: failed to decode status list JWT: {exc}"
+        )
 
     sl = jwt_payload.get("status_list")
     if not isinstance(sl, dict):
         LOGGER.warning("JWT from %r has no 'status_list' claim", uri)
-        return "Could not verify credential status: status list JWT has no 'status_list' claim"
+        return (
+            "Could not verify credential status: status list JWT has no "
+            "'status_list' claim"
+        )
 
     bits: int = int(sl.get("bits", 1))
     lst: str = sl.get("lst", "")
@@ -181,7 +189,10 @@ async def check_status_list_claim(status_claim: Optional[dict]) -> Optional[str]
         raw_bytes = zlib.decompress(compressed)
     except Exception as exc:
         LOGGER.warning("Failed to decode status list bitstring from %r: %s", uri, exc)
-        return f"Could not verify credential status: failed to decode status list bitstring: {exc}"
+        return (
+            "Could not verify credential status: "
+            f"failed to decode status list bitstring: {exc}"
+        )
 
     # Extract the status value for credential at position *idx*.
     # IETF Token Status List uses little-endian bit ordering within each byte:
