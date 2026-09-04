@@ -6,10 +6,23 @@ services:
   redis-cluster:
     image: redis:7.2.2
     container_name: cluster
+    # redis-cli --cluster create blocks until the cluster reports full slot
+    # coverage before returning, so once it prints "All 16384 slots covered"
+    # the cluster is genuinely ready. The healthcheck below exposes that as a
+    # `service_healthy` condition, since `docker compose up --exit-code-from`
+    # aborts the whole stack the moment ANY container exits -- so this
+    # container has to keep running rather than exit(0) after creating the
+    # cluster.
     command: >
-      /bin/sh -c "redis-cli --cluster create 172.28.0.101:6377 172.28.0.102:6378 172.28.0.103:6379 172.28.0.104:6380 172.28.0.105:6381 172.28.0.106:6382 --cluster-replicas 1 --cluster-yes && tail -f /dev/null"
+      /bin/sh -c "redis-cli --cluster create 172.28.0.101:6377 172.28.0.102:6378 172.28.0.103:6379 172.28.0.104:6380 172.28.0.105:6381 172.28.0.106:6382 --cluster-replicas 1 --cluster-yes && touch /tmp/cluster-ready && tail -f /dev/null"
     environment:
       - REDISCLI_AUTH=${REDIS_PASSWORD:-test1234}
+    healthcheck:
+      test: ["CMD", "test", "-f", "/tmp/cluster-ready"]
+      interval: 2s
+      timeout: 3s
+      retries: 60
+      start_period: 5s
     networks:
       acapy_default:
         ipv4_address: 172.28.0.107
@@ -120,7 +133,8 @@ services:
       - WAIT_SLEEP_INTERVAL=1
       - WAIT_HOST_CONNECT_TIMEOUT=60
     depends_on:
-      - redis-cluster
+      redis-cluster:
+        condition: service_healthy
     networks:
       - acapy_default
     command:
@@ -150,7 +164,8 @@ services:
       - WAIT_SLEEP_INTERVAL=1
       - WAIT_HOST_CONNECT_TIMEOUT=60
     depends_on:
-      - redis-cluster
+      redis-cluster:
+        condition: service_healthy
     networks:
       - acapy_default
     command:
@@ -183,9 +198,12 @@ services:
       - 3001:3001
       - 3000:3000
     depends_on:
-      - redis-cluster
-      - relay
-      - deliverer
+      redis-cluster:
+        condition: service_healthy
+      relay:
+        condition: service_started
+      deliverer:
+        condition: service_started
     command: start --arg-file integration.yml --label faber
     environment:
       - WAIT_BEFORE=10

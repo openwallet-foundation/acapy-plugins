@@ -73,25 +73,34 @@ class IssuerConfiguration(BaseRecord):
         return {prop: getattr(self, prop) for prop in self.ISSUER_ATTRS}
 
     def issuer_metadata(self, base_url: str) -> dict:
-        """Return a representation of this record as issuer metadata."""
+        """Return this record as OID4VCI §12.2.4 Credential Issuer metadata.
+
+        Emits every non-null attribute in :data:`ISSUER_ATTRS`. Normalizes
+        `authorization_servers` to public URL strings (§12.2.4 array-of-strings
+        form). Fills the two REQUIRED fields (`credential_issuer`,
+        `credential_endpoint`) from `base_url` when absent; optional fields
+        stay absent unless configured.
+        """
         metadata: dict[str, Any] = {
             prop: getattr(self, prop)
             for prop in self.ISSUER_ATTRS
             if getattr(self, prop) is not None
         }
         if metadata.get("authorization_servers"):
-            metadata["authorization_servers"] = [
-                server.get("public_url", None)
+            # §12.2.4: array of strings, non-empty. Drop entries without public_url.
+            public_urls = [
+                server["public_url"]
                 for server in metadata["authorization_servers"]
+                if server.get("public_url")
             ]
+            if public_urls:
+                metadata["authorization_servers"] = public_urls
+            else:
+                metadata.pop("authorization_servers")
         if not metadata.get("credential_issuer"):
             metadata["credential_issuer"] = base_url
         if not metadata.get("credential_endpoint"):
             metadata["credential_endpoint"] = f"{base_url}/credential"
-        if not metadata.get("nonce_endpoint"):
-            metadata["nonce_endpoint"] = f"{base_url}/nonce"
-        if not metadata.get("notification_endpoint"):
-            metadata["notification_endpoint"] = f"{base_url}/notification"
 
         return metadata
 

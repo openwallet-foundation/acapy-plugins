@@ -22,7 +22,7 @@ python = "^3.13"
 
 # Define ACA-Py as an optional/extra dependency so it can be
 # explicitly installed with the plugin if desired.
-acapy-agent = { version = "~1.6.0", optional = true }
+acapy-agent = { version = "~1.6.1", optional = true }
 
 aiohttp = "^3.13.3"
 aries-askar = "~0.5.0"
@@ -32,7 +32,7 @@ jsonschema = "^4.23.0"
 jsonpath = "^0.82.2"
 cbor-diag = { version = "*", optional = true }
 cwt = { version = "~2", optional = true }
-cryptography = ">=42"
+cryptography = "<51.0.0"
 oscrypto = { git = "https://github.com/wbond/oscrypto.git", rev = "1547f53" }  # Resolves https://github.com/wbond/oscrypto/issues/78
 pycose = { version = "^1.0.1", optional = true }
 jsonpointer = { version = "^3.0.0", optional = true }
@@ -50,8 +50,8 @@ sd_jwt_vc = ["jsonpointer"]
 
 [tool.poetry.group.dev.dependencies]
 cbor2 = "~5"
-ruff = "^0.15.12"
-pytest = "^9.0.3"
+ruff = ">=0.16.5,<0.17.0"
+pytest = "^9.1.1"
 pytest-asyncio = "^1.2.0"
 pytest-cov = "^5.0.0"
 pytest-ruff = "^0.4.1"

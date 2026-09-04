@@ -1,14 +1,13 @@
 """Status Request and response tests"""
 
+import logging
 from os import getenv
+
 import pytest
 from acapy_controller import Controller
 from acapy_controller.protocols import (
     didexchange,
 )
-
-
-import logging
 
 LOGGER = logging.getLogger(__name__)
 
@@ -19,7 +18,7 @@ BOB = getenv("BOB_ENDPOINT", "http://bob:4001")
 @pytest.mark.asyncio
 async def test_send_and_receive():
     async with Controller(base_url=AGENT) as agent, Controller(base_url=BOB) as bob:
-        conn, _ = await didexchange(agent, bob)
+        _conn, _ = await didexchange(agent, bob)
 
     # """Testing the Status Request Message with no queued messages."""
     # # await echo.send_message(

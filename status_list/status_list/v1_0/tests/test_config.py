@@ -41,7 +41,5 @@ async def test_config(plugin_settings: dict):
 
     copied_settings = deepcopy(plugin_settings)
     del copied_settings[PLUGIN_CONFIG_KEY]["status_list"]["file_path"]
-    try:
-        Config.from_settings(Settings(copied_settings))
-    except ConfigError as error:
-        assert error
+    config = Config.from_settings(Settings(copied_settings))
+    assert config.file_path is None

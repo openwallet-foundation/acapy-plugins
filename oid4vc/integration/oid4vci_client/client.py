@@ -67,6 +67,7 @@ class IssuerMetadata:
     credential_endpoint: str
     token_endpoint: str
     credential_configurations_supported: dict[str, Any]
+    nonce_endpoint: Optional[str] = None
 
 
 @dataclass
@@ -74,7 +75,7 @@ class TokenParams:
     """Token Parameters."""
 
     access_token: str
-    nonce: str
+    nonce: Optional[str] = None
 
 
 class OpenID4VCIClient:
@@ -107,6 +108,7 @@ class OpenID4VCIClient:
             metadata["credential_endpoint"],
             token_endpoint,
             metadata["credential_configurations_supported"],
+            nonce_endpoint=metadata.get("nonce_endpoint"),
         )
 
     async def request_token(self, offer: CredentialOffer, metadata: IssuerMetadata):
@@ -124,10 +126,24 @@ class OpenID4VCIClient:
             ) as resp:
                 token = await resp.json()
 
+        # OID4VCI 1.0: c_nonce is only present in the token response when the
+        # issuer does NOT publish a Nonce Endpoint. Otherwise it's fetched
+        # per-request from POST /nonce (see request_credential).
         return TokenParams(
             token["access_token"],
-            token["c_nonce"],
+            token.get("c_nonce"),
         )
+
+    async def fetch_nonce(self, nonce_endpoint: str) -> str:
+        """Fetch a fresh nonce from the Nonce Endpoint (OID4VCI 1.0 §7)."""
+        async with ClientSession() as session:
+            async with session.post(nonce_endpoint) as resp:
+                if resp.status != 200:
+                    raise ValueError(
+                        f"Error fetching nonce: {resp.status} {await resp.text()}"
+                    )
+                body = await resp.json()
+        return body["c_nonce"]
 
     async def request_credential(
         self,
@@ -152,9 +168,16 @@ class OpenID4VCIClient:
         if credential_configuration_id is None:
             raise ValueError("No credential_configuration_id in offer or metadata")
 
-        proofs = await crypto.proof_of_possession(
-            key, offer.credential_issuer, token.nonce
-        )
+        nonce = token.nonce
+        if nonce is None:
+            if not metadata.nonce_endpoint:
+                raise ValueError(
+                    "Token response has no c_nonce and issuer does not publish "
+                    "nonce_endpoint"
+                )
+            nonce = await self.fetch_nonce(metadata.nonce_endpoint)
+
+        proofs = await crypto.proof_of_possession(key, offer.credential_issuer, nonce)
         if isinstance(proofs.get("jwt"), str):
             proofs["jwt"] = [proofs["jwt"]]
 

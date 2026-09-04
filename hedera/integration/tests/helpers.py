@@ -75,7 +75,7 @@ class Agent:
 
         kwargs["headers"] = {"Authorization": f"Bearer {self.token}"}
 
-        response = requests.get(f"{self.base_url}/{path}", **kwargs)
+        response = requests.get(f"{self.base_url}{path}", **kwargs)
 
         if response.status_code != 200:
             raise Exception("Failed! Bad status code")
@@ -112,7 +112,7 @@ class Agent:
         path = "/multitenancy/wallet"
 
         response = requests.post(
-            f"{self.base_url}/{path}",
+            f"{self.base_url}{path}",
             json={
                 "extra_settings": {},
                 "image_url": "https://aries.ca/images/sample.png",
@@ -212,7 +212,7 @@ class Agent:
         encoded_credential_definition_id = quote_plus(credential_definition_id)
 
         return self._auth_get(
-            f"anoncreds/revocation/active-registry/{encoded_credential_definition_id}"
+            f"/anoncreds/revocation/active-registry/{encoded_credential_definition_id}"
         )
 
     def issue_credential(
@@ -241,7 +241,7 @@ class Agent:
 
     def get_issue_records(self):
         """Get records."""
-        return self._auth_get("issue-credential-2.0/records")
+        return self._auth_get("/issue-credential-2.0/records")
 
     def accept_credential_offer(self, cred_ex_id, holder_did=None):
         """Accept credential offer."""

@@ -31,6 +31,12 @@ RUN poetry install --without dev --all-extras
 # feat/mso-status-claim branch (adds MSO-level status-claim support for
 # revocable mdoc issuance, not yet in a released wheel).
 #
+# NOTE: upstream main normally installs a prebuilt isomdl-uniffi wheel here
+# (see git history) — faster and truly multi-arch. This intentionally
+# diverges from that because the wheel doesn't yet have status-claim
+# support, which mDL revocation depends on. Once isomdl-uniffi cuts a
+# release wheel with that support, revert this stage to the wheel install.
+#
 # Fetched via ADD (not RUN git clone) so BuildKit checks the remote ref on
 # every build and only invalidates this layer when the branch's commit
 # actually changes — a plain `RUN git clone <fixed args>` caches on the

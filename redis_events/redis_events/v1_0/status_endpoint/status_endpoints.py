@@ -2,12 +2,10 @@
 
 import logging
 
-import nest_asyncio
 import uvicorn
 from fastapi import APIRouter, Depends, HTTPException, Security
 from fastapi.security.api_key import APIKeyHeader
 
-nest_asyncio.apply()
 router = APIRouter()
 API_KEY_NAME = "access_token"
 X_API_KEY = APIKeyHeader(name=API_KEY_NAME, auto_error=False)
@@ -28,7 +26,9 @@ async def start_status_endpoints_server(api_host, api_port, api_key, handlers):
     API_KEY = api_key
     global handler_list
     handler_list = handlers
-    uvicorn.run(router, host=api_host, port=int(api_port))
+    config = uvicorn.Config(router, host=api_host, port=int(api_port))
+    server = uvicorn.Server(config)
+    await server.serve()
 
 
 @router.get("/status/ready")

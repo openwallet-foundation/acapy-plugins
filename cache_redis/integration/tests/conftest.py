@@ -1,7 +1,8 @@
 import os
+
 import pytest_asyncio
-from redis.asyncio import RedisCluster
 from redis import asyncio as aioredis
+from redis.asyncio import RedisCluster
 
 
 @pytest_asyncio.fixture

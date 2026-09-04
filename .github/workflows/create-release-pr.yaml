@@ -38,11 +38,11 @@ jobs:
       #----------------------------------------------
       #       Check out repo
       #----------------------------------------------
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
       #----------------------------------------------
       #       Setup python
       #----------------------------------------------
-      - uses: actions/setup-python@v6
+      - uses: actions/setup-python@v7
         with:
           python-version: '3.13'
       #----------------------------------------------
@@ -218,12 +218,6 @@ jobs:
             cd ..
           done
           echo unit_test_plugins=${failed_plugins[*]} >> $GITHUB_OUTPUT
-      # ----------------------------------------------
-      #       Install docker compose
-      # ----------------------------------------------
-      - name: Initialize Docker Compose
-        if: ${{ steps.upgrade_available.outputs.available == 'true' && github.event.inputs.re_release != 'true'}} 
-        uses: isbang/compose-action@v1.5.1
       # ----------------------------------------------
       #       Collect plugins that fail integration tests
       # ----------------------------------------------

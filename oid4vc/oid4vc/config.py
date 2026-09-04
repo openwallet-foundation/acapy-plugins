@@ -30,6 +30,9 @@ class Config:
     # Reads OID4VP_ENDPOINT env var; falls back to OID4VCI endpoint if not set.
     oid4vp_endpoint: str | None = None
     status_handler: str | None = None
+    # When True, the /nonce endpoint is published and nonces are managed locally.
+    # Nonce validation uses DB-based redemption, ignoring c_nonce from access tokens.
+    enable_nonce_endpoint: bool = True
 
     @classmethod
     def from_settings(cls, settings: BaseSettings) -> "Config":
@@ -47,6 +50,14 @@ class Config:
         status_handler = plugin_settings.get("status_handler") or getenv(
             "OID4VCI_STATUS_HANDLER"
         )
+        # Enable/disable the /nonce endpoint. Defaults to True.
+        enable_nonce_raw = plugin_settings.get("enable_nonce_endpoint")
+        if enable_nonce_raw is None:
+            enable_nonce_raw = getenv("OID4VCI_ENABLE_NONCE_ENDPOINT", "true")
+        if str(enable_nonce_raw).lower() not in ("true", "false"):
+            raise ConfigError("enable_nonce_endpoint", "OID4VCI_ENABLE_NONCE_ENDPOINT")
+        enable_nonce_endpoint = str(enable_nonce_raw).lower() == "true"
+
         if not host:
             raise ConfigError("host", "OID4VCI_HOST")
         if not port:
@@ -75,4 +86,5 @@ class Config:
             endpoint,
             oid4vp_endpoint=oid4vp_endpoint,
             status_handler=status_handler,
+            enable_nonce_endpoint=enable_nonce_endpoint,
         )

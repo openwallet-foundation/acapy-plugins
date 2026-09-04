@@ -255,6 +255,21 @@ The Plugin expects the following configuration options. These options can either
   - `credential_issuer` endpoint, seen in the Credential Offer
 - `OID4VCI_CRED_HANDLER` or `oid4vci.cred_handler`
   - Dict of credential handlers. e.g. `{"jwt_vc_json": "jwt_vc_json"}`
+- `OID4VCI_ENABLE_NONCE_ENDPOINT` or `oid4vci.enable_nonce_endpoint`
+  - When `true` (default), the `/nonce` endpoint is published and nonce validation uses DB-based single-use redemption. When `false`, the `/nonce` endpoint is not registered and nonce validation relies on `c_nonce` from the access token (either via auth server introspect or the exchange record).
+
+#### Nonce Handling
+
+The plugin supports four deployment scenarios depending on whether an external authorization server is configured and whether the nonce endpoint is enabled:
+
+| Scenario | Token Source | Nonce Validation |
+|---|---|---|
+| External auth server + nonce endpoint | Auth server (introspect) | DB redemption (`Nonce.redeem_by_value`) |
+| External auth server + no nonce endpoint | Auth server (introspect) | `c_nonce` from introspect payload vs proof JWT |
+| Local token endpoint + nonce endpoint | Local JWT | DB redemption |
+| Local token endpoint + no nonce endpoint | Local JWT | `c_nonce` from exchange record vs proof JWT |
+
+When an external auth server is configured, the wallet obtains its token from the auth server's token endpoint. If the auth server provides a `c_nonce` in the token response, the wallet will typically use that nonce directly rather than calling the `/nonce` endpoint. To use DB-based nonce redemption with an auth server, disable nonce generation on the auth server side so the wallet calls the plugin's `/nonce` endpoint.
 
 #### Authorization Server (Per-Tenant)
 
@@ -476,9 +491,8 @@ Without this, importing `mso_mdoc` will fail with `ModuleNotFoundError: No modul
 
 - `ldp_vc`
 - Authorization Code Flow
-- GET /.well-known/openid-configuration
-- GET /.well-known/oauth-authorization-server
 - Batch Credential Issuance
+- Full DPoP support (RFC 9449) — DPoP tokens are accepted but the proof is not cryptographically verified
 - We're limited to DID Methods that ACA-Py supports for issuance (more can be added by Plugin, e.g. DID Web); `did:sov`, `did:key`
 
 [oid4vci]: https://openid.net/specs/openid-4-verifiable-credential-issuance-1_0.html

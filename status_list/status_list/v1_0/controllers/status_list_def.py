@@ -20,6 +20,7 @@ from aiohttp_apispec import (
 from marshmallow import fields
 from marshmallow.validate import OneOf
 
+from ..config import Config
 from ..error import StatusListError
 from ..models import StatusListDef, StatusListDefSchema, StatusListShard, StatusListCred
 from .. import status_handler
@@ -149,7 +150,14 @@ async def create_status_list_def(request: web.BaseRequest):
 
     try:
         context: AdminRequestContext = request["context"]
+        config = Config.from_settings(context.profile.settings)
         wallet_id = status_handler.get_wallet_id(context)
+
+        # Use config values as defaults when not specified in request body
+        if not list_size:
+            list_size = config.list_size
+        if not shard_size:
+            shard_size = config.shard_size
 
         async with context.profile.transaction() as txn:
             # Create status list definition

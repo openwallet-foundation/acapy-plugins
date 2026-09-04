@@ -60,6 +60,12 @@ async def publish_status_list(request: web.BaseRequest):
         published = []
         context: AdminRequestContext = request["context"]
         config = Config.from_settings(context.profile.settings)
+
+        if config.file_path is None:
+            raise web.HTTPBadRequest(
+                reason="Publishing is disabled: file_path is not configured"
+            )
+
         wallet_id = status_handler.get_wallet_id(context)
         async with context.profile.session() as session:
             definition = await StatusListDef.retrieve_by_id(session, definition_id)

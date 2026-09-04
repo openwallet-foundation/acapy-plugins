@@ -94,7 +94,7 @@ async def test_deliverer_pulls_messages_from_queue_and_sends_them(
         str.encode(json.dumps(outbound_msg)),
     )
 
-    time.sleep(5)
+    time.sleep(10)
     messages = faber.retrieve_basicmessages()["results"]
     matching_msgs = [msg for msg in messages if msg["content"] == "test-msg"]
     assert matching_msgs.__len__() == 2  # 1 for sent, 1 for received

@@ -94,6 +94,13 @@ poetry run pytest
 ```
 A coverage report is created when ran from the devcontainer. 
 
+> **Note:** [`conftest.py`](./conftest.py) at the plugin root contains a temporary
+> compatibility shim for `aioresponses`, which is not yet compatible with
+> aiohttp 3.14's new required `stream_writer` argument. See the comment in
+> that file for details and removal instructions once
+> [aioresponses#288](https://github.com/pnuckowski/aioresponses/pull/288) is
+> released.
+
 ### Integration Tests
 
 All integrations tests and configurations are in `integration` folder.
