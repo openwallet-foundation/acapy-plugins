@@ -10,11 +10,11 @@ class ClientRepository:
     """Data-access for clients."""
 
     def __init__(self, session: AsyncSession) -> None:
-        """Constructor."""
+        """Wrap a session."""
         self.session = session
 
     async def get_by_client_id(self, client_id: str) -> Client | None:
-        """Get client by client_id."""
+        """Lookup by client_id."""
         res = await self.session.execute(
             select(Client).where(Client.client_id == client_id)
         )

@@ -8,6 +8,8 @@ import time
 from functools import wraps
 from typing import Any, Callable, Iterable, Optional, Type
 
+from core.utils.logging import get_logger
+
 
 def with_retries(
     *,
@@ -21,7 +23,7 @@ def with_retries(
 ) -> Callable[[Callable[..., Any]], Callable[..., Any]]:
     """Retry a callable on specified exceptions with backoff."""
 
-    log = logger or logging.getLogger(__name__)
+    log = logger or get_logger(__name__)
     retry_on_tuple = tuple(retry_on)
 
     def _next_delay(current: float) -> float:

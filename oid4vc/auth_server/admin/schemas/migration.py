@@ -16,3 +16,4 @@ class MigrationRequest(BaseModel):
 
     action: MigrationAction
     rev: str | None = None
+    confirm: bool = False

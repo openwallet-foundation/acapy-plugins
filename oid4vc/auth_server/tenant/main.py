@@ -17,7 +17,7 @@ from core.observability.observability import (
 from core.utils.logging import get_logger
 from tenant.config import settings
 
-from .deps import get_db_session
+from .deps import dispose_engines, get_db_session
 from .routers.grants import router as grants_router
 from .routers.introspect import router as introspect_router
 from .routers.token import router as token_router
@@ -33,6 +33,7 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
     """Startup/shutdown hooks."""
     setup_structlog_json()
     yield
+    await dispose_engines()
 
 
 app = FastAPI(
@@ -88,5 +89,5 @@ async def log_unhandled_exception(request: Request, ex: Exception):
     )
     return ORJSONResponse(
         status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-        content={"status": "fail", "error": f"Internal Server Error: {ex}"},
+        content={"error": "server_error", "error_description": "Internal Server Error"},
     )

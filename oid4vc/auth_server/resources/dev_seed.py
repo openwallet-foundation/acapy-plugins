@@ -11,7 +11,7 @@ import asyncio
 import secrets
 from typing import Any
 
-from authlib.jose import JsonWebKey
+from joserfc import jwk
 from cryptography.hazmat.primitives import serialization
 from cryptography.hazmat.primitives.asymmetric import ec
 
@@ -36,8 +36,8 @@ def _gen_es256_keypair() -> tuple[str, dict[str, Any]]:
         )
         .decode("utf-8")
     )
-    public_jwk = JsonWebKey.import_key(public_pem).as_dict()  # type: ignore
-    return private_pem, public_jwk  # type: ignore
+    public_jwk = jwk.import_key(public_pem).as_dict(private=False)
+    return private_pem, public_jwk
 
 
 async def _ensure_tenant(svc: TenantService, uid: str, name: str):
@@ -79,18 +79,7 @@ async def main() -> None:
             )
             await svc.create_client(tenant.uid, pk_payload)
 
-            # 2) shared_bearer (HS256)
-            sb_client_id = f"dev-shared-{secrets.token_hex(4)}"
-            sb_secret = secrets.token_urlsafe(32)
-            sb_payload = ClientIn(
-                client_id=sb_client_id,
-                client_auth_method="shared_bearer",
-                client_auth_signing_alg="HS256",
-                client_secret=sb_secret,
-            )
-            await svc.create_client(tenant.uid, sb_payload)
-
-            # 3) client_secret_basic (PBKDF2 stored)
+            # 2) client_secret_basic (PBKDF2 stored)
             cs_client_id = f"dev-basic-{secrets.token_hex(4)}"
             cs_secret = secrets.token_urlsafe(24)
             cs_payload = ClientIn(
@@ -107,11 +96,6 @@ async def main() -> None:
             print("  signing_alg: ES256")
             print("  jwks (public):", jwks)
             print("  private_key_pem (keep secret):\n", private_pem)
-
-            print("\nshared_bearer client:")
-            print("  client_id:", sb_client_id)
-            print("  signing_alg: HS256")
-            print("  shared_secret (keep secret):", sb_secret)
 
             print("\nclient_secret_basic client:")
             print("  client_id:", cs_client_id)
