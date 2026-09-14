@@ -513,6 +513,17 @@
 </li>
       
         <li class="md-nav__item">
+  <a href="#releasing-plugins-after-an-aca-py-release" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Releasing Plugins After an ACA-Py Release
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#lite-plugins" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -1415,6 +1426,17 @@
 </li>
       
         <li class="md-nav__item">
+  <a href="#releasing-plugins-after-an-aca-py-release" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Releasing Plugins After an ACA-Py Release
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#lite-plugins" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -1658,6 +1680,29 @@ for any Dependabot PRs that were <strong>not</strong> closed automatically:</p>
 </ul>
 <p>Each remaining PR must be reviewed and resolved individually before it can be
 considered handled.</p>
+<h2 id="releasing-plugins-after-an-aca-py-release">Releasing Plugins After an ACA-Py Release<a class="headerlink" href="#releasing-plugins-after-an-aca-py-release" title="Permanent link">&para;</a></h2>
+<p>After a new ACA-Py version is released on <code>main</code>, the plugins need to be bumped
+to depend on it. This is currently a manual process. The steps of the process are:</p>
+<ol>
+<li>Create a new PR branch for the release, named after the version (e.g. <code>1.7.0</code>).</li>
+<li>Search and replace every instance of
+   <code>acapy-agent = { version = "~&lt;previous-version&gt;", optional = true }</code> with
+   the new version, across all plugins' <code>pyproject.toml</code> files.</li>
+<li>Some plugins also have the version written into their <code>description</code> field
+   (<code>grep -rn "Supported acapy-agent version" */pyproject.toml</code>) — update those
+   too. This is easy to miss (it was missed in the 1.6.1 release), since it's a
+   separate string from the dependency line above and isn't touched by step 2.</li>
+<li>Run <code>python repo_manager.py 6</code> to regenerate all <code>poetry.lock</code> files.</li>
+<li>Copy/paste the previous release's section in <code>RELEASES.md</code> and update its
+   version references to the new release.</li>
+<li>Commit the changes and push the branch to your fork, and open a PR.</li>
+</ol>
+<p>Then open the PR (e.g. "Plugins Release PR for ACA-Py 1.7.0") and let CI
+run the full integration suite against it. I was able to provide steps 1-5
+as instructions to Claude Code and have the changes generated cleanly.</p>
+<p>Once the PR is merged, a "Release PR" GitHub Action will run to update the
+<code>plugin_globals</code> directory with the new plugin versions and create a new release
+tag for the repo.</p>
 <h2 id="lite-plugins">Lite plugins<a class="headerlink" href="#lite-plugins" title="Permanent link">&para;</a></h2>
 <p>Sometimes is desirable to have a plugin that doesn't need integration tests or
 extra scaffolding. However, we need a way to avoid these plugins running
