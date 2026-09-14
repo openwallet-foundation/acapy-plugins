@@ -242,9 +242,25 @@ Or against a subset of plugins:
 ./test_acapy_version.py 1.7.0rc0 basicmessage_storage webvh
 ```
 
+To test an LTS release, use `--tag` with the closest prior tag for that line
+(so the plugin set and code match what actually shipped there) instead of
+testing against the current checkout:
+
+```
+./test_acapy_version.py 1.3.6rc0 --tag 1.3.2
+```
+
 The script requires `poetry` and `docker` (with the `compose` plugin) and
 should be run from the repo root. It prints a pass/fail/skip summary for each
-plugin when it finishes.
+plugin when it finishes; full output for any failure (poetry lock, docker
+build, or integration test) is written to `.test-acapy-version.log` in the
+repo root instead of the terminal.
+
+Note: the script has some built-in handling for `poetry lock` failures on
+older `--tag` runs (relaxing native binding pins like `aries-askar` that may
+be stale relative to the target acapy-agent version). See
+`relax_native_binding_pins` in the script if a lock failure needs digging
+into.
 
 ## Deploy
 
