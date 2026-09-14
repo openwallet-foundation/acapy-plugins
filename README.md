@@ -130,6 +130,32 @@ A PR that remains open after the merge means one of the following:
 Each remaining PR must be reviewed and resolved individually before it can be
 considered handled.
 
+## Releasing Plugins After an ACA-Py Release
+
+After a new ACA-Py version is released on `main`, the plugins need to be bumped
+to depend on it. This is currently a manual process. The steps of the process are:
+
+1. Create a new PR branch for the release, named after the version (e.g. `1.7.0`).
+2. Search and replace every instance of
+   `acapy-agent = { version = "~<previous-version>", optional = true }` with
+   the new version, across all plugins' `pyproject.toml` files.
+3. Some plugins also have the version written into their `description` field
+   (`grep -rn "Supported acapy-agent version" */pyproject.toml`) — update those
+   too. This is easy to miss (it was missed in the 1.6.1 release), since it's a
+   separate string from the dependency line above and isn't touched by step 2.
+4. Run `python repo_manager.py 6` to regenerate all `poetry.lock` files.
+5. Copy/paste the previous release's section in `RELEASES.md` and update its
+   version references to the new release.
+6. Commit the changes and push the branch to your fork, and open a PR.
+
+Then open the PR (e.g. "Plugins Release PR for ACA-Py 1.7.0") and let CI
+run the full integration suite against it. I was able to provide steps 1-5
+as instructions to Claude Code and have the changes generated cleanly.
+
+Once the PR is merged, a "Release PR" GitHub Action will run to update the
+`plugin_globals` directory with the new plugin versions and create a new release
+tag for the repo.
+
 ## Lite plugins
 
 Sometimes is desirable to have a plugin that doesn't need integration tests or

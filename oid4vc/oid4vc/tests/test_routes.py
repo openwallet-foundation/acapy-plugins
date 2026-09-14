@@ -26,6 +26,7 @@ def dummy_request(context):
             headers=None,
             path="/dummy-path",
             match_info=None,
+            method="POST",
         ):
             self._json = json_data or {
                 "did": "did:key:z6MkvtXw2eu715zQ3vzCh1FQNNhkdVhpzHKh4L5sVPGZ6Mcs",
@@ -35,6 +36,7 @@ def dummy_request(context):
             self.headers = headers or {"Authorization": "Bearer testtoken"}
             self.path = path
             self.match_info = match_info or {}
+            self.method = method
 
         async def json(self):
             return self._json
