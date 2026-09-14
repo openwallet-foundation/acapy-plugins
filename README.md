@@ -156,6 +156,10 @@ Once the PR is merged, a "Release PR" GitHub Action will run to update the
 `plugin_globals` directory with the new plugin versions and create a new release
 tag for the repo.
 
+About LTS Releases of ACA-Py and Plugins.  We don't generally do a Plugins release for ACA-Py LTS Releases. It's rarely necessary, as the tagged branch dependencies remain. If there was more activity with plugins in the future it could be useful. If there was something critical needed a manual release could be done with a branch vs. a tag, but there is no automated processes for it.
+
+A patch release for the plugins is possible if there is a need to fix something between ACA-Py releases. For instance [https://github.com/openwallet-foundation/acapy-plugins/releases#release-1.3.2.1](https://github.com/openwallet-foundation/acapy-plugins/releases#release-1.3.2.1) was a patch release of the plugins.
+
 ## Lite plugins
 
 Sometimes is desirable to have a plugin that doesn't need integration tests or
