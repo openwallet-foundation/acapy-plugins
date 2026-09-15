@@ -1,5 +1,3 @@
-version: '3'
-
 services:
 
   issuer:
@@ -23,14 +21,16 @@ services:
       - ../docker/entrypoint.sh:/entrypoint.sh:ro,z
     environment:
       RUST_LOG: warn
-      TUNNEL_ENDPOINT: http://ngrok:4040
+      # These default to stable zrok URLs so the app can run without ngrok.
+      OID4VCI_ENDPOINT: ${OID4VCI_ENDPOINT:-https://issuer.share.zrok.io}
+      STATUS_LIST_PUBLIC_URI: ${STATUS_LIST_PUBLIC_URI:-https://issuer.share.zrok.io/tenant/{tenant_id}/status/{list_number}}
       OID4VCI_HOST: 0.0.0.0
       OID4VCI_PORT: 8082
       OID4VCI_STATUS_HANDLER: status_list.v1_0.status_handler
       STATUS_LIST_SIZE: 131072
       STATUS_LIST_SHARD_SIZE: 131072
       #STATUS_LIST_PUBLIC_URI: https://localhost:8082/tenant/{tenant_id}/status/{list_number} Set in entrypoint.sh
-      #STATUS_LIST_FILE_PATH: /tmp/bitstring/{tenant_id}/{list_number}
+      STATUS_LIST_FILE_PATH: /tmp/bitstring/{tenant_id}/{list_number}
     entrypoint: >
       /bin/sh -c '/entrypoint.sh aca-py "$$@"' --
     # Note: --no-transport should be added to start but currently blocks webhooks - fix in ACA-Py main.
@@ -111,18 +111,84 @@ services:
     environment:
       - HTTP_PORT=8080
 
- #removed the healthcheck as it is unreliable. Authserver and issuer check for tunnels before starting.
-  ngrok:
-    image: ngrok/ngrok
+  issuer-zrok:
+    image: openziti/zrok
     restart: unless-stopped
-    hostname: ngrok
-    ports:
-      - "4040:4040"
+    user: "${UID:-1000}:${GID:-1000}"
     volumes:
-      - ./ngrok.yml:/etc/ngrok.yml:ro
+      - ${HOME}/.zrok:/home/ziggy/.zrok
     environment:
-      - NGROK_AUTHTOKEN=${NGROK_AUTHTOKEN}
-    command: ["start", "--all", "--config", "/etc/ngrok.yml"]
+      PFXLOG_NO_JSON: "true"
+    # zrok has no ZROK_TARGET env var — the backend target is either
+    # whatever was persisted server-side by the original `zrok reserve`
+    # command, or whatever --override-endpoint passes here. Without the
+    # flag, "localhost" resolves inside *this* container's own network
+    # namespace, not the sibling `issuer` container, so it must be passed
+    # explicitly on every run.
+    # Reserve the name once, then keep sharing it from this container.
+    # Example: zrok reserve public --unique-name issuer http://localhost:8082
+    command: share reserved "${ISSUER_ZROK_NAME:-issuer}" --override-endpoint http://issuer:8082 --headless
+    depends_on:
+      issuer:
+        condition: service_healthy
+
+  authserver-zrok:
+    image: openziti/zrok
+    restart: unless-stopped
+    user: "${UID:-1000}:${GID:-1000}"
+    volumes:
+      - ${HOME}/.zrok:/home/ziggy/.zrok
+    environment:
+      PFXLOG_NO_JSON: "true"
+    # See the note on issuer-zrok above: --override-endpoint is required,
+    # there is no env var for this.
+    # Example: zrok reserve public --unique-name authserver http://localhost:9001
+    command: share reserved "${AUTHSERVER_ZROK_NAME:-authserver}" --override-endpoint http://auth-server:9001 --headless
+    depends_on:
+      auth-server:
+        condition: service_healthy
+
+  demo-zrok:
+    image: openziti/zrok
+    restart: unless-stopped
+    user: "${UID:-1000}:${GID:-1000}"
+    volumes:
+      - ${HOME}/.zrok:/home/ziggy/.zrok
+    environment:
+      PFXLOG_NO_JSON: "true"
+    # See the note on issuer-zrok above: --override-endpoint is required,
+    # there is no env var for this.
+    # Example: zrok reserve public --unique-name demo http://localhost:3000
+    command: share reserved "${DEMO_ZROK_NAME:-demo}" --override-endpoint http://demo-app:3000 --headless
+    depends_on:
+      demo-app:
+        condition: service_healthy
+
+  # zrok's agent can silently lose its OpenZiti circuit while still reporting
+  # the share as "active" (openziti/zrok#1259). Docker never sees a crash, so
+  # nothing restarts it on its own. This polls each share's public URL and
+  # restarts the container when it stops answering.
+  zrok-watchdog:
+    image: docker:27-cli
+    restart: unless-stopped
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - ./zrok-watchdog.sh:/zrok-watchdog.sh:ro,z
+    environment:
+      CHECK_INTERVAL: 30
+      CHECK_TIMEOUT: 10
+      ISSUER_PUBLIC_URL: ${OID4VCI_ENDPOINT:-https://issuer.share.zrok.io}
+      AUTHSERVER_PUBLIC_URL: ${TENANT_ISSUER_BASE_URL:-https://authserver.share.zrok.io}
+      DEMO_PUBLIC_URL: ${DEMO_PUBLIC_URL:-https://demo.share.zrok.io}
+    entrypoint: >
+      /bin/sh -c 'apk add --no-cache curl >/dev/null && exec /zrok-watchdog.sh'
+    depends_on:
+      issuer-zrok:
+        condition: service_started
+      authserver-zrok:
+        condition: service_started
+      demo-zrok:
+        condition: service_started
 
   demo-app:
     build:
@@ -137,14 +203,23 @@ services:
       WDS_SOCKET_PORT: 0
       API_BASE_URL: http://issuer:3001
       FORCE_COLOR: 3
-      ADMIN_MANAGE_AUTH_TOKEN: $ADMIN_MANAGE_AUTH_TOKEN
-      # Container-facing name only — the host-side/.env variable stays
-      # AUTHSERVER_NGROK_URL so existing ngrok setups need no changes.
-      AUTHSERVER_PUBLIC_URL: $AUTHSERVER_NGROK_URL
+      ADMIN_MANAGE_AUTH_TOKEN: ${ADMIN_MANAGE_AUTH_TOKEN:-adminsecrettoken}
+      # Reuses the same public URL already configured for the auth-server
+      # service itself (TENANT_ISSUER_BASE_URL) — no separate zrok-specific
+      # variable needed.
+      AUTHSERVER_PUBLIC_URL: ${TENANT_ISSUER_BASE_URL:-https://authserver.share.zrok.io}
       TENANT_SECRET: tenantsecrettoken #Used by the issuer introspect tokens on auth server.
     depends_on:
       issuer:
         condition: service_healthy
+    healthcheck:
+      test:
+        ["CMD", "node", "-e", "fetch('http://127.0.0.1:3000/healthz').then(r => process.exit(r.ok ? 0 : 1)).catch(() => process.exit(1))"]
+      start_period: 30s
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
 
   #setup Auth Server. 
   #ADMIN_MANAGE_AUTH_TOKEN is sourced from the .env as it is shared with demo-app.
@@ -158,6 +233,8 @@ services:
     ports:
       - "9000:9000"
       - "9001:9001"
+    volumes:
+      - ./init.sql:/usr/src/app/alembic/sql/init.sql:ro
     environment:
       ADMIN_DB_HOST: db
       ADMIN_DB_USER: auth_server_admin
@@ -168,18 +245,17 @@ services:
       ADMIN_APP_TITLE: OAuth 2.0 Authorization Server Admin API
       ADMIN_APP_VERSION: 0.2.0
       ADMIN_APP_ROOT_PATH: /
-      ADMIN_MANAGE_AUTH_TOKEN: $ADMIN_MANAGE_AUTH_TOKEN # Access the admin API with this token
-      ADMIN_INTERNAL_AUTH_TOKEN: $ADMIN_INTERNAL_AUTH_TOKEN # Admin API request to admin API
+      ADMIN_MANAGE_AUTH_TOKEN: ${ADMIN_MANAGE_AUTH_TOKEN:-adminsecrettoken} # Access the admin API with this token
+      ADMIN_INTERNAL_AUTH_TOKEN: ${ADMIN_INTERNAL_AUTH_TOKEN:-admininternaltoken} # Admin API request to admin API
       ADMIN_TENANT_DB_NAME: auth_server_tenant
       ADMIN_TENANT_DB_SCHEMA: auth
       TENANT_INTERNAL_BASE_URL: http://auth-server:9000/internal
-      TENANT_INTERNAL_AUTH_TOKEN: $TENANT_INTERNAL_AUTH_TOKEN # match ADMIN_INTERNAL_AUTH_TOKEN
+      TENANT_INTERNAL_AUTH_TOKEN: ${TENANT_INTERNAL_AUTH_TOKEN:-admininternaltoken} # match ADMIN_INTERNAL_AUTH_TOKEN
       TENANT_APP_ROOT_PATH: /
       TENANT_DB_HOST: db
       TENANT_DB_PORT: 5432
       TENANT_PROXY_TRUSTED_HOSTS: "*"
-      TENANT_INCLUDE_NONCE: "false"
-      #TENANT_ISSUER_BASE_URL: Set in entrypoint.sh
+      TENANT_ISSUER_BASE_URL: ${TENANT_ISSUER_BASE_URL:-https://authserver.share.zrok.io}
     depends_on:
       db:
         condition: service_healthy
