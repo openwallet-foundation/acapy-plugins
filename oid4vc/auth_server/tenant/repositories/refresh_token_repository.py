@@ -1,28 +1,18 @@
 """RefreshToken repository."""
 
-from datetime import datetime, timezone
 from typing import Union
+from datetime import datetime
 
-from sqlalchemy import update
-from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy import select, update
 
 from tenant.models import RefreshToken
+from tenant.repositories.base import BaseTokenRepository
 
 
-class RefreshTokenRepository:
+class RefreshTokenRepository(BaseTokenRepository):
     """Repository for refresh tokens."""
 
-    def __init__(self, db: AsyncSession):
-        """Constructor."""
-        self.db = db
-
-    @staticmethod
-    def _to_dt(value: Union[int, float, datetime]) -> datetime:
-        if isinstance(value, datetime):
-            return (
-                value if value.tzinfo is not None else value.replace(tzinfo=timezone.utc)
-            )
-        return datetime.fromtimestamp(float(value), tz=timezone.utc)
+    _model = RefreshToken
 
     async def create(
         self,
@@ -64,3 +54,17 @@ class RefreshTokenRepository:
         res = await self.db.execute(stmt)
         row = res.first()
         return tuple(row) if row is not None else None
+
+    async def is_token_reuse(self, token_hash: str) -> int | None:
+        """Check if a refresh token was already consumed (reuse detection).
+
+        Returns the subject_id if the token exists and is already used,
+        None otherwise (token doesn't exist or was never consumed).
+        """
+        stmt = select(RefreshToken.subject_id).where(
+            RefreshToken.token_hash == token_hash,
+            RefreshToken.used.is_(True),
+        )
+        res = await self.db.execute(stmt)
+        row = res.first()
+        return row[0] if row is not None else None

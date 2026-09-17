@@ -148,7 +148,7 @@ async def test_get_db_session_refreshes_on_failure(monkeypatch):
             self.path_params = {"uid": "tenant-1"}
 
     request = DummyRequest()
-    ctx = await deps._load_tenant_ctx(cast(deps.Request, request), force=False)
+    ctx = await deps._load_tenant_ctx(cast(deps.Request, request))
 
     async def consume():
         async for session in deps.get_db_session(cast(deps.Request, request), ctx):

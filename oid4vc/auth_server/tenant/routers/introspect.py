@@ -25,4 +25,8 @@ async def introspect(
 ):
     """Return RFC 7662-style token introspection payload."""
     data = await introspect_access_token(db, uid, token)
-    return ORJSONResponse(data, status_code=200)
+    return ORJSONResponse(
+        data,
+        status_code=200,
+        headers={"Cache-Control": "no-store", "Pragma": "no-cache"},
+    )
