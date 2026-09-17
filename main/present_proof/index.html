@@ -1279,7 +1279,7 @@
 <h2 id="description">Description<a class="headerlink" href="#description" title="Permanent link">&para;</a></h2>
 <p>This plugin enable the v1 presentation exchange protocol for verifiable credentials.</p>
 <h2 id="configuration">Configuration<a class="headerlink" href="#configuration" title="Permanent link">&para;</a></h2>
-<p><strong><em>Important</em></strong>: This plugin has a direct dependency with the issue_credential plugin. If you are using present proof you should also enable issue_credential. It will install issue_credential if not already installed.</p>
+<p><em><strong>Important</strong></em>: This plugin has a direct dependency with the issue_credential plugin. If you are using present proof you should also enable issue_credential. It will install issue_credential if not already installed.</p>
 <p>This is done because each protocol will override the oob invitation handler and it isn't ensured which one will be the last to be registered. Also both protocols are often used together.</p>
 <p>To enable the present proof plugin, add the following to your <code>config.yml</code> file:</p>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a>pip install git+https://github.com/openwallet-foundation/acapy-plugins@main#subdirectory=present_proof
