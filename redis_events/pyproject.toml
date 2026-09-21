@@ -13,7 +13,7 @@ acapy-agent = { version = "~1.7.0", optional = true }
 aiohttp = "^3.13.3"
 fastapi-slim = "^0.128.0"
 redis = "^5.2.1"
-uvicorn = ">=0.52.3,<0.53"
+uvicorn = ">=0.53.0,<0.54"
 pydantic = "^2.13.5"
 
 [tool.poetry.extras]
