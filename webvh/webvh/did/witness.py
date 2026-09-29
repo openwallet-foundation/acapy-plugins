@@ -71,12 +71,16 @@ class WitnessManager:
         automatically, so nothing needs to be cached or persisted
         separately.
 
-        Falls back to an alias lookup, narrowed by the indexed `state`
-        tag, only when no witness invitation is configured (or it wasn't
-        matched) -- this supports connections that were set up manually
-        by an operator (see the log message in `manager.auto_witness_setup`)
-        rather than via the automatic invitation flow, a rare/administrative
-        path where a state-narrowed lookup is an acceptable trade-off.
+        Falls back to `ConnRecord.retrieve_by_alias`, only when no witness
+        invitation is configured (or it wasn't matched), to support
+        connections that were set up manually by an operator (see the log
+        message in `manager.auto_witness_setup`) rather than via the
+        automatic invitation flow. This fallback is not currently indexed
+        upstream (see openwallet-foundation/acapy#4234, which proposes
+        adding `alias` to `ConnRecord.TAG_NAMES`); once that lands and this
+        plugin's acapy-agent dependency is bumped to a release containing
+        it, this same call becomes an indexed lookup automatically, with
+        no plugin-side change required.
         """
         active_state = ConnRecord.State.COMPLETED.rfc160
 
@@ -92,13 +96,15 @@ class WitnessManager:
 
         witness_alias = await self.connection_alias()
         async with self.profile.session() as session:
-            connection_records = await ConnRecord.query(
-                session,
-                tag_filter={"state": active_state},
-                post_filter_positive={"alias": witness_alias},
+            connection_records = await ConnRecord.retrieve_by_alias(
+                session, witness_alias
             )
 
-        return connection_records[0] if connection_records else None
+        for connection in connection_records:
+            if connection.state == active_state:
+                return connection
+
+        return None
 
     async def _witness_invitation_msg_id(self) -> Optional[str]:
         """Get the invitation message id of the configured witness invitation."""
