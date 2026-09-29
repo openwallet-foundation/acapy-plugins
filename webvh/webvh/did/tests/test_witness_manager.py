@@ -167,4 +167,3 @@ class TestWitnessManager(IsolatedAsyncioTestCase):
 
         asyncio.create_task(_create_connection())
         await self.controller.auto_witness_setup()
-
