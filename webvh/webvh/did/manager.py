@@ -88,16 +88,18 @@ class ControllerManager:
         server_url = await get_server_url(self.profile)
         witness_alias = create_alias(url_to_domain(server_url), "witnessConnection")
         async with self.profile.session() as session:
-            connection_records = await ConnRecord.retrieve_by_alias(
-                session, witness_alias
+            # ConnRecord.retrieve_by_alias() has no tag_filter, so it scans every
+            # connection record in the wallet regardless of state. Narrow the
+            # query with the indexed "state" tag first to avoid an unbounded
+            # full-table scan, then match the (non-indexed) alias in Python.
+            connection_records = await ConnRecord.query(
+                session,
+                tag_filter={"state": ConnRecord.State.COMPLETED.rfc160},
+                post_filter_positive={"alias": witness_alias},
             )
 
-        active_connections = [
-            conn for conn in connection_records if conn.state == "active"
-        ]
-
-        if len(active_connections) > 0:
-            return active_connections[0]
+        if connection_records:
+            return connection_records[0]
 
         return None
 
