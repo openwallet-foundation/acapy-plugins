@@ -106,10 +106,7 @@ class TestWitnessManager(IsolatedAsyncioTestCase):
 
     @mock.patch.object(OutOfBandManager, "receive_invitation")
     @mock.patch.object(asyncio, "sleep")
-    async def test_auto_witness_setup_as_controller_no_active_connection(
-        self, _mock_sleep, mock_receive_invitation
-    ):
-        mock_receive_invitation.return_value = mock.MagicMock(connection_id=None)
+    async def test_auto_witness_setup_as_controller_no_active_connection(self, *_):
         self.profile.settings.set_value("plugin_config.webvh.witness", False)
         self.profile.settings.set_value(
             "plugin_config",
@@ -127,10 +124,7 @@ class TestWitnessManager(IsolatedAsyncioTestCase):
         await self.controller.auto_witness_setup()
 
     @mock.patch.object(OutOfBandManager, "receive_invitation")
-    async def test_auto_witness_setup_as_controller_conn_becomes_active(
-        self, mock_receive_invitation
-    ):
-        mock_receive_invitation.return_value = mock.MagicMock(connection_id=None)
+    async def test_auto_witness_setup_as_controller_conn_becomes_active(self, *_):
         self.profile.settings.set_value("plugin_config.webvh.witness", False)
         self.profile.settings.set_value(
             "plugin_config",

@@ -90,18 +90,6 @@ async def notify_watchers(profile: Profile):
     return (await get_plugin_config(profile)).get("notify_watchers", False)
 
 
-async def get_witness_connection_id(profile: Profile):
-    """Get the cached witness connection id, if any."""
-    return (await get_plugin_config(profile)).get("witness_connection_id")
-
-
-async def set_witness_connection_id(profile: Profile, connection_id: str):
-    """Cache the witness connection id for bounded lookups on future startups."""
-    config = await get_plugin_config(profile)
-    config["witness_connection_id"] = connection_id
-    await set_config(profile, config)
-
-
 async def get_server_url(profile: Profile):
     """Get the server info."""
     server_url = (await get_plugin_config(profile)).get("server_url")

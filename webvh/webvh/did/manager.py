@@ -37,7 +37,6 @@ from ..config.config import (
     is_witness,
     notify_watchers,
     set_config,
-    set_witness_connection_id,
 )
 from ..protocols.attested_resource.record import PendingAttestedResourceRecord
 from ..protocols.log_entry.record import PendingLogEntryRecord
@@ -848,18 +847,13 @@ class ControllerManager:
             return
         oob_mgr = OutOfBandManager(self.profile)
         try:
-            oob_record = await oob_mgr.receive_invitation(
+            await oob_mgr.receive_invitation(
                 invitation=InvitationMessage.from_url(witness_invitation),
                 auto_accept=True,
                 alias=witness_alias,
             )
         except BaseModelError as err:
             raise OperationError(f"Error receiving witness invitation: {err}")
-
-        # Cache the connection id as soon as it's known so future lookups can
-        # fetch it directly instead of searching for it.
-        if oob_record and oob_record.connection_id:
-            await set_witness_connection_id(self.profile, oob_record.connection_id)
 
         for _ in range(5):
             if await self._get_active_witness_connection():

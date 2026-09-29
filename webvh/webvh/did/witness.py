@@ -14,14 +14,8 @@ from acapy_agent.protocols.out_of_band.v1_0.manager import (
 from acapy_agent.protocols.out_of_band.v1_0.messages.invitation import (
     HSProto,
 )
-from acapy_agent.storage.error import StorageNotFoundError
 
-from ..config.config import (
-    get_plugin_config,
-    get_server_domain,
-    get_witness_connection_id,
-    set_witness_connection_id,
-)
+from ..config.config import get_plugin_config, get_server_domain
 
 from .exceptions import WitnessError
 from ..protocols.attested_resource.record import PendingAttestedResourceRecord
@@ -67,47 +61,44 @@ class WitnessManager:
     async def _get_active_witness_connection(self) -> Optional[ConnRecord]:
         """Find the active witness connection.
 
-        Uses only indexed tag lookups so cost does not grow with the total
-        number of connection records in the wallet:
+        Primarily looks the connection up by its `invitation_msg_id` tag,
+        which is indexed on ConnRecord (set by DIDXManager to the OOB
+        invitation's `@id` when the connection is created). This is an
+        O(1) lookup regardless of how many connection records exist in
+        the wallet, rather than a scan. The invitation message id itself
+        is derived from the plugin's configured `witness_invitation` URL,
+        the same static config already required to create the connection
+        automatically, so nothing needs to be cached or persisted
+        separately.
 
-          1. If the witness connection id was already cached (set as soon as
-             the connection is created, see ControllerManager.auto_witness_setup),
-             fetch it directly by id (O(1)).
-          2. Otherwise (first run before the id was cached, or migrating from
-             a version predating this cache), look the connection up by its
-             `invitation_msg_id` tag, which is an indexed ConnRecord tag, so
-             this is also O(1) rather than a scan of every connection.
+        Falls back to an alias lookup, narrowed by the indexed `state`
+        tag, only when no witness invitation is configured (or it wasn't
+        matched) -- this supports connections that were set up manually
+        by an operator (see the log message in `manager.auto_witness_setup`)
+        rather than via the automatic invitation flow, a rare/administrative
+        path where a state-narrowed lookup is an acceptable trade-off.
         """
         active_state = ConnRecord.State.COMPLETED.rfc160
 
-        cached_connection_id = await get_witness_connection_id(self.profile)
-        if cached_connection_id:
-            async with self.profile.session() as session:
-                try:
-                    connection = await ConnRecord.retrieve_by_id(
-                        session, cached_connection_id
-                    )
-                except StorageNotFoundError:
-                    connection = None
-
-            if connection and connection.state == active_state:
-                return connection
-
         invitation_msg_id = await self._witness_invitation_msg_id()
-        if not invitation_msg_id:
-            return None
+        if invitation_msg_id:
+            async with self.profile.session() as session:
+                connection_records = await ConnRecord.query(
+                    session, tag_filter={"invitation_msg_id": invitation_msg_id}
+                )
+            for connection in connection_records:
+                if connection.state == active_state:
+                    return connection
 
+        witness_alias = await self.connection_alias()
         async with self.profile.session() as session:
             connection_records = await ConnRecord.query(
-                session, tag_filter={"invitation_msg_id": invitation_msg_id}
+                session,
+                tag_filter={"state": active_state},
+                post_filter_positive={"alias": witness_alias},
             )
 
-        for connection in connection_records:
-            if connection.state == active_state:
-                await set_witness_connection_id(self.profile, connection.connection_id)
-                return connection
-
-        return None
+        return connection_records[0] if connection_records else None
 
     async def _witness_invitation_msg_id(self) -> Optional[str]:
         """Get the invitation message id of the configured witness invitation."""
