@@ -66,6 +66,21 @@ class TestWitnessManager(IsolatedAsyncioTestCase):
         await self.controller.auto_witness_setup()
         assert not mock_get_active_witness_connection.called
 
+    @mock.patch.object(WitnessManager, "_get_active_witness_connection")
+    async def test_auto_witness_setup_disabled(self, mock_get_active_witness_connection):
+        self.profile.settings.set_value(
+            "plugin_config",
+            {
+                "webvh": {
+                    "witness": False,
+                    "server_url": SERVER_URL,
+                    "auto_setup": False,
+                }
+            },
+        )
+        await self.controller.auto_witness_setup()
+        assert not mock_get_active_witness_connection.called
+
     async def test_auto_witness_setup_as_controller_no_server_url(self):
         self.profile.settings.set_value(
             "plugin_config",

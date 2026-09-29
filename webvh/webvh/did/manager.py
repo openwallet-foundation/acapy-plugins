@@ -426,6 +426,7 @@ class ControllerManager:
         config["scids"] = config.get("scids", {})
         config["witnesses"] = config.get("witnesses", [])
         config["witness"] = options.get("witness", False)
+        config["auto_setup"] = options.get("auto_setup", config.get("auto_setup", True))
         config["endorsement"] = options.get("endorsement", False)
         config["auto_attest"] = options.get("auto_attest", False)
         config["server_url"] = options.get("server_url", config.get("server_url")).rstrip(
@@ -828,20 +829,27 @@ class ControllerManager:
 
     async def auto_witness_setup(self) -> None:
         """Automatically set up the witness the connection."""
-        domain = await get_server_domain(self.profile)
-        witness_alias = create_alias(domain, "witnessConnection")
-
         if not await is_controller(self.profile):
             return
+
+        config = await get_plugin_config(self.profile)
+        if not config.get("auto_setup", True):
+            # A controller that never intends to create/update did:webvh DIDs
+            # (e.g. a verifier-only agent) doesn't need a witness connection
+            # at all. Set `auto_setup: false` in the plugin config to opt out
+            # of the witness connection lookup/creation entirely.
+            LOGGER.info("Automatic witness connection setup is disabled.")
+            return
+
+        domain = await get_server_domain(self.profile)
+        witness_alias = create_alias(domain, "witnessConnection")
 
         # Get the witness connection is already set up
         if await self._get_active_witness_connection():
             LOGGER.info("Connected to witness from previous connection.")
             return
 
-        witness_invitation = (await get_plugin_config(self.profile)).get(
-            "witness_invitation"
-        )
+        witness_invitation = config.get("witness_invitation")
         if not witness_invitation:
             LOGGER.info("No witness invitation, can't create connection automatically.")
             return
