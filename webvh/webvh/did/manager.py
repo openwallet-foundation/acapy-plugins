@@ -31,7 +31,6 @@ from ..config.config import (
     add_scid_mapping,
     did_from_scid,
     get_plugin_config,
-    get_server_url,
     get_server_domain,
     get_witnesses,
     is_controller,
@@ -85,23 +84,10 @@ class ControllerManager:
         self.watcher_client = WebVHWatcherClient(self.profile)
 
     async def _get_active_witness_connection(self) -> Optional[ConnRecord]:
-        server_url = await get_server_url(self.profile)
-        witness_alias = create_alias(url_to_domain(server_url), "witnessConnection")
-        async with self.profile.session() as session:
-            # ConnRecord.retrieve_by_alias() has no tag_filter, so it scans every
-            # connection record in the wallet regardless of state. Narrow the
-            # query with the indexed "state" tag first to avoid an unbounded
-            # full-table scan, then match the (non-indexed) alias in Python.
-            connection_records = await ConnRecord.query(
-                session,
-                tag_filter={"state": ConnRecord.State.COMPLETED.rfc160},
-                post_filter_positive={"alias": witness_alias},
-            )
-
-        if connection_records:
-            return connection_records[0]
-
-        return None
+        # Delegate to the (bounded) lookup shared with WitnessManager, which
+        # derives the same alias and caches the connection id to avoid
+        # repeated connections-table scans.
+        return await self.witness._get_active_witness_connection()
 
     async def _sign_log_entry(self, log_entry):
         did = log_entry.get("state", {}).get("id", None)

@@ -14,8 +14,14 @@ from acapy_agent.protocols.out_of_band.v1_0.manager import (
 from acapy_agent.protocols.out_of_band.v1_0.messages.invitation import (
     HSProto,
 )
+from acapy_agent.storage.error import StorageNotFoundError
 
-from ..config.config import get_plugin_config, get_server_domain
+from ..config.config import (
+    get_plugin_config,
+    get_server_domain,
+    get_witness_connection_id,
+    set_witness_connection_id,
+)
 
 from .exceptions import WitnessError
 from ..protocols.attested_resource.record import PendingAttestedResourceRecord
@@ -61,19 +67,43 @@ class WitnessManager:
     async def _get_active_witness_connection(self) -> Optional[ConnRecord]:
         """Find active witness connection."""
         witness_alias = await self.connection_alias()
+        active_state = ConnRecord.State.COMPLETED.rfc160
+
+        # Fast path: once discovered, the witness connection id is cached so
+        # future startups can fetch it directly by id (O(1)) instead of
+        # scanning the connections table.
+        cached_connection_id = await get_witness_connection_id(self.profile)
+        if cached_connection_id:
+            async with self.profile.session() as session:
+                try:
+                    connection = await ConnRecord.retrieve_by_id(
+                        session, cached_connection_id
+                    )
+                except StorageNotFoundError:
+                    connection = None
+
+            if (
+                connection
+                and connection.alias == witness_alias
+                and connection.state == active_state
+            ):
+                return connection
+
+        # Fallback for first-time discovery or migration only. This still
+        # bounds the scan with the indexed "state" tag so only active
+        # connections are materialized before matching the (non-indexed)
+        # alias in Python.
         async with self.profile.session() as session:
-            # ConnRecord.retrieve_by_alias() has no tag_filter, so it scans every
-            # connection record in the wallet regardless of state. Narrow the
-            # query with the indexed "state" tag first to avoid an unbounded
-            # full-table scan, then match the (non-indexed) alias in Python.
             connection_records = await ConnRecord.query(
                 session,
-                tag_filter={"state": ConnRecord.State.COMPLETED.rfc160},
+                tag_filter={"state": active_state},
                 post_filter_positive={"alias": witness_alias},
             )
 
         if connection_records:
-            return connection_records[0]
+            connection = connection_records[0]
+            await set_witness_connection_id(self.profile, connection.connection_id)
+            return connection
 
         return None
 
