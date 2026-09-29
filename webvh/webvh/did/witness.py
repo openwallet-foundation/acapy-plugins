@@ -36,7 +36,7 @@ from ..protocols.log_entry.messages import (
 )
 from ..protocols.states import WitnessingState
 from ..did.server_client import WebVHServerClient
-from ..did.utils import find_key, add_proof
+from ..did.utils import decode_invitation, find_key, add_proof
 
 LOGGER = logging.getLogger(__name__)
 
@@ -65,13 +65,21 @@ class WitnessManager:
         return f"webvh:{domain}@witness"
 
     async def _get_active_witness_connection(self) -> Optional[ConnRecord]:
-        """Find active witness connection."""
-        witness_alias = await self.connection_alias()
+        """Find the active witness connection.
+
+        Uses only indexed tag lookups so cost does not grow with the total
+        number of connection records in the wallet:
+
+          1. If the witness connection id was already cached (set as soon as
+             the connection is created, see ControllerManager.auto_witness_setup),
+             fetch it directly by id (O(1)).
+          2. Otherwise (first run before the id was cached, or migrating from
+             a version predating this cache), look the connection up by its
+             `invitation_msg_id` tag, which is an indexed ConnRecord tag, so
+             this is also O(1) rather than a scan of every connection.
+        """
         active_state = ConnRecord.State.COMPLETED.rfc160
 
-        # Fast path: once discovered, the witness connection id is cached so
-        # future startups can fetch it directly by id (O(1)) instead of
-        # scanning the connections table.
         cached_connection_id = await get_witness_connection_id(self.profile)
         if cached_connection_id:
             async with self.profile.session() as session:
@@ -82,30 +90,34 @@ class WitnessManager:
                 except StorageNotFoundError:
                     connection = None
 
-            if (
-                connection
-                and connection.alias == witness_alias
-                and connection.state == active_state
-            ):
+            if connection and connection.state == active_state:
                 return connection
 
-        # Fallback for first-time discovery or migration only. This still
-        # bounds the scan with the indexed "state" tag so only active
-        # connections are materialized before matching the (non-indexed)
-        # alias in Python.
+        invitation_msg_id = await self._witness_invitation_msg_id()
+        if not invitation_msg_id:
+            return None
+
         async with self.profile.session() as session:
             connection_records = await ConnRecord.query(
-                session,
-                tag_filter={"state": active_state},
-                post_filter_positive={"alias": witness_alias},
+                session, tag_filter={"invitation_msg_id": invitation_msg_id}
             )
 
-        if connection_records:
-            connection = connection_records[0]
-            await set_witness_connection_id(self.profile, connection.connection_id)
-            return connection
+        for connection in connection_records:
+            if connection.state == active_state:
+                await set_witness_connection_id(self.profile, connection.connection_id)
+                return connection
 
         return None
+
+    async def _witness_invitation_msg_id(self) -> Optional[str]:
+        """Get the invitation message id of the configured witness invitation."""
+        witness_invitation = (await get_plugin_config(self.profile)).get(
+            "witness_invitation"
+        )
+        if not witness_invitation:
+            return None
+
+        return decode_invitation(witness_invitation).get("@id")
 
     async def get_witness_key(self) -> str:
         """Return the witness key."""

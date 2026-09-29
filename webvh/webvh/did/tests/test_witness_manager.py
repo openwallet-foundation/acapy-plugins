@@ -106,7 +106,10 @@ class TestWitnessManager(IsolatedAsyncioTestCase):
 
     @mock.patch.object(OutOfBandManager, "receive_invitation")
     @mock.patch.object(asyncio, "sleep")
-    async def test_auto_witness_setup_as_controller_no_active_connection(self, *_):
+    async def test_auto_witness_setup_as_controller_no_active_connection(
+        self, _mock_sleep, mock_receive_invitation
+    ):
+        mock_receive_invitation.return_value = mock.MagicMock(connection_id=None)
         self.profile.settings.set_value("plugin_config.webvh.witness", False)
         self.profile.settings.set_value(
             "plugin_config",
@@ -124,7 +127,10 @@ class TestWitnessManager(IsolatedAsyncioTestCase):
         await self.controller.auto_witness_setup()
 
     @mock.patch.object(OutOfBandManager, "receive_invitation")
-    async def test_auto_witness_setup_as_controller_conn_becomes_active(self, *_):
+    async def test_auto_witness_setup_as_controller_conn_becomes_active(
+        self, mock_receive_invitation
+    ):
+        mock_receive_invitation.return_value = mock.MagicMock(connection_id=None)
         self.profile.settings.set_value("plugin_config.webvh.witness", False)
         self.profile.settings.set_value(
             "plugin_config",
@@ -145,9 +151,11 @@ class TestWitnessManager(IsolatedAsyncioTestCase):
             async with self.profile.session() as session:
                 record = ConnRecord(
                     alias=f"{SERVER_URL}@Witness",
+                    invitation_msg_id="0d900ec0-0c17-4f16-985d-fc5935ea8ca9",
                     state="active",
                 )
                 await record.save(session)
 
         asyncio.create_task(_create_connection())
         await self.controller.auto_witness_setup()
+
