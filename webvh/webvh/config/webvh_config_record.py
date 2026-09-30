@@ -46,6 +46,16 @@ class WebvhConfigSchema(BaseRecordSchema):
         required=False, description="Enable self witnessing.", default=False
     )
 
+    auto_setup = fields.Bool(
+        required=False,
+        description=(
+            "Automatically discover or create the witness connection on "
+            "startup. Set to false for controllers that never create or "
+            "update did:webvh DIDs (e.g. verifier-only agents)."
+        ),
+        default=True,
+    )
+
     witnesses = fields.List(
         fields.Str(),
         required=False,

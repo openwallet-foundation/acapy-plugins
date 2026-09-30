@@ -30,7 +30,7 @@ from ..protocols.log_entry.messages import (
 )
 from ..protocols.states import WitnessingState
 from ..did.server_client import WebVHServerClient
-from ..did.utils import find_key, add_proof
+from ..did.utils import decode_invitation, find_key, add_proof
 
 LOGGER = logging.getLogger(__name__)
 
@@ -59,21 +59,62 @@ class WitnessManager:
         return f"webvh:{domain}@witness"
 
     async def _get_active_witness_connection(self) -> Optional[ConnRecord]:
-        """Find active witness connection."""
+        """Find the active witness connection.
+
+        Primarily looks the connection up by its `invitation_msg_id` tag,
+        which is indexed on ConnRecord (set by DIDXManager to the OOB
+        invitation's `@id` when the connection is created). This is an
+        O(1) lookup regardless of how many connection records exist in
+        the wallet, rather than a scan. The invitation message id itself
+        is derived from the plugin's configured `witness_invitation` URL,
+        the same static config already required to create the connection
+        automatically, so nothing needs to be cached or persisted
+        separately.
+
+        Falls back to `ConnRecord.retrieve_by_alias`, only when no witness
+        invitation is configured (or it wasn't matched), to support
+        connections that were set up manually by an operator (see the log
+        message in `manager.auto_witness_setup`) rather than via the
+        automatic invitation flow. This fallback is not currently indexed
+        upstream (see openwallet-foundation/acapy#4234, which proposes
+        adding `alias` to `ConnRecord.TAG_NAMES`); once that lands and this
+        plugin's acapy-agent dependency is bumped to a release containing
+        it, this same call becomes an indexed lookup automatically, with
+        no plugin-side change required.
+        """
+        active_state = ConnRecord.State.COMPLETED.rfc160
+
+        invitation_msg_id = await self._witness_invitation_msg_id()
+        if invitation_msg_id:
+            async with self.profile.session() as session:
+                connection_records = await ConnRecord.query(
+                    session, tag_filter={"invitation_msg_id": invitation_msg_id}
+                )
+            for connection in connection_records:
+                if connection.state == active_state:
+                    return connection
+
         witness_alias = await self.connection_alias()
         async with self.profile.session() as session:
             connection_records = await ConnRecord.retrieve_by_alias(
                 session, witness_alias
             )
 
-        active_connections = [
-            conn for conn in connection_records if conn.state == "active"
-        ]
-
-        if len(active_connections) > 0:
-            return active_connections[0]
+        for connection in connection_records:
+            if connection.state == active_state:
+                return connection
 
         return None
+
+    async def _witness_invitation_msg_id(self) -> Optional[str]:
+        """Get the invitation message id of the configured witness invitation."""
+        witness_invitation = (await get_plugin_config(self.profile)).get(
+            "witness_invitation"
+        )
+        if not witness_invitation:
+            return None
+
+        return decode_invitation(witness_invitation).get("@id")
 
     async def get_witness_key(self) -> str:
         """Return the witness key."""
