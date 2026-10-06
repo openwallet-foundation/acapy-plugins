@@ -72,7 +72,7 @@ const presentationCache = new NodeCache({ stdTTL: 300, checkperiod: 400 });
 
 const API_BASE_URL = process.env.API_BASE_URL || "http://localhost:3001";
 const API_KEY = process.env.API_KEY;
-const AUTHSERVER_NGROK_URL = process.env.AUTHSERVER_NGROK_URL;
+const AUTHSERVER_PUBLIC_URL = process.env.AUTHSERVER_PUBLIC_URL;
 const ADMIN_MANAGE_AUTH_TOKEN = process.env.ADMIN_MANAGE_AUTH_TOKEN;
 const TENANT_SECRET = process.env.TENANT_SECRET;
 
@@ -86,11 +86,13 @@ let sdJwtSupportedCredCreated = false;
 let mdocSupportedCredCreated = false;
 let sdJwtStatusListCreated = false;
 let jwtStatusListCreated = false;
+let mdocStatusListCreated = false;
 let jwtVcSupportedCredID = "";
 let sdJwtSupportedCredID = "";
 let mdocSupportedCredID = "";
 let jwtStatusListID = "";
 let sdJwtStatusListID = "";
+let mdocStatusListID = "";
 
 
 //    ###     ######     ###            ########  ##    ##
@@ -712,6 +714,45 @@ async function issue_mdoc_credential(req, res) {
 
   logger.info(mdocSupportedCredID);
   
+  // Create IETF Token Status List Configuration for mDoc (revocation).
+  // Must be "ietf", not "w3c" — check_status_list_claim() in
+  // mso_mdoc/mdoc/utils.py only recognizes the IETF status_list.{idx,uri}
+  // shape embedded by the status_list plugin for that list_type.
+  const statusListCreateUrl = `${API_BASE_URL}/status-list/defs`;
+  const statusListCreateOptions = {
+    method: "POST",
+    headers: commonHeaders,
+    body: JSON.stringify({
+      issuer_did: issuerDID,
+      list_size: 131072,
+      list_type: "ietf",
+      shard_size: 131072,
+      status_message: [
+        {
+            status: "0x00",
+            message: "active"
+        },
+        {
+            status: "0x01",
+            message: "inactive"
+        },
+    ],
+    status_purpose: "revocation",
+    status_size: 1,
+    supported_cred_id: mdocSupportedCredID,
+    verification_method: issuerDID+"#0"
+    })
+  };
+
+  if (!mdocStatusListCreated){
+    events.emit(`issuance-${req.body.registrationId}`, {type: "message", message: `Posting Create Status List Request to: ${statusListCreateUrl}`});
+    events.emit(`issuance-${req.body.registrationId}`, {type: "debug-message", message: "Request options", data: statusListCreateOptions});
+    const statusListResponse = await fetchApiData(statusListCreateUrl, statusListCreateOptions);
+    mdocStatusListID = statusListResponse.id;
+    events.emit(`issuance-${req.body.registrationId}`, {type: "message", message: `Created Status List ID: ${mdocStatusListID}`});
+    mdocStatusListCreated = true;
+  };
+
   // Create credential exchange
   const exchangeCreateUrl = `${API_BASE_URL}/oid4vci/exchange/create`;
  
@@ -1136,10 +1177,13 @@ async function create_mdoc_presentation(req, res) {
     headers: commonHeaders,
     body: JSON.stringify({
       dcql_query_id: dcqlQueryId,
+      // Request the holder to produce an mso_mdoc presentation. Include
+      // additional common VP formats as fallbacks for wallets that may
+      // prefer JWT-based VPs.
       vp_formats: {
-        mso_mdoc: {
-          alg: ["ES256"]
-        }
+        mso_mdoc: { alg: ["ES256"] },
+        jwt_vp: { alg: ["ES256", "EdDSA"] },
+        jwt_vp_json: { alg: ["ES256", "EdDSA"] }
       },
     }),
   };
@@ -1232,7 +1276,7 @@ function handleEvents(event_type, req, res) {
         if (state == "request-retrieved")
           res.write(`event: status\ndata: <div style="text-align: center;">QRCode Scanned, awaiting presentation...</div>\n\n`);
         if (state == "presentation-invalid")
-          res.write(`event: status\ndata: <div style="text-align: center;">Presentaion verification failed</div>\n\n`);
+          res.write(`event: status\ndata: <div style="text-align: center;">Presentation verification failed</div>\n\n`);
         if (state == "presentation-valid")
           res.write(`event: status\ndata: <div style="text-align: center;">Presentation Verified!</div>\n\n`);
       }
@@ -1281,6 +1325,10 @@ function handleEvents(event_type, req, res) {
 // Render main app
 app.get("/", (req, res) => {
   res.render("index", {"registrationId": uuidv4()});
+});
+
+app.get("/healthz", (req, res) => {
+  res.status(200).send("ok");
 });
 
 const fetchApiData = async (url, options) => {
@@ -1386,7 +1434,7 @@ async function initializeIssuerMetadata() {
     const payload = {
       authorization_servers: [
         {
-          public_url: `${AUTHSERVER_NGROK_URL}/tenants/${WALLET_ID}`,
+          public_url: `${AUTHSERVER_PUBLIC_URL}/tenants/${WALLET_ID}`,
           private_url: `http://auth-server:9001/tenants/${WALLET_ID}`,
           auth_type: "client_secret_basic",
           client_credentials: {
@@ -1532,6 +1580,8 @@ app.post("/update-status", async (req, res, next) => {
       defId = jwtStatusListID;
     } else if (credType === "sdjwt") {
       defId = sdJwtStatusListID;
+    } else if (credType === "mdoc") {
+      defId = mdocStatusListID;
     } else {
       return res.status(400).send("Invalid credential type for status update.");
     }
@@ -1555,13 +1605,32 @@ app.post("/update-status", async (req, res, next) => {
       headers: commonHeaders,
       body: JSON.stringify({ status: "1" })
     });
-    
+
     const respData = await response.text();
-    
+
     if (respData.includes("StatusListCred record not found")) {
       res.send(`<div class="w3-panel w3-pale-red w3-border"><p>${respData}</p></div>`);
     } else if (response.ok) {
-      res.send(`<div class="w3-panel w3-pale-green w3-border"><p>Status successfully updated for Credential Exchange ID: ${credId}</p></div>`);
+      // The PATCH above only flips the bit in the StatusListShard DB
+      // record. Verifiers fetch a separately-published snapshot, so the
+      // update is invisible until that snapshot is regenerated.
+      let publishWarning = "";
+      try {
+        const publishUrl = `${API_BASE_URL}/status-list/defs/${defId}/publish`;
+        const publishResponse = await fetch(publishUrl, {
+          method: "PUT",
+          headers: commonHeaders,
+        });
+        if (!publishResponse.ok) {
+          const publishError = await publishResponse.text();
+          logger.warn("Failed to publish status list:", publishError);
+          publishWarning = `<p>Warning: status updated but publish failed: ${publishError}</p>`;
+        }
+      } catch (err) {
+        logger.warn("Failed to publish status list:", err?.message || err);
+        publishWarning = `<p>Warning: status updated but publish failed: ${err?.message || err}</p>`;
+      }
+      res.send(`<div class="w3-panel w3-pale-green w3-border"><p>Status successfully updated for Credential Exchange ID: ${credId}</p>${publishWarning}</div>`);
     } else {
       res.status(response.status).send(`<div class="w3-panel w3-pale-red w3-border"><p>Failed to update status: ${respData}</p></div>`);
     }
