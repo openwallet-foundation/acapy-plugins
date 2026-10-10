@@ -1,0 +1,61 @@
+// For format details, see https://aka.ms/devcontainer.json. For config options, see the
+// README at: https://github.com/devcontainers/templates/tree/main/src/python
+{
+    "name": "acapy-did-indy",
+    "build": {
+        "dockerfile": "Dockerfile",
+        "context": "..",
+        "args": {
+          "VARIANT": "3.12-bookworm",
+        }
+    },
+    "customizations": {
+        "vscode": {
+            "extensions": [
+              "ms-python.python",
+              "charliermarsh.ruff"
+            ],
+            "settings": {
+                "python.testing.pytestArgs": [
+                    "acapy_agent",
+                    "--no-cov"
+                ],
+                "python.testing.autoTestDiscoverOnSaveEnabled": true,
+                "python.testing.unittestEnabled": false,
+                "python.testing.pytestEnabled": true,
+                "python.testing.pytestPath": "pytest",
+                "editor.formatOnSave": false, // enable per language
+                "[python]": {
+                    "editor.formatOnSave": false,
+                    "editor.codeActionsOnSave": {
+                        "source.fixAll": false,
+                        "source.organizeImports": false
+                      },
+                    "editor.defaultFormatter": "charliermarsh.ruff",
+                    "ruff.organizeImports": false
+                  },
+                "ruff.codeAction.fixViolation": {
+                    "enable": false
+                },
+                "ruff.fixAll": false,
+                "ruff.configuration": "~/.config/pyproject.toml"
+            }
+        }
+    },
+
+    "features": {
+        "ghcr.io/devcontainers/features/docker-in-docker:2": {}
+    },
+
+    // Comment out to connect as root instead. More info: https://aka.ms/vscode-remote/containers/non-root.
+    "remoteUser": "vscode",
+
+    "remoteEnv": {
+        "RUST_LOG":"aries-askar::log::target=error"
+        //"PATH": "${containerEnv:PATH}:${workspaceRoot}/.venv/bin"
+    },
+
+    "mounts": [],
+    "postCreateCommand": "bash ./.devcontainer/post-install.sh"
+
+}

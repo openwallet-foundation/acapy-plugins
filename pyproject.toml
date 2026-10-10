@@ -29,6 +29,7 @@ plugins = [
     "acapy-plugin-rpc @ file:///rpc",
     "acapy-plugin-status-list @ file:///status_list",
     "acapy-plugin-webvh @ file:///webvh",
+    "acapy-plugin-did-indy @ file:///did-indy",
 ]
 
 [build-system]
