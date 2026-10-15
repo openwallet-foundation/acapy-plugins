@@ -10,12 +10,12 @@ python = "^3.13"
 pytest = "^9.1.1"
 pytest-asyncio = "^1.2.0"
 requests = "^2.32.0"
-aiohttp = "^3.13.3"
+aiohttp = "^3.14.4"
 fastapi-slim = "^0.128.0"
 nest-asyncio = "^1.5.5"
 redis = "^5.1.1"
 uvicorn = ">=0.52.3,<0.55"
-pydantic = "2.13.5"
+pydantic = "2.14.0"
 
 [tool.poetry.group.dev.dependencies]
 
