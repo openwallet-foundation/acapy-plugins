@@ -16,10 +16,15 @@ async def to_oauth2_request(
 ) -> OAuth2Request:
     """Convert FastAPI Request to OAuth2Request and attach context."""
 
+    headers: dict[str, str] = {}
+    for name, value in request.headers.items():
+        # RFC 9110 §5.3: combine repeated fields so validators can reject duplicates.
+        headers[name] = f"{headers[name]}, {value}" if name in headers else value
+
     oauth2_req = OAuth2Request(
         method=request.method,
         uri=str(request.url),
-        headers=dict(request.headers),
+        headers=headers,
     )
     form_data = form_data or {}
     data = {k: v for k, v in form_data.items() if v is not None}
