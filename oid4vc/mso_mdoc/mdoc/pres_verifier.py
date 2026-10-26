@@ -287,8 +287,16 @@ class MsoMdocPresVerifier(PresVerifier):
                         LOGGER.warning("Failed to extract claims: %s", e)
                         claims = {}
 
-                    # Check IETF Token Status List revocation if embedded in claims
-                    revocation_error = await check_status_list_claim(claims)
+                    # Check IETF Token Status List revocation from the MSO
+                    # status claim (not a namespace-embedded claim — read via
+                    # the reader-side status_list field on the verified response).
+                    status_json = getattr(verified_data, "status_list", None)
+                    status_claim = json.loads(status_json) if status_json else None
+                    LOGGER.info(
+                        "verified_data.status_list for presentation verification: %s",
+                        status_json,
+                    )
+                    revocation_error = await check_status_list_claim(status_claim)
                     if revocation_error:
                         LOGGER.warning(
                             "mDoc presentation rejected — credential revoked: %s",

@@ -22,6 +22,7 @@ from oid4vc.models.exchange import OID4VCIExchangeRecord
 from oid4vc.models.presentation import OID4VPPresentation
 from oid4vc.models.supported_cred import SupportedCredential
 from oid4vc.pop_result import PopResult
+from oid4vc.status_handler import StatusHandler
 
 from .mdoc.issuer import MDL_MANDATORY_FIELDS, isomdl_mdoc_sign
 from .mdoc.cred_verifier import MsoMdocCredVerifier
@@ -346,65 +347,37 @@ class MsoMdocCredProcessor(Issuer, CredVerifier, PresVerifier):
         self,
         context: AdminRequestContext,
         supported: SupportedCredential,
-        doctype: str,
+        ex_record: OID4VCIExchangeRecord,
     ) -> Optional[Dict[str, Any]]:
-        """Optionally assign a Token Status List entry for the credential.
+        """Optionally assign a status list entry for the credential.
 
-        If ``status_list_def_id`` and ``status_list_base_uri`` are set in the
-        ``SupportedCredential.vc_additional_data``, this method attempts to
-        assign an entry from the status_list plugin and returns the status
-        claim dict to embed in the payload.
+        Delegates to the configured ``OID4VCI_STATUS_HANDLER`` plugin, the
+        same mechanism ``jwt_vc_json`` and ``sd_jwt_vc`` use. The handler
+        resolves the public status URI from ``STATUS_LIST_PUBLIC_URI`` and
+        looks up the status list definition by ``supported_cred_id``, so no
+        additional wiring is needed on the ``SupportedCredential`` record.
 
-        Returns ``None`` if the status list plugin is not installed or not
-        configured for this credential type.
+        Returns ``None`` if no status handler is configured or no status
+        list definition exists for this supported credential.
         """
-        additional = supported.vc_additional_data or {}
-        definition_id = additional.get("status_list_def_id")
-        base_uri = (additional.get("status_list_base_uri") or "").rstrip("/")
-
-        if not definition_id or not base_uri:
-            return None
-
-        try:
-            from status_list.status_list.v1_0 import (  # noqa: PLC0415
-                status_handler as _status_handler,
-            )
-        except ImportError:
-            LOGGER.debug(
-                "status_list plugin not installed; skipping revocation entry assignment"
+        status_handler = context.inject_or(StatusHandler)
+        if not status_handler:
+            LOGGER.info(
+                "No StatusHandler configured (OID4VCI_STATUS_HANDLER unset?); "
+                "issuing mdoc without a status claim"
             )
             return None
 
-        try:
-            entry = await _status_handler.assign_status_list_entry(context, definition_id)
-        except Exception as exc:
-            LOGGER.warning(
-                "Failed to assign status list entry for definition %s: %s",
-                definition_id,
-                exc,
-            )
-            return None
-
-        if entry is None:
-            LOGGER.warning(
-                "Status list entry assignment returned None for definition %s",
-                definition_id,
-            )
-            return None
-
-        list_number = entry.get("list_number", "")
-        list_index = entry.get("list_index", 0)
-        status_uri = f"{base_uri}/{list_number}"
-
-        LOGGER.info(
-            "Assigned status list entry: doctype=%s list_number=%s index=%d uri=%s",
-            doctype,
-            list_number,
-            list_index,
-            status_uri,
+        status_claim = await status_handler.assign_status_entries(
+            context, supported.supported_cred_id, ex_record.exchange_id
         )
-
-        return {"status_list": {"idx": list_index, "uri": status_uri}}
+        LOGGER.info(
+            "Status claim for supported_cred_id=%s exchange_id=%s: %s",
+            supported.supported_cred_id,
+            ex_record.exchange_id,
+            status_claim,
+        )
+        return status_claim
 
     async def issue(
         self,
@@ -448,10 +421,10 @@ class MsoMdocCredProcessor(Issuer, CredVerifier, PresVerifier):
             # Get payload
             payload = prepare_mdoc_payload(ex_record.credential_subject, doctype)
 
-            # Optionally assign a status list entry and embed the status claim
-            status_claim = await self._assign_status_entry(context, supported, doctype)
-            if status_claim:
-                payload["status"] = status_claim
+            # Optionally assign a status list entry and embed the status claim.
+            # Passed to isomdl_mdoc_sign separately (rather than merged into
+            # payload) since it's an MSO-level field, not a namespace element.
+            status_claim = await self._assign_status_entry(context, supported, ex_record)
 
             # Resolve signing key — check MdocSigningKeyRecord first, then
             # fall back to vc_additional_data and env vars
@@ -517,7 +490,12 @@ class MsoMdocCredProcessor(Issuer, CredVerifier, PresVerifier):
                 )
 
             mso_mdoc = isomdl_mdoc_sign(
-                signing_holder_key, headers, payload, certificate_pem, private_key_pem
+                signing_holder_key,
+                headers,
+                payload,
+                certificate_pem,
+                private_key_pem,
+                status=status_claim,
             )
 
             # Normalize mDoc result handling for robust string/bytes processing

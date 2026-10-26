@@ -25,10 +25,10 @@ def split_pem_chain(pem_chain: str) -> List[str]:
     When a caller stores or passes a multi-cert chain as one string, every cert
     after the first is silently dropped, causing either:
 
-    * **Issuer side** – the wrong certificate is embedded in the MSO (the
+    * **Issuer side** - the wrong certificate is embedded in the MSO (the
       signing key no longer corresponds to the embedded cert → verification
       fails).
-    * **Verifier side** – trust-anchor chains are truncated to one cert, so
+    * **Verifier side** - trust-anchor chains are truncated to one cert, so
       any mdoc whose embedded cert is not the single root in the chain cannot
       be verified.
 
@@ -105,13 +105,17 @@ def flatten_trust_anchors(trust_anchors: List[str]) -> List[str]:
     return flat
 
 
-async def check_status_list_claim(claims: dict) -> Optional[str]:
-    """Check IETF Token Status List revocation status embedded in mDoc claims.
+async def check_status_list_claim(status_claim: Optional[dict]) -> Optional[str]:
+    """Check IETF Token Status List revocation status from an MSO status claim.
 
-    Searches all namespaces in *claims* for a ``status.status_list`` entry
-    containing ``idx`` (credential index) and ``uri`` (status list endpoint).
-    If found, fetches the published status list JWT, decodes the little-endian
-    compressed bitstring, and checks the bit(s) at *idx*.
+    *status_claim* is the credential's MSO-level status claim (e.g.
+    ``{"status_list": {"idx": ..., "uri": ...}}``), read back via
+    ``Mdoc.status()`` for direct credential verification or the reader-side
+    ``status`` field for OID4VP presentation verification — not discovered
+    by searching namespace claims; status isn't a namespace-embedded data
+    element, it lives on the MSO itself. If present, fetches the published
+    status list JWT, decodes the little-endian compressed bitstring, and
+    checks the bit(s) at ``idx``.
 
     Per IETF Token Status List draft:
     - ``status_list.lst``: base64url-encoded, zlib-compressed little-endian bitstring
@@ -119,35 +123,29 @@ async def check_status_list_claim(claims: dict) -> Optional[str]:
     - A non-zero value at position *idx* means the credential is revoked/suspended.
 
     Args:
-        claims: Namespace-keyed claims dict from ``extract_verified_claims`` or
-                ``_extract_mdoc_claims``, e.g.
-                ``{"org.iso.18013.5.1": {"family_name": "Smith", "status": {...}}}``
+        status_claim: The MSO's status claim dict, or ``None``/empty if the
+            credential has no status claim at all.
 
     Returns:
         ``None`` if the credential is valid (or has no status claim).
-        An error string if the credential is revoked or suspended.
+        An error string if the credential is revoked/suspended, or if its
+        status could not be determined (fetch/decode failure, malformed
+        claim, out-of-range index) — this fails closed rather than treating
+        an inconclusive check as "valid".
     """
-    # Search all namespaces for a status.status_list.{idx, uri} entry
-    status_entry = None
-    for ns_claims in claims.values():
-        if not isinstance(ns_claims, dict):
-            continue
-        status = ns_claims.get("status")
-        if isinstance(status, dict) and "status_list" in status:
-            status_entry = status["status_list"]
-            break
-
-    if not status_entry:
+    if not isinstance(status_claim, dict) or "status_list" not in status_claim:
         return None  # No revocable status claim → credential is valid
 
+    status_entry = status_claim["status_list"]
     idx = status_entry.get("idx")
     uri = status_entry.get("uri")
 
     if idx is None or not uri:
-        LOGGER.warning(
-            "Malformed status_list claim — missing idx or uri; skipping revocation check"
+        LOGGER.warning("Malformed status_list claim — missing idx or uri")
+        return (
+            "Could not verify credential status: malformed status_list claim "
+            "(missing idx or uri)"
         )
-        return None
 
     # Fetch the published status list JWT
     try:
@@ -158,12 +156,8 @@ async def check_status_list_claim(claims: dict) -> Optional[str]:
                 resp.raise_for_status()
                 jwt_text = await resp.text()
     except Exception as exc:
-        LOGGER.warning(
-            "Could not fetch status list from %r — revocation check skipped: %s",
-            uri,
-            exc,
-        )
-        return None  # Fail-open on network errors
+        LOGGER.warning("Could not fetch status list from %r: %s", uri, exc)
+        return f"Could not verify credential status: {exc}"
 
     # Decode JWT payload without signature verification
     try:
@@ -174,12 +168,17 @@ async def check_status_list_claim(claims: dict) -> Optional[str]:
         jwt_payload = _json.loads(base64.urlsafe_b64decode(payload_b64))
     except Exception as exc:
         LOGGER.warning("Failed to decode status list JWT from %r: %s", uri, exc)
-        return None
+        return (
+            f"Could not verify credential status: failed to decode status list JWT: {exc}"
+        )
 
     sl = jwt_payload.get("status_list")
     if not isinstance(sl, dict):
         LOGGER.warning("JWT from %r has no 'status_list' claim", uri)
-        return None
+        return (
+            "Could not verify credential status: status list JWT has no "
+            "'status_list' claim"
+        )
 
     bits: int = int(sl.get("bits", 1))
     lst: str = sl.get("lst", "")
@@ -190,7 +189,10 @@ async def check_status_list_claim(claims: dict) -> Optional[str]:
         raw_bytes = zlib.decompress(compressed)
     except Exception as exc:
         LOGGER.warning("Failed to decode status list bitstring from %r: %s", uri, exc)
-        return None
+        return (
+            "Could not verify credential status: "
+            f"failed to decode status list bitstring: {exc}"
+        )
 
     # Extract the status value for credential at position *idx*.
     # IETF Token Status List uses little-endian bit ordering within each byte:
@@ -202,12 +204,14 @@ async def check_status_list_claim(claims: dict) -> Optional[str]:
 
     if byte_idx >= len(raw_bytes):
         LOGGER.warning(
-            "Status list index %d is out of range (list byte length=%d); "
-            "skipping revocation check",
+            "Status list index %d is out of range (list byte length=%d)",
             idx,
             len(raw_bytes),
         )
-        return None
+        return (
+            f"Could not verify credential status: index {idx} out of range "
+            f"for status list of length {len(raw_bytes)} bytes"
+        )
 
     mask = (1 << bits) - 1
     status_value = (raw_bytes[byte_idx] >> bit_in_byte) & mask
