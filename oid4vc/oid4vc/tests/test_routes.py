@@ -14,7 +14,8 @@ from oid4vc.routes.exchange import (
     credential_refresh,
     exchange_create,
 )
-from oid4vc.routes.helpers import _create_pre_auth_code, _parse_cred_offer
+from oid4vc.auth_providers import AuthContext, auth_provider_for_entry
+from oid4vc.routes.helpers import _parse_cred_offer
 
 
 @pytest.fixture
@@ -58,11 +59,12 @@ async def test_create_pre_auth_code(monkeypatch, profile, config):
     mock_response.json = AsyncMock(return_value={"pre_authorized_code": "code123"})
     mock_client.post = AsyncMock(return_value=mock_response)
     monkeypatch.setattr(
-        "oid4vc.routes.helpers.AppResources.get_http_client", lambda: mock_client
+        "oid4vc.auth_providers.reference.AppResources.get_http_client",
+        lambda: mock_client,
     )
     # Patch get_auth_header to return a dummy header
     monkeypatch.setattr(
-        "oid4vc.routes.helpers.get_auth_header",
+        "oid4vc.auth_providers.reference.get_auth_header",
         AsyncMock(return_value="Bearer dummyheader"),
     )
     auth_server = {
@@ -73,10 +75,15 @@ async def test_create_pre_auth_code(monkeypatch, profile, config):
             "client_secret": "client_secret",
         },
     }
-    code = await _create_pre_auth_code(
-        profile, config, auth_server, "subject_id", "cred_config_id", "1234"
+    provider, ctx = auth_provider_for_entry(profile, auth_server)
+    code = await provider.create_pre_authorized_code(
+        ctx,
+        subject_id="subject_id",
+        credential_configuration_id="cred_config_id",
+        user_pin="1234",
     )
     assert code == "code123"
+    assert mock_client.post.call_args.kwargs["json"]["user_pin"] == "1234"
 
 
 @pytest.mark.asyncio
@@ -100,13 +107,18 @@ async def test_parse_cred_offer(monkeypatch, context):
         "oid4vc.routes.helpers.SupportedCredential.retrieve_by_id",
         AsyncMock(return_value=mock_supported),
     )
+    provider = MagicMock()
+    provider.create_pre_authorized_code = AsyncMock(return_value="code123")
     monkeypatch.setattr(
-        "oid4vc.routes.helpers._create_pre_auth_code", AsyncMock(return_value="code123")
-    )
-    monkeypatch.setattr(
-        "oid4vc.routes.helpers.get_first_auth_server", AsyncMock(return_value=None)
+        "oid4vc.routes.helpers.resolve_auth_provider",
+        AsyncMock(return_value=(provider, AuthContext(context.profile, MagicMock(), {}))),
     )
     offer = await _parse_cred_offer(context, "exchange_id")
+    assert provider.create_pre_authorized_code.call_args.kwargs == {
+        "subject_id": "refresh_id",
+        "credential_configuration_id": "cred_id",
+        "user_pin": "1234",
+    }
     assert offer["credential_issuer"].startswith("http://localhost:8020")
     assert (
         offer["grants"]["urn:ietf:params:oauth:grant-type:pre-authorized_code"][

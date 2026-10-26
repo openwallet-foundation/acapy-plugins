@@ -13,6 +13,9 @@ from acapy_agent.wallet.key_type import P256, KeyTypes
 from oid4vc.cred_processor import CredProcessors
 
 from .app_resources import AppResources
+from .auth_providers import AuthServerRegistry
+from .auth_providers.builtin import BuiltinProvider
+from .auth_providers.reference import ReferenceProvider
 from .config import Config
 from .jwk import DID_JWK
 from .jwk_resolver import JwkResolver
@@ -62,6 +65,15 @@ async def setup(context: InjectionContext):
     # in their own setup() functions when loaded as plugins
 
     context.injector.bind_instance(CredProcessors, processors)
+
+    # Authorization server providers. Other plugins (e.g. oid4vc_keycloak)
+    # register additional providers into the same registry.
+    auth_registry = context.inject_or(AuthServerRegistry)
+    if not auth_registry:
+        auth_registry = AuthServerRegistry()
+        context.injector.bind_instance(AuthServerRegistry, auth_registry)
+    auth_registry.register(BuiltinProvider())
+    auth_registry.register(ReferenceProvider())
 
     status_handler = StatusHandler(context)
     context.injector.bind_instance(StatusHandler, status_handler)

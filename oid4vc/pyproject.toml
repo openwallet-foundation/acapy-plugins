@@ -15,6 +15,7 @@ packages = [
     { include = "jwt_vc_json" },
     { include = "sd_jwt_vc" },
     { include = "mso_mdoc" },
+    { include = "oid4vc_keycloak", from = "keycloak" },
 ]
 
 [tool.poetry.dependencies]
@@ -91,13 +92,14 @@ ignore = [
 [tool.ruff.lint.per-file-ignores]
 "**/{tests}/*" = ["F841", "D", "E501", "PLC0415"]
 "**/{demo}/*" = ["F841", "D", "E501", "PLC0415"]
+"**/{e2e}/*" = ["F841", "D", "E501", "PLC0415"]
 
 [tool.pytest.ini_options]
-testpaths = ["jwt_vc_json", "mso_mdoc", "oid4vc", "sd_jwt_vc"]
+testpaths = ["jwt_vc_json", "mso_mdoc", "oid4vc", "sd_jwt_vc", "keycloak/oid4vc_keycloak"]
 addopts = """
     -p no:warnings
     --quiet --junitxml=./.test-reports/junit.xml
-    --cov-config .coveragerc --cov=oid4vc --cov=jwt_vc_json --cov=mso_mdoc --cov=sd_jwt_vc --cov-report term --cov-report xml
+    --cov-config .coveragerc --cov=oid4vc --cov=jwt_vc_json --cov=mso_mdoc --cov=sd_jwt_vc --cov=oid4vc_keycloak --cov-report term --cov-report xml
 """
 markers = []
 junit_family = "xunit1"

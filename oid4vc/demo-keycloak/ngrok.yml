@@ -1,0 +1,16 @@
+# ngrok tunnels for the demo with Keycloak as the authorization server.
+# Wallets reach the issuer and Keycloak's token endpoint through these tunnels.
+version: 3
+tunnels:
+  issuer:
+    proto: http
+    addr: issuer:8082
+    # domain: your-custom-domain
+  demo:
+    proto: http
+    addr: demo-app:3000
+    # domain: your-custom-domain
+  keycloak:
+    proto: http
+    addr: keycloak:8080
+    # domain: your-custom-domain

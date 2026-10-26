@@ -35,6 +35,7 @@ from .exchange import (
     list_exchange_records,
 )
 from .issuer_config import get_issuer_configuration, put_issuer_configuration
+from .pre_auth_redeem import redeem_pre_auth_code_route
 from .supported_credential import (
     SupportedCredentialMatchSchema,
     get_supported_credential_by_id,
@@ -118,6 +119,7 @@ __all__ = [
     # Issuer configuration
     "get_issuer_configuration",
     "put_issuer_configuration",
+    "redeem_pre_auth_code_route",
     # Registration
     "register",
     "post_process_routes",
@@ -189,6 +191,9 @@ async def register(app: web.Application):
                 allow_head=False,
             ),
             web.put("/oid4vci/issuer/configuration", put_issuer_configuration),
+            # Back channel for external authorization servers (Keycloak);
+            # authenticated by OAuth client authentication, not admin credentials.
+            web.post("/oid4vci/pre-auth/redeem", redeem_pre_auth_code_route),
         ]
     )
 
