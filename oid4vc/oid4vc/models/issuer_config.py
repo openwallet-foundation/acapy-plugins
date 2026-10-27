@@ -118,8 +118,17 @@ class IssuerConfigurationSchema(BaseRecordSchema):
     authorization_servers = fields.List(
         fields.Dict(),
         metadata={
+            "description": (
+                "Authorization server used for this tenant's pre-authorized code "
+                "flow (the first entry is used). 'type' selects the provider: "
+                "'builtin' (the plugin's own /token, the default when none is "
+                "configured), 'reference' (oid4vc/auth_server; the default for "
+                "entries without 'type'), or 'keycloak' (requires the "
+                "oid4vc_keycloak plugin)."
+            ),
             "example": [
                 {
+                    "type": "reference",
                     "public_url": "https://auth.example.com",
                     "private_url": "https://intra.example.com",
                     "auth_type": "client_secret_basic",
@@ -129,6 +138,7 @@ class IssuerConfigurationSchema(BaseRecordSchema):
                     },
                 },
                 {
+                    "type": "reference",
                     "public_url": "https://auth.example.com",
                     "private_url": "https://intra.example.com",
                     "auth_type": "client_secret_jwt",
@@ -138,6 +148,7 @@ class IssuerConfigurationSchema(BaseRecordSchema):
                     },
                 },
                 {
+                    "type": "reference",
                     "public_url": "https://auth.example.com",
                     "private_url": "https://intra.example.com",
                     "auth_type": "private_key_jwt",
@@ -146,7 +157,14 @@ class IssuerConfigurationSchema(BaseRecordSchema):
                         "did": "wV6ydFNQYCdo2mfzvPBbF",
                     },
                 },
-            ]
+                {
+                    "type": "keycloak",
+                    "public_url": "https://kc.example.com/realms/issuer-abc123",
+                    "private_url": "http://keycloak:8080/realms/issuer-abc123",
+                    "require_dpop": True,
+                    "redeem_client": {"auth_method": "private_key_jwt"},
+                },
+            ],
         },
     )
     credential_endpoint = fields.Str(required=False, description="credential endpoint")

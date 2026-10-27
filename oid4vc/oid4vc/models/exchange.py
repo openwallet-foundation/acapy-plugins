@@ -65,6 +65,8 @@ class OID4VCIExchangeRecord(BaseExchangeRecord):
         code: Optional[str] = None,
         token: Optional[str] = None,
         expires_at: Union[str, datetime, None] = None,
+        pin_attempts: Optional[int] = None,
+        code_redeemed_at: Optional[str] = None,
         **kwargs,
     ):
         """Initialize a new OID4VCIExchangeRecord."""
@@ -81,6 +83,10 @@ class OID4VCIExchangeRecord(BaseExchangeRecord):
         self.code = code
         self.token = token
         self.expires_at = datetime_to_str(expires_at)
+        # Failed tx_code attempts for the current pre-authorized code.
+        self.pin_attempts = pin_attempts or 0
+        # Set when the current pre-authorized code is redeemed (single use).
+        self.code_redeemed_at = code_redeemed_at
 
     @property
     def exchange_id(self) -> str:
@@ -105,6 +111,8 @@ class OID4VCIExchangeRecord(BaseExchangeRecord):
                 "code",
                 "token",
                 "expires_at",
+                "pin_attempts",
+                "code_redeemed_at",
             )
         }
 
@@ -141,9 +149,13 @@ class OID4VCIExchangeRecord(BaseExchangeRecord):
         return None
 
     @classmethod
-    async def retrieve_by_code(cls, session: ProfileSession, code: str):
+    async def retrieve_by_code(
+        cls, session: ProfileSession, code: str, for_update: bool = False
+    ):
         """Retrieve an exchange record by code."""
-        return await cls.retrieve_by_tag_filter(session, {"code": code})
+        return await cls.retrieve_by_tag_filter(
+            session, {"code": code}, for_update=for_update
+        )
 
 
 class OID4VCIExchangeRecordSchema(BaseRecordSchema):
@@ -209,6 +221,14 @@ class OID4VCIExchangeRecordSchema(BaseRecordSchema):
     )
     code = fields.Str(
         required=False,
+    )
+    pin_attempts = fields.Int(
+        required=False,
+        metadata={"description": "Failed tx_code attempts for the current code"},
+    )
+    code_redeemed_at = fields.Str(
+        required=False,
+        metadata={"description": "When the current pre-authorized code was redeemed"},
     )
     expires_at = fields.Str(
         required=False,

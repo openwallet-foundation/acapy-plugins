@@ -257,6 +257,10 @@ The Plugin expects the following configuration options. These options can either
   - Dict of credential handlers. e.g. `{"jwt_vc_json": "jwt_vc_json"}`
 - `OID4VCI_ENABLE_NONCE_ENDPOINT` or `oid4vci.enable_nonce_endpoint`
   - When `true` (default), the `/nonce` endpoint is published and nonce validation uses DB-based single-use redemption. When `false`, the `/nonce` endpoint is not registered and nonce validation relies on `c_nonce` from the access token (either via auth server introspect or the exchange record).
+- `OID4VCI_AUTH_SERVER` or `oid4vci.auth_server`
+  - Plugin-level authorization server (JSON object, see [Authorization Server](#authorization-server)). Used when a tenant has no `authorization_servers` in its `IssuerConfiguration`. Unset means the built-in authorization server.
+- `OID4VCI_MAX_TX_CODE_ATTEMPTS` or `oid4vci.max_tx_code_attempts`
+  - Failed `tx_code` attempts allowed per pre-authorized code before the code is locked (default `5`). Each exchange has one code (fetching its offer again returns the same code), so a locked code needs a new exchange.
 
 #### Nonce Handling
 
@@ -271,19 +275,47 @@ The plugin supports four deployment scenarios depending on whether an external a
 
 When an external auth server is configured, the wallet obtains its token from the auth server's token endpoint. If the auth server provides a `c_nonce` in the token response, the wallet will typically use that nonce directly rather than calling the `/nonce` endpoint. To use DB-based nonce redemption with an auth server, disable nonce generation on the auth server side so the wallet calls the plugin's `/nonce` endpoint.
 
-#### Authorization Server (Per-Tenant)
+#### Authorization Server
 
-Authorization server configuration is managed per-tenant via the `IssuerConfiguration` record, not through global environment variables. Use the admin API:
+The plugin is always the Credential Issuer and the resource server for
+`/credential`. The wallet-facing OAuth authorization server is pluggable; the
+entry's `type` selects it:
+
+| `type` | Authorization server | Pre-authorized code | Token validation at `/credential` |
+|---|---|---|---|
+| `builtin` (default) | The plugin's own `/token` | Minted by the plugin | Local JWT (issuer's `did:jwk`) |
+| `reference` | `oid4vc/auth_server` | Minted by the AS (`/grants/pre-authorized-code`) | Introspection |
+| `keycloak` | Keycloak + the extension in [`keycloak/`](keycloak/README.md) (requires `--plugin oid4vc_keycloak`) | Minted by the plugin, redeemed by Keycloak on the admin API (`/oid4vci/pre-auth/redeem`) | Local, against the realm JWKS |
+
+Selection, highest priority first:
+
+1. the tenant's `IssuerConfiguration.authorization_servers[0]`;
+2. the plugin-level `oid4vci.auth_server` / `OID4VCI_AUTH_SERVER`;
+3. the built-in authorization server.
+
+Entries without `type` are treated as `reference` (they predate pluggable providers).
+
+Regardless of the authorization server:
+
+- **DPoP (RFC 9449)** is enforced at `/credential` and `/notification` for any
+  access token bound with `cnf.jkt`: the `DPoP` scheme and a valid proof (`htm`,
+  `htu` against the configured public endpoint, `ath`, key thumbprint) are
+  required. The built-in `/token` verifies a DPoP proof when one is sent and
+  binds the issued token to it (`token_type: DPoP`).
+- **`tx_code` attempts** are limited per code (`max_tx_code_attempts`).
+
+Per-tenant configuration uses the admin API:
 
 - `PUT /oid4vci/issuer/configuration` — create or update the issuer configuration
 - `GET /oid4vci/issuer/configuration` — retrieve the current configuration
 
-Example payload to configure an external authorization server:
+Reference authorization server:
 
 ```json
 {
   "authorization_servers": [
     {
+      "type": "reference",
       "public_url": "https://auth.example.com/tenant/abc123",
       "private_url": "https://auth-internal:8080/tenant/abc123",
       "auth_type": "client_secret_basic",
@@ -296,7 +328,23 @@ Example payload to configure an external authorization server:
 }
 ```
 
-Supported `auth_type` values: `client_secret_basic`, `client_secret_jwt`, `private_key_jwt`.
+Supported `auth_type` values: `client_secret_basic`, `client_secret_jwt`,
+`private_key_jwt`. Optional `introspection_endpoint` overrides
+`{private_url}/introspect`.
+
+Keycloak (see [`keycloak/README.md`](keycloak/README.md)):
+
+```json
+{
+  "authorization_servers": [
+    {
+      "type": "keycloak",
+      "public_url": "https://kc.example.com/realms/issuer-abc123",
+      "private_url": "http://keycloak:8080/realms/issuer-abc123"
+    }
+  ]
+}
+```
 
 ### Creating Supported Credential Records
 
@@ -311,7 +359,7 @@ To issue a credential using OpenID4VCI, the Issuer must first prepare credential
       "name": "University Credential",
       "locale": "en-US",
       "logo": {
-        "url": "https://w3c-ccg.github.io/vc-ed/plugfest-1-2022/images/JFF_LogoLockup.png",
+        "uri": "https://w3c-ccg.github.io/vc-ed/plugfest-1-2022/images/JFF_LogoLockup.png",
         "alt_text": "a square logo of a university"
       },
       "background_color": "#12107C",
@@ -375,7 +423,7 @@ When the Controller sets up a Supported Credential record using the Admin API, t
           "name": "University Credential",
           "locale": "en-US",
           "logo": {
-            "url": "https://w3c-ccg.github.io/vc-ed/plugfest-1-2022/images/JFF_LogoLockup.png",
+            "uri": "https://w3c-ccg.github.io/vc-ed/plugfest-1-2022/images/JFF_LogoLockup.png",
             "alt_text": "a square logo of a university"
           },
           "background_color": "#12107c",
@@ -439,7 +487,7 @@ To run unit tests:
 
 ```shell
 # Run all tests except mso_mdoc (which requires isomdl-uniffi)
-poetry run pytest jwt_vc_json/tests/ oid4vc/tests/ sd_jwt_vc/tests/
+poetry run pytest jwt_vc_json/tests/ oid4vc/tests/ sd_jwt_vc/tests/ keycloak/oid4vc_keycloak/tests/
 
 # Or run all tests including mso_mdoc (requires isomdl-uniffi installed)
 poetry run pytest
