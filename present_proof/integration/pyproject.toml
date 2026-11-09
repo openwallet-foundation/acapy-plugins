@@ -9,7 +9,7 @@ package-mode = false
 python = "^3.13"
 
 acapy-controller = {git = "https://github.com/openwallet-foundation/acapy-minimal-example.git", rev = "main"}
-pydantic = "^2.12.2"
+pydantic = "^2.14.3"
 pytest = "^9.2.0"
 pytest-asyncio = "^1.4.1"
 requests = "^2.32.0"
