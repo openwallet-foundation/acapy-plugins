@@ -118,6 +118,7 @@ def isomdl_mdoc_sign(
     payload: Mapping[str, Any],
     iaca_cert_pem: str,
     iaca_key_pem: str,
+    status: Optional[dict] = None,
 ) -> str:
     """Create a signed mso_mdoc using isomdl-uniffi.
 
@@ -137,6 +138,9 @@ def isomdl_mdoc_sign(
         payload: The credential data to sign
         iaca_cert_pem: Issuer certificate in PEM format
         iaca_key_pem: Issuer private key in PEM format
+        status: Optional status claim (e.g. an IETF status-list
+            `{"status_list": {"idx": ..., "uri": ...}}` object) to embed in
+            the MSO for revocation checking.
 
     Returns:
         CBOR-encoded mDoc as string
@@ -167,6 +171,8 @@ def isomdl_mdoc_sign(
                 len(signing_cert_pem),
             )
 
+        status_json = json.dumps(status) if status else None
+
         # Prepare namespaces based on doctype
         if doctype == "org.iso.18013.5.1.mDL":
             # Use the dedicated mDL constructor — accepts JSON strings and
@@ -179,6 +185,7 @@ def isomdl_mdoc_sign(
                 holder_jwk,
                 signing_cert_pem,
                 iaca_key_pem,
+                status_json,
             )
         else:
             namespaces = _prepare_generic_namespaces(doctype, payload)
@@ -189,6 +196,7 @@ def isomdl_mdoc_sign(
                 holder_jwk,
                 signing_cert_pem,
                 iaca_key_pem,
+                status_json,
             )
 
         LOGGER.info("Generated mdoc with doctype: %s", mdoc.doctype())
