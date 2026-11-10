@@ -6,6 +6,7 @@ import time
 from typing import Any
 
 from acapy_agent.admin.request_context import AdminRequestContext
+from acapy_agent.core.profile import Profile
 from acapy_agent.messaging.models.openapi import OpenAPISchema
 from acapy_agent.storage.error import StorageNotFoundError
 from acapy_agent.wallet.error import WalletError, WalletNotFoundError
@@ -14,27 +15,35 @@ from aiohttp import web
 from aiohttp_apispec import docs, response_schema
 from marshmallow import fields
 
+from ..auth_providers import AuthContext, AuthServerProvider, auth_provider_for_entry
 from ..config import Config
 from ..cred_processor import CredProcessors
 from ..did_utils import retrieve_or_create_did_jwk
 from ..jwt import jwt_sign
 from ..models.issuer_config import IssuerConfiguration
 from ..models.supported_cred import SupportedCredential
+from ..utils import first_auth_server
 
 LOGGER = logging.getLogger(__name__)
 
 
-async def _load_issuer_context(session, wallet_id: str | None):
-    """Load IssuerConfiguration and the first AS entry with a public_url."""
+async def _load_issuer_config(
+    session, wallet_id: str | None
+) -> IssuerConfiguration | None:
+    """Load the tenant's IssuerConfiguration, if any."""
     try:
-        cfg = await IssuerConfiguration.retrieve_by_id(
+        return await IssuerConfiguration.retrieve_by_id(
             session, wallet_id or "default-wallet"
         )
     except StorageNotFoundError:
-        cfg = None
-    servers = (cfg.authorization_servers if cfg else None) or []
-    auth = next((a for a in servers if a.get("public_url")), None)
-    return cfg, auth
+        return None
+
+
+def _auth_provider(
+    profile: Profile, issuer_config: IssuerConfiguration | None
+) -> tuple[AuthServerProvider, AuthContext]:
+    """Provider for the authorization server in use (the first configured entry)."""
+    return auth_provider_for_entry(profile, first_auth_server(issuer_config))
 
 
 def _build_cred_configs(credentials_supported, processors) -> dict:
@@ -60,6 +69,19 @@ def _apply_overlay(
         metadata.setdefault("nonce_endpoint", f"{base_url}/nonce")
     else:
         metadata.pop("nonce_endpoint", None)
+
+
+def _set_authorization_servers(
+    metadata: dict, provider: AuthServerProvider, auth_ctx: AuthContext
+) -> None:
+    """Advertise the authorization server whose tokens this issuer accepts.
+
+    Applied after the overlay, which lists every configured entry although only
+    the first is used.
+    """
+    servers = provider.authorization_servers(auth_ctx)
+    if servers:
+        metadata["authorization_servers"] = servers
 
 
 class BatchCredentialIssuanceSchema(OpenAPISchema):
@@ -122,12 +144,11 @@ async def credential_issuer_metadata(request: web.Request):
 
         wallet_id = request.match_info.get("wallet_id")
         subpath = f"/tenant/{wallet_id}" if wallet_id else ""
-        issuer_config, auth_server = await _load_issuer_context(session, wallet_id)
+        issuer_config = await _load_issuer_config(session, wallet_id)
+        provider, auth_ctx = _auth_provider(context.profile, issuer_config)
 
         metadata: dict[str, Any] = {"credential_issuer": f"{public_url}{subpath}"}
-        if auth_server:
-            metadata["authorization_servers"] = [auth_server["public_url"]]
-        else:
+        if provider.serves_token_endpoint:
             # Extension for wallets (e.g. waltid) that read token_endpoint from
             # credential issuer metadata instead of doing AS discovery.
             metadata["token_endpoint"] = f"{public_url}{subpath}/token"
@@ -145,6 +166,7 @@ async def credential_issuer_metadata(request: web.Request):
             f"{public_url}{subpath}",
             config.enable_nonce_endpoint,
         )
+        _set_authorization_servers(metadata, provider, auth_ctx)
 
         # OID4VCI 1.0 §12.2.2/§12.2.3: signed metadata as JWT with application/jwt.
         accept = request.headers.get("Accept", "")
@@ -216,7 +238,8 @@ async def openid_configuration(request: web.Request):
         wallet_id = request.match_info.get("wallet_id")
         subpath = f"/tenant/{wallet_id}" if wallet_id else ""
         base_url = f"{public_url}{subpath}"
-        issuer_config, auth_server = await _load_issuer_context(session, wallet_id)
+        issuer_config = await _load_issuer_config(session, wallet_id)
+        provider, auth_ctx = _auth_provider(context.profile, issuer_config)
 
         cred_configs = _build_cred_configs(
             credentials_supported, context.inject(CredProcessors)
@@ -239,15 +262,13 @@ async def openid_configuration(request: web.Request):
         }
 
         # token_endpoint belongs to the AS; only advertise when ACA-Py is its own AS.
-        if not auth_server:
+        if provider.serves_token_endpoint:
             metadata["token_endpoint"] = f"{base_url}/token"
-
-        if auth_server:
-            metadata["authorization_servers"] = [auth_server["public_url"]]
 
         _apply_overlay(
             metadata, issuer_config, cred_configs, base_url, config.enable_nonce_endpoint
         )
+        _set_authorization_servers(metadata, provider, auth_ctx)
 
     LOGGER.debug("OPENID CONFIG: %s", metadata)
 

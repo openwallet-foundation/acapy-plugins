@@ -134,7 +134,9 @@ services:
       FORCE_COLOR: 3
       ADMIN_MANAGE_AUTH_TOKEN: $ADMIN_MANAGE_AUTH_TOKEN
       AUTHSERVER_NGROK_URL: $AUTHSERVER_NGROK_URL
-      TENANT_SECRET: tenantsecrettoken #Used by the issuer introspect tokens on auth server.
+      # Client secret the issuer uses at the auth server (pre-authorized codes, token
+      # introspection). The auth server requires at least 32 characters.
+      TENANT_SECRET: ${TENANT_SECRET:-demo-tenant-client-secret-0123456789abcdef}
     depends_on:
       issuer:
         condition: service_healthy

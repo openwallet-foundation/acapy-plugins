@@ -38,6 +38,22 @@ def get_wallet_id(profile: Profile) -> str:
     return "default-wallet"
 
 
+async def get_issuer_configuration(
+    session: ProfileSession, profile: Profile
+) -> Optional[IssuerConfiguration]:
+    """Return the current wallet's IssuerConfiguration, if any."""
+    try:
+        return await IssuerConfiguration.retrieve_by_id(session, get_wallet_id(profile))
+    except StorageNotFoundError:
+        return None
+
+
+def first_auth_server(issuer_config: Optional[IssuerConfiguration]) -> Optional[dict]:
+    """Return the authorization server entry in use: the first configured one."""
+    servers = issuer_config.authorization_servers if issuer_config else None
+    return servers[0] if servers else None
+
+
 async def get_first_auth_server(
     session: ProfileSession, profile: Profile
 ) -> Optional[dict]:
@@ -46,15 +62,7 @@ async def get_first_auth_server(
     Returns None if no IssuerConfiguration exists for the current wallet or
     no authorization_servers are configured.
     """
-
-    wallet_id = get_wallet_id(profile)
-    try:
-        issuer_config = await IssuerConfiguration.retrieve_by_id(session, wallet_id)
-        if issuer_config.authorization_servers:
-            return issuer_config.authorization_servers[0]
-    except StorageNotFoundError:
-        pass
-    return None
+    return first_auth_server(await get_issuer_configuration(session, profile))
 
 
 def get_auth_server_url(auth_server: dict) -> Optional[str]:
@@ -72,6 +80,15 @@ def get_tenant_subpath(profile: Profile, tenant_prefix: str = "/tenants") -> str
     )
     tenant_subpath = f"{tenant_prefix}/{wallet_id}" if wallet_id else ""
     return tenant_subpath
+
+
+def public_request_url(config, request) -> str:
+    """Public URL of a request to the OID4VCI server, as the client addressed it.
+
+    Built from the configured public endpoint rather than the Host header so it
+    is stable behind proxies (ngrok, ingress). Used for DPoP ``htu`` checks.
+    """
+    return f"{config.endpoint}{request.path}"
 
 
 def verkey_to_jwk(verkey: str) -> Dict:

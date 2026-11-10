@@ -1,0 +1,106 @@
+# End-to-end test: Keycloak as the OID4VCI authorization server for the ACA-Py
+# OID4VC plugin, driven by a scripted wallet (test_wallet.py).
+#
+#   docker compose up --build -d keycloak issuer
+#   docker compose run --rm wallet
+#
+# Everything talks over the compose network using the service names, so token
+# issuers, DPoP htu values and attestation audiences are consistent:
+#   Keycloak realm issuer:   http://keycloak:8080/realms/oid4vci
+#   Credential issuer:       http://issuer:8082 (public OID4VCI port)
+#   Redeem endpoint:         http://issuer:3001/oid4vci/pre-auth/redeem (admin port)
+# Keycloak admin console:    http://localhost:8180 (admin / admin)
+
+services:
+  keycloak:
+    build:
+      context: ..
+      dockerfile: Dockerfile
+    command: ["start-dev", "--import-realm"]
+    environment:
+      KC_BOOTSTRAP_ADMIN_USERNAME: admin
+      KC_BOOTSTRAP_ADMIN_PASSWORD: admin
+      # Fixed hostname: the realm issuer (token iss, ABCA PoP aud) must not
+      # depend on which hostname a caller used.
+      KC_HOSTNAME: http://keycloak:8080
+      KC_HOSTNAME_BACKCHANNEL_DYNAMIC: "false"
+      KC_HEALTH_ENABLED: "true"
+      KC_LOG_LEVEL: INFO,org.openwallet.acapy:DEBUG
+    volumes:
+      - ./realm-oid4vci.json:/opt/keycloak/data/import/realm-oid4vci.json:ro
+    ports:
+      - "8180:8080"
+    healthcheck:
+      test: ["CMD-SHELL", "exec 3<>/dev/tcp/127.0.0.1/9000 && echo -e 'GET /health/ready HTTP/1.1\\r\\nHost: localhost\\r\\nConnection: close\\r\\n\\r\\n' >&3 && grep -q '\"UP\"' <&3"]
+      start_period: 30s
+      interval: 5s
+      timeout: 5s
+      retries: 30
+
+  issuer:
+    image: oid4vc
+    build:
+      context: ../..
+      dockerfile: docker/Dockerfile
+    environment:
+      OID4VCI_HOST: 0.0.0.0
+      OID4VCI_PORT: 8082
+      OID4VCI_ENDPOINT: http://issuer:8082
+      # Use Keycloak as the authorization server (plugin-level default; a
+      # tenant's IssuerConfiguration.authorization_servers overrides it).
+      OID4VCI_AUTH_SERVER: >-
+        {"type": "keycloak",
+         "public_url": "http://keycloak:8080/realms/oid4vci",
+         "require_dpop": true}
+      OID4VCI_MAX_TX_CODE_ATTEMPTS: 5
+    command: >
+      start
+        --inbound-transport http 0.0.0.0 3000
+        --outbound-transport http
+        --endpoint http://issuer:3000
+        --admin 0.0.0.0 3001
+        --admin-insecure-mode
+        --no-ledger
+        --wallet-type askar
+        --wallet-name issuer
+        --wallet-key insecure
+        --auto-provision
+        --plugin oid4vc
+        --plugin jwt_vc_json
+        --plugin oid4vc_keycloak
+        --log-level INFO
+    ports:
+      - "3001:3001"
+      - "8082:8082"
+    healthcheck:
+      test: curl -s -o /dev/null -w '%{http_code}' "http://localhost:3001/status/live" | grep "200" > /dev/null
+      start_period: 30s
+      interval: 7s
+      timeout: 5s
+      retries: 10
+    depends_on:
+      keycloak:
+        condition: service_healthy
+
+  wallet:
+    image: python:3.13-slim
+    profiles: ["run"]
+    working_dir: /e2e
+    volumes:
+      - ./test_wallet.py:/e2e/test_wallet.py:ro
+      - ./attester-demo-key.json:/e2e/attester-demo-key.json:ro
+    environment:
+      ADMIN_URL: http://issuer:3001
+      CLIENT_ID: demo-wallet
+      KEYCLOAK_URL: http://keycloak:8080
+      # E2E_DPOP=false runs the flow with DPoP off (Bearer tokens).
+      E2E_DPOP: ${E2E_DPOP:-true}
+    command:
+      - sh
+      - -c
+      - >-
+        pip install -q --root-user-action=ignore 'cryptography>=42' 'requests>=2.32'
+        && python test_wallet.py
+    depends_on:
+      issuer:
+        condition: service_healthy

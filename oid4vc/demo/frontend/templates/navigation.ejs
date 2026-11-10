@@ -22,3 +22,5 @@
 		hx-swap="innerhtml"
 		class="w3-bar-item w3-button w3-hover-white <%= locals.page=='credential-info' ? 'w3-pale-green' : '' %>"
 		>Credential Info</button>
+<span class="w3-bar-item w3-small w3-text-grey" title="Authorization server used for issuance">
+		Auth server: <%= locals.authServer || 'reference' %></span>

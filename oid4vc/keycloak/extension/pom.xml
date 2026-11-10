@@ -1,0 +1,115 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
+  <modelVersion>4.0.0</modelVersion>
+
+  <groupId>org.openwallet.acapy</groupId>
+  <artifactId>keycloak-oid4vci-pre-auth</artifactId>
+  <version>0.1.0</version>
+  <packaging>jar</packaging>
+  <name>Keycloak OID4VCI pre-authorized code grant for the ACA-Py OID4VC plugin</name>
+
+  <properties>
+    <!-- The grant type and refresh token SPIs are internal to Keycloak: keep
+         this pinned and re-test the extension on every Keycloak upgrade. The
+         extension needs keycloak-server-spi-private and keycloak-services,
+         which no Keycloak BOM manages, so all Keycloak artifacts share this
+         one version property. -->
+    <keycloak.version>26.8.0</keycloak.version>
+    <maven.compiler.release>21</maven.compiler.release>
+    <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+    <!-- Integration tests live in src/it and only build with -Pit -->
+    <it.source.directory>src/test/java</it.source.directory>
+    <it.resources.directory>src/test/resources</it.resources.directory>
+  </properties>
+
+  <dependencies>
+    <dependency>
+      <groupId>org.keycloak</groupId>
+      <artifactId>keycloak-core</artifactId>
+      <version>${keycloak.version}</version>
+      <scope>provided</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.keycloak</groupId>
+      <artifactId>keycloak-server-spi</artifactId>
+      <version>${keycloak.version}</version>
+      <scope>provided</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.keycloak</groupId>
+      <artifactId>keycloak-server-spi-private</artifactId>
+      <version>${keycloak.version}</version>
+      <scope>provided</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.keycloak</groupId>
+      <artifactId>keycloak-services</artifactId>
+      <version>${keycloak.version}</version>
+      <scope>provided</scope>
+    </dependency>
+  </dependencies>
+
+  <build>
+    <finalName>keycloak-oid4vci-pre-auth</finalName>
+    <testSourceDirectory>${it.source.directory}</testSourceDirectory>
+    <testResources>
+      <testResource>
+        <directory>${it.resources.directory}</directory>
+      </testResource>
+    </testResources>
+  </build>
+
+  <profiles>
+    <!-- Integration tests with the Keycloak test framework, which starts a
+         Keycloak distribution with this extension deployed:
+           mvn -Pit verify
+         Kept out of the default build so that packaging (and the Docker image
+         build) doesn't download the test framework and Keycloak server. -->
+    <profile>
+      <id>it</id>
+      <properties>
+        <it.source.directory>src/it/java</it.source.directory>
+        <it.resources.directory>src/it/resources</it.resources.directory>
+        <!-- JVM arguments required by the Keycloak test framework -->
+        <testframework.surefire.args>
+          -XX:+ExitOnOutOfMemoryError
+          -XX:+HeapDumpOnOutOfMemoryError
+          -Djava.util.logging.manager=org.jboss.logmanager.LogManager
+          -Djava.util.concurrent.ForkJoinPool.common.threadFactory=io.quarkus.bootstrap.forkjoin.QuarkusForkJoinWorkerThreadFactory
+        </testframework.surefire.args>
+      </properties>
+      <dependencyManagement>
+        <dependencies>
+          <dependency>
+            <groupId>org.keycloak.testframework</groupId>
+            <artifactId>keycloak-test-framework-bom</artifactId>
+            <version>${keycloak.version}</version>
+            <type>pom</type>
+            <scope>import</scope>
+          </dependency>
+        </dependencies>
+      </dependencyManagement>
+      <dependencies>
+        <dependency>
+          <groupId>org.keycloak.testframework</groupId>
+          <artifactId>keycloak-test-framework-core</artifactId>
+          <scope>test</scope>
+        </dependency>
+      </dependencies>
+      <build>
+        <plugins>
+          <plugin>
+            <groupId>org.apache.maven.plugins</groupId>
+            <artifactId>maven-surefire-plugin</artifactId>
+            <version>3.5.2</version>
+            <configuration>
+              <argLine>${testframework.surefire.args}</argLine>
+            </configuration>
+          </plugin>
+        </plugins>
+      </build>
+    </profile>
+  </profiles>
+</project>

@@ -12,9 +12,13 @@ from acapy_agent.wallet.key_type import ED25519
 from aiohttp import web
 
 from oid4vc import public_routes as test_module
+from oid4vc.jose_util import jwk_thumbprint
 from oid4vc.models.exchange import OID4VCIExchangeRecord
 from oid4vc.models.issuer_config import IssuerConfiguration
 from oid4vc.models.supported_cred import SupportedCredential
+from oid4vc.utils import get_wallet_id
+
+from ..jose_helpers import dpop_proof, ec_key, public_jwk
 from oid4vc.public_routes import (
     JWTVerifyResult,
     check_token,
@@ -24,6 +28,19 @@ from oid4vc.public_routes import (
 
 _token_module = importlib.import_module("oid4vc.public_routes.token")
 _metadata_module = importlib.import_module("oid4vc.public_routes.metadata")
+_registry_module = importlib.import_module("oid4vc.auth_providers.registry")
+_builtin_module = importlib.import_module("oid4vc.auth_providers.builtin")
+_ISSUER_KID = "did:jwk:issuer#0"
+
+
+@pytest.fixture
+def builtin_issuer_key(monkeypatch):
+    """Make the built-in provider see did:jwk:issuer as this issuer's token key."""
+    monkeypatch.setattr(
+        _builtin_module,
+        "retrieve_or_create_did_jwk",
+        AsyncMock(return_value=MagicMock(did="did:jwk:issuer")),
+    )
 
 
 @pytest.fixture
@@ -287,6 +304,7 @@ async def test_metadata_suppresses_nonce_endpoint_when_disabled(
         lambda settings: MagicMock(
             endpoint="http://localhost:8020",
             enable_nonce_endpoint=False,
+            auth_server=None,
         ),
     )
 
@@ -404,10 +422,12 @@ async def test_get_token_nonce_behavior(monkeypatch, context, enable_nonce_endpo
         lambda _: MagicMock(
             endpoint="http://localhost:8020",
             enable_nonce_endpoint=enable_nonce_endpoint,
+            auth_server=None,
+            max_tx_code_attempts=5,
         ),
     )
     monkeypatch.setattr(
-        _token_module, "get_first_auth_server", AsyncMock(return_value=None)
+        _registry_module, "get_first_auth_server", AsyncMock(return_value=None)
     )
     monkeypatch.setattr(
         _token_module,
@@ -418,6 +438,8 @@ async def test_get_token_nonce_behavior(monkeypatch, context, enable_nonce_endpo
 
     request = MagicMock()
     request.__getitem__ = lambda _, k: {"context": context}[k]
+    request.headers = {}
+    request.path = "/token"
     request.post = AsyncMock(
         return_value={
             "grant_type": "urn:ietf:params:oauth:grant-type:pre-authorized_code",
@@ -439,14 +461,16 @@ async def test_get_token_nonce_behavior(monkeypatch, context, enable_nonce_endpo
 
 
 @pytest.mark.asyncio
-async def test_check_token_valid(monkeypatch, context):
-    # No IssuerConfiguration in test DB → check_token falls through to jwt_verify
+async def test_check_token_valid(monkeypatch, context, builtin_issuer_key):
+    # No IssuerConfiguration in test DB → built-in provider → jwt_verify
     monkeypatch.setattr(
-        _token_module,
+        _builtin_module,
         "jwt_verify",
         AsyncMock(
             return_value=JWTVerifyResult(
-                headers={}, payload={"exp": 9999999999}, verified=True
+                headers={"kid": _ISSUER_KID},
+                payload={"exp": 9999999999, "sub": "refresh-1"},
+                verified=True,
             )
         ),
     )
@@ -455,6 +479,107 @@ async def test_check_token_valid(monkeypatch, context):
     assert isinstance(result, JWTVerifyResult)
     assert result.verified
     assert result.payload["exp"] == 9999999999
+    assert result.exchange_key == "refresh-1"
+
+
+@pytest.mark.asyncio
+async def test_check_token_foreign_key_rejected(monkeypatch, context, builtin_issuer_key):
+    # A token signed by any other resolvable key is not one of ours.
+    monkeypatch.setattr(
+        _builtin_module,
+        "jwt_verify",
+        AsyncMock(
+            return_value=JWTVerifyResult(
+                headers={"kid": "did:jwk:attacker#0"},
+                payload={"exp": 9999999999, "sub": "refresh-1"},
+                verified=True,
+            )
+        ),
+    )
+    with pytest.raises(web.HTTPUnauthorized):
+        await check_token(context, "Bearer sometoken")
+
+
+@pytest.mark.asyncio
+async def test_check_token_dpop_bound_requires_dpop_scheme(
+    monkeypatch, context, builtin_issuer_key
+):
+    monkeypatch.setattr(
+        _builtin_module,
+        "jwt_verify",
+        AsyncMock(
+            return_value=JWTVerifyResult(
+                headers={"kid": _ISSUER_KID},
+                payload={"exp": 9999999999, "sub": "r", "cnf": {"jkt": "abc"}},
+                verified=True,
+            )
+        ),
+    )
+    with pytest.raises(web.HTTPUnauthorized) as exc:
+        await check_token(context, "Bearer sometoken")
+    assert "DPoP scheme" in exc.value.text
+    with pytest.raises(web.HTTPUnauthorized) as exc:
+        await check_token(context, "DPoP sometoken", dpop_proof=None)
+    assert "invalid_dpop_proof" in exc.value.text
+
+
+@pytest.mark.asyncio
+async def test_check_token_requires_exchange_key(
+    monkeypatch, context, builtin_issuer_key
+):
+    monkeypatch.setattr(
+        _builtin_module,
+        "jwt_verify",
+        AsyncMock(
+            return_value=JWTVerifyResult(
+                headers={"kid": _ISSUER_KID}, payload={"exp": 9999999999}, verified=True
+            )
+        ),
+    )
+    with pytest.raises(web.HTTPUnauthorized) as exc:
+        await check_token(context, "Bearer sometoken")
+    assert "credential exchange" in exc.value.text
+
+
+@pytest.mark.asyncio
+async def test_check_token_accepts_published_endpoint_as_htu(
+    monkeypatch, context, builtin_issuer_key
+):
+    """A tenant that overrides credential_endpoint gets proofs for that URL."""
+    key = ec_key()
+    monkeypatch.setattr(
+        _builtin_module,
+        "jwt_verify",
+        AsyncMock(
+            return_value=JWTVerifyResult(
+                headers={"kid": _ISSUER_KID},
+                payload={
+                    "exp": 9999999999,
+                    "sub": "r",
+                    "cnf": {"jkt": jwk_thumbprint(public_jwk(key))},
+                },
+                verified=True,
+            )
+        ),
+    )
+    published = "https://issuer.example.com/custom-credential"
+    kwargs = {
+        "dpop_proof": dpop_proof(key, htu=published, access_token="tok"),
+        "htu": "http://localhost:8020/credential",
+        "published_endpoint": "credential_endpoint",
+    }
+    with pytest.raises(web.HTTPUnauthorized) as exc:
+        await check_token(context, "DPoP tok", **kwargs)
+    assert "htu" in exc.value.text
+
+    async with context.profile.session() as session:
+        await IssuerConfiguration(
+            configuration_id=get_wallet_id(context.profile),
+            new_with_id=True,
+            credential_endpoint=published,
+        ).save(session)
+    result = await check_token(context, "DPoP tok", **kwargs)
+    assert result.exchange_key == "r"
 
 
 @pytest.mark.asyncio
@@ -464,13 +589,15 @@ async def test_check_token_invalid_scheme(context):
 
 
 @pytest.mark.asyncio
-async def test_check_token_expired(monkeypatch, context):
+async def test_check_token_expired(monkeypatch, context, builtin_issuer_key):
     # Patch jwt_verify to return an expired token
     monkeypatch.setattr(
-        _token_module,
+        _builtin_module,
         "jwt_verify",
         AsyncMock(
-            return_value=JWTVerifyResult(headers={}, payload={"exp": 1}, verified=True)
+            return_value=JWTVerifyResult(
+                headers={"kid": _ISSUER_KID}, payload={"exp": 1}, verified=True
+            )
         ),
     )
     with pytest.raises(Exception):
@@ -478,14 +605,14 @@ async def test_check_token_expired(monkeypatch, context):
 
 
 @pytest.mark.asyncio
-async def test_check_token_invalid_token(monkeypatch, context):
+async def test_check_token_invalid_token(monkeypatch, context, builtin_issuer_key):
     # Patch jwt_verify to return not verified
     monkeypatch.setattr(
-        _token_module,
+        _builtin_module,
         "jwt_verify",
         AsyncMock(
             return_value=JWTVerifyResult(
-                headers={}, payload={"exp": 9999999999}, verified=False
+                headers={"kid": _ISSUER_KID}, payload={"exp": 9999999999}, verified=False
             )
         ),
     )
@@ -506,6 +633,7 @@ async def test_receive_notification(context):
     class DummyRequest:
         def __init__(self):
             self.headers = {"Authorization": "Bearer validtoken"}
+            self.path = "/notification"
             self._json = body
 
         async def json(self):
@@ -550,6 +678,7 @@ async def test_receive_notification(context):
 async def test_issue_cred(monkeypatch, context, dummy_request):
     # Patch check_token to return a mock JWTVerifyResult
     mock_token_result = MagicMock()
+    mock_token_result.exchange_key = "refresh_id"
     mock_token_result.payload = {
         "sub": "refresh_id",
         "c_nonce": "test_nonce",
@@ -645,3 +774,41 @@ async def test_issue_cred(monkeypatch, context, dummy_request):
     # Parse the JSON response body
     data = json.loads(resp.text)
     assert "credentials" in data
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    "field, error",
+    [
+        ("credential_configuration_id", "unknown_credential_configuration"),
+        ("credential_identifier", "unknown_credential_identifier"),
+    ],
+)
+async def test_issue_cred_unknown_configuration_or_identifier(
+    monkeypatch, context, dummy_request, field, error
+):
+    """OID4VCI 1.0 §8.3.1.2 error codes for a configuration / identifier not offered."""
+    token_result = MagicMock(exchange_key="refresh_id", payload={"sub": "refresh_id"})
+    monkeypatch.setattr(
+        "oid4vc.public_routes.credential.check_token",
+        AsyncMock(return_value=token_result),
+    )
+    ex_record = MagicMock(spec=OID4VCIExchangeRecord)
+    ex_record.supported_cred_id = "cred_id"
+    monkeypatch.setattr(
+        "oid4vc.public_routes.credential.OID4VCIExchangeRecord.retrieve_by_refresh_id",
+        AsyncMock(return_value=ex_record),
+    )
+    supported = MagicMock(spec=SupportedCredential)
+    supported.identifier = "MyCred"
+    supported.format = "jwt_vc_json"
+    monkeypatch.setattr(
+        "oid4vc.public_routes.credential.SupportedCredential.retrieve_by_id",
+        AsyncMock(return_value=supported),
+    )
+
+    req = dummy_request(json_data={field: "NotOffered"})
+    req.headers = {"Authorization": "Bearer testtoken"}
+    resp = await issue_cred(req)
+    assert resp.status == 400
+    assert json.loads(resp.text)["error"] == error

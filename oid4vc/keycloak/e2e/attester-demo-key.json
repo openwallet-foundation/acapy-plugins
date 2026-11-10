@@ -1,0 +1,13 @@
+{
+  "_comment": "DEMO ONLY - wallet attester key for the Keycloak demo. Never use in production.",
+  "jwk": {
+    "kty": "EC",
+    "crv": "P-256",
+    "x": "MixZU8IBP-pNVJ9v0Jbfq7oq_piy7DSdaSiWHTOvAKI",
+    "y": "k9ojQX_4lrKbsJWTTOGRR-bsFktxa-ZOtk6rV5IiRi0",
+    "kid": "demo-attester-1",
+    "alg": "ES256",
+    "use": "sig",
+    "d": "wwJ4uiGRa83G5nlHD0fZjx1tpdaNWnOFLWB_BwDrfG8"
+  }
+}

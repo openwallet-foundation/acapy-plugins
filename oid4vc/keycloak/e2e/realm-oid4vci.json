@@ -1,0 +1,64 @@
+{
+  "realm": "oid4vci",
+  "enabled": true,
+  "sslRequired": "none",
+  "accessTokenLifespan": 300,
+  "attributes": {
+    "oid4vci.redeem.url": "http://issuer:3001/oid4vci/pre-auth/redeem",
+    "oid4vci.redeem.client.auth": "private_key_jwt",
+    "oid4vci.credential.issuer": "http://issuer:8082",
+    "oid4vci.require.client.attestation": "true",
+    "oid4vci.require.dpop": "true",
+    "oid4vci.holder.username": "oid4vci-holder",
+    "oid4vci.refresh.id.claim": "refresh_id",
+    "oid4vci.refresh.tokens": "true",
+    "oid4vci.refresh.token.lifespan": "31536000"
+  },
+  "users": [
+    {
+      "username": "oid4vci-holder",
+      "enabled": true,
+      "email": "oid4vci-holder@invalid.example",
+      "emailVerified": true,
+      "firstName": "OID4VCI",
+      "lastName": "Holder",
+      "credentials": []
+    }
+  ],
+  "identityProviders": [
+    {
+      "alias": "demo-wallet-attester",
+      "displayName": "Demo wallet attester (DEMO ONLY)",
+      "providerId": "default-trust",
+      "enabled": true,
+      "hideOnLogin": true,
+      "config": {
+        "useJwksUrl": "false",
+        "publicKeySignatureVerifier": "{\"keys\": [{\"kty\": \"EC\", \"crv\": \"P-256\", \"x\": \"MixZU8IBP-pNVJ9v0Jbfq7oq_piy7DSdaSiWHTOvAKI\", \"y\": \"k9ojQX_4lrKbsJWTTOGRR-bsFktxa-ZOtk6rV5IiRi0\", \"kid\": \"demo-attester-1\", \"alg\": \"ES256\", \"use\": \"sig\"}]}"
+      }
+    }
+  ],
+  "clients": [
+    {
+      "clientId": "demo-wallet",
+      "name": "Demo wallet (attestation-based client authentication)",
+      "enabled": true,
+      "protocol": "openid-connect",
+      "publicClient": false,
+      "clientAuthenticatorType": "attestation-based",
+      "standardFlowEnabled": false,
+      "implicitFlowEnabled": false,
+      "directAccessGrantsEnabled": false,
+      "serviceAccountsEnabled": false,
+      "fullScopeAllowed": false,
+      "defaultClientScopes": [],
+      "optionalClientScopes": [],
+      "attributes": {
+        "attester_trust_idps": "demo-wallet-attester",
+        "dpop.bound.access.tokens": "true"
+      }
+    }
+  ],
+  "revokeRefreshToken": true,
+  "refreshTokenMaxReuse": 0
+}

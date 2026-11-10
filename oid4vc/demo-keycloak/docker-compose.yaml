@@ -1,0 +1,186 @@
+# OID4VC demo with Keycloak as the authorization server.
+#
+#   cp .env.example .env   # set NGROK_AUTHTOKEN
+#   docker compose up --build
+#
+# Same issuer and demo UI as ../demo, but wallets get their tokens from
+# Keycloak (built with the extension in ../keycloak) instead of the reference
+# authorization server, which is not started here. The demo app (shared with
+# ../demo, in ../demo/frontend) creates a Keycloak realm for its issuer tenant
+# at startup. See README.md.
+
+services:
+
+  issuer:
+    # from .. run
+    # DOCKER_DEFAULT_PLATFORM=linux/amd64 docker build -f ./docker/Dockerfile --tag oid4vci .
+    image: oid4vc
+    build:
+      dockerfile: docker/Dockerfile
+      context: ../
+    ports:
+      - "3000:3000"
+      - "3001:3001"
+      - "8082:8082"
+    volumes:
+      - ../docker/entrypoint.sh:/entrypoint.sh:ro,z
+    environment:
+      RUST_LOG: warn
+      TUNNEL_ENDPOINT: http://ngrok:4040
+      OID4VCI_HOST: 0.0.0.0
+      OID4VCI_PORT: 8082
+      OID4VCI_STATUS_HANDLER: status_list.v1_0.status_handler
+      STATUS_LIST_SIZE: 131072
+      STATUS_LIST_SHARD_SIZE: 131072
+      #STATUS_LIST_PUBLIC_URI: https://localhost:8082/tenant/{tenant_id}/status/{list_number} Set in entrypoint.sh
+      #STATUS_LIST_FILE_PATH: /tmp/bitstring/{tenant_id}/{list_number}
+    entrypoint: >
+      /bin/sh -c '/entrypoint.sh aca-py "$$@"' --
+    # Note: --no-transport should be added to start but currently blocks webhooks - fix in ACA-Py main.
+    # A nice feature would be to have common sets to --block-plugin.
+    command: >
+      start
+        --inbound-transport http 0.0.0.0 3000
+        --outbound-transport http
+        --endpoint http://issuer:3000
+        --admin 0.0.0.0 3001
+        --admin-insecure-mode
+        --webhook-url http://demo-app:3000/webhook
+        --webhook-url http://webhook-listener:8080
+        --no-ledger
+        --wallet-type askar
+        --emit-new-didcomm-prefix
+        --wallet-storage-type default
+        --wallet-name issuer
+        --wallet-key insecure
+        --auto-provision
+        --log-level DEBUG
+        --debug-webhooks
+        --plugin oid4vc
+        --plugin jwt_vc_json
+        --plugin sd_jwt_vc
+        --plugin mso_mdoc
+        --plugin oid4vc_keycloak
+        --plugin status_list.v1_0
+        --multitenant
+        --multitenant-admin
+        --jwt-secret insecure
+        --log-level INFO
+        --multitenancy-config wallet_type=single-wallet-askar key_derivation_method=RAW
+        --block-plugin acapy_agent.anoncreds
+        --block-plugin acapy_agent.ledger
+        --block-plugin acapy_agent.revocation
+        --block-plugin acapy_agent.messaging.schemas
+        --block-plugin acapy_agent.messaging.credential_definitions
+        --block-plugin acapy_agent.revocation_anoncreds
+        --block-plugin acapy_agent.anoncreds.default.did_indy
+        --block-plugin acapy_agent.anoncreds.default.did_web
+        --block-plugin acapy_agent.anoncreds.default.legacy_indy
+        --block-plugin acapy_agent.vc
+        --block-plugin acapy_agent.vc.data_integrity
+        --block-plugin acapy_agent.messaging.jsonld
+        --block-plugin acapy_agent.anoncreds.revocation
+        --block-plugin acapy_agent.connections
+        --block-plugin acapy_agent.did.indy
+        --block-plugin acapy_agent.holder
+        --block-plugin acapy_agent.protocols.actionmenu
+        --block-plugin acapy_agent.protocols.basicmessage
+        --block-plugin acapy_agent.protocols.coordinate_mediation
+        --block-plugin acapy_agent.protocols.didexchange
+        --block-plugin acapy_agent.protocols.discovery
+        --block-plugin acapy_agent.protocols.endorse_transaction
+        --block-plugin acapy_agent.protocols.introduction
+        --block-plugin acapy_agent.protocols.issue_credential
+        --block-plugin acapy_agent.protocols.notification
+        --block-plugin acapy_agent.protocols.out_of_band
+        --block-plugin acapy_agent.protocols.present_proof
+        --block-plugin acapy_agent.protocols.problem_report
+        --block-plugin acapy_agent.protocols.revocation_notification
+        --block-plugin acapy_agent.protocols.routing
+        --block-plugin acapy_agent.protocols.trustping
+        --block-plugin acapy_agent.resolver
+    healthcheck:
+      test: curl -s -o /dev/null -w '%{http_code}' "http://localhost:3001/status/live" | grep "200" > /dev/null
+      start_period: 30s
+      interval: 7s
+      timeout: 5s
+      retries: 5
+    depends_on:
+      webhook-listener:
+        condition: service_started
+
+  webhook-listener:
+    image: mendhak/http-https-echo:18
+    environment:
+      - HTTP_PORT=8080
+
+ #removed the healthcheck as it is unreliable. The issuer and demo app check for tunnels before starting.
+  ngrok:
+    image: ngrok/ngrok
+    restart: unless-stopped
+    hostname: ngrok
+    ports:
+      - "4040:4040"
+    volumes:
+      - ./ngrok.yml:/etc/ngrok.yml:ro
+    environment:
+      - NGROK_AUTHTOKEN=${NGROK_AUTHTOKEN}
+    command: ["start", "--all", "--config", "/etc/ngrok.yml"]
+
+  demo-app:
+    build:
+      context: ../demo/frontend
+    ports:
+      - "3002:3000"
+    volumes:
+      - ../demo/frontend/index.js:/app/index.js:z
+      - ../demo/frontend/templates:/app/templates:z
+    environment:
+      NODE_ENV: development # Set NODE_ENV to 'development'
+      WDS_SOCKET_PORT: 0
+      API_BASE_URL: http://issuer:3001
+      FORCE_COLOR: 3
+      AUTH_SERVER: keycloak
+      KEYCLOAK_URL: http://keycloak:8080
+      KEYCLOAK_NGROK_URL: ${KEYCLOAK_NGROK_URL:-}
+      KEYCLOAK_ADMIN_USERNAME: ${KEYCLOAK_ADMIN_USERNAME:-admin}
+      KEYCLOAK_ADMIN_PASSWORD: ${KEYCLOAK_ADMIN_PASSWORD:-admin}
+      # Wallet attestation (ABCA) is off by default so any wallet can be used.
+      # To require it, set KEYCLOAK_REQUIRE_ATTESTATION=true and provide your
+      # wallet provider's attester keys (KEYCLOAK_ATTESTER_JWKS or
+      # KEYCLOAK_ATTESTER_JWKS_URL) and the wallet's client_id
+      # (KEYCLOAK_WALLET_CLIENT_ID) in .env.
+      KEYCLOAK_REQUIRE_ATTESTATION: ${KEYCLOAK_REQUIRE_ATTESTATION:-false}
+      KEYCLOAK_REQUIRE_DPOP: ${KEYCLOAK_REQUIRE_DPOP:-true}
+      # DPoP-bound refresh tokens, rotated on each use (default one year)
+      KEYCLOAK_REFRESH_TOKEN_LIFESPAN: ${KEYCLOAK_REFRESH_TOKEN_LIFESPAN:-31536000}
+      KEYCLOAK_WALLET_CLIENT_ID: ${KEYCLOAK_WALLET_CLIENT_ID:-}
+      KEYCLOAK_ATTESTER_JWKS: ${KEYCLOAK_ATTESTER_JWKS:-}
+      KEYCLOAK_ATTESTER_JWKS_URL: ${KEYCLOAK_ATTESTER_JWKS_URL:-}
+    depends_on:
+      issuer:
+        condition: service_healthy
+      keycloak:
+        condition: service_healthy
+
+  keycloak:
+    build:
+      context: ../keycloak
+      dockerfile: Dockerfile
+    # No fixed hostname: wallets reach Keycloak through ngrok, the issuer and
+    # demo app over the compose network. The realm issuer (token iss,
+    # attestation PoP aud) comes from the ngrok host via X-Forwarded-*.
+    command: ["start-dev", "--proxy-headers=xforwarded", "--hostname-strict=false"]
+    environment:
+      KC_BOOTSTRAP_ADMIN_USERNAME: ${KEYCLOAK_ADMIN_USERNAME:-admin}
+      KC_BOOTSTRAP_ADMIN_PASSWORD: ${KEYCLOAK_ADMIN_PASSWORD:-admin}
+      KC_HEALTH_ENABLED: "true"
+      KC_LOG_LEVEL: INFO,org.openwallet.acapy:DEBUG
+    ports:
+      - "8180:8080"
+    healthcheck:
+      test: ["CMD-SHELL", "exec 3<>/dev/tcp/127.0.0.1/9000 && echo -e 'GET /health/ready HTTP/1.1\\r\\nHost: localhost\\r\\nConnection: close\\r\\n\\r\\n' >&3 && grep -q '\"UP\"' <&3"]
+      start_period: 30s
+      interval: 5s
+      timeout: 5s
+      retries: 30
