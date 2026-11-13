@@ -1,6 +1,7 @@
 """Status handler module."""
 
 import logging
+from inspect import signature
 
 from acapy_agent.config.injection_context import InjectionContext
 from acapy_agent.core.plugin_registry import PluginRegistry
@@ -58,8 +59,13 @@ class StatusHandler:
                 context, supported_cred_id, exchange_id
             )
 
-    async def get_status_list(self, context, list_number):
+    async def get_status_list(self, context, list_number, *, token_format="jwt"):
         """Get status list."""
 
         if self.handler:
-            return await self.handler.get_status_list_token(context, list_number)
+            get_token = self.handler.get_status_list_token
+            try:
+                signature(get_token).bind(context, list_number, token_format=token_format)
+            except TypeError:
+                return await get_token(context, list_number)
+            return await get_token(context, list_number, token_format=token_format)

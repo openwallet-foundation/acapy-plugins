@@ -83,6 +83,16 @@ As mentioned, the demo automatically takes care of a lot of the setup calls nece
 
 Documentation for the [Status List Plugin] (https://github.com/openwallet-foundation/acapy-plugins/blob/main/status_list/README.md)
 
+The negotiated status-list endpoint on this branch is for internal wallet testing
+only. Production deployments serve published status files instead.
+
+For internal testing, IETF lists are served as `application/statuslist+jwt` by
+default. The OID4VC route parses the request's `Accept` header using Werkzeug,
+then requests `token_format="jwt"` or `token_format="cwt"` from the backend.
+JWT is the default and fallback, and wins ties in both quality and specificity.
+The status-list backend does not parse HTTP headers or depend on Werkzeug.
+Older backends remain supported and return JWTs even when CWT is requested.
+
 1. Configuring the plugin:
 
      Command Line: *--plugin status_list.v1_0*
