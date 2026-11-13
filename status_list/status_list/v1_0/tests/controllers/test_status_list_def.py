@@ -1,4 +1,5 @@
 import pytest
+import json
 from types import SimpleNamespace
 from unittest.mock import AsyncMock, MagicMock, patch
 from aiohttp.web import HTTPNotFound, HTTPBadRequest, HTTPInternalServerError
@@ -214,3 +215,46 @@ async def test_status_list_def_routes(
         await controller.delete_status_list_def(request)
     except HTTPBadRequest as err:
         assert err
+
+
+@pytest.mark.asyncio
+async def test_status_list_def_token_format(context: AdminRequestContext):
+    request_dict = {"context": context}
+    request = MagicMock(
+        app={},
+        match_info={},
+        query={},
+        __getitem__=lambda _, k: request_dict[k],
+        headers={},
+        json=AsyncMock(
+            return_value={"supported_cred_id": "token_format_cred", "list_type": "ietf"}
+        ),
+    )
+
+    response = await controller.create_status_list_def(request)
+    assert json.loads(response.body)["token_format"] == "jwt"
+
+    request.json.return_value = {
+        "supported_cred_id": "token_format_cred",
+        "list_type": "ietf",
+        "token_format": "cwt",
+    }
+    response = await controller.create_status_list_def(request)
+    definition_id = json.loads(response.body)["id"]
+
+    for body in (
+        {"list_type": "w3c", "token_format": "cwt"},
+        {"list_type": "ietf", "token_format": "xml"},
+    ):
+        request.json.return_value = body
+        with pytest.raises(HTTPBadRequest):
+            await controller.create_status_list_def(request)
+
+    request.match_info = {"def_id": definition_id}
+    request.json.return_value = {"list_type": "w3c"}
+    with pytest.raises(HTTPBadRequest):
+        await controller.update_status_list_def(request)
+
+    request.json.return_value = {"list_type": "ietf"}
+    response = await controller.update_status_list_def(request)
+    assert json.loads(response.body)["token_format"] == "cwt"
