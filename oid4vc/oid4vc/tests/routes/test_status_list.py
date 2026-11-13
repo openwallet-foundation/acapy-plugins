@@ -70,6 +70,16 @@ async def test_other_tokens_served_as_text(context, handler):
 
 
 @pytest.mark.asyncio
+async def test_unconfigured_status_handler_returns_not_found(context):
+    status_handler = StatusHandler(context)
+    status_handler.handler = None
+    context.injector.bind_instance(StatusHandler, status_handler)
+
+    with pytest.raises(web.HTTPNotFound):
+        await get_status_list(_request(context))
+
+
+@pytest.mark.asyncio
 async def test_repeated_accept_fields_are_combined(context, handler):
     handler.get_status_list = AsyncMock(return_value=_jwt("statuslist+jwt"))
     headers = CIMultiDict(

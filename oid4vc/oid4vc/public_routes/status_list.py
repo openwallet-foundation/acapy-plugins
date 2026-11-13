@@ -57,6 +57,8 @@ async def get_status_list(request: web.Request):
             list_number,
             token_format="cwt" if accepted_type == STATUSLIST_CWT else "jwt",
         )
+        if status_list is None:
+            raise web.HTTPNotFound(reason="Status handler not available")
         if isinstance(status_list, bytes):
             return web.Response(
                 body=status_list,
