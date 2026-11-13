@@ -257,10 +257,9 @@ sequenceDiagram
    - If `iss` + `kid` not found → `invalid_client_attestation` (untrusted provider).
    - If signature or claims invalid → `invalid_client_attestation`.
    - On success:
-     - Compute `cnf_jkt = thumbprint(cnf.jwk)` (RFC 7638) and store on `ACCESS_TOKEN.cnf_jkt`.
-     - Record attestation metadata (iss, kid, sub, cnf_jkt, pop_jti, iat, exp) in `ACCESS_TOKEN.metadata`.
+     - Compute `cnf_jkt = thumbprint(cnf.jwk)` (RFC 7638) and record it with the attestation metadata (iss, kid, sub, cnf_jkt, pop_jti, iat, exp) in `ACCESS_TOKEN.metadata`. `ACCESS_TOKEN.cnf_jkt` is reserved for sender-constraining keys such as DPoP.
      - Add `"att-pop"` to `amr`.
-   - On refresh without new attestation headers, the previous token's attestation metadata and `cnf_jkt` are carried forward to the new access token.
+   - The refresh token is bound to the attested key: a refresh MUST present an attestation whose `cnf_jkt` matches, otherwise it is rejected with `invalid_grant`.
 
 ### Example `/token` Request (with Attestation PoP)
 

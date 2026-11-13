@@ -129,14 +129,12 @@ class TokenService:
 
         token_meta: dict[str, Any] = {"iss": issuer, "realm": realm}
         token_meta.update(response_meta)
-        cnf_jkt = attestation.get("cnf_jkt") if isinstance(attestation, dict) else None
         access_token = await access_repo.create(
             subject_id=pac.subject_id,
             token=sign_res["jwt"],
             issued_at=now,
             expires_at=access_exp,
             token_metadata=token_meta,
-            cnf_jkt=cnf_jkt,
         )
 
         refresh_token = new_refresh_token()
@@ -201,14 +199,22 @@ class TokenService:
                 status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
                 detail="subject_uid_missing",
             )
-        # draft-07 10.3: the refresh token is bound to the attested client instance
-        # key, so rotation MUST present the same key.
-        bound_cnf_jkt = getattr(prev_access, "cnf_jkt", None) or None
-        if bound_cnf_jkt:
+        prev_meta = prev_access.token_metadata or {}
+        prev_attestation = (
+            prev_meta.get("attestation") if isinstance(prev_meta, dict) else None
+        )
+        bound_attestation_jkt = (
+            prev_attestation.get("cnf_jkt")
+            if isinstance(prev_attestation, dict)
+            else None
+        )
+        if bound_attestation_jkt:
+            # draft-07 10.3: the refresh token is bound to the attested client
+            # instance key, so rotation MUST present the same key.
             presented_cnf_jkt = (
                 attestation.get("cnf_jkt") if isinstance(attestation, dict) else None
             )
-            if presented_cnf_jkt != bound_cnf_jkt:
+            if presented_cnf_jkt != bound_attestation_jkt:
                 logger.warning(
                     "refresh attestation key mismatch subject_id=%s", subject_id
                 )
@@ -219,7 +225,6 @@ class TokenService:
 
         # Revoke the previous access token immediately on rotation
         prev_access.revoked = True
-        prev_meta = prev_access.token_metadata or {}
         prev_authz = (
             _coerce_authorization_details(prev_meta.get("authorization_details"))
             if isinstance(prev_meta, dict)
@@ -262,18 +267,12 @@ class TokenService:
 
         token_meta: dict[str, Any] = {"iss": issuer, "realm": realm}
         token_meta.update(response_meta)
-        cnf_jkt = (
-            effective_attestation.get("cnf_jkt")
-            if isinstance(effective_attestation, dict)
-            else None
-        )
         new_access_token = await access_repo.create(
             subject_id=subject_id,
             token=sign_res["jwt"],
             issued_at=now,
             expires_at=access_exp,
             token_metadata=token_meta,
-            cnf_jkt=cnf_jkt,
         )
 
         refresh_token = new_refresh_token()

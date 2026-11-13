@@ -18,7 +18,12 @@ async def token_endpoint(
     grant_type: str = Form(
         ...,
         description="Grant type",
-        enum=["urn:ietf:params:oauth:grant-type:pre-authorized_code", "refresh_token"],
+        json_schema_extra={
+            "enum": [
+                "urn:ietf:params:oauth:grant-type:pre-authorized_code",
+                "refresh_token",
+            ]
+        },
     ),
     pre_authorized_code: str | None = Form(None),
     tx_code: str | None = Form(None),
