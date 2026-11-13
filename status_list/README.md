@@ -81,6 +81,12 @@ erDiagram
 
 The Admin API Routes can be found under `/api/docs` of the Admin Server in the `status-list` section.
 
+### Status List Formats
+
+For IETF lists, file publication writes a JWT to the configured path and a signed CWT alongside it at `<path>.cwt`. The file server should serve these as `application/statuslist+jwt` and `application/statuslist+cwt`, respectively.
+
+`get_status_list_token(..., token_format="cwt")` returns CWT bytes for IETF lists. The default `token_format="jwt"` returns a JWT string; non-IETF lists also retain JWT output when CWT is requested. Unsupported format names raise `ValueError`. The backend accepts an explicit format, not an HTTP Accept header; HTTP negotiation belongs to the calling application.
+
 ### How it works
 
 #### Credential Issuance
