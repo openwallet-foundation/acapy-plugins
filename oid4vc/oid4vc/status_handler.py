@@ -59,7 +59,11 @@ class StatusHandler:
             )
 
     async def get_status_list(self, context, list_number):
-        """Get status list."""
+        """Get a signed status list from the configured handler.
+
+        Current handlers return a (token, media type) pair; older ones return the
+        token alone. Returns None when no status handler is loaded.
+        """
 
         if self.handler:
             return await self.handler.get_status_list_token(context, list_number)

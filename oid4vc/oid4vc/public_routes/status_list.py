@@ -35,5 +35,14 @@ async def get_status_list(request: web.Request):
     status_handler = context.inject_or(StatusHandler)
     if status_handler:
         status_list = await status_handler.get_status_list(context, list_number)
-        return web.Response(text=status_list)
+        if status_list is None:
+            raise web.HTTPNotFound(reason="Status handler not available")
+        # Older status handlers return the token alone, without a media type.
+        token, media_type = (
+            status_list if isinstance(status_list, tuple) else (status_list, None)
+        )
+        if media_type:
+            body = token if isinstance(token, bytes) else token.encode()
+            return web.Response(body=body, content_type=media_type)
+        return web.Response(text=token)
     raise web.HTTPNotFound(reason="Status handler not available")
