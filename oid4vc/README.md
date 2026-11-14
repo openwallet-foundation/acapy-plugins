@@ -125,6 +125,8 @@ Documentation for the [Status List Plugin] (https://github.com/openwallet-founda
       }
 ```
 
+For IETF lists, add `"token_format": "cwt"` to publish CWT status lists instead of JWT (the default). The public `.../status/{list_number}` endpoint serves IETF lists as `application/statuslist+jwt` or `application/statuslist+cwt` to match.
+
 ### Note
 
 In a production environment, the described processes would be more dynamic and involve additional security measures. This demo provides a streamlined representation for clarity and ease of understanding.
