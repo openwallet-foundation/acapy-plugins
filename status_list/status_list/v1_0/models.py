@@ -38,6 +38,7 @@ class StatusListDef(BaseRecord):
         status_size: Optional[int] = -1,
         shard_size: Optional[int] = -1,
         list_type: Optional[str] = None,
+        token_format: Optional[str] = None,
         list_size: Optional[int] = -1,
         list_seed: Optional[str] = None,
         list_index: Optional[int] = -1,
@@ -58,6 +59,7 @@ class StatusListDef(BaseRecord):
         self.status_size = status_size
         self.shard_size = shard_size
         self.list_type = list_type
+        self.token_format = token_format
         self.list_size = list_size
         self.list_seed = list_seed
         self.list_index = list_index
@@ -71,6 +73,8 @@ class StatusListDef(BaseRecord):
             self.seed_list()
         if not self.status_purpose:
             self.status_purpose = "revocation"
+        if not self.token_format:
+            self.token_format = "jwt"
         if self.status_message is None:
             self.status_message = []
         if self.status_size is None or self.status_size <= 0:
@@ -100,6 +104,7 @@ class StatusListDef(BaseRecord):
                 "status_size",
                 "shard_size",
                 "list_type",
+                "token_format",
                 "list_size",
                 "list_seed",
                 "list_index",
@@ -194,6 +199,13 @@ class StatusListDefSchema(BaseRecordSchema):
         metadata={
             "description": "Status list type: 'w3c', 'ietf' or none",
             "example": "ietf",
+        },
+    )
+    token_format = fields.Str(
+        required=False,
+        metadata={
+            "description": "Status list token format: 'jwt', or 'cwt' for IETF lists",
+            "example": "jwt",
         },
     )
     list_size = fields.Int(

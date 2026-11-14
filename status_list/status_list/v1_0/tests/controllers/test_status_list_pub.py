@@ -1,6 +1,9 @@
 import pytest
 import gzip
+import json
+import cbor2
 from bitarray import bitarray
+from dataclasses import replace
 from types import SimpleNamespace
 from unittest.mock import AsyncMock, MagicMock, patch
 from aiohttp.web import HTTPNotFound, HTTPBadRequest, HTTPInternalServerError
@@ -10,7 +13,63 @@ from acapy_agent.storage.error import StorageError, StorageNotFoundError
 from acapy_agent.wallet.util import b64_to_bytes, pad
 
 from ...controllers import status_list_pub as controller
+from ...cwt import to_cwt_claims
+from ...models import StatusListDef
 from ... import status_handler
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    "definition_id, token_format",
+    [
+        ("definition_id", "jwt"),
+        ("definition_id", "cwt"),
+        ("definition_msg_id", "jwt"),
+    ],
+)
+async def test_publication_writes_definition_format(
+    context, seed_db, plugin_config, tmp_path, definition_id, token_format
+):
+    request_values = {"context": context}
+    request = MagicMock(
+        app={},
+        match_info={"def_id": definition_id},
+        headers={},
+        __getitem__=lambda request, key: request_values[key],
+    )
+    config = replace(plugin_config, file_path=str(tmp_path / "{list_number}"))
+    retrieve = StatusListDef.retrieve_by_id
+    published_definition = {}
+
+    async def retrieve_with_format(session, record_id, **kwargs):
+        definition = await retrieve(session, record_id, **kwargs)
+        definition.token_format = token_format
+        published_definition["value"] = definition
+        return definition
+
+    with (
+        patch.object(controller.Config, "from_settings", return_value=config),
+        patch.object(
+            controller.StatusListDef, "retrieve_by_id", side_effect=retrieve_with_format
+        ),
+    ):
+        response = await controller.publish_status_list(request)
+
+    assert response.status == 200
+    payloads = json.loads(response.body)["status_lists"]
+    list_numbers = published_definition["value"].list_numbers
+    assert len(payloads) == len(list_numbers)
+    for list_number, payload in zip(list_numbers, payloads):
+        jwt_path = tmp_path / list_number
+        cwt_path = tmp_path / f"{list_number}.cwt"
+        if token_format == "cwt":
+            assert not jwt_path.exists()
+            token = cbor2.loads(cwt_path.read_bytes())
+            assert token.tag == 18
+            assert cbor2.loads(token.value[2]) == to_cwt_claims(payload)
+        else:
+            assert not cwt_path.exists()
+            assert jwt_path.read_text().count(".") == 2
 
 
 @pytest.mark.asyncio

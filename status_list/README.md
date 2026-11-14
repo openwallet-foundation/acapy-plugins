@@ -81,6 +81,14 @@ erDiagram
 
 The Admin API Routes can be found under `/api/docs` of the Admin Server in the `status-list` section.
 
+### Status List Formats
+
+Each status list definition publishes one token format, set by `token_format` when the definition is created: `jwt` (the default) or `cwt`. `cwt` is only allowed for IETF lists, and the format cannot be changed later.
+
+Publishing writes a JWT to the configured path, or a CWT to `<path>.cwt`. For IETF lists, serve each file at the status list URI that issued credentials reference, as `application/statuslist+jwt` or `application/statuslist+cwt`.
+
+`get_status_list_token` signs a list in its definition's format and returns the token with its media type; the media type is None for W3C and raw lists.
+
 ### How it works
 
 #### Credential Issuance
