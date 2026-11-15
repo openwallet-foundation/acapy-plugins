@@ -17,7 +17,13 @@ from typing import Any, Dict, List, Optional
 from acapy_agent.admin.request_context import AdminRequestContext
 from acapy_agent.core.profile import Profile
 
-from oid4vc.cred_processor import CredProcessorError, CredVerifier, Issuer, PresVerifier
+from oid4vc.cred_processor import (
+    BatchIssuance,
+    CredProcessorError,
+    CredVerifier,
+    Issuer,
+    PresVerifier,
+)
 from oid4vc.models.exchange import OID4VCIExchangeRecord
 from oid4vc.models.presentation import OID4VPPresentation
 from oid4vc.models.supported_cred import SupportedCredential
@@ -413,6 +419,8 @@ class MsoMdocCredProcessor(Issuer, CredVerifier, PresVerifier):
         ex_record: OID4VCIExchangeRecord,
         pop: PopResult,
         context: AdminRequestContext,
+        *,
+        batch: BatchIssuance | None = None,
     ):
         """Return signed credential in CBOR format.
 
@@ -447,11 +455,6 @@ class MsoMdocCredProcessor(Issuer, CredVerifier, PresVerifier):
 
             # Get payload
             payload = prepare_mdoc_payload(ex_record.credential_subject, doctype)
-
-            # Optionally assign a status list entry and embed the status claim
-            status_claim = await self._assign_status_entry(context, supported, doctype)
-            if status_claim:
-                payload["status"] = status_claim
 
             # Resolve signing key — check MdocSigningKeyRecord first, then
             # fall back to vc_additional_data and env vars
@@ -515,6 +518,20 @@ class MsoMdocCredProcessor(Issuer, CredVerifier, PresVerifier):
                 raise CredProcessorError(
                     "Unable to resolve a holder JWK for device key binding."
                 )
+
+            if batch:
+                status_claim = await batch.assign_status(
+                    self._assign_status_entry,
+                    context,
+                    supported,
+                    doctype,
+                )
+            else:
+                status_claim = await self._assign_status_entry(
+                    context, supported, doctype
+                )
+            if status_claim:
+                payload["status"] = status_claim
 
             mso_mdoc = isomdl_mdoc_sign(
                 signing_holder_key, headers, payload, certificate_pem, private_key_pem

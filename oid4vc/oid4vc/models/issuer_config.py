@@ -3,7 +3,14 @@
 from typing import Any, Dict, List, Optional
 
 from acapy_agent.messaging.models.base_record import BaseRecord, BaseRecordSchema
-from marshmallow import fields
+from marshmallow import ValidationError, fields
+
+
+def validate_batch_credential_issuance(value: Dict):
+    """Require an integer `batch_size` of 2 or more (OID4VCI §12.2.4)."""
+    batch_size = value.get("batch_size")
+    if not isinstance(batch_size, int) or isinstance(batch_size, bool) or batch_size < 2:
+        raise ValidationError("batch_size must be an integer of 2 or more")
 
 
 class IssuerConfiguration(BaseRecord):
@@ -215,8 +222,9 @@ class IssuerConfigurationSchema(BaseRecordSchema):
     )
     batch_credential_issuance = fields.Dict(
         required=False,
+        validate=validate_batch_credential_issuance,
         metadata={
-            "example": {"batch_size": 100},
+            "example": {"batch_size": 10},
         },
     )
     display = fields.List(

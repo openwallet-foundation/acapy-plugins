@@ -1,7 +1,9 @@
 """CredProcessor interface and exception."""
 
-from dataclasses import dataclass
-from typing import Any, Mapping, Optional, Protocol
+import time
+from copy import deepcopy
+from dataclasses import dataclass, field
+from typing import Any, Awaitable, Callable, Mapping, Optional, Protocol
 
 from acapy_agent.admin.request_context import AdminRequestContext
 from acapy_agent.core.error import BaseError
@@ -11,6 +13,30 @@ from .models.exchange import OID4VCIExchangeRecord
 from .models.presentation import OID4VPPresentation
 from .models.supported_cred import SupportedCredential
 from .pop_result import PopResult
+
+
+@dataclass
+class BatchIssuance:
+    """Shared timing and status state, separate from proof validation."""
+
+    issued_at: int = field(default_factory=lambda: int(time.time()))
+    status: Any = field(default=None, init=False)
+    status_assigned: bool = field(default=False, init=False)
+    status_failed: bool = field(default=False, init=False)
+
+    async def assign_status(
+        self, assign: Callable[..., Awaitable[Any]], *args: Any, **kwargs: Any
+    ) -> Any:
+        """Assign status once, distinguishing absence from failure."""
+        if self.status_failed:
+            raise CredProcessorError("Batch status assignment failed")
+        if not self.status_assigned:
+            # An unsuccessful call may already have allocated storage.
+            self.status_failed = True
+            self.status = await assign(*args, **kwargs)
+            self.status_assigned = True
+            self.status_failed = False
+        return deepcopy(self.status)
 
 
 @dataclass
@@ -31,6 +57,8 @@ class Issuer(Protocol):
         ex_record: OID4VCIExchangeRecord,
         pop: PopResult,
         context: AdminRequestContext,
+        *,
+        batch: Optional[BatchIssuance] = None,
     ) -> Any:
         """Issue a credential."""
         ...

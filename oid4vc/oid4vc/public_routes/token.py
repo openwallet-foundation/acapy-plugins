@@ -297,6 +297,20 @@ async def check_token(
     )
 
 
+async def check_nonce(profile: Profile, nonce: str | None, c_nonce: str | None):
+    """Redeem `nonce`, or compare it with `c_nonce` without the Nonce Endpoint."""
+    config = Config.from_settings(profile.settings)
+    if config.enable_nonce_endpoint:
+        async with profile.session() as session:
+            redeemed = await Nonce.redeem_by_value(session, nonce)
+        if not redeemed:
+            raise oauth_error(400, "invalid_nonce", "invalid or already-used nonce")
+    elif not c_nonce:
+        raise oauth_error(400, "invalid_nonce", "no c_nonce available to verify proof")
+    elif c_nonce != nonce:
+        raise oauth_error(400, "invalid_nonce", "nonce mismatch")
+
+
 async def handle_proof_of_posession(
     profile: Profile, proof: Dict[str, Any], c_nonce: str | None = None
 ):
@@ -448,44 +462,7 @@ async def handle_proof_of_posession(
     # OID4VCI 1.0 final spec uses "nonce"; older draft wallets may use "c_nonce".
     nonce = payload.get("nonce") or payload.get("c_nonce")
 
-    config = Config.from_settings(profile.settings)
-    if config.enable_nonce_endpoint:
-        # The /nonce endpoint is published — nonces are managed locally in the DB.
-        # Use DB-based redemption regardless of any c_nonce from the access token.
-        async with profile.session() as session:
-            redeemed = await Nonce.redeem_by_value(session, nonce)
-        if not redeemed:
-            raise web.HTTPBadRequest(
-                text=json.dumps(
-                    {
-                        "error": "invalid_nonce",
-                        "error_description": "invalid or already-used nonce",
-                    }
-                ),
-                content_type="application/json",
-            )
-    else:
-        # No local nonce endpoint — rely on c_nonce from the access token.
-        if not c_nonce:
-            raise web.HTTPBadRequest(
-                text=json.dumps(
-                    {
-                        "error": "invalid_nonce",
-                        "error_description": "no c_nonce available to verify proof",
-                    }
-                ),
-                content_type="application/json",
-            )
-        if c_nonce != nonce:
-            raise web.HTTPBadRequest(
-                text=json.dumps(
-                    {
-                        "error": "invalid_nonce",
-                        "error_description": "nonce mismatch",
-                    }
-                ),
-                content_type="application/json",
-            )
+    await check_nonce(profile, nonce, c_nonce)
 
     decoded_signature = b64_to_bytes(encoded_signature, urlsafe=True)
     verified = key.verify_signature(

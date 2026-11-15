@@ -11,6 +11,7 @@ organized into logical submodules:
 - vp_pres_def: Presentation definition CRUD operations
 - vp_presentation: Presentation CRUD operations
 - did_jwk: DID:JWK creation endpoint
+- wallet_provider: Wallet Provider registry (Key Attestation signers)
 """
 
 from aiohttp import web
@@ -36,6 +37,13 @@ from .exchange import (
 )
 from .issuer_config import get_issuer_configuration, put_issuer_configuration
 from .pre_auth_redeem import redeem_pre_auth_code_route
+from .wallet_provider import (
+    wallet_provider_create,
+    wallet_provider_delete,
+    wallet_provider_get,
+    wallet_provider_list,
+    wallet_provider_update,
+)
 from .supported_credential import (
     SupportedCredentialMatchSchema,
     get_supported_credential_by_id,
@@ -120,6 +128,12 @@ __all__ = [
     "get_issuer_configuration",
     "put_issuer_configuration",
     "redeem_pre_auth_code_route",
+    # Wallet Provider registry
+    "wallet_provider_create",
+    "wallet_provider_list",
+    "wallet_provider_get",
+    "wallet_provider_update",
+    "wallet_provider_delete",
     # Registration
     "register",
     "post_process_routes",
@@ -194,6 +208,19 @@ async def register(app: web.Application):
             # Back channel for external authorization servers (Keycloak);
             # authenticated by OAuth client authentication, not admin credentials.
             web.post("/oid4vci/pre-auth/redeem", redeem_pre_auth_code_route),
+            web.post("/oid4vci/wallet-providers", wallet_provider_create),
+            web.get("/oid4vci/wallet-providers", wallet_provider_list, allow_head=False),
+            web.get(
+                "/oid4vci/wallet-providers/{wallet_provider_id}",
+                wallet_provider_get,
+                allow_head=False,
+            ),
+            web.patch(
+                "/oid4vci/wallet-providers/{wallet_provider_id}", wallet_provider_update
+            ),
+            web.delete(
+                "/oid4vci/wallet-providers/{wallet_provider_id}", wallet_provider_delete
+            ),
         ]
     )
 

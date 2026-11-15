@@ -12,6 +12,7 @@ from acapy_agent.core.profile import Profile
 from pydid import DIDUrl
 
 from oid4vc.cred_processor import (
+    BatchIssuance,
     CredVerifier,
     Issuer,
     PresVerifier,
@@ -37,10 +38,16 @@ class JwtVcJsonCredProcessor(Issuer, CredVerifier, PresVerifier):
         ex_record: OID4VCIExchangeRecord,
         pop: PopResult,
         context: AdminRequestContext,
+        *,
+        batch: BatchIssuance | None = None,
     ) -> Any:
         """Return signed credential in JWT format."""
 
-        current_time = datetime.datetime.now(datetime.timezone.utc)
+        current_time = (
+            datetime.datetime.fromtimestamp(batch.issued_at, datetime.timezone.utc)
+            if batch
+            else datetime.datetime.now(datetime.timezone.utc)
+        )
         current_time_unix_timestamp = int(current_time.timestamp())
         formatted_time = current_time.strftime("%Y-%m-%dT%H:%M:%SZ")
         cred_id = str(uuid.uuid4())
@@ -77,13 +84,21 @@ class JwtVcJsonCredProcessor(Issuer, CredVerifier, PresVerifier):
         }
 
         status_handler = context.inject_or(StatusHandler)
-        if status_handler and (
-            credential_status := await status_handler.assign_status_entries(
-                context, supported.supported_cred_id, ex_record.exchange_id
-            )
-        ):
-            payload["vc"]["credentialStatus"] = credential_status
-            LOGGER.debug("credential with status: %s", payload)
+        if status_handler:
+            if batch:
+                credential_status = await batch.assign_status(
+                    status_handler.assign_status_entries,
+                    context,
+                    supported.supported_cred_id,
+                    ex_record.exchange_id,
+                )
+            else:
+                credential_status = await status_handler.assign_status_entries(
+                    context, supported.supported_cred_id, ex_record.exchange_id
+                )
+            if credential_status:
+                payload["vc"]["credentialStatus"] = credential_status
+                LOGGER.debug("credential with status: %s", payload)
 
         jws = await jwt_sign(
             context.profile,

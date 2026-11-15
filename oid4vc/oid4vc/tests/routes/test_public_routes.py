@@ -728,6 +728,7 @@ async def test_issue_cred(monkeypatch, context, dummy_request):
     mock_supported.format_data = {"some": "data"}
     mock_supported.to_issuer_metadata = MagicMock(return_value={})
     mock_supported.vc_additional_data = {}
+    mock_supported.proof_types_supported = None
     monkeypatch.setattr(
         "oid4vc.public_routes.credential.SupportedCredential.retrieve_by_id",
         AsyncMock(return_value=mock_supported),

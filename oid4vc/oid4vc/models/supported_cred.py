@@ -4,9 +4,50 @@ import logging
 from typing import Dict, List, Optional
 
 from acapy_agent.messaging.models.base_record import BaseRecord, BaseRecordSchema
-from marshmallow import fields
+from marshmallow import ValidationError, fields
 
 LOGGER = logging.getLogger(__name__)
+
+# JWS algorithms the Key Attestation verifier supports: the values of
+# key_attestation.SIGNING_KEY_ALGS, which this module cannot import (cycle via utils)
+ATTESTATION_SIGNING_ALGS = frozenset({"ES256", "ES384", "ES256K", "EdDSA"})
+
+
+def _non_empty_strings(value) -> bool:
+    return (
+        isinstance(value, list) and bool(value) and all(isinstance(v, str) for v in value)
+    )
+
+
+def validate_proof_types_supported(value: Dict):
+    """Validate `proof_types_supported.attestation` (OID4VCI §12.2.4)."""
+    if "attestation" not in value:
+        return
+    attestation = value["attestation"]
+    if not isinstance(attestation, dict):
+        raise ValidationError("proof_types_supported.attestation must be an object")
+    algs = attestation.get("proof_signing_alg_values_supported")
+    if not _non_empty_strings(algs) or not set(algs) <= ATTESTATION_SIGNING_ALGS:
+        raise ValidationError(
+            "proof_types_supported.attestation.proof_signing_alg_values_supported "
+            "must be a non-empty array of " + ", ".join(sorted(ATTESTATION_SIGNING_ALGS))
+        )
+    required = attestation.get("key_attestations_required")
+    if required is None:
+        return
+    if not isinstance(required, dict) or set(required) - {
+        "key_storage",
+        "user_authentication",
+    }:
+        raise ValidationError(
+            "key_attestations_required may only contain key_storage and "
+            "user_authentication"
+        )
+    for claim, accepted in required.items():
+        if not _non_empty_strings(accepted):
+            raise ValidationError(
+                f"key_attestations_required.{claim} must be a non-empty array of strings"
+            )
 
 
 class SupportedCredential(BaseRecord):

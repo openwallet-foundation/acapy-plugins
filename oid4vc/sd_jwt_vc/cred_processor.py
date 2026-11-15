@@ -18,6 +18,7 @@ from sd_jwt.issuer import SDJWTIssuer, SDObj
 from sd_jwt.verifier import KB_DIGEST_KEY, SDJWTVerifier
 
 from oid4vc.cred_processor import (
+    BatchIssuance,
     CredProcessorError,
     CredVerifier,
     Issuer,
@@ -102,6 +103,8 @@ class SdJwtCredIssueProcessor(Issuer, CredVerifier, PresVerifier):
         ex_record: OID4VCIExchangeRecord,
         pop: PopResult,
         context: AdminRequestContext,
+        *,
+        batch: BatchIssuance | None = None,
     ) -> Any:
         """Return a signed credential in SD-JWT format."""
         assert supported.vc_additional_data
@@ -119,7 +122,7 @@ class SdJwtCredIssueProcessor(Issuer, CredVerifier, PresVerifier):
         if not vct:
             raise CredProcessorError("No vct available in body or format_data.")
 
-        current_time = int(time.time())
+        current_time = batch.issued_at if batch else int(time.time())
         claims = deepcopy(ex_record.credential_subject)
 
         if pop.holder_kid and pop.holder_kid.startswith("did:"):
@@ -171,13 +174,21 @@ class SdJwtCredIssueProcessor(Issuer, CredVerifier, PresVerifier):
         }
 
         status_handler = context.inject_or(StatusHandler)
-        if status_handler and (
-            credential_status := await status_handler.assign_status_entries(
-                context, supported.supported_cred_id, ex_record.exchange_id
-            )
-        ):
-            claims["status"] = credential_status
-            LOGGER.info("credential with status: %s", claims)
+        if status_handler:
+            if batch:
+                credential_status = await batch.assign_status(
+                    status_handler.assign_status_entries,
+                    context,
+                    supported.supported_cred_id,
+                    ex_record.exchange_id,
+                )
+            else:
+                credential_status = await status_handler.assign_status_entries(
+                    context, supported.supported_cred_id, ex_record.exchange_id
+                )
+            if credential_status:
+                claims["status"] = credential_status
+                LOGGER.info("credential with status: %s", claims)
 
         profile = context.profile
         did = ex_record.issuer_id

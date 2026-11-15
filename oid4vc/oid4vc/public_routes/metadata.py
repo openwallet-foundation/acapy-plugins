@@ -121,7 +121,7 @@ class CredentialIssuerMetadataSchema(OpenAPISchema):
     batch_credential_issuance = fields.Nested(
         BatchCredentialIssuanceSchema,
         required=False,
-        metadata={"description": "The batch credential issuance. Currently ignored."},
+        metadata={"description": "The batch credential issuance."},
     )
 
 

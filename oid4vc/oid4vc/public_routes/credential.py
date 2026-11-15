@@ -6,6 +6,7 @@ from urllib.parse import quote
 import json
 
 from acapy_agent.admin.request_context import AdminRequestContext
+from acapy_agent.core.error import BaseError
 from acapy_agent.messaging.models.base import BaseModelError
 from acapy_agent.messaging.models.openapi import OpenAPISchema
 from acapy_agent.storage.error import StorageError, StorageNotFoundError
@@ -19,15 +20,21 @@ from aiohttp_apispec import (
 from marshmallow import fields
 
 from ..config import Config
-from ..cred_processor import CredProcessorError, CredProcessors
+from ..cred_processor import BatchIssuance, CredProcessorError, CredProcessors
 from ..dpop import DPOP_HEADER
+from ..key_attestation import (
+    KeyAttestationError,
+    KeyAttestationResult,
+    verify_key_attestation,
+)
 from ..models.exchange import OID4VCIExchangeRecord
 from ..oauth_errors import oauth_error
 from ..models.supported_cred import SupportedCredential
+from ..pop_result import PopResult
 from ..routes import CredOfferQuerySchema, CredOfferResponseSchemaVal
 from ..routes.helpers import _parse_cred_offer
 from ..utils import public_request_url
-from .token import check_token, handle_proof_of_posession
+from .token import check_nonce, check_token, handle_proof_of_posession
 
 LOGGER = logging.getLogger(__name__)
 
@@ -62,6 +69,33 @@ def types_are_subset(request: Optional[List[str]], supported: Optional[List[str]
     return set(request).issubset(set(supported))
 
 
+async def _verify_attestation(
+    profile, proof_metadata, attestation: str, c_nonce: str | None
+) -> KeyAttestationResult:
+    """Verify one F.3 attestation and redeem its nonce once for all keys."""
+    if not isinstance(proof_metadata, dict):
+        raise oauth_error(
+            400, "invalid_proof", "attestation proof type is not configured"
+        )
+    try:
+        result = await verify_key_attestation(profile, attestation, proof_metadata)
+    except KeyAttestationError as err:
+        raise oauth_error(400, err.error, err.description) from err
+    # Redeemed only after the attestation verifies, so a forged attestation
+    # cannot consume a wallet's nonce.
+    await check_nonce(profile, result.nonce, c_nonce)
+    LOGGER.info(
+        "Key attestation verified: iss=%s kid=%s attested_key_count=%s "
+        "key_storage=%s user_authentication=%s",
+        result.iss,
+        result.kid,
+        len(result.attested_keys),
+        result.key_storage,
+        result.user_authentication,
+    )
+    return result
+
+
 class IssueCredentialRequestSchema(OpenAPISchema):
     """Request schema for the /credential endpoint (OID4VCI 1.0).
 
@@ -90,6 +124,10 @@ class IssueCredentialRequestSchema(OpenAPISchema):
     proof = fields.Dict(
         required=False, metadata={"description": "Proof of possession (key binding)."}
     )
+    proofs = fields.Dict(
+        required=False,
+        metadata={"description": "One jwt proof or one attestation JWT attesting keys."},
+    )
 
 
 @docs(tags=["oid4vc"], summary="Issue a credential")
@@ -111,7 +149,14 @@ async def issue_cred(request: web.Request):
     )
     refresh_id = token_result.exchange_key
     req_body = await request.json()
-    LOGGER.info("request: %s", req_body)
+    proofs = req_body.get("proofs")
+    LOGGER.info(
+        "Credential request: configuration=%s format=%s proof_types=%s",
+        req_body.get("credential_configuration_id")
+        or req_body.get("credential_identifier"),
+        req_body.get("format"),
+        list(proofs) if isinstance(proofs, dict) else list(req_body.keys() & {"proof"}),
+    )
 
     try:
         return await _issue_cred_inner(context, token_result, refresh_id, req_body)
@@ -136,6 +181,11 @@ async def issue_cred(request: web.Request):
                 "error": "invalid_credential_request",
                 "error_description": exc.reason or "Bad Request",
             }
+        LOGGER.info(
+            "Credential request rejected: error=%s reason=%s",
+            err_body.get("error"),
+            err_body.get("error_description"),
+        )
         return web.json_response(err_body, status=exc.status)
 
 
@@ -250,41 +300,126 @@ async def _issue_cred_inner(context, token_result, refresh_id, req_body):
     c_nonce = token_result.payload.get("c_nonce") or ex_record.nonce
 
     # Normalize proof: accept both 'proof' (singular, draft spec) and
-    # 'proofs.jwt' (plural array, OID4VCI 1.0 final spec)
+    # 'proofs' (OID4VCI 1.0 final spec: exactly one proof type, §8.2)
+    proof_types_supported = supported.proof_types_supported or {}
+    holders: list[PopResult] = []
+    proof_type = "jwt"
+    proofs = req_body.get("proofs")
+    if isinstance(proofs, dict):
+        # Ignore a "proof_type" member, as the previous proofs.jwt lookup did
+        proofs = {k: v for k, v in proofs.items() if k != "proof_type"}
     if "proof" in req_body:
-        proof_value = req_body["proof"]
-    elif "proofs" in req_body and isinstance(req_body["proofs"], dict):
-        jwt_proofs = req_body["proofs"].get("jwt", [])
-        if not jwt_proofs:
-            raise oauth_error(
-                400, "invalid_proof", f"proofs.jwt is empty for {supported.format}"
-            )
-        if len(jwt_proofs) > 1:
+        proof = req_body["proof"]
+        # The singular form only carries jwt proofs; apply the same listing rule
+        # as `proofs` so it cannot bypass an attestation-only configuration.
+        if (
+            not isinstance(proof, dict)
+            or proof.get("proof_type", "jwt") != "jwt"
+            or not isinstance(proof.get("jwt"), str)
+            or (proof_types_supported and "jwt" not in proof_types_supported)
+        ):
             raise oauth_error(
                 400,
                 "invalid_proof",
-                f"proofs.jwt contains {len(jwt_proofs)} entries but batch "
-                "issuance is not supported; send exactly one proof.",
+                f"proof is not a supported jwt proof for {supported.identifier}",
             )
-        # Normalize to the expected structure
-        proof_value = {"proof_type": "jwt", "jwt": jwt_proofs[0]}
+        holders = [await handle_proof_of_posession(context.profile, proof, c_nonce)]
+    elif isinstance(proofs, dict) and proofs:
+        if len(proofs) > 1:
+            raise oauth_error(
+                400,
+                "invalid_credential_request",
+                "proofs must contain exactly one proof type",
+            )
+        proof_type, proof_values = next(iter(proofs.items()))
+        if proof_type not in ("jwt", "attestation") or (
+            proof_types_supported and proof_type not in proof_types_supported
+        ):
+            raise oauth_error(
+                400,
+                "invalid_proof",
+                f"proof type {proof_type} is not supported for {supported.identifier}",
+            )
+        if not isinstance(proof_values, list) or len(proof_values) != 1:
+            raise oauth_error(
+                400,
+                "invalid_proof",
+                f"proofs.{proof_type} must contain exactly one proof",
+            )
+        if proof_type == "attestation":
+            attestation = await _verify_attestation(
+                context.profile,
+                proof_types_supported.get("attestation"),
+                proof_values[0],
+                c_nonce,
+            )
+            holders = [
+                PopResult({}, {}, verified=True, holder_kid=None, holder_jwk=dict(key))
+                for key in attestation.attested_keys
+            ]
+        else:
+            holders = [
+                await handle_proof_of_posession(
+                    context.profile,
+                    {"proof_type": "jwt", "jwt": proof_values[0]},
+                    c_nonce,
+                )
+            ]
     else:
         raise oauth_error(
             400, "invalid_proof", f"proof is required for {supported.format}"
         )
 
-    pop = await handle_proof_of_posession(context.profile, proof_value, c_nonce)
-
-    if not pop.verified:
+    if not all(holder.verified for holder in holders):
         raise oauth_error(400, "invalid_proof", "Proof signature verification failed.")
 
     try:
         processors = context.inject(CredProcessors)
         processor = processors.issuer_for_format(supported.format)
-
-        credential = await processor.issue(req_body, supported, ex_record, pop, context)
     except CredProcessorError as e:
-        raise oauth_error(400, "invalid_credential_request", e.message)
+        raise oauth_error(400, "invalid_credential_request", e.message) from e
+
+    credentials = []
+    last_error = None
+    # Single-key calls omit `batch`, so processors without batch support still work
+    batch_kwargs = {"batch": BatchIssuance()} if len(holders) > 1 else {}
+    for index, holder in enumerate(holders):
+        try:
+            credential = await processor.issue(
+                req_body, supported, ex_record, holder, context, **batch_kwargs
+            )
+        except (BaseError, ValueError) as e:
+            if not isinstance(e, CredProcessorError) and len(holders) == 1:
+                raise
+            reason = e.message if isinstance(e, CredProcessorError) else str(e)
+            LOGGER.info(
+                "Credential instance failed: format=%s proof_type=%s "
+                "instance=%s reason=%s",
+                supported.format,
+                proof_type,
+                index,
+                reason,
+            )
+            last_error = reason
+            continue
+        credentials.append({"format": supported.format, "credential": credential})
+        LOGGER.info(
+            "Credential issued: format=%s proof_type=%s instance=%s",
+            supported.format,
+            proof_type,
+            index,
+        )
+
+    if not credentials:
+        if batch_kwargs:
+            async with context.session() as session:
+                ex_record.state = OID4VCIExchangeRecord.STATE_FAILED
+                await ex_record.save(session, reason="No batch credentials issued")
+        raise oauth_error(
+            400,
+            "invalid_credential_request",
+            last_error or "No credentials issued",
+        )
 
     async with context.session() as session:
         ex_record.state = OID4VCIExchangeRecord.STATE_ISSUED
@@ -293,9 +428,7 @@ async def _issue_cred_inner(context, token_result, refresh_id, req_body):
 
     # OID4VCI 1.0 §7.3.1: response MUST contain `credentials` (array) or `transaction_id`.
     # Only return the 'credentials' array (OID4VCI 1.0), not the legacy 'credential' key.
-    cred_response = {
-        "credentials": [{"format": supported.format, "credential": credential}]
-    }
+    cred_response = {"credentials": credentials}
     if ex_record.notification_id:
         cred_response["notification_id"] = ex_record.notification_id
 
