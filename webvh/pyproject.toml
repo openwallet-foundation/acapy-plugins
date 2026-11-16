@@ -16,7 +16,7 @@ aiohttp-cors = ">=0.8.1"
 acapy-agent = { version = "~1.7.0", optional = true }
 
 did-webvh = "1.0.1"
-jcs = "^0.2.1"
+jcs = ">=0.2.1,<0.4.0"
 multiformats = "^0.3.1.post4"
 bitstring = "^4.3.0"
 aries-askar = "^0.5.0"
