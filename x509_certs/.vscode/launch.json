@@ -1,0 +1,38 @@
+{
+  // Use IntelliSense to learn about possible attributes.
+  // Hover to view descriptions of existing attributes.
+  // For more information, visit: https://go.microsoft.com/fwlink/?linkid=830387
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "name": "Run/Debug Plugin",
+      "type": "python",
+      "request": "launch",
+       "module": "acapy_agent",
+      "justMyCode": false,
+      "args": ["start", "--arg-file=${workspaceRoot}/docker/default.yml"]
+    },
+    {
+      "name": "ruff - x509_certs",
+      "type": "python",
+      "request": "launch",
+      "module": "ruff",
+      "console": "integratedTerminal",
+      "sudo": true,
+      "justMyCode": true,
+      "cwd": "${workspaceFolder}/x509_certs",
+      "args": ["check", "."]
+    },
+    {
+      "name": "ruff fix - x509_certs",
+      "type": "python",
+      "request": "launch",
+      "module": "ruff",
+      "console": "integratedTerminal",
+      "sudo": true,
+      "justMyCode": true,
+      "cwd": "${workspaceFolder}/x509_certs",
+      "args": ["check", ".", "--fix"]
+    }
+  ]
+}

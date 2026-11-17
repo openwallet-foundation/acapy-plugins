@@ -34,7 +34,8 @@ RUN pip install --no-deps \
     git+https://github.com/${REPO_OWNER}/acapy-plugins@${ACA_PY_VERSION}#subdirectory=redis_events \
     git+https://github.com/${REPO_OWNER}/acapy-plugins@${ACA_PY_VERSION}#subdirectory=rpc \
     git+https://github.com/${REPO_OWNER}/acapy-plugins@${ACA_PY_VERSION}#subdirectory=status_list \
-    git+https://github.com/${REPO_OWNER}/acapy-plugins@${ACA_PY_VERSION}#subdirectory=webvh
+    git+https://github.com/${REPO_OWNER}/acapy-plugins@${ACA_PY_VERSION}#subdirectory=webvh \
+    git+https://github.com/${REPO_OWNER}/acapy-plugins@${ACA_PY_VERSION}#subdirectory=x509_certs
 
 USER acapy
 WORKDIR /home/acapy
