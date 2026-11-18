@@ -1,0 +1,97 @@
+version: "3"
+services:
+
+  issuer:
+    image: acapy-did-indy
+    build: 
+      dockerfile: Dockerfile
+      context: ..
+    ports:
+      - "3001:3001"
+    environment:
+      RUST_LOG: warn
+      OID4VCI_HOST: 0.0.0.0
+      OID4VCI_PORT: 8081
+      OID4VCI_ENDPOINT: "http://issuer:8081"
+      TUNNEL_ENDPOINT: "http://ngrok:4040"
+    depends_on:
+      driver:
+        condition: service_healthy
+    command: >
+      start
+        --inbound-transport http 0.0.0.0 3000
+        --outbound-transport http
+        --endpoint http://issuer:3000
+        --admin 0.0.0.0 3001
+        --admin-insecure-mode
+        --genesis-url https://raw.githubusercontent.com/Indicio-tech/indicio-network/main/genesis_files/pool_transactions_testnet_genesis
+        --wallet-type askar-anoncreds
+        --emit-new-didcomm-prefix
+        --wallet-name issuer
+        --wallet-key insecure
+        --auto-provision
+        --log-level debug
+        --debug-webhooks
+        --plugin acapy_plugin_did_indy
+        --plugin-config-value acapy_plugin_did_indy.driver_uri=http://driver
+        --plugin-config-value acapy_plugin_did_indy.api_key=insecure-api-key
+        --plugin-config-value acapy_plugin_did_indy.ledgers_from_driver=True
+    healthcheck:
+      test: curl -s -o /dev/null -w '%{http_code}' "http://localhost:3001/status/live" | grep "200" > /dev/null
+      start_period: 30s
+      interval: 7s
+      timeout: 5s
+      retries: 5
+
+  credo:
+    image: credo-json-rpc
+    build: credo
+    ports:
+      - "3020:3000"
+    environment:
+      AFJ_MESSAGE_PORT: 3001
+      AFJ_ENDPOINT: "http://credo:3001"
+    volumes:
+      - ./credo/index.ts:/usr/src/app/index.ts:z
+    healthcheck:
+      test: nc -z 0.0.0.0 3000
+      start_period: 1s
+      interval: 3s
+      timeout: 5s
+      retries: 5
+
+  driver:
+    image: ghcr.io/indicio-tech/did-indy-py:py3.12-nightly
+    ports:
+      - "8080:80"
+    volumes:
+      - "./demo.ledgers.toml:/run/secrets/ledgers.toml:z"
+    environment:
+      ISSUER: "http://driver"
+      PASSPHRASE: "insecure-passphrase"
+      AUTH: "api-key"
+      CLIENT_TOKEN_SECRET: "insecure-secret"
+      ADMIN_API_KEY: "insecure-api-key"
+      LOG_LEVEL: "DEBUG"
+    healthcheck:
+      test: python healthcheck.py localhost 80
+      start_period: 10s
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  tests:
+    image: acapy-did-iny-test-runner
+    build:
+      context: .
+    volumes:
+      - ./tests:/usr/src/app/tests:z
+    environment:
+      ISSUER_ADMIN_ENDPOINT: http://issuer:3001
+      CREDO_HOST: credo
+      CREDO_PORT: 3000
+    depends_on:
+      issuer:
+        condition: service_healthy
+      credo:
+        condition: service_healthy
