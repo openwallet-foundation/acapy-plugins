@@ -61,6 +61,8 @@ class _BaseTenantGrant(grants.BaseGrant):
         if not settings.ATTESTATION_ENABLED:
             return None
         headers = getattr(self.request, "headers", {}) or {}
+        payload = getattr(self.request, "payload", None)
+        data = getattr(payload, "data", {}) if payload is not None else {}
         extra = get_context(self.request)
         # Audience pinning requires the tenant, so resolve it before validating.
         uid = self._resolve_uid()
@@ -71,6 +73,7 @@ class _BaseTenantGrant(grants.BaseGrant):
                 or None,
                 attestation_required=required,
                 expected_audience=f"{settings.ISSUER_BASE_URL}/tenants/{uid}",
+                client_id=data.get("client_id"),
                 db=getattr(extra, "db", None),
             )
         except AttestationLookupError as ex:

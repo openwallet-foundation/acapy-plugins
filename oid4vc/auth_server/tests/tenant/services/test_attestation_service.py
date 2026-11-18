@@ -66,7 +66,7 @@ def _make_attestation_and_pop(
             "iss": iss,
             "sub": sub,
             "cnf": {"jwk": wallet_public},
-            "iat": att_iat,
+            **({"iat": att_iat} if att_iat is not None else {}),
             "exp": att_exp,
         },
     )
@@ -193,8 +193,16 @@ async def test_untrusted_provider_raises(default_settings, provider_keys, monkey
     mock_lookup.assert_awaited_once_with("https://unknown-provider.example", "key-1")
 
 
+@pytest.mark.parametrize(
+    ("att_iat", "client_id"),
+    [
+        (1_699_999_900, None),
+        (None, None),
+        (1_699_999_900.5, "Ontario Wallet"),
+    ],
+)
 async def test_valid_attestation_with_provider_lookup(
-    default_settings, provider_keys, monkeypatch
+    default_settings, provider_keys, monkeypatch, att_iat, client_id
 ):
     """Valid attestation + PoP with kid lookup from allow list succeeds."""
     monkeypatch.setattr(attestation_service, "_now_ts", lambda: 1_700_000_000)
@@ -206,6 +214,7 @@ async def test_valid_attestation_with_provider_lookup(
         "key-1",
         wallet_key,
         wallet_public,
+        att_iat=att_iat,
     )
 
     # Mock the lookup to return the provider's public key
@@ -217,16 +226,67 @@ async def test_valid_attestation_with_provider_lookup(
         client_attestation_pop=pop,
         attestation_required=True,
         expected_audience="https://as.example.com",
+        client_id=client_id,
     )
 
     assert result is not None
     assert result["verified"] is True
+    assert result["iat"] == att_iat
     assert result["iss"] == "https://wallet-provider.example"
     assert result["kid"] == "key-1"
     assert result["sub"] == "Ontario Wallet"
     assert result["pop_jti"] == "unique-jti-1"
     assert result["cnf_jkt"] is not None
     mock_lookup.assert_awaited_once_with("https://wallet-provider.example", "key-1")
+
+
+@pytest.mark.parametrize(
+    ("att_iat", "client_id", "expected_description"),
+    [
+        (None, None, "missing_iat"),
+        ("not-a-number", None, "missing_iat"),
+        (True, None, "missing_iat"),
+        (1_699_999_900.5, "different-wallet", "attestation_client_id_mismatch"),
+    ],
+)
+async def test_attestation_rejects_invalid_iat_or_client_id(
+    default_settings, provider_keys, monkeypatch, att_iat, client_id, expected_description
+):
+    monkeypatch.setattr(attestation_service, "_now_ts", lambda: 1_700_000_000)
+    provider_key, provider_public = provider_keys
+    wallet_key, wallet_public = _generate_wallet_key()
+    claims = {
+        "iss": "https://wallet-provider.example",
+        "sub": "Ontario Wallet",
+        "cnf": {"jwk": wallet_public},
+        "iat": att_iat,
+        "exp": 1_700_000_300,
+    }
+    attestation = _sign_attestation(provider_key, "key-1", claims)
+    pop = _sign_pop(
+        wallet_key,
+        {
+            "aud": "https://as.example.com",
+            "jti": "iat-validation",
+            "iat": 1_700_000_000,
+        },
+    )
+    monkeypatch.setattr(
+        attestation_service,
+        "_lookup_provider_key",
+        AsyncMock(return_value=provider_public),
+    )
+
+    with pytest.raises(attestation_service.InvalidAttestationError) as exc_info:
+        await attestation_service.validate_client_attestation(
+            client_attestation=attestation,
+            client_attestation_pop=pop,
+            attestation_required=True,
+            expected_audience="https://as.example.com",
+            client_id=client_id,
+        )
+
+    assert exc_info.value.description == expected_description
 
 
 async def test_invalid_signature_raises(default_settings, provider_keys, monkeypatch):
@@ -312,6 +372,7 @@ async def test_expired_attestation_raises(default_settings, provider_keys, monke
             expected_audience="https://as.example.com",
         )
     assert "expired" in exc_info.value.description
+    assert exc_info.value.error == "use_fresh_attestation"
 
 
 # --- New tests for typ, cnf, and PoP validation ---
@@ -675,7 +736,7 @@ async def test_pop_jti_replay_raises(default_settings, provider_keys, monkeypatc
 async def test_attestation_without_kid_verifies_by_trial(
     default_settings, provider_keys, monkeypatch
 ):
-    """draft-07 5.1 makes `kid` optional; unlabelled keys are tried in turn."""
+    """Unlabelled provider keys are tried in turn."""
     monkeypatch.setattr(attestation_service, "_now_ts", lambda: 1_700_000_000)
     provider_key, provider_public = provider_keys
     wallet_key, wallet_public = _generate_wallet_key()
@@ -720,7 +781,7 @@ async def test_attestation_without_kid_verifies_by_trial(
 
 
 async def test_pop_without_attestation_raises(default_settings):
-    """draft-07 9 step 1: both headers are required together."""
+    """Reject a proof that has no accompanying Client Attestation."""
     with pytest.raises(attestation_service.InvalidAttestationError) as exc_info:
         await attestation_service.validate_client_attestation(
             client_attestation=None,

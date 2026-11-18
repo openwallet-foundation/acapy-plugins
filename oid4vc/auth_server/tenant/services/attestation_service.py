@@ -5,6 +5,7 @@ Provider public keys are looked up from the admin allow list via internal API.
 """
 
 import json
+import math
 from datetime import datetime, timezone
 from typing import Any
 
@@ -22,7 +23,7 @@ from tenant.config import settings
 logger = get_logger(__name__)
 
 
-# --- Attestation PoP jti replay cache (draft-07 §9 step 10) ---
+# Attestation PoP replay detection (§12.1).
 _attest_pop_jti_cache = JtiCache()
 
 
@@ -35,6 +36,12 @@ class InvalidAttestationError(InvalidRequestError):
     """OAuth error for invalid client attestation."""
 
     error = "invalid_client_attestation"
+
+
+class FreshAttestationRequiredError(InvalidAttestationError):
+    """OAuth error requesting a fresh client attestation."""
+
+    error = "use_fresh_attestation"
 
 
 class AttestationLookupError(Exception):
@@ -82,9 +89,13 @@ def _required_claim_str(claims: dict[str, Any], name: str) -> str:
     return value
 
 
-def _required_claim_int(claims: dict[str, Any], name: str) -> int:
+def _required_numeric_date(claims: dict[str, Any], name: str) -> int | float:
     value = claims.get(name)
-    if not isinstance(value, int):
+    if (
+        not isinstance(value, (int, float))
+        or isinstance(value, bool)
+        or (isinstance(value, float) and not math.isfinite(value))
+    ):
         logger.debug(
             "Attestation claim %r missing/invalid: type=%s",
             name,
@@ -179,8 +190,7 @@ def _verify_signature(
     error: str = "attestation_signature_invalid",
 ) -> dict[str, Any]:
     """Verify JWT signature. Accepts a single JWK or list for trial."""
-    # joserfc KeySet lookup requires a `kid`; draft-07 5.1 makes it optional,
-    # so unlabelled keys are tried one by one.
+    # Try candidate keys individually when the attestation omits `kid`.
     if isinstance(public_key_jwk, list):
         for candidate in public_key_jwk:
             try:
@@ -221,14 +231,15 @@ async def validate_client_attestation(
     client_attestation_pop: str | None = None,
     attestation_required: bool,
     expected_audience: str,
+    client_id: str | None = None,
     db=None,
 ) -> dict[str, Any] | None:
     """Validate client attestation JWT + PoP against the trusted provider allow list.
 
-    Implements draft-ietf-oauth-attestation-based-client-auth-07 §6.2 and §9.
+    Attestation iat is optional for compatibility with draft-07 clients.
     """
     if not client_attestation:
-        # draft-07 9 step 1: a PoP without its attestation is a malformed request.
+        # A PoP cannot be verified without its accompanying attestation.
         if client_attestation_pop:
             logger.debug("Attestation PoP present without attestation header")
             raise InvalidAttestationError(description="missing_client_attestation")
@@ -246,7 +257,7 @@ async def validate_client_attestation(
         attestation_required,
     )
 
-    # --- Attestation JWT validation (§5.1, §9 steps 2-6) ---
+    # --- Attestation JWT validation (§4, §7.1) ---
 
     # 1. Decode header and payload (without verification first, to extract iss + kid)
     header, claims = _jwt_extract(client_attestation)
@@ -258,13 +269,13 @@ async def validate_client_attestation(
         sorted(claims.keys()),
     )
 
-    # 2. Validate typ header (§5.1: REQUIRED, MUST be "oauth-client-attestation+jwt")
+    # 2. Validate typ header (§4: REQUIRED, MUST be "oauth-client-attestation+jwt")
     typ = header.get("typ")
     if typ != "oauth-client-attestation+jwt":
         logger.debug("Attestation typ mismatch: got %r", typ)
         raise InvalidAttestationError(description="invalid_attestation_typ")
 
-    # 3. Extract kid from header (OPTIONAL per spec), iss from payload
+    # 3. Extract the optional kid and the locally required provider identifier.
     kid = header.get("kid")
     if kid is not None and not isinstance(kid, str):
         logger.debug("Attestation header kid invalid type: %s", type(kid).__name__)
@@ -272,18 +283,25 @@ async def validate_client_attestation(
     issuer = _required_claim_str(claims, "iss")
     logger.debug("Attestation iss=%s kid=%s", issuer, kid)
 
-    # 4. Look up provider key(s) by iss + optional kid (§9 step 5)
+    # 4. Look up provider key(s) by iss + optional kid in the local allow list.
     provider_key = await _lookup_provider_key(issuer, kid or None)
     if not provider_key:
         logger.debug("Attestation provider untrusted/unknown: iss=%s kid=%s", issuer, kid)
         raise InvalidAttestationError(description="untrusted_provider")
 
-    # 5. Verify signature using provider's public key (§9 step 5)
+    # 5. Verify signature using provider's public key (§7.1)
     verified_claims = _verify_signature(client_attestation, provider_key)
 
-    # 6. Validate required claims (§5.1)
+    # 6. Validate claims and client_id binding (§4, §7.1)
     subject = _required_claim_str(verified_claims, "sub")
-    issued_at = verified_claims.get("iat")
+    if client_id is not None and client_id != subject:
+        logger.debug(
+            "Attestation client_id mismatch: client_id=%s sub=%s", client_id, subject
+        )
+        raise InvalidAttestationError(description="attestation_client_id_mismatch")
+    issued_at = None
+    if "iat" in verified_claims:
+        issued_at = _required_numeric_date(verified_claims, "iat")
     expires_at = verified_claims.get("exp")
     if not isinstance(expires_at, int):
         logger.debug(
@@ -291,10 +309,10 @@ async def validate_client_attestation(
         )
         raise InvalidAttestationError(description="missing_exp")
 
-    # 7. Check time validity (§9 step 11)
+    # 7. Check time validity (§7.1)
     skew = int(settings.ATTESTATION_CLOCK_SKEW_SECONDS)
     now = _now_ts()
-    if issued_at is not None and int(issued_at) > now + skew:
+    if issued_at is not None and issued_at > now + skew:
         logger.debug(
             "Attestation iat in future: iat=%s now=%d skew=%d iss=%s",
             issued_at,
@@ -312,7 +330,7 @@ async def validate_client_attestation(
             issuer,
             subject,
         )
-        raise InvalidAttestationError(description="attestation_expired")
+        raise FreshAttestationRequiredError(description="attestation_expired")
     nbf = verified_claims.get("nbf")
     if isinstance(nbf, int) and nbf > now + skew:
         logger.debug(
@@ -324,7 +342,7 @@ async def validate_client_attestation(
         )
         raise InvalidAttestationError(description="attestation_not_yet_valid")
 
-    # 8. Extract cnf.jwk — REQUIRED per §5.1
+    # 8. Extract cnf.jwk — REQUIRED per §4
     cnf_jwk = _extract_cnf_jwk(verified_claims)
     if not cnf_jwk:
         logger.debug(
@@ -335,7 +353,7 @@ async def validate_client_attestation(
         )
         raise InvalidAttestationError(description="missing_cnf_jwk")
 
-    # 8b. cnf key MUST NOT be a private key (§9 step 6)
+    # 8b. cnf key MUST NOT be a private key (§7.1)
     if "d" in cnf_jwk:
         logger.debug(
             "Attestation cnf.jwk contains private key material: iss=%s sub=%s kty=%s",
@@ -348,21 +366,21 @@ async def validate_client_attestation(
     cnf_jkt = _thumbprint(cnf_jwk)
     logger.debug("Attestation cnf jkt=%s (kty=%s)", cnf_jkt, cnf_jwk.get("kty"))
 
-    # --- Attestation PoP JWT validation (§5.2, §9 steps 7-10) ---
+    # --- Attestation PoP JWT validation (§5.1, §7.2) ---
 
     if not client_attestation_pop:
         logger.debug("Attestation PoP missing: iss=%s sub=%s", issuer, subject)
         raise InvalidAttestationError(description="missing_client_attestation_pop")
 
     # 9. Validate PoP typ header
-    # (§5.2: REQUIRED, MUST be "oauth-client-attestation-pop+jwt")
+    # (§5.1: REQUIRED, MUST be "oauth-client-attestation-pop+jwt")
     pop_header, _ = _jwt_extract(client_attestation_pop)
     pop_typ = pop_header.get("typ")
     if pop_typ != "oauth-client-attestation-pop+jwt":
         logger.debug("Attestation PoP typ mismatch: got %r", pop_typ)
         raise InvalidAttestationError(description="invalid_attestation_pop_typ")
 
-    # 10. Verify PoP signature using cnf.jwk from attestation (§9 step 7)
+    # 10. Verify PoP signature using cnf.jwk from attestation (§7.2)
     pop_claims = _verify_signature(
         client_attestation_pop, cnf_jwk, error="attestation_pop_signature_invalid"
     )
@@ -374,13 +392,13 @@ async def validate_client_attestation(
         pop_claims.get("exp"),
     )
 
-    # 11. Verify PoP aud (§5.2: REQUIRED, must be AS issuer identifier)
+    # 11. Verify PoP aud (§5.1: REQUIRED, must be AS issuer identifier)
     pop_aud = pop_claims.get("aud")
     if not pop_aud:
         logger.debug("Attestation PoP missing aud: iss=%s sub=%s", issuer, subject)
         raise InvalidAttestationError(description="missing_attestation_pop_aud")
 
-    # 11b. Validate PoP aud value matches the expected AS issuer (§5.2, §8 step 10)
+    # 11b. Validate PoP aud value matches the expected AS issuer (§7.2)
     aud_values = pop_aud if isinstance(pop_aud, list) else [pop_aud]
     if expected_audience not in aud_values:
         logger.debug(
@@ -392,7 +410,7 @@ async def validate_client_attestation(
         )
         raise InvalidAttestationError(description="attestation_pop_aud_mismatch")
 
-    # 12. Verify PoP jti is present (§5.2: REQUIRED)
+    # 12. Verify PoP jti is present (§5.1: REQUIRED)
     pop_jti = pop_claims.get("jti")
     if not isinstance(pop_jti, str) or not pop_jti:
         logger.debug(
@@ -416,7 +434,7 @@ async def validate_client_attestation(
         )
         raise InvalidAttestationError(description="attestation_pop_jti_replay")
 
-    # 13. Verify PoP iat is present and within window (§5.2: REQUIRED)
+    # 13. Verify PoP iat is present and within window (§5.1: REQUIRED)
     pop_iat = pop_claims.get("iat")
     if not isinstance(pop_iat, int):
         logger.debug(
@@ -445,7 +463,7 @@ async def validate_client_attestation(
         )
         raise InvalidAttestationError(description="attestation_pop_too_old")
 
-    # 14. Verify PoP nbf if present (RFC7519 via §5.2 rule 5)
+    # 14. Verify PoP nbf if present (RFC7519 via §5.1)
     pop_nbf = pop_claims.get("nbf")
     if isinstance(pop_nbf, int) and pop_nbf > now + skew:
         logger.debug(
@@ -457,7 +475,7 @@ async def validate_client_attestation(
         )
         raise InvalidAttestationError(description="attestation_pop_not_yet_valid")
 
-    # 15. Verify PoP exp if present (RFC7519 via §5.2 rule 5)
+    # 15. Verify PoP exp if present (RFC7519 via §5.1)
     pop_exp = pop_claims.get("exp")
     if isinstance(pop_exp, int) and pop_exp <= now - skew:
         logger.debug(

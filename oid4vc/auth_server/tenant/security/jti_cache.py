@@ -1,6 +1,6 @@
 """JTI replay prevention (PostgreSQL-backed).
 
-Covers: private_key_jwt (RFC 7523), attestation PoP (draft-07).
+Covers: private_key_jwt (RFC 7523), attestation PoP.
 """
 
 from __future__ import annotations

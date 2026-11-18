@@ -216,6 +216,12 @@ sequenceDiagram
 
 ## 🧾 Attestation PoP
 
+Uses the separate Client Attestation PoP JWT mode of
+[OAuth 2.0 Attestation-Based Client Authentication](https://datatracker.ietf.org/doc/draft-ietf-oauth-attestation-based-client-auth/),
+reviewed against draft-12. For compatibility with draft-07 clients, Client
+Attestation `iat` remains optional; supplied values must be valid NumericDates.
+Combined-mode DPoP is not implemented.
+
 **Purpose:** Provide an additional verifiable PoP signal at `/token`, ensuring the client is a legitimate wallet attested by a trusted Wallet Provider.
 
 ### Flow
@@ -224,7 +230,7 @@ sequenceDiagram
 
    - Wallet Provider signs the JWT with their private key.
    - Header: `typ` (`oauth-client-attestation+jwt`), `alg`, `kid`.
-   - Payload: `iss` (Wallet Provider identifier), `sub` (client_id — see note below), `cnf.jwk`, `iat`, `exp`.
+   - Payload: `iss` (Wallet Provider identifier for the local allow-list lookup), `sub` (client_id — see note below), `cnf.jwk`, `iat` (optional NumericDate), `exp`.
    - The `cnf.jwk` contains the wallet instance's public key, binding the attestation to the wallet instance.
    - Sent via the `OAuth-Client-Attestation` HTTP header.
    - **`sub` claim semantics (OID4VCI §15.4.4):** The `sub` value SHOULD identify the **wallet type** (e.g., `https://wallet.example.org`), NOT a unique per-instance identifier. All wallet instances of the same Wallet Provider share the same `sub` value to prevent cross-Authorization-Server correlation of individual users.
@@ -233,7 +239,7 @@ sequenceDiagram
 
    - Wallet Instance signs a proof-of-possession JWT with the private key corresponding to the `cnf.jwk` in the attestation.
    - Header: `typ` (`oauth-client-attestation-pop+jwt`), `alg`.
-   - Payload: `iss` (client_id — MUST match `sub` of the attestation JWT), `aud` (Authorization Server issuer identifier), `jti` (unique identifier for replay detection), `iat`, and optionally `challenge` (server-provided).
+   - Payload: `aud` (Authorization Server issuer identifier; a single audience), `jti` (unique identifier for replay detection), `iat` (required), and optionally `challenge` (server-provided). `iss` is not required.
    - Proves the wallet holds the attested key.
    - Sent via the `OAuth-Client-Attestation-PoP` HTTP header.
 
@@ -250,17 +256,18 @@ sequenceDiagram
    - Extract `kid` from header and `iss` from payload.
    - Look up the provider's public key by `iss` + `kid` in the allow list.
    - Verify attestation JWT signature using the provider's public key.
-   - Validate claims (`iss`, `sub`, `iat`, `exp`) and time validity (± clock skew).
+   - Validate claims (`iss`, `sub`, `exp`, and `iat` when present) and time validity (± clock skew).
+   - If the token request supplies `client_id`, require it to match the attestation's `sub`.
    - Extract `cnf.jwk` and verify the `OAuth-Client-Attestation-PoP` JWT signature against it (proves wallet instance holds the attested key).
 
 5. **Outcome**
    - If `iss` + `kid` not found → `invalid_client_attestation` (untrusted provider).
    - If signature or claims invalid → `invalid_client_attestation`.
+   - If the attestation has expired: `use_fresh_attestation`.
    - On success:
-     - Compute `cnf_jkt = thumbprint(cnf.jwk)` (RFC 7638) and store on `ACCESS_TOKEN.cnf_jkt`.
-     - Record attestation metadata (iss, kid, sub, cnf_jkt, pop_jti, iat, exp) in `ACCESS_TOKEN.metadata`.
+     - Compute `cnf_jkt = thumbprint(cnf.jwk)` (RFC 7638) and record it with the attestation metadata (iss, kid, sub, cnf_jkt, pop_jti, iat, exp) in `ACCESS_TOKEN.metadata`. `ACCESS_TOKEN.cnf_jkt` is reserved for sender-constraining keys such as DPoP.
      - Add `"att-pop"` to `amr`.
-   - On refresh without new attestation headers, the previous token's attestation metadata and `cnf_jkt` are carried forward to the new access token.
+   - The refresh token is bound to the attested key: a refresh MUST present an attestation whose `cnf_jkt` matches, otherwise it is rejected with `invalid_grant`.
 
 ### Example `/token` Request (with Attestation PoP)
 
@@ -835,7 +842,7 @@ GET /.well-known/openid-configuration
 - Standard OAuth2 errors: `invalid_token`, `expired_token`, `invalid_grant`, etc.
 - DPoP errors (planned): `invalid_dpop_proof`, `replay_detected`.
 - Nonce errors: `invalid_request` for invalid/expired nonces; `too_many_requests` for exceeding rate limits.
-- Attestation errors: `invalid_attestation` if attestation headers are missing/invalid, signature verification fails, Attestation-PoP verification fails, or `iss` + `kid` not found in the allow list.
+- Attestation errors: `invalid_client_attestation` if attestation headers are missing/invalid, signature verification fails, Attestation-PoP verification fails, or `iss` + `kid` not found in the allow list. Expired attestations return `use_fresh_attestation`.
 
 ---
 
