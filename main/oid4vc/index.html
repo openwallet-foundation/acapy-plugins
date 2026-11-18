@@ -1930,6 +1930,7 @@
 </code></pre></div></p>
 </li>
 </ol>
+<p>For IETF lists, add <code>"token_format": "cwt"</code> to publish CWT status lists instead of JWT (the default). The public <code>.../status/{list_number}</code> endpoint serves IETF lists as <code>application/statuslist+jwt</code> or <code>application/statuslist+cwt</code> to match.</p>
 <h3 id="note">Note<a class="headerlink" href="#note" title="Permanent link">&para;</a></h3>
 <p>In a production environment, the described processes would be more dynamic and involve additional security measures. This demo provides a streamlined representation for clarity and ease of understanding.</p>
 <h2 id="architecture">Architecture<a class="headerlink" href="#architecture" title="Permanent link">&para;</a></h2>

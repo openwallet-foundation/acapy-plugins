@@ -989,6 +989,17 @@
 </li>
         
           <li class="md-nav__item">
+  <a href="#status-list-formats" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Status List Formats
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
   <a href="#how-it-works" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -1379,6 +1390,17 @@
 </li>
         
           <li class="md-nav__item">
+  <a href="#status-list-formats" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Status List Formats
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
   <a href="#how-it-works" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -1543,6 +1565,10 @@
     }</code></pre>
 <h3 id="admin-routes">Admin Routes<a class="headerlink" href="#admin-routes" title="Permanent link">&para;</a></h3>
 <p>The Admin API Routes can be found under <code>/api/docs</code> of the Admin Server in the <code>status-list</code> section.</p>
+<h3 id="status-list-formats">Status List Formats<a class="headerlink" href="#status-list-formats" title="Permanent link">&para;</a></h3>
+<p>Each status list definition publishes one token format, set by <code>token_format</code> when the definition is created: <code>jwt</code> (the default) or <code>cwt</code>. <code>cwt</code> is only allowed for IETF lists, and the format cannot be changed later.</p>
+<p>Publishing writes a JWT to the configured path, or a CWT to <code>&lt;path&gt;.cwt</code>. For IETF lists, serve each file at the status list URI that issued credentials reference, as <code>application/statuslist+jwt</code> or <code>application/statuslist+cwt</code>.</p>
+<p><code>get_status_list_token</code> signs a list in its definition's format and returns the token with its media type; the media type is None for W3C and raw lists.</p>
 <h3 id="how-it-works">How it works<a class="headerlink" href="#how-it-works" title="Permanent link">&para;</a></h3>
 <h4 id="credential-issuance">Credential Issuance<a class="headerlink" href="#credential-issuance" title="Permanent link">&para;</a></h4>
 <pre class="mermaid"><code>sequenceDiagram
