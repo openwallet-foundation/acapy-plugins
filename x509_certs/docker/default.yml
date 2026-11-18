@@ -1,0 +1,26 @@
+label: x509_certs
+
+admin: [0.0.0.0, 3001]
+admin-insecure-mode: false
+admin-api-key: change-me
+
+inbound-transport:
+  - [http, 0.0.0.0, 3000]
+  - [ws, 0.0.0.0, 3002]
+outbound-transport: http
+endpoint:
+  - http://host.docker.internal:3000
+
+plugin:
+  - x509_certs
+
+no-ledger: true
+auto-provision: true
+wallet-type: askar
+wallet-name: x509-certs
+wallet-key: wallet-key
+
+log-level: info
+
+auto-accept-invites: true
+auto-respond-messages: true

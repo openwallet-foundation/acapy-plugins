@@ -1,0 +1,24 @@
+version: '3'
+
+services:
+  agent:
+    image: acapy-x509-certs:integration
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile
+      args:
+        - install_flags=--no-interaction --with integration --extras aca-py
+    command: start --arg-file integration.yml --label agent -e http://agent:3000 --log-level info
+
+  tests:
+    build:
+      context: .
+      dockerfile: Dockerfile.test.runner
+    environment:
+      - WAIT_BEFORE=3
+      - WAIT_HOSTS=agent:3001
+      - WAIT_TIMEOUT=60
+      - WAIT_SLEEP_INTERVAL=1
+      - WAIT_HOST_CONNECT_TIMEOUT=30
+    depends_on:
+      - agent
