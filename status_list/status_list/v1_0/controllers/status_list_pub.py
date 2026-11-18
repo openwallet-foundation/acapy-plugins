@@ -14,7 +14,6 @@ from marshmallow import fields
 
 from .. import status_handler
 from ..config import Config
-from ..jwt import jwt_sign
 from ..models import StatusListDef
 
 LOGGER = logging.getLogger(__name__)
@@ -80,17 +79,13 @@ async def publish_status_list(request: web.BaseRequest):
                     tenant_id=wallet_id,
                     list_number=list_number,
                 )
-                headers = (
-                    {"typ": "statuslist+jwt"} if definition.list_type == "ietf" else {}
+                signed = await status_handler.sign_status_list(
+                    context, definition, status_list
                 )
-                jws = await jwt_sign(
-                    profile=context.profile,
-                    headers=headers,
-                    payload=status_list,
-                    did=definition.issuer_did,
-                    verification_method=definition.verification_method,
-                )
-                status_handler.write_to_file(path, jws.encode("utf-8"))
+                if signed.media_type == status_handler.STATUSLIST_CWT_MEDIA_TYPE:
+                    status_handler.write_to_file(f"{path}.cwt", signed.token)
+                else:
+                    status_handler.write_to_file(path, signed.token.encode("utf-8"))
             # add status_list to published list
             published.append(status_list)
 

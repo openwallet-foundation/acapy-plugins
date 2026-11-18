@@ -81,6 +81,17 @@ class CreateStatusListDefRequest(OpenAPISchema):
             "example": "ietf",
         },
     )
+    token_format = fields.Str(
+        required=False,
+        validate=OneOf(["jwt", "cwt"]),
+        metadata={
+            "description": (
+                "Token format for published lists: 'jwt' (default), or 'cwt' for "
+                "IETF lists. Fixed at creation."
+            ),
+            "example": "jwt",
+        },
+    )
     issuer_did = fields.Str(
         required=False,
         metadata={
@@ -148,6 +159,12 @@ async def create_status_list_def(request: web.BaseRequest):
     issuer_did = body.get("issuer_did", None)
     verification_method = body.get("verification_method", None)
 
+    token_format = body.get("token_format") or "jwt"
+    if token_format not in ("jwt", "cwt"):
+        raise web.HTTPBadRequest(reason="token_format must be 'jwt' or 'cwt'.")
+    if token_format == "cwt" and list_type != "ietf":
+        raise web.HTTPBadRequest(reason="token_format 'cwt' requires list_type 'ietf'.")
+
     try:
         context: AdminRequestContext = request["context"]
         config = Config.from_settings(context.profile.settings)
@@ -169,6 +186,7 @@ async def create_status_list_def(request: web.BaseRequest):
                 shard_size=shard_size,
                 list_size=list_size,
                 list_type=list_type,
+                token_format=token_format,
                 issuer_did=issuer_did,
                 verification_method=verification_method,
             )
@@ -355,7 +373,12 @@ async def update_status_list_def(request: web.BaseRequest):
             definition = await StatusListDef.retrieve_by_id(
                 txn, definition_id, for_update=True
             )
-            definition.list_type = body.get("list_type", None)
+            list_type = body.get("list_type", None)
+            if definition.token_format == "cwt" and list_type != "ietf":
+                raise web.HTTPBadRequest(
+                    reason="token_format 'cwt' requires list_type 'ietf'."
+                )
+            definition.list_type = list_type
             definition.issuer_did = body.get("issuer_did", None)
             definition.verification_method = body.get("verification_method", None)
 

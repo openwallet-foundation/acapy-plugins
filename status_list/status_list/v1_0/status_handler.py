@@ -12,7 +12,7 @@ from datetime import datetime, timedelta, timezone
 from functools import wraps
 from pathlib import Path
 from types import SimpleNamespace
-from typing import Any, Optional
+from typing import Any, NamedTuple, Optional, Union
 
 from acapy_agent.admin.request_context import AdminRequestContext
 from acapy_agent.core.profile import ProfileSession
@@ -21,11 +21,26 @@ from acapy_agent.wallet.util import bytes_to_b64, unpad
 from bitarray import bitarray
 
 from .config import Config
+from .cwt import cwt_sign
 from .error import StatusListError
 from .jwt import jwt_sign
 from .models import StatusListCred, StatusListDef, StatusListReg, StatusListShard
 
 LOGGER = logging.getLogger(__name__)
+
+# HTTP media types for IETF status list tokens (draft-ietf-oauth-status-list §8.2).
+STATUSLIST_JWT_MEDIA_TYPE = "application/statuslist+jwt"
+STATUSLIST_CWT_MEDIA_TYPE = "application/statuslist+cwt"
+
+
+class StatusListToken(NamedTuple):
+    """A signed status list and its HTTP media type.
+
+    `media_type` is None for W3C and raw lists.
+    """
+
+    token: Union[str, bytes]
+    media_type: Optional[str]
 
 
 def with_retries(max_attempts: int = 3, delay: float = 2.0):
@@ -405,7 +420,7 @@ async def get_status_list(
             # IETF Token Status List uses little-endian bit numbering within each byte
             status_bits = bitarray(status_bits, endian="little")
             bit_bytes = status_bits.tobytes()
-            bit_bytes = zlib.compress(bit_bytes)
+            bit_bytes = zlib.compress(bit_bytes, level=zlib.Z_BEST_COMPRESSION)
         elif definition.list_type == "w3c":
             # W3C Bitstring Status List uses big-endian bit numbering within each byte
             status_bits = bitarray(status_bits, endian="big")
@@ -485,12 +500,37 @@ async def get_status_list(
         return status_list
 
 
+async def sign_status_list(
+    context: AdminRequestContext, definition: StatusListDef, status_list: dict
+) -> StatusListToken:
+    """Sign a status list in its definition's token format."""
+
+    if definition.list_type == "ietf" and definition.token_format == "cwt":
+        token = await cwt_sign(
+            profile=context.profile,
+            payload=status_list,
+            did=definition.issuer_did,
+            verification_method=definition.verification_method,
+        )
+        return StatusListToken(token, STATUSLIST_CWT_MEDIA_TYPE)
+
+    is_ietf = definition.list_type == "ietf"
+    token = await jwt_sign(
+        profile=context.profile,
+        headers={"typ": "statuslist+jwt"} if is_ietf else {},
+        payload=status_list,
+        did=definition.issuer_did,
+        verification_method=definition.verification_method,
+    )
+    return StatusListToken(token, STATUSLIST_JWT_MEDIA_TYPE if is_ietf else None)
+
+
 async def get_status_list_token(
     context: AdminRequestContext,
     list_number: str,
     definition: Optional[StatusListDef] = None,
-):
-    """Publish status list."""
+) -> StatusListToken:
+    """Sign a status list in its definition's token format."""
 
     if definition is None:
         async with context.profile.session() as session:
@@ -500,12 +540,4 @@ async def get_status_list_token(
             definition = await StatusListDef.retrieve_by_id(session, definition_id)
 
     status_list = await get_status_list(context, definition, list_number)
-    headers = {"typ": "statuslist+jwt"} if definition.list_type == "ietf" else {}
-
-    return await jwt_sign(
-        profile=context.profile,
-        headers=headers,
-        payload=status_list,
-        did=definition.issuer_did,
-        verification_method=definition.verification_method,
-    )
+    return await sign_status_list(context, definition, status_list)
