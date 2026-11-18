@@ -1,0 +1,42 @@
+# Multitenant admin agent configuration
+
+auto-provision: true
+label: multitenant-admin
+
+inbound-transport:
+   - [http, 0.0.0.0, 9050]
+
+outbound-transport: http
+
+wallet-type: askar
+wallet-storage-type: default
+wallet-name: multitenant-admin-wallet
+wallet-key: multitenant-admin-wallet-key
+multitenancy-config: '{"wallet_type": "single-wallet-askar"}'
+
+admin-insecure-mode: true
+
+admin: [0.0.0.0, 9051]
+
+endpoint: http://localhost:9050
+
+# Connections
+debug-connections: true
+auto-accept-invites: true
+auto-accept-requests: true
+auto-ping-connection: true
+
+# Multi-tenancy
+multitenant: true
+jwt-secret: insecure-jwt-secret
+multitenant-admin: true
+
+log-level: info
+
+tails-server-base-url: http://localhost:6543
+
+# Plugins
+plugin:
+  - indy_ledger
+
+plugin-config: /workspaces/acapy-plugins/indy_ledger/docker/plugin_config.yml
