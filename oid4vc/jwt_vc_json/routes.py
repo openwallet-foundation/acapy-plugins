@@ -19,7 +19,11 @@ from acapy_agent.messaging.models.openapi import OpenAPISchema
 from marshmallow import RAISE, ValidationError, fields
 
 from oid4vc.cred_processor import CredProcessors
-from oid4vc.models.supported_cred import SupportedCredential, SupportedCredentialSchema
+from oid4vc.models.supported_cred import (
+    SupportedCredential,
+    SupportedCredentialSchema,
+    validate_proof_types_supported,
+)
 from oid4vc.routes import SupportedCredentialMatchSchema, supported_cred_is_unique
 
 LOGGER = logging.getLogger(__name__)
@@ -53,6 +57,7 @@ class JwtSupportedCredCreateRequestSchema(OpenAPISchema):
     )
     proof_types_supported = fields.Dict(
         required=False,
+        validate=validate_proof_types_supported,
         metadata={"example": {"jwt": {"proof_signing_alg_values_supported": ["ES256"]}}},
     )
     credential_metadata = fields.Dict(

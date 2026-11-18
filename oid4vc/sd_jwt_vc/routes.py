@@ -22,7 +22,11 @@ from marshmallow import RAISE, ValidationError, fields
 
 from oid4vc.cred_processor import CredProcessors
 
-from oid4vc.models.supported_cred import SupportedCredential, SupportedCredentialSchema
+from oid4vc.models.supported_cred import (
+    SupportedCredential,
+    SupportedCredentialSchema,
+    validate_proof_types_supported,
+)
 from oid4vc.utils import supported_cred_is_unique
 
 
@@ -44,6 +48,7 @@ class SdJwtSupportedCredCreateReq(OpenAPISchema):
     )
     proof_types_supported = fields.Dict(
         required=False,
+        validate=validate_proof_types_supported,
         metadata={"example": {"jwt": {"proof_signing_alg_values_supported": ["ES256"]}}},
     )
     vct = fields.Str(

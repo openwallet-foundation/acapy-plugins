@@ -27,7 +27,11 @@ from aiohttp_apispec import (
 from marshmallow import RAISE, ValidationError, fields
 
 from oid4vc.cred_processor import CredProcessors
-from oid4vc.models.supported_cred import SupportedCredential, SupportedCredentialSchema
+from oid4vc.models.supported_cred import (
+    SupportedCredential,
+    SupportedCredentialSchema,
+    validate_proof_types_supported,
+)
 from oid4vc.routes import SupportedCredentialMatchSchema, supported_cred_is_unique
 from . import trust_anchor_routes
 
@@ -51,6 +55,7 @@ class MdocSupportedCredCreateRequestSchema(OpenAPISchema):
     )
     proof_types_supported = fields.Dict(
         required=False,
+        validate=validate_proof_types_supported,
         metadata={"example": {"jwt": {"proof_signing_alg_values_supported": ["ES256"]}}},
     )
     doctype = fields.Str(
@@ -157,7 +162,9 @@ class MdocSupportedCredUpdateRequestSchema(OpenAPISchema):
     credential_signing_alg_values_supported = fields.List(
         fields.Str(), required=False, metadata={"example": ["-7", "-8"]}
     )
-    proof_types_supported = fields.Dict(required=False)
+    proof_types_supported = fields.Dict(
+        required=False, validate=validate_proof_types_supported
+    )
     doctype = fields.Str(
         required=False,
         metadata={
