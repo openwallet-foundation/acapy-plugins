@@ -18,12 +18,8 @@ python -m pip install './x509_certs[aca-py]'
 ```
 
 Omit the `aca-py` extra if ACA-Py is already installed. Add
-`--plugin x509_certs.v1_0` to your ACA-Py startup arguments to load the plugin
+`--plugin x509_certs` to your ACA-Py startup arguments to load the plugin
 and register its admin routes. Installing the distribution does not load it.
-
-As in the repository's other versioned plugins, the version is part of the load
-name and the import path. Load one version at a time; a later major version may
-change the routes and the Python API.
 
 ## Configuration
 
@@ -103,7 +99,7 @@ Have a CA sign the CSR, then import the chain with `POST /x509/certificates`:
 ## Python API
 
 Consumers can import certificate selection, chain formatting, records and
-`X509Error` from `x509_certs.v1_0`. `select_certificate` selects a certificate
+`X509Error` from `x509_certs`. `select_certificate` selects a certificate
 for a multikey and purpose whose validity covers the requested expiry,
 preferring the earliest expiry and then the earliest start date.
 
@@ -122,8 +118,7 @@ poetry build
 
 The project follows `plugin_globals`, including shared Poetry settings,
 `.devcontainer`, `.vscode`, `docker` and `integration` scaffolding. The unit
-suite loads the plugin through ACA-Py's registry, both as `x509_certs.v1_0` and
-through the root `definition.py`, and calls its routes over HTTP.
+suite loads `x509_certs` through ACA-Py's registry and calls its routes over HTTP.
 
 Run the [Docker integration suite](./integration/README.md) to exercise wallet
 keys, CSR generation, certificate/anchor CRUD and verification through one

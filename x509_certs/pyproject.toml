@@ -75,7 +75,7 @@ junit_family = "xunit1"
 asyncio_mode = "auto"
 
 [tool.coverage.run]
-omit = ["*/tests/*", "docker/*", "integration/*", "*/definition.py"]
+omit = ["*/tests/*", "docker/*", "integration/*"]
 data_file = ".test-reports/.coverage"
 
 [tool.coverage.report]

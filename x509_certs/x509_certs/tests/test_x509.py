@@ -8,7 +8,7 @@ from cryptography import x509
 from cryptography.hazmat.primitives import hashes
 from cryptography.hazmat.primitives.asymmetric import ec
 
-from x509_certs.v1_0.certs import (
+from x509_certs.certs import (
     X509Error,
     check_chain_order,
     describe,
@@ -21,9 +21,9 @@ from x509_certs.v1_0.certs import (
     to_pem,
     to_x5c,
 )
-from x509_certs.v1_0.models import X509CertificateRecord
-from x509_certs.v1_0.signing import build_csr, build_self_signed
-from x509_certs.v1_0.verify import verify_chain
+from x509_certs.models import X509CertificateRecord
+from x509_certs.signing import build_csr, build_self_signed
+from x509_certs.verify import verify_chain
 
 from .conftest import NOW, Pki, wallet_public_key
 

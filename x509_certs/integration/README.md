@@ -2,7 +2,7 @@
 
 Docker Compose starts one ACA-Py agent (`agent`) using the plugin
 [Dockerfile](../docker/Dockerfile), plus a [test runner](Dockerfile.test.runner).
-The agent loads `x509_certs.v1_0`. No external ledger is needed.
+The agent loads `x509_certs`. No external ledger is needed.
 
 ## Build and run Tests
 

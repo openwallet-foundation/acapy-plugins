@@ -8,8 +8,8 @@ from aiohttp.test_utils import TestClient, TestServer
 from cryptography import x509
 from cryptography.hazmat.primitives.asymmetric import ec
 
-from x509_certs.v1_0 import routes
-from x509_certs.v1_0.certs import to_pem, to_x5c
+from x509_certs import routes
+from x509_certs.certs import to_pem, to_x5c
 
 from .conftest import NOW, Pki, wallet_public_key
 
@@ -42,15 +42,14 @@ async def call(handler, context, **kwargs):
 
 
 @pytest.mark.asyncio
-@pytest.mark.parametrize("plugin_name", ["x509_certs", "x509_certs.v1_0"])
-async def test_plugin_loading_registers_working_routes(context, multikey, plugin_name):
+async def test_plugin_loading_registers_working_routes(context, multikey):
     @web.middleware
     async def inject_context(request, handler):
         request["context"] = context
         return await handler(request)
 
     registry = PluginRegistry()
-    assert registry.register_plugin(plugin_name) is not None
+    assert registry.register_plugin("x509_certs") is not None
     await registry.init_context(context.profile.context)
     app = web.Application(middlewares=[inject_context])
     app["swagger_dict"] = {}

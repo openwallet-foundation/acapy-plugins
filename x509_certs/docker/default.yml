@@ -12,7 +12,7 @@ endpoint:
   - http://host.docker.internal:3000
 
 plugin:
-  - x509_certs.v1_0
+  - x509_certs
 
 no-ledger: true
 auto-provision: true
