@@ -119,6 +119,13 @@ async def test_disabled_security_features_skip_validation(monkeypatch):
 
 @pytest.mark.asyncio
 @pytest.mark.parametrize(
+    ("grant_class", "grant_data"),
+    [
+        (PreAuthorizedCodeGrant, {"pre_authorized_code": "abc"}),
+        (RotatingRefreshTokenGrant, {"refresh_token": "rt"}),
+    ],
+)
+@pytest.mark.parametrize(
     ("enabled", "required", "expected_required"),
     [
         (False, False, None),
@@ -127,11 +134,11 @@ async def test_disabled_security_features_skip_validation(monkeypatch):
     ],
 )
 async def test_attestation_policy_matrix(
-    monkeypatch, enabled, required, expected_required
+    monkeypatch, enabled, required, expected_required, grant_class, grant_data
 ):
     server = DummyServer()
     request = make_request(
-        {"pre_authorized_code": "abc"},
+        {**grant_data, "client_id": "wallet-client"},
         headers={
             "OAuth-Client-Attestation": "attestation",
             "OAuth-Client-Attestation-PoP": "proof",
@@ -144,7 +151,7 @@ async def test_attestation_policy_matrix(
     monkeypatch.setattr("tenant.oauth.grants.get_context", lambda _req: extra_ctx)
     monkeypatch.setattr("tenant.oauth.grants.validate_client_attestation", validator)
 
-    grant = PreAuthorizedCodeGrant(request, server)
+    grant = grant_class(request, server)
     await grant.validate_token_request()
 
     if expected_required is None:
@@ -152,6 +159,7 @@ async def test_attestation_policy_matrix(
         assert grant._attestation_meta is None
     else:
         assert validator.await_args.kwargs["attestation_required"] is expected_required
+        assert validator.await_args.kwargs["client_id"] == "wallet-client"
         assert grant._attestation_meta == {"cnf_jkt": "attestation-jkt"}
 
 

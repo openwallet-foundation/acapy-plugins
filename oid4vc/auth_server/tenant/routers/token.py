@@ -28,6 +28,7 @@ async def token_endpoint(
     pre_authorized_code: str | None = Form(None),
     tx_code: str | None = Form(None),
     refresh_token: str | None = Form(None),
+    client_id: str | None = Form(None),
     db: AsyncSession = Depends(get_db_session),
 ):
     """Delegate token issuance to Authlib AuthorizationServer with custom grants."""
@@ -45,6 +46,7 @@ async def token_endpoint(
         "pre_authorized_code": pac_value,
         "tx_code": tx_code,
         "refresh_token": refresh_token,
+        "client_id": client_id,
     }
     oauth2_req = await to_oauth2_request(request, db=db, uid=uid, form_data=form_data)
     server = get_authorization_server()

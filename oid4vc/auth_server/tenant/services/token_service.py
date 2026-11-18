@@ -209,8 +209,7 @@ class TokenService:
             else None
         )
         if bound_attestation_jkt:
-            # draft-07 10.3: the refresh token is bound to the attested client
-            # instance key, so rotation MUST present the same key.
+            # Refresh tokens stay bound to the attested Client Instance Key (§10.3).
             presented_cnf_jkt = (
                 attestation.get("cnf_jkt") if isinstance(attestation, dict) else None
             )

@@ -511,7 +511,7 @@ def _rotation_stubs(monkeypatch, prev_access, *, now):
 
 @pytest.mark.parametrize("stored_cnf_jkt", [None, "bound-jkt"])
 async def test_rotate_requires_matching_attestation_key(monkeypatch, stored_cnf_jkt):
-    """draft-07 10.3: refreshing MUST present the bound client instance key."""
+    """Refreshing requires the bound Client Instance Key (§10.3)."""
     now = datetime(2025, 2, 2, tzinfo=timezone.utc)
     prev_access = SimpleNamespace(
         id=77,
