@@ -1039,83 +1039,46 @@ async function create_sd_jwt_presentation(req, res) {
   };
 
 
-  // Create Presentation Definition
-  events.emit(`presentation-${presentationId}`, {type: "message", message: "Creating Presentation Definition."});
-  const presentationDefinition = {"pres_def": {
-    "id": uuidv4(),
-    "purpose": "Present basic profile info",
-    "input_descriptors": [
-      {
-        "format": {
-          // PEX-based wallets only recognise the legacy vc+sd-jwt identifier
-          "vc+sd-jwt": {}
-        },
-        "id": "ID Card",
-        "name": "Profile",
-        "purpose": "Present basic profile info",
-        "constraints": {
-          "limit_disclosure": "required",
-          "fields": [
-            {
-              "path": [
-                "$.vct"
-              ],
-              "filter": {
-                "type": "string"
-              }
-            },
-            {
-              "path": [
-                "$.family_name"
-              ]
-            },
-            {
-              "path": [
-                "$.given_name"
-              ]
-            },
-            {
-              "path": [
-                "$.something_nested.key1.key2.key3"
-              ]
-            },
-          ]
-        }
-      }
-    ]
-  }};
-
-  const presentationDefinitionUrl = `${API_BASE_URL}/oid4vp/presentation-definition`;
-  const presentationDefinitionOptions = {
+  // Create DCQL Query for the SD-JWT ID Card
+  events.emit(`presentation-${presentationId}`, {type: "message", message: "Creating DCQL Query for SD-JWT ID Card."});
+  const dcqlQueryUrl = `${API_BASE_URL}/oid4vp/dcql/queries`;
+  const dcqlQueryOptions = {
     method: "POST",
     headers: commonHeaders,
-    body: JSON.stringify(presentationDefinition),
+    body: JSON.stringify({
+      credentials: [
+        {
+          id: "IDCard",
+          format: "dc+sd-jwt",
+          meta: {
+            vct_values: ["ExampleIDCard"]
+          },
+          claims: [
+            { path: ["family_name"] },
+            { path: ["given_name"] },
+            { path: ["something_nested", "key1", "key2", "key3"] },
+          ],
+        }
+      ]
+    }),
   };
-  logger.warn(presentationDefinitionUrl);
-  events.emit(`presentation-${presentationId}`, {type: "message", message: `Posting Presentation Definition to: ${presentationDefinitionUrl}`});
-  events.emit(`presentation-${presentationId}`, {type: "debug-message", message: "Request options", data: presentationDefinitionOptions});
-  const presentationDefinitionData = await fetchApiData(
-    presentationDefinitionUrl,
-    presentationDefinitionOptions
-  );
-  logger.info("Created presentation?");
-  logger.trace(JSON.stringify(presentationDefinitionData));
-  logger.trace(presentationDefinitionData.pres_def_id);
-  events.emit(`presentation-${presentationId}`, {type: "message", message: `Created Presentation Definition`});
-  events.emit(`presentation-${presentationId}`, {type: "message", message: `Presentation Definition ID: ${presentationDefinitionData.pres_def_id}`});
-  events.emit(`presentation-${presentationId}`, {type: "debug-message", message: "Response data", data: presentationDefinitionData});
+  events.emit(`presentation-${presentationId}`, {type: "message", message: `Posting DCQL Query to: ${dcqlQueryUrl}`});
+  events.emit(`presentation-${presentationId}`, {type: "debug-message", message: "Request options", data: dcqlQueryOptions});
+  const dcqlQueryData = await fetchApiData(dcqlQueryUrl, dcqlQueryOptions);
+  const dcqlQueryId = dcqlQueryData.dcql_query_id;
+  events.emit(`presentation-${presentationId}`, {type: "message", message: `Created DCQL Query ID: ${dcqlQueryId}`});
+  events.emit(`presentation-${presentationId}`, {type: "debug-message", message: "Response data", data: dcqlQueryData});
 
 
-  // Create Presentation Request
+  // Create Presentation Request using the DCQL query
   const presentationRequestUrl = `${API_BASE_URL}/oid4vp/request`;
   const presentationRequestOptions = {
     method: "POST",
     headers: commonHeaders,
     body: JSON.stringify({
-      "pres_def_id": presentationDefinitionData.pres_def_id,
+      "dcql_query_id": dcqlQueryId,
       "vp_formats": {
-        // PEX-based wallets only recognise the legacy vc+sd-jwt identifier
-        "vc+sd-jwt": {
+        "dc+sd-jwt": {
             "sd-jwt_alg_values": [
                 "ES256",
                 "ES384"
@@ -1141,7 +1104,7 @@ async function create_sd_jwt_presentation(req, res) {
 
   // Grab the relevant data and store it for later reference while waiting for the webhooks from ACA-Py
   let code = presentationRequestData.request_uri;
-  presentationCache.set(presentationDefinitionData.pres_def_id, { presentationDefinitionData, presentationRequestData, presentationId: presentationId });
+  presentationCache.set(dcqlQueryId, { dcqlQueryData, presentationRequestData, presentationId: presentationId });
   logger.trace(JSON.stringify(presentationRequestData, null, 2));
 
   // Generate a QRCode and return it to the browser (HTMX replaces a div with our current response)
