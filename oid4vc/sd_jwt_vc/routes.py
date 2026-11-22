@@ -36,7 +36,7 @@ LOGGER = logging.getLogger(__name__)
 class SdJwtSupportedCredCreateReq(OpenAPISchema):
     """Schema for SdJwtSupportedCredCreateReq."""
 
-    format = fields.Str(required=True, metadata={"example": "vc+sd-jwt"})
+    format = fields.Str(required=True, metadata={"example": "dc+sd-jwt"})
     identifier = fields.Str(
         data_key="id", required=True, metadata={"example": "UniversityDegreeCredential"}
     )

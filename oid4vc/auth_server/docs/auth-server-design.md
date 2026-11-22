@@ -609,7 +609,7 @@ tx_code=1234
   "authorization_details": [
     {
       "type": "openid_credential",
-      "format": "vc+sd-jwt",
+      "format": "dc+sd-jwt",
       "types": ["VerifiableCredential", "OntarioBusinessCard"]
     }
   ],
@@ -654,7 +654,7 @@ token_type_hint=access_token
   "authorization_details": [
     {
       "type": "openid_credential",
-      "format": "vc+sd-jwt",
+      "format": "dc+sd-jwt",
       "types": ["VerifiableCredential", "OntarioBusinessCard"]
     }
   ],
@@ -695,7 +695,7 @@ Authorization: Bearer eyJhbGciOi...
 Content-Type: application/json
 
 {
-  "format": "vc+sd-jwt",
+  "format": "dc+sd-jwt",
   "type": "OntarioBusinessCard",
   "proof": { "proof_type": "jwt", "jwt": "eyJ0eXAiOiJKV1Q..." }
 }
@@ -705,7 +705,7 @@ Content-Type: application/json
 
 ```json
 {
-  "format": "vc+sd-jwt",
+  "format": "dc+sd-jwt",
   "credential": "eyJhbGciOiJFZERTQSJ9...sig"
 }
 ```
@@ -748,7 +748,7 @@ Decoded `credential_offer`:
     "authorization_details": [
       {
         "type": "openid_credential",
-        "format": "vc+sd-jwt",
+        "format": "dc+sd-jwt",
         "types": ["VerifiableCredential", "OntarioBusinessCard"]
       }
     ]
@@ -803,7 +803,7 @@ GET /.well-known/openid-credential-issuer
   "nonce_lifetime": 300,
   "credentials_supported": {
     "OntarioBusinessCard": {
-      "format": "vc+sd-jwt",
+      "format": "dc+sd-jwt",
       "proof_types_supported": ["jwt"],
       "cryptographic_binding_methods_supported": ["did"],
       "cryptographic_suites_supported": ["ES256"]

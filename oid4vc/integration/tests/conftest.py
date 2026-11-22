@@ -132,7 +132,7 @@ async def sdjwt_supported_cred_id(controller: Controller, issuer_did: str):
     supported = await controller.post(
         "/oid4vci/credential-supported/create/sd-jwt",
         json={
-            "format": "vc+sd-jwt",
+            "format": "dc+sd-jwt",
             "id": "IDCard",
             "cryptographic_binding_methods_supported": ["jwk"],
             "display": [

@@ -9,7 +9,7 @@ async def test_dcql_query_create(controller: Controller):
         "credentials": [
             {
                 "id": "pid",
-                "format": "vc+sd-jwt",
+                "format": "dc+sd-jwt",
                 "meta": {
                     "vct_values": ["https://credentials.example.com/identity_credential"]
                 },
@@ -36,7 +36,7 @@ async def test_dcql_query_list(controller: Controller):
         "credentials": [
             {
                 "id": "pid",
-                "format": "vc+sd-jwt",
+                "format": "dc+sd-jwt",
                 "meta": {
                     "vct_values": ["https://credentials.example.com/identity_credential"]
                 },
@@ -69,7 +69,7 @@ async def test_dcql_query_get(controller: Controller):
         "credentials": [
             {
                 "id": "pid",
-                "format": "vc+sd-jwt",
+                "format": "dc+sd-jwt",
                 "meta": {
                     "vct_values": ["https://credentials.example.com/identity_credential"]
                 },
@@ -98,7 +98,7 @@ async def test_dcql_query_delete(controller: Controller):
         "credentials": [
             {
                 "id": "pid",
-                "format": "vc+sd-jwt",
+                "format": "dc+sd-jwt",
                 "meta": {
                     "vct_values": ["https://credentials.example.com/identity_credential"]
                 },

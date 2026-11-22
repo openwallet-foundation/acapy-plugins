@@ -387,7 +387,7 @@ async function issue_sdjwt_credential(req, res) {
     method: "POST",
     headers: commonHeaders,
     body: JSON.stringify({
-      format: "vc+sd-jwt",
+      format: "dc+sd-jwt",
       id: "IDCard",
       proof_types_supported: {
         jwt: {
@@ -1047,6 +1047,7 @@ async function create_sd_jwt_presentation(req, res) {
     "input_descriptors": [
       {
         "format": {
+          // PEX-based wallets only recognise the legacy vc+sd-jwt identifier
           "vc+sd-jwt": {}
         },
         "id": "ID Card",
@@ -1113,6 +1114,7 @@ async function create_sd_jwt_presentation(req, res) {
     body: JSON.stringify({
       "pres_def_id": presentationDefinitionData.pres_def_id,
       "vp_formats": {
+        // PEX-based wallets only recognise the legacy vc+sd-jwt identifier
         "vc+sd-jwt": {
             "sd-jwt_alg_values": [
                 "ES256",
