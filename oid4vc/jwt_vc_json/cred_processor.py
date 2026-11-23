@@ -130,8 +130,16 @@ class JwtVcJsonCredProcessor(Issuer, CredVerifier, PresVerifier):
         profile: Profile,
         credential: Any,
     ) -> VerifyResult:
-        """Verify a credential in JWT VC format."""
-        return await self.verify(profile, credential)
+        """Verify a credential in JWT VC format.
+
+        The credential must be signed with a key of the DID in its ``iss`` claim.
+        """
+        try:
+            res = await jwt_verify(profile, credential, issuer_bound=True)
+        except Exception as err:
+            LOGGER.info("JWT VC verification failed: %s", err)
+            return VerifyResult(verified=False, payload=None)
+        return VerifyResult(verified=res.verified, payload=res.payload)
 
     async def verify_presentation(
         self,
