@@ -1,5 +1,6 @@
 """Multitenant provider manager."""
 
+import asyncio
 import logging
 from datetime import datetime, timezone
 
@@ -80,20 +81,14 @@ class MulittokenHandler:
             return wallet_token_record
 
     def check_wallet_key(self, wallet_token_record: WalletTokenRecord, wallet_key: str):
-        """Check the wallet key against the saved hash and salt."""
-        # make a hash from passed in value with saved salt...
-        wallet_key_bytes = _bcrypt_encode(wallet_key)
-        wallet_key_token = bcrypt.hashpw(
-            wallet_key_bytes,
-            wallet_token_record.wallet_key_salt.encode("utf-8"),
-        )
-        # check the passed in value/hash against the calculated hash.
-        check_input = bcrypt.checkpw(wallet_key_bytes, wallet_key_token)
-        self.logger.debug(
-            f"bcrypt.checkpw(wallet_key.encode('utf-8'), wallet_key_token) = {check_input}"  # noqa E501
-        )
+        """Check the wallet key against the saved hash.
 
-        # check the passed in value against the saved hash
+        bcrypt.checkpw re-derives the hash with the salt embedded in the saved
+        hash and compares in constant time, so it is the complete check. (The
+        former extra step, hashing the key with the stored salt and checking it
+        against that same fresh hash, always matched and verified nothing.)
+        """
+        wallet_key_bytes = _bcrypt_encode(wallet_key)
         check_saved = bcrypt.checkpw(
             wallet_key_bytes,
             wallet_token_record.wallet_key_hash.encode("utf-8"),
@@ -102,7 +97,19 @@ class MulittokenHandler:
             f"bcrypt.checkpw(wallet_key.encode('utf-8'), wallet_record.wallet_key_hash.encode('utf-8')) = {check_saved}"  # noqa E501
         )
 
-        return check_input and check_saved
+        return check_saved
+
+    async def check_wallet_key_async(
+        self, wallet_token_record: WalletTokenRecord, wallet_key: str
+    ) -> bool:
+        """Run check_wallet_key in a worker thread.
+
+        bcrypt is CPU-bound (about 0.3 s at cost 12); off the event loop,
+        other requests keep being served while it runs.
+        """
+        return await asyncio.to_thread(
+            self.check_wallet_key, wallet_token_record, wallet_key
+        )
 
     async def create_wallet(
         self,
@@ -170,7 +177,9 @@ class MulittokenHandler:
 
         if config.manager.always_check_provided_wallet_key:
             # if a wallet key was passed in, we need to check it
-            if wallet_key and not self.check_wallet_key(wallet_token_record, wallet_key):
+            if wallet_key and not await self.check_wallet_key_async(
+                wallet_token_record, wallet_key
+            ):
                 raise WalletKeyMismatchError()
 
         encoded = jwt.encode(jwt_payload, jwt_secret, algorithm="HS256")
@@ -241,7 +250,9 @@ class MulittokenHandler:
             extra_settings["wallet.key"] = wallet_key
 
         # if wallet key in token, check it
-        if wallet_key and not self.check_wallet_key(wallet_token_record, wallet_key):
+        if wallet_key and not await self.check_wallet_key_async(
+            wallet_token_record, wallet_key
+        ):
             raise WalletKeyMismatchError()
 
         # if we are here, then check issued at time.

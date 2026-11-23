@@ -108,9 +108,10 @@ class TestMulittokenHandler(IsolatedAsyncioTestCase):
     @patch.object(
         bcrypt,
         "checkpw",
-        side_effect=[True, True, True, False, False, True, False, False],
+        side_effect=[True, False],
     )
     async def test_check_wallet_key(self, mock_check):
+        # One bcrypt check against the saved hash decides the result.
         multi_token_handler = MulittokenHandler(self.manager)
         wallet_token_record = WalletTokenRecord(
             wallet_token_id="test-token-id",
@@ -121,25 +122,13 @@ class TestMulittokenHandler(IsolatedAsyncioTestCase):
             wallet_token_record, wallet_key="wallet-key"
         )
         assert result is True
+        assert mock_check.call_count == 1
+
+        result = multi_token_handler.check_wallet_key(
+            wallet_token_record, wallet_key="wallet-key"
+        )
+        assert result is False
         assert mock_check.call_count == 2
-
-        result = multi_token_handler.check_wallet_key(
-            wallet_token_record, wallet_key="wallet-key"
-        )
-        assert result is False
-        assert mock_check.call_count == 4
-
-        result = multi_token_handler.check_wallet_key(
-            wallet_token_record, wallet_key="wallet-key"
-        )
-        assert result is False
-        assert mock_check.call_count == 6
-
-        result = multi_token_handler.check_wallet_key(
-            wallet_token_record, wallet_key="wallet-key"
-        )
-        assert result is False
-        assert mock_check.call_count == 8
 
     @patch.object(
         MulittokenHandler,
