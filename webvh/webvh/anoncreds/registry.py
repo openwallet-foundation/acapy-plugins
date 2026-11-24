@@ -365,15 +365,21 @@ class DIDWebVHRegistry(BaseAnonCredsResolver, BaseAnonCredsRegistrar):
 
         timestamp_to = timestamp_to or int(time.time())
         index = sorted(
-            revocation_registry_resource.get("links"), key=lambda x: x["timestamp"]
+            revocation_registry_resource.get("links") or [],
+            key=lambda x: x["timestamp"],
         )
+        status_list_id = None
         for idx, entry in enumerate(index):
             status_list_id = index[idx].get("id")
             if entry.get("timestamp") > timestamp_to and idx > 0:
                 status_list_id = index[idx - 1].get("id")
                 break
 
-        if (status_list_id or "").split("/")[0] != revocation_registry_id.split("/")[0]:
+        if not status_list_id:
+            raise ResolverError(
+                f"No status list found for revocation registry {revocation_registry_id}"
+            )
+        if status_list_id.split("/")[0] != revocation_registry_id.split("/")[0]:
             raise ResolverError(
                 "Status list is not from the revocation registry's issuer"
             )

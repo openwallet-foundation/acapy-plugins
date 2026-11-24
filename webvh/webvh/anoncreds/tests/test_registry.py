@@ -26,6 +26,7 @@ from acapy_agent.anoncreds.models.schema import (
     SchemaResult,
 )
 from acapy_agent.core.event_bus import EventBus
+from acapy_agent.resolver.base import ResolverError
 from acapy_agent.resolver.did_resolver import DIDResolver
 from acapy_agent.utils.testing import create_test_profile
 from acapy_agent.wallet.key_type import KeyTypes
@@ -265,6 +266,28 @@ class TestAnonCredsRegistry(IsolatedAsyncioTestCase):
         assert result.revocation_list.rev_reg_def_id == rev_reg_def_id
         assert result.revocation_list.current_accumulator
         assert result.revocation_list.revocation_list
+
+    async def test_get_revocation_list_x_status_list(self):
+        rev_reg_def_id = f"{self.issuer_id}/resources/zRevRegDef"
+        other_list_id = "did:webvh:Q:other.example:issuer/resources/zStatusList"
+        cases = [
+            ("No status list found", None),
+            ("No status list found", []),
+            ("No status list found", [{"timestamp": 1}]),
+            (
+                "not from the revocation registry's issuer",
+                [{"id": other_list_id, "timestamp": 1}],
+            ),
+        ]
+        for error, links in cases:
+            with self.subTest(links=links):
+                resolve = AsyncMock(return_value={"content": {}, "links": links})
+                with patch.object(self.registry, "_resolve", resolve):
+                    with self.assertRaisesRegex(ResolverError, error):
+                        await self.registry.get_revocation_list(
+                            self.profile, rev_reg_def_id, 0, 2
+                        )
+                resolve.assert_awaited_once_with(rev_reg_def_id, "anonCredsRevocRegDef")
 
     @pytest.mark.skip("Not implemented")
     async def test_update_revocation_list(self):
