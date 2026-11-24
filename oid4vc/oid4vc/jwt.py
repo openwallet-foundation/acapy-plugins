@@ -183,10 +183,78 @@ async def jwt_sign(
     return f"{encoded_headers}.{encoded_payload}.{sig}"
 
 
+async def _issuer_key(
+    profile: Profile, headers: Mapping[str, Any], payload: Mapping[str, Any]
+) -> Key:
+    """Return the JWT signing key, requiring it to belong to the ``iss`` DID."""
+    iss = payload.get("iss")
+    if not isinstance(iss, str) or not iss.startswith("did:"):
+        raise BadJWSHeaderError("JWT 'iss' must be a DID to verify the issuer key")
+
+    if "kid" in headers:
+        kid = headers["kid"]
+        if isinstance(kid, str) and kid.startswith("#"):
+            kid = f"{iss}{kid}"
+        if not isinstance(kid, str) or DIDUrl.parse(kid).did != iss:
+            raise BadJWSHeaderError("JWT header 'kid' is not a key of the 'iss' DID")
+        return await key_material_for_kid(profile, kid)
+
+    if "jwk" in headers:
+        key = Key.from_jwk(headers["jwk"])
+    elif "x5c" in headers:
+        key = key_from_x5c(headers["x5c"])
+    else:
+        raise BadJWSHeaderError(
+            "JWT header is missing a key-identification parameter. "
+            "Exactly one of 'kid', 'jwk', or 'x5c' is required (RFC 7515 §4.1)."
+        )
+
+    if not await _is_key_of_did(profile, iss, key):
+        raise BadJWSHeaderError("JWT signing key is not a key of the 'iss' DID")
+    return key
+
+
+async def _is_key_of_did(profile: Profile, did: str, key: Key) -> bool:
+    """Check whether a key is one of the verification methods of a DID."""
+    resolver = profile.inject(DIDResolver)
+    doc = await resolver.resolve(profile, did)
+    methods = list(doc.get("verificationMethod") or [])
+    methods.extend(m for m in doc.get("assertionMethod") or [] if isinstance(m, dict))
+    for method in methods:
+        method_id = method.get("id") if isinstance(method, dict) else None
+        if not isinstance(method_id, str):
+            continue
+        if method_id.startswith("#"):
+            method_id = f"{did}{method_id}"
+        try:
+            candidate = await key_material_for_kid(profile, method_id)
+        except Exception:
+            continue
+        if (
+            candidate.algorithm == key.algorithm
+            and candidate.get_public_bytes() == key.get_public_bytes()
+        ):
+            return True
+    return False
+
+
 async def jwt_verify(
-    profile: Profile, jwt: str, *, cnf: Optional[dict] = None
+    profile: Profile,
+    jwt: str,
+    *,
+    cnf: Optional[dict] = None,
+    issuer_bound: bool = False,
 ) -> JWTVerifyResult:
-    """Verify a JWT and return the headers and payload."""
+    """Verify a JWT and return the headers and payload.
+
+    Args:
+        profile: The profile used to resolve keys.
+        jwt: The compact JWT to verify.
+        cnf: A confirmation claim naming the key that must have signed the JWT,
+            for example the holder key of a key binding JWT.
+        issuer_bound: Require the signing key to belong to the DID in the
+            JWT's ``iss`` claim. Use this for issuer-signed credentials.
+    """
     encoded_headers, encoded_payload, encoded_signature = jwt.split(".", 3)
     headers = b64_to_dict(encoded_headers)
     payload = b64_to_dict(encoded_payload)
@@ -218,14 +286,14 @@ async def jwt_verify(
         if "jwk" in cnf:
             key = Key.from_jwk(cnf["jwk"])
         elif "kid" in cnf:
-            if "kid" not in headers:
-                raise BadJWSHeaderError(
-                    "JWT header is missing the required 'kid' parameter "
-                    "when cnf contains a kid binding (RFC 7515 §4.1.4)"
-                )
-            key = await key_material_for_kid(profile, headers["kid"])
+            # The key is the one named by cnf, not whatever the JWT header names
+            if "kid" in headers and headers["kid"] != cnf["kid"]:
+                raise BadJWSHeaderError("JWT header 'kid' does not match cnf 'kid'")
+            key = await key_material_for_kid(profile, cnf["kid"])
         else:
             raise ValueError("Unsupported cnf")
+    elif issuer_bound:
+        key = await _issuer_key(profile, headers, payload)
     elif "jwk" in headers:
         key = Key.from_jwk(headers["jwk"])
     elif "kid" in headers:

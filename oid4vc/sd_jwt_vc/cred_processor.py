@@ -460,6 +460,7 @@ class SDJWTVerifierACAPy(SDJWTVerifier):
         verified = await jwt_verify(
             self.profile,
             self._unverified_input_sd_jwt,
+            issuer_bound=True,
         )
         if verified.verified is False:
             raise CredProcessorError("Invalid signature")
@@ -499,6 +500,8 @@ class SDJWTVerifierACAPy(SDJWTVerifier):
             self._unverified_input_key_binding_jwt,
             cnf=self._holder_public_key_payload,
         )
+        if not verified_kb_jwt.verified:
+            raise ValueError("Invalid key binding JWT signature")
 
         if verified_kb_jwt.headers["typ"] != self.KB_JWT_TYP_HEADER:
             raise ValueError("Invalid header typ")
