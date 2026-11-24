@@ -53,6 +53,7 @@ from acapy_agent.anoncreds.models.schema_info import AnonCredsSchemaInfo
 from acapy_agent.config.injection_context import InjectionContext
 from acapy_agent.core.event_bus import EventBus
 from acapy_agent.core.profile import Profile
+from acapy_agent.resolver.base import ResolverError
 from acapy_agent.vc.data_integrity.manager import (
     DataIntegrityManager,
 )
@@ -148,10 +149,25 @@ class DIDWebVHRegistry(BaseAnonCredsResolver, BaseAnonCredsRegistrar):
         """Setup."""
         print("Successfully registered DIDWebVHRegistry")
 
+    async def _resolve(self, resource_id: str, resource_type: str) -> dict:
+        """Resolve a verified Attested Resource of the expected type.
+
+        The ``issuerId`` in the content, when present, must be the DID that the
+        resource identifier belongs to.
+        """
+        resource = await self.resolver.resolve_resource(resource_id, resource_type)
+        issuer_id = resource_id.split("/")[0]
+        content = resource["content"]
+        if isinstance(content, dict) and content.get("issuerId", issuer_id) != issuer_id:
+            raise ResolverError(
+                "Resource issuerId does not match the DID of its identifier"
+            )
+        return resource
+
     async def get_schema(self, profile, schema_id: str) -> GetSchemaResult:
         """Get a schema from the registry."""
         try:
-            resource = await self.resolver.resolve_resource(schema_id)
+            resource = await self._resolve(schema_id, "anonCredsSchema")
         except Exception:
             raise AnonCredsResolutionError("Error resolving resource")
 
@@ -216,7 +232,7 @@ class DIDWebVHRegistry(BaseAnonCredsResolver, BaseAnonCredsRegistrar):
         self, profile: Profile, credential_definition_id: str
     ) -> GetCredDefResult:
         """Get a credential definition from the registry."""
-        resource = await self.resolver.resolve_resource(credential_definition_id)
+        resource = await self._resolve(credential_definition_id, "anonCredsCredDef")
 
         anoncreds_credential_definition = CredDef(
             issuer_id=credential_definition_id.split("/")[0],
@@ -278,7 +294,7 @@ class DIDWebVHRegistry(BaseAnonCredsResolver, BaseAnonCredsRegistrar):
     ) -> GetRevRegDefResult:
         """Get a revocation registry definition from the registry."""
 
-        resource = await self.resolver.resolve_resource(revocation_registry_id)
+        resource = await self._resolve(revocation_registry_id, "anonCredsRevocRegDef")
 
         anoncreds_revocation_registry_definition = RevRegDef(
             issuer_id=revocation_registry_id.split("/")[0],
@@ -343,21 +359,31 @@ class DIDWebVHRegistry(BaseAnonCredsResolver, BaseAnonCredsRegistrar):
         timestamp_to: int,
     ) -> GetRevListResult:
         """Get a revocation list from the registry."""
-        revocation_registry_resource = await self.resolver.resolve_resource(
-            revocation_registry_id
+        revocation_registry_resource = await self._resolve(
+            revocation_registry_id, "anonCredsRevocRegDef"
         )
 
         timestamp_to = timestamp_to or int(time.time())
         index = sorted(
-            revocation_registry_resource.get("links"), key=lambda x: x["timestamp"]
+            revocation_registry_resource.get("links") or [],
+            key=lambda x: x["timestamp"],
         )
+        status_list_id = None
         for idx, entry in enumerate(index):
             status_list_id = index[idx].get("id")
             if entry.get("timestamp") > timestamp_to and idx > 0:
                 status_list_id = index[idx - 1].get("id")
                 break
 
-        status_list_resource = await self.resolver.resolve_resource(status_list_id)
+        if not status_list_id:
+            raise ResolverError(
+                f"No status list found for revocation registry {revocation_registry_id}"
+            )
+        if status_list_id.split("/")[0] != revocation_registry_id.split("/")[0]:
+            raise ResolverError(
+                "Status list is not from the revocation registry's issuer"
+            )
+        status_list_resource = await self._resolve(status_list_id, "anonCredsStatusList")
 
         revocation_list = RevList(
             issuer_id=revocation_registry_id.split("/")[0],
@@ -426,8 +452,8 @@ class DIDWebVHRegistry(BaseAnonCredsResolver, BaseAnonCredsRegistrar):
             "timestamp": resource.get("content").get("timestamp"),
         }
 
-        rev_reg_def_resource = await self.resolver.resolve_resource(
-            rev_list.rev_reg_def_id
+        rev_reg_def_resource = await self._resolve(
+            rev_list.rev_reg_def_id, "anonCredsRevocRegDef"
         )
         rev_reg_def_resource["links"] = [status_list_entry]
         await self._update_and_upload_resource(
@@ -499,8 +525,8 @@ class DIDWebVHRegistry(BaseAnonCredsResolver, BaseAnonCredsRegistrar):
             "timestamp": resource.get("content").get("timestamp"),
         }
 
-        rev_reg_def_resource = await self.resolver.resolve_resource(
-            prev_list.rev_reg_def_id
+        rev_reg_def_resource = await self._resolve(
+            prev_list.rev_reg_def_id, "anonCredsRevocRegDef"
         )
         rev_reg_def_resource["links"].append(status_list_entry)
         await self._update_and_upload_resource(
@@ -523,7 +549,7 @@ class DIDWebVHRegistry(BaseAnonCredsResolver, BaseAnonCredsRegistrar):
         self, profile: Profile, schema_id: str
     ) -> AnonCredsSchemaInfo:
         """Get a schema info from the registry."""
-        resource = await self.resolver.resolve_resource(schema_id)
+        resource = await self._resolve(schema_id, "anonCredsSchema")
         schema = resource.get("content")
         return AnonCredsSchemaInfo(
             issuer_id=schema["issuerId"],
@@ -653,7 +679,9 @@ class DIDWebVHRegistry(BaseAnonCredsResolver, BaseAnonCredsRegistrar):
             LOGGER.warning("No rev_reg_def_id in attested resource, skipping link update")
             return
         try:
-            rev_reg_def_resource = await self.resolver.resolve_resource(rev_reg_def_id)
+            rev_reg_def_resource = await self._resolve(
+                rev_reg_def_id, "anonCredsRevocRegDef"
+            )
         except Exception as e:
             LOGGER.warning(
                 "Could not resolve rev_reg_def %s to add link: %s",
