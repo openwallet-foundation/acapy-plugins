@@ -108,6 +108,8 @@ class DIDWebVHResolver:
             if error == "notFound":
                 raise DIDNotFound(f"Issuer DID not found: {did}")
             raise ResolverError(f"Could not resolve issuer DID {did}: {error}")
+        if not isinstance(result.document, dict) or result.document.get("id") != did:
+            raise ResolverError("Resolved DID document does not match issuer DID")
         return result.document
 
     @staticmethod

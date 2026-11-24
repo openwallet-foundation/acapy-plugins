@@ -219,6 +219,23 @@ class TestResolveResource(IsolatedAsyncioTestCase):
             with self.assertRaises(DIDNotFound):
                 await DIDWebVHResolver().resolve_resource(self.resource_id)
 
+    async def test_x_resolved_document_id_mismatch(self):
+        for doc_id in ("did:webvh:QmScid:example.com:issuer:02", None):
+            with self.subTest(doc_id=doc_id):
+                document = {**self.document, "id": doc_id}
+                with (
+                    patch(
+                        "webvh.resolver.resolver.resolve_did",
+                        AsyncMock(return_value=ResolutionResult(document=document)),
+                    ),
+                    patch.object(DIDWebVHResolver, "_fetch", AsyncMock()) as fetch,
+                ):
+                    with self.assertRaisesRegex(
+                        ResolverError, "does not match issuer DID"
+                    ):
+                        await DIDWebVHResolver().resolve_resource(self.resource_id)
+                fetch.assert_not_awaited()
+
     async def test_x_invalid_resource_id(self):
         for resource_id in (DID, "did:web:example.com/resources/z", "not a did"):
             with self.subTest(resource_id=resource_id):
