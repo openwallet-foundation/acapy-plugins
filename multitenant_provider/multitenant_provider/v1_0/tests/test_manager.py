@@ -108,9 +108,10 @@ class TestMulittokenHandler(IsolatedAsyncioTestCase):
     @patch.object(
         bcrypt,
         "checkpw",
-        side_effect=[True, True, True, False, False, True, False, False],
+        side_effect=[True, False],
     )
     async def test_check_wallet_key(self, mock_check):
+        # One bcrypt check against the saved hash decides the result.
         multi_token_handler = MulittokenHandler(self.manager)
         wallet_token_record = WalletTokenRecord(
             wallet_token_id="test-token-id",
@@ -121,25 +122,13 @@ class TestMulittokenHandler(IsolatedAsyncioTestCase):
             wallet_token_record, wallet_key="wallet-key"
         )
         assert result is True
+        assert mock_check.call_count == 1
+
+        result = multi_token_handler.check_wallet_key(
+            wallet_token_record, wallet_key="wallet-key"
+        )
+        assert result is False
         assert mock_check.call_count == 2
-
-        result = multi_token_handler.check_wallet_key(
-            wallet_token_record, wallet_key="wallet-key"
-        )
-        assert result is False
-        assert mock_check.call_count == 4
-
-        result = multi_token_handler.check_wallet_key(
-            wallet_token_record, wallet_key="wallet-key"
-        )
-        assert result is False
-        assert mock_check.call_count == 6
-
-        result = multi_token_handler.check_wallet_key(
-            wallet_token_record, wallet_key="wallet-key"
-        )
-        assert result is False
-        assert mock_check.call_count == 8
 
     @patch.object(
         MulittokenHandler,
@@ -194,6 +183,11 @@ class TestMulittokenHandler(IsolatedAsyncioTestCase):
                 settings={"wallet.key": "wallet-key"}, key_management_mode="managed"
             )
 
+    @patch.object(
+        WalletTokenRecord,
+        "query_by_wallet_id",
+        return_value=WalletTokenRecord(wallet_id="wallet-id", issued_at_claims=[]),
+    )
     @patch.object(
         MulittokenHandler,
         "find_or_create_wallet_token_record",
@@ -254,6 +248,10 @@ class TestMulittokenHandler(IsolatedAsyncioTestCase):
         assert mock_save_record.called
         assert mock_save.called
         assert token is not None
+        # the claims list is re-read under the per-wallet lock and extended
+        mock_query = _[-1]
+        assert mock_query.called
+        assert len(mock_query.return_value.issued_at_claims) == 1
 
     @patch.object(
         MulittokenHandler,

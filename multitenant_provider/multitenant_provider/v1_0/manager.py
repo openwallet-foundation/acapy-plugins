@@ -1,6 +1,8 @@
 """Multitenant provider manager."""
 
+import asyncio
 import logging
+import weakref
 from datetime import datetime, timezone
 
 import bcrypt
@@ -27,6 +29,29 @@ BCRYPT_MAX_PASSWORD_BYTES = 72
 def _bcrypt_encode(key: str) -> bytes:
     """Encode a key for bcrypt, truncating to 72 bytes (bcrypt limit)."""
     return key.encode("utf-8")[:BCRYPT_MAX_PASSWORD_BYTES]
+
+
+# Each wallet's issued-claims list is read, extended and saved as one record.
+# Two token requests for the same wallet must not interleave between that read
+# and save, or the later save drops the earlier token's claim and that token is
+# rejected ("Token not valid"). Requests for different wallets do not wait on
+# each other.
+#
+# The lock is process-local: it serializes updates within one ACA-Py process
+# only. It does not protect deployments where several ACA-Py processes share
+# one wallet database; those would need a storage-level lock.
+_token_list_locks: "weakref.WeakValueDictionary[str, asyncio.Lock]" = (
+    weakref.WeakValueDictionary()
+)
+
+
+def _token_list_lock(wallet_id: str) -> asyncio.Lock:
+    """Return the process-local lock guarding a wallet's issued-claims list."""
+    lock = _token_list_locks.get(wallet_id)
+    if lock is None:
+        lock = asyncio.Lock()
+        _token_list_locks[wallet_id] = lock
+    return lock
 
 
 class WalletKeyMismatchError(BaseError):
@@ -80,20 +105,14 @@ class MulittokenHandler:
             return wallet_token_record
 
     def check_wallet_key(self, wallet_token_record: WalletTokenRecord, wallet_key: str):
-        """Check the wallet key against the saved hash and salt."""
-        # make a hash from passed in value with saved salt...
-        wallet_key_bytes = _bcrypt_encode(wallet_key)
-        wallet_key_token = bcrypt.hashpw(
-            wallet_key_bytes,
-            wallet_token_record.wallet_key_salt.encode("utf-8"),
-        )
-        # check the passed in value/hash against the calculated hash.
-        check_input = bcrypt.checkpw(wallet_key_bytes, wallet_key_token)
-        self.logger.debug(
-            f"bcrypt.checkpw(wallet_key.encode('utf-8'), wallet_key_token) = {check_input}"  # noqa E501
-        )
+        """Check the wallet key against the saved hash.
 
-        # check the passed in value against the saved hash
+        bcrypt.checkpw re-derives the hash with the salt embedded in the saved
+        hash and compares in constant time, so it is the complete check. (The
+        former extra step, hashing the key with the stored salt and checking it
+        against that same fresh hash, always matched and verified nothing.)
+        """
+        wallet_key_bytes = _bcrypt_encode(wallet_key)
         check_saved = bcrypt.checkpw(
             wallet_key_bytes,
             wallet_token_record.wallet_key_hash.encode("utf-8"),
@@ -102,7 +121,19 @@ class MulittokenHandler:
             f"bcrypt.checkpw(wallet_key.encode('utf-8'), wallet_record.wallet_key_hash.encode('utf-8')) = {check_saved}"  # noqa E501
         )
 
-        return check_input and check_saved
+        return check_saved
+
+    async def check_wallet_key_async(
+        self, wallet_token_record: WalletTokenRecord, wallet_key: str
+    ) -> bool:
+        """Run check_wallet_key in a worker thread.
+
+        bcrypt is CPU-bound (about 0.3 s at cost 12); off the event loop,
+        other requests keep being served while it runs.
+        """
+        return await asyncio.to_thread(
+            self.check_wallet_key, wallet_token_record, wallet_key
+        )
 
     async def create_wallet(
         self,
@@ -170,7 +201,9 @@ class MulittokenHandler:
 
         if config.manager.always_check_provided_wallet_key:
             # if a wallet key was passed in, we need to check it
-            if wallet_key and not self.check_wallet_key(wallet_token_record, wallet_key):
+            if wallet_key and not await self.check_wallet_key_async(
+                wallet_token_record, wallet_key
+            ):
                 raise WalletKeyMismatchError()
 
         encoded = jwt.encode(jwt_payload, jwt_secret, algorithm="HS256")
@@ -179,16 +212,22 @@ class MulittokenHandler:
         token = encoded
 
         # save wallet record with the jwt_iat
-        async with self.get_profile().session() as session:
-            # Store this iat as the "valid" singular one in the old multitenant world
-            wallet_record.jwt_iat = decoded.get("iat")
-            await wallet_record.save(session)
-            self.logger.debug(wallet_record)
+        async with _token_list_lock(wallet_record.wallet_id):
+            async with self.get_profile().session() as session:
+                # Store this iat as the "valid" singular one in the old multitenant
+                # world
+                wallet_record.jwt_iat = decoded.get("iat")
+                await wallet_record.save(session)
+                self.logger.debug(wallet_record)
 
-            # save wallet token record with the updated issued claims list
-            wallet_token_record.add_issued_at_claims(decoded.get("iat"))
-            await wallet_token_record.save(session)
-            self.logger.debug(wallet_token_record)
+                # save wallet token record with the updated issued claims list;
+                # re-read under the lock so concurrent requests extend one list
+                wallet_token_record = await WalletTokenRecord.query_by_wallet_id(
+                    session, wallet_record.wallet_id
+                )
+                wallet_token_record.add_issued_at_claims(decoded.get("iat"))
+                await wallet_token_record.save(session)
+                self.logger.debug(wallet_token_record)
 
         # return this token...
         self.logger.info("< create_auth_token")
@@ -215,12 +254,13 @@ class MulittokenHandler:
             )
             wallet_id = token_body.get("wallet_id")
             iat = token_body.get("iat")
-            async with self.get_profile().session() as session:
-                tokens_record = await WalletTokenRecord.query_by_wallet_id(
-                    session, wallet_id
-                )
-                tokens_record.issued_at_claims.remove(iat)
-                await tokens_record.save(session)
+            async with _token_list_lock(wallet_id):
+                async with self.get_profile().session() as session:
+                    tokens_record = await WalletTokenRecord.query_by_wallet_id(
+                        session, wallet_id
+                    )
+                    tokens_record.issued_at_claims.remove(iat)
+                    await tokens_record.save(session)
 
             raise err
 
@@ -241,7 +281,9 @@ class MulittokenHandler:
             extra_settings["wallet.key"] = wallet_key
 
         # if wallet key in token, check it
-        if wallet_key and not self.check_wallet_key(wallet_token_record, wallet_key):
+        if wallet_key and not await self.check_wallet_key_async(
+            wallet_token_record, wallet_key
+        ):
             raise WalletKeyMismatchError()
 
         # if we are here, then check issued at time.
