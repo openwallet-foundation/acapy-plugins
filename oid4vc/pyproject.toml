@@ -15,7 +15,7 @@ packages = [
     { include = "jwt_vc_json" },
     { include = "sd_jwt_vc" },
     { include = "mso_mdoc" },
-    { include = "oid4vc_keycloak", from = "keycloak" },
+    { include = "oid4vc_keycloak" },
 ]
 
 [tool.poetry.dependencies]
@@ -95,7 +95,7 @@ ignore = [
 "**/{e2e}/*" = ["F841", "D", "E501", "PLC0415"]
 
 [tool.pytest.ini_options]
-testpaths = ["jwt_vc_json", "mso_mdoc", "oid4vc", "sd_jwt_vc", "keycloak/oid4vc_keycloak"]
+testpaths = ["jwt_vc_json", "mso_mdoc", "oid4vc", "sd_jwt_vc", "oid4vc_keycloak"]
 addopts = """
     -p no:warnings
     --quiet --junitxml=./.test-reports/junit.xml

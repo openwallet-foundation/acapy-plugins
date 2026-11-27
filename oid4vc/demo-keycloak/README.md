@@ -19,7 +19,7 @@ Services:
 | Service | What |
 |---|---|
 | `issuer` | ACA-Py with the OID4VC plugins, including `oid4vc_keycloak` |
-| `keycloak` | Keycloak built from [`../keycloak`](../keycloak/README.md) with the OID4VCI pre-authorized code extension |
+| `keycloak` | Keycloak built from [`../auth_servers/keycloak`](../auth_servers/keycloak/README.md) with the OID4VCI pre-authorized code extension |
 | `demo-app` | The demo UI. It is shared with `../demo` and built from [`../demo/frontend`](../demo/frontend); `AUTH_SERVER=keycloak` selects Keycloak |
 | `ngrok` | Public tunnels for the issuer, the demo UI and Keycloak ([`ngrok.yml`](ngrok.yml)) |
 | `webhook-listener` | Echoes the issuer's webhooks |
@@ -64,7 +64,7 @@ rejected in that mode.
 
 The Keycloak admin console is at <http://localhost:8180>. The scripted
 end-to-end test for the same flow is in
-[`../keycloak/e2e`](../keycloak/README.md#end-to-end-test).
+[`../auth_servers/keycloak/e2e`](../auth_servers/keycloak/README.md#end-to-end-test).
 
 `../demo` and `demo-keycloak` use the same ports and image names, so run one
 at a time.

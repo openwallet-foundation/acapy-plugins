@@ -1424,7 +1424,7 @@ async function initializeAuthServer() {
 }
 
 // Configure a Keycloak realm for the tenant (AUTH_SERVER=keycloak).
-// One realm per issuer tenant. Keycloak runs the extension in ../keycloak:
+// One realm per issuer tenant. Keycloak runs the extension in oid4vc/auth_servers/keycloak:
 // it authenticates the wallet (optionally with wallet attestation), requires
 // DPoP, and redeems the pre-authorized code on the issuer's admin API.
 const KEYCLOAK_REALM = `oid4vci-${WALLET_ID}`;

@@ -15,10 +15,10 @@ a Keycloak user per holder.
 | Path | What |
 |---|---|
 | [`extension/`](extension) | Keycloak extension: a custom grant type for `urn:ietf:params:oauth:grant-type:pre-authorized_code` (Java, Keycloak 26.8.0) |
-| [`oid4vc_keycloak/`](oid4vc_keycloak) | ACA-Py plugin that registers the `keycloak` authorization server provider with the OID4VC plugin |
+| [`oid4vc_keycloak/`](../../oid4vc_keycloak) | ACA-Py plugin that registers the `keycloak` authorization server provider with the OID4VC plugin |
 | [`Dockerfile`](Dockerfile) | Keycloak image with the extension installed and the required features enabled |
 | [`e2e/`](e2e) | End-to-end test: Keycloak + issuer + a scripted wallet |
-| [`../demo-keycloak`](../demo-keycloak/README.md) | The UI demo with Keycloak as its authorization server |
+| [`../../demo-keycloak`](../../demo-keycloak/README.md) | The UI demo with Keycloak as its authorization server |
 
 ## How it works
 
@@ -75,12 +75,12 @@ Why it is split this way:
 ### 1. Build and install the extension
 
 ```bash
-cd oid4vc/keycloak/extension
+cd oid4vc/auth_servers/keycloak/extension
 mvn -B package
 cp target/keycloak-oid4vci-pre-auth.jar /opt/keycloak/providers/
 ```
 
-Or build the image in [`Dockerfile`](Dockerfile) (`docker build oid4vc/keycloak`).
+Or build the image in [`Dockerfile`](Dockerfile) (`docker build oid4vc/auth_servers/keycloak`).
 
 The extension uses Keycloak's grant type and refresh token SPIs
 (`OAuth2GrantTypeSpi`, `RefreshTokenSpi`), which are **internal** to Keycloak
@@ -193,7 +193,7 @@ automatically.
 [`e2e/realm-oid4vci.json`](e2e/realm-oid4vci.json) is a complete, importable
 example. The main demo builds a realm per tenant through the Keycloak admin
 API (`initializeKeycloak()` in
-[`../demo/frontend/index.js`](../demo/frontend/index.js)).
+[`../../demo/frontend/index.js`](../../demo/frontend/index.js)).
 
 The access token carries:
 
@@ -458,7 +458,7 @@ Maven profile so the normal build and the Docker image don't download the test
 framework:
 
 ```bash
-cd oid4vc/keycloak/extension
+cd oid4vc/auth_servers/keycloak/extension
 mvn -B -Pit verify
 ```
 
@@ -474,7 +474,7 @@ podman run --rm -v "$PWD":/build:Z -v kc-it-m2:/root/.m2 -w /build docker.io/lib
 scripted wallet on one Docker network:
 
 ```bash
-cd oid4vc/keycloak/e2e
+cd oid4vc/auth_servers/keycloak/e2e
 docker compose up --build -d keycloak issuer
 docker compose run --rm wallet
 docker compose down
@@ -520,7 +520,7 @@ public half is trusted by the test realm. Never reuse it.
 
 ## Demo with a real wallet
 
-[`../demo-keycloak`](../demo-keycloak/README.md) is the UI demo (JWT, SD-JWT
+[`../../demo-keycloak`](../../demo-keycloak/README.md) is the UI demo (JWT, SD-JWT
 and mdoc issuance) with Keycloak as the authorization server instead of the
 reference authorization server.
 
@@ -582,4 +582,4 @@ reference authorization server.
   the controller refreshes a credential under a different configuration, the
   plugin refuses those tokens and the wallet needs a new offer.
 - **Authorization code flow** (e.g. with an upstream IdP) is not
-  covered by this extension. See [the design notes](../docs/auth-server-providers.md#future-authorization-code-flow).
+  covered by this extension. See [the design notes](../../docs/auth-server-providers.md#future-authorization-code-flow).

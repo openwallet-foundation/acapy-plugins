@@ -25,7 +25,7 @@ RUN mkdir sd_jwt_vc && touch sd_jwt_vc/__init__.py
 RUN mkdir mso_mdoc && touch mso_mdoc/__init__.py
 RUN mkdir status_list && touch status_list/__init__.py
 RUN mkdir mso_mdoc/isomdl
-RUN mkdir -p keycloak/oid4vc_keycloak && touch keycloak/oid4vc_keycloak/__init__.py
+RUN mkdir oid4vc_keycloak && touch oid4vc_keycloak/__init__.py
 COPY pyproject.toml poetry.lock README.md ./
 RUN poetry install --without dev --all-extras
 
@@ -55,7 +55,7 @@ COPY jwt_vc_json/ jwt_vc_json/
 COPY mso_mdoc/ mso_mdoc/
 COPY sd_jwt_vc/ sd_jwt_vc/
 COPY oid4vc/ oid4vc/
-COPY keycloak/oid4vc_keycloak/ keycloak/oid4vc_keycloak/
+COPY oid4vc_keycloak/ oid4vc_keycloak/
 ADD https://github.com/openwallet-foundation/acapy-plugins.git#main:status_list/status_list/ status_list/
 COPY docker/*.yml ./
 

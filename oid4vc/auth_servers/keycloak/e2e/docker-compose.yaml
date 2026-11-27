@@ -40,7 +40,7 @@ services:
   issuer:
     image: oid4vc
     build:
-      context: ../..
+      context: ../../..
       dockerfile: docker/Dockerfile
     environment:
       OID4VCI_HOST: 0.0.0.0

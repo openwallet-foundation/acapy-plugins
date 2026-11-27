@@ -288,7 +288,7 @@ entry's `type` selects it:
 |---|---|---|---|
 | `builtin` (default) | The plugin's own `/token` | Minted by the plugin | Local JWT (issuer's `did:jwk`) |
 | `reference` | `oid4vc/auth_server` | Minted by the AS (`/grants/pre-authorized-code`) | Introspection |
-| `keycloak` | Keycloak + the extension in [`keycloak/`](keycloak/README.md) (requires `--plugin oid4vc_keycloak`) | Minted by the plugin, redeemed by Keycloak on the admin API (`/oid4vci/pre-auth/redeem`) | Local, against the realm JWKS |
+| `keycloak` | Keycloak + the extension in [`auth_servers/keycloak/`](auth_servers/keycloak/README.md) (requires `--plugin oid4vc_keycloak`) | Minted by the plugin, redeemed by Keycloak on the admin API (`/oid4vci/pre-auth/redeem`) | Local, against the realm JWKS |
 
 Selection, highest priority first:
 
@@ -335,7 +335,7 @@ Supported `auth_type` values: `client_secret_basic`, `client_secret_jwt`,
 `private_key_jwt`. Optional `introspection_endpoint` overrides
 `{private_url}/introspect`.
 
-Keycloak (see [`keycloak/README.md`](keycloak/README.md)):
+Keycloak (see [`auth_servers/keycloak/README.md`](auth_servers/keycloak/README.md)):
 
 ```json
 {
@@ -490,7 +490,7 @@ To run unit tests:
 
 ```shell
 # Run all tests except mso_mdoc (which requires isomdl-uniffi)
-poetry run pytest jwt_vc_json/tests/ oid4vc/tests/ sd_jwt_vc/tests/ keycloak/oid4vc_keycloak/tests/
+poetry run pytest jwt_vc_json/tests/ oid4vc/tests/ sd_jwt_vc/tests/ oid4vc_keycloak/tests/
 
 # Or run all tests including mso_mdoc (requires isomdl-uniffi installed)
 poetry run pytest
