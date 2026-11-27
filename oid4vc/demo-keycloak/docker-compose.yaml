@@ -4,7 +4,7 @@
 #   docker compose up --build
 #
 # Same issuer and demo UI as ../demo, but wallets get their tokens from
-# Keycloak (built with the extension in ../keycloak) instead of the reference
+# Keycloak (built with the extension in ../auth_servers/keycloak) instead of the reference
 # authorization server, which is not started here. The demo app (shared with
 # ../demo, in ../demo/frontend) creates a Keycloak realm for its issuer tenant
 # at startup. See README.md.
@@ -165,7 +165,7 @@ services:
 
   keycloak:
     build:
-      context: ../keycloak
+      context: ../auth_servers/keycloak
       dockerfile: Dockerfile
     # No fixed hostname: wallets reach Keycloak through ngrok, the issuer and
     # demo app over the compose network. The realm issuer (token iss,

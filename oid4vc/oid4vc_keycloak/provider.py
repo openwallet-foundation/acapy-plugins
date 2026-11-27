@@ -1,6 +1,6 @@
 """Keycloak as the wallet-facing authorization server.
 
-Keycloak (with the extension in ``oid4vc/keycloak/extension``) serves the
+Keycloak (with the extension in ``oid4vc/auth_servers/keycloak/extension``) serves the
 pre-authorized code token request: it authenticates the wallet with
 attestation-based client authentication (ABCA), requires a DPoP proof, and
 redeems the plugin-issued code through the redeem endpoint on the plugin's

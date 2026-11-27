@@ -387,7 +387,7 @@ async function issue_sdjwt_credential(req, res) {
     method: "POST",
     headers: commonHeaders,
     body: JSON.stringify({
-      format: "vc+sd-jwt",
+      format: "dc+sd-jwt",
       id: "IDCard",
       proof_types_supported: {
         jwt: {
@@ -1039,81 +1039,46 @@ async function create_sd_jwt_presentation(req, res) {
   };
 
 
-  // Create Presentation Definition
-  events.emit(`presentation-${presentationId}`, {type: "message", message: "Creating Presentation Definition."});
-  const presentationDefinition = {"pres_def": {
-    "id": uuidv4(),
-    "purpose": "Present basic profile info",
-    "input_descriptors": [
-      {
-        "format": {
-          "vc+sd-jwt": {}
-        },
-        "id": "ID Card",
-        "name": "Profile",
-        "purpose": "Present basic profile info",
-        "constraints": {
-          "limit_disclosure": "required",
-          "fields": [
-            {
-              "path": [
-                "$.vct"
-              ],
-              "filter": {
-                "type": "string"
-              }
-            },
-            {
-              "path": [
-                "$.family_name"
-              ]
-            },
-            {
-              "path": [
-                "$.given_name"
-              ]
-            },
-            {
-              "path": [
-                "$.something_nested.key1.key2.key3"
-              ]
-            },
-          ]
-        }
-      }
-    ]
-  }};
-
-  const presentationDefinitionUrl = `${API_BASE_URL}/oid4vp/presentation-definition`;
-  const presentationDefinitionOptions = {
+  // Create DCQL Query for the SD-JWT ID Card
+  events.emit(`presentation-${presentationId}`, {type: "message", message: "Creating DCQL Query for SD-JWT ID Card."});
+  const dcqlQueryUrl = `${API_BASE_URL}/oid4vp/dcql/queries`;
+  const dcqlQueryOptions = {
     method: "POST",
     headers: commonHeaders,
-    body: JSON.stringify(presentationDefinition),
+    body: JSON.stringify({
+      credentials: [
+        {
+          id: "IDCard",
+          format: "dc+sd-jwt",
+          meta: {
+            vct_values: ["ExampleIDCard"]
+          },
+          claims: [
+            { path: ["family_name"] },
+            { path: ["given_name"] },
+            { path: ["something_nested", "key1", "key2", "key3"] },
+          ],
+        }
+      ]
+    }),
   };
-  logger.warn(presentationDefinitionUrl);
-  events.emit(`presentation-${presentationId}`, {type: "message", message: `Posting Presentation Definition to: ${presentationDefinitionUrl}`});
-  events.emit(`presentation-${presentationId}`, {type: "debug-message", message: "Request options", data: presentationDefinitionOptions});
-  const presentationDefinitionData = await fetchApiData(
-    presentationDefinitionUrl,
-    presentationDefinitionOptions
-  );
-  logger.info("Created presentation?");
-  logger.trace(JSON.stringify(presentationDefinitionData));
-  logger.trace(presentationDefinitionData.pres_def_id);
-  events.emit(`presentation-${presentationId}`, {type: "message", message: `Created Presentation Definition`});
-  events.emit(`presentation-${presentationId}`, {type: "message", message: `Presentation Definition ID: ${presentationDefinitionData.pres_def_id}`});
-  events.emit(`presentation-${presentationId}`, {type: "debug-message", message: "Response data", data: presentationDefinitionData});
+  events.emit(`presentation-${presentationId}`, {type: "message", message: `Posting DCQL Query to: ${dcqlQueryUrl}`});
+  events.emit(`presentation-${presentationId}`, {type: "debug-message", message: "Request options", data: dcqlQueryOptions});
+  const dcqlQueryData = await fetchApiData(dcqlQueryUrl, dcqlQueryOptions);
+  const dcqlQueryId = dcqlQueryData.dcql_query_id;
+  events.emit(`presentation-${presentationId}`, {type: "message", message: `Created DCQL Query ID: ${dcqlQueryId}`});
+  events.emit(`presentation-${presentationId}`, {type: "debug-message", message: "Response data", data: dcqlQueryData});
 
 
-  // Create Presentation Request
+  // Create Presentation Request using the DCQL query
   const presentationRequestUrl = `${API_BASE_URL}/oid4vp/request`;
   const presentationRequestOptions = {
     method: "POST",
     headers: commonHeaders,
     body: JSON.stringify({
-      "pres_def_id": presentationDefinitionData.pres_def_id,
+      "dcql_query_id": dcqlQueryId,
       "vp_formats": {
-        "vc+sd-jwt": {
+        "dc+sd-jwt": {
             "sd-jwt_alg_values": [
                 "ES256",
                 "ES384"
@@ -1139,7 +1104,7 @@ async function create_sd_jwt_presentation(req, res) {
 
   // Grab the relevant data and store it for later reference while waiting for the webhooks from ACA-Py
   let code = presentationRequestData.request_uri;
-  presentationCache.set(presentationDefinitionData.pres_def_id, { presentationDefinitionData, presentationRequestData, presentationId: presentationId });
+  presentationCache.set(dcqlQueryId, { dcqlQueryData, presentationRequestData, presentationId: presentationId });
   logger.trace(JSON.stringify(presentationRequestData, null, 2));
 
   // Generate a QRCode and return it to the browser (HTMX replaces a div with our current response)
@@ -1196,11 +1161,11 @@ async function create_mdoc_presentation(req, res) {
             doctype_value: "org.iso.18013.5.1.mDL"
           },
           claims: [
-            { namespace: "org.iso.18013.5.1", claim_name: "family_name" },
-            { namespace: "org.iso.18013.5.1", claim_name: "given_name" },
-            { namespace: "org.iso.18013.5.1", claim_name: "document_number" },
-            { namespace: "org.iso.18013.5.1", claim_name: "issuing_country" },
-            { namespace: "org.iso.18013.5.1", claim_name: "expiry_date" },
+            { path: ["org.iso.18013.5.1", "family_name"] },
+            { path: ["org.iso.18013.5.1", "given_name"] },
+            { path: ["org.iso.18013.5.1", "document_number"] },
+            { path: ["org.iso.18013.5.1", "issuing_country"] },
+            { path: ["org.iso.18013.5.1", "expiry_date"] },
           ],
         }
       ]
@@ -1459,7 +1424,7 @@ async function initializeAuthServer() {
 }
 
 // Configure a Keycloak realm for the tenant (AUTH_SERVER=keycloak).
-// One realm per issuer tenant. Keycloak runs the extension in ../keycloak:
+// One realm per issuer tenant. Keycloak runs the extension in oid4vc/auth_servers/keycloak:
 // it authenticates the wallet (optionally with wallet attestation), requires
 // DPoP, and redeems the pre-authorized code on the issuer's admin API.
 const KEYCLOAK_REALM = `oid4vci-${WALLET_ID}`;

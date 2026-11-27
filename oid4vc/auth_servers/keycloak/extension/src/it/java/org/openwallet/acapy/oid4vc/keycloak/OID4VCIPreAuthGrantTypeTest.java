@@ -67,7 +67,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
  * refresh tokens (claims carried over, key binding, rotation) and the refresh
  * client hint (no client_id, or the unregistered client_id of the token request).
  * Attestation-based client authentication is covered by the end-to-end test in
- * {@code oid4vc/keycloak/e2e}.
+ * {@code oid4vc/auth_servers/keycloak/e2e}.
  */
 @KeycloakIntegrationTest(config = OID4VCIPreAuthGrantTypeTest.ServerConfig.class)
 public class OID4VCIPreAuthGrantTypeTest {

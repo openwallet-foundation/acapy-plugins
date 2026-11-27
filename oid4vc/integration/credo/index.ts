@@ -133,7 +133,11 @@ proxy.rpc.addMethod(
           }
 
           // we also support plain jwk for sd-jwt only
-          if (supportsJwk && credentialFormat === OpenId4VciCredentialFormatProfile.SdJwtVc) {
+          if (
+            supportsJwk &&
+            (credentialFormat === OpenId4VciCredentialFormatProfile.SdJwtVc ||
+              credentialFormat === OpenId4VciCredentialFormatProfile.SdJwtDc)
+          ) {
             const key = await agent.wallet.createKey({
               keyType,
             })

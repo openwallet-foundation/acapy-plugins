@@ -1,5 +1,5 @@
 # Keycloak with the ACA-Py OID4VCI pre-authorized code grant extension.
-# Build context: oid4vc/keycloak
+# Build context: oid4vc/auth_servers/keycloak
 ARG KEYCLOAK_VERSION=26.8.0
 
 FROM maven:3.9-eclipse-temurin-21 AS extension

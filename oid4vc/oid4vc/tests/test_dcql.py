@@ -12,7 +12,7 @@ raw_query = {
     "credentials": [
         {
             "id": "pid",
-            "format": "vc+sd-jwt",
+            "format": "dc+sd-jwt",
             "meta": {
                 "vct_values": ["https://credentials.example.com/identity_credential"]
             },

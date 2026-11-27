@@ -16,7 +16,7 @@ for credential formats.
 |---|---|---|---|---|---|
 | `builtin` | `BuiltinProvider` | `oid4vc` | random, minted by the plugin | `jwt_verify`, signed with the tenant's own `did:jwk` | `sub` |
 | `reference` | `ReferenceProvider` | `oid4vc` | `POST {private_url}/grants/pre-authorized-code` | RFC 7662 introspection | `sub` |
-| `keycloak` | `KeycloakProvider` | `oid4vc_keycloak` (separate plugin, `keycloak/`) | random, minted by the plugin, redeemed by Keycloak | local, realm JWKS (`iss`, `aud`, `exp`) | `refresh_id` claim |
+| `keycloak` | `KeycloakProvider` | `oid4vc_keycloak` (separate plugin; Keycloak extension in `auth_servers/keycloak/`) | random, minted by the plugin, redeemed by Keycloak | local, realm JWKS (`iss`, `aud`, `exp`) | `refresh_id` claim |
 
 Selection (`resolve_auth_provider`), highest priority first:
 
@@ -68,7 +68,7 @@ Each provider covers these parts of the flow:
 
 ## Keycloak
 
-See [`keycloak/README.md`](../keycloak/README.md). In short, a small Keycloak
+See [`auth_servers/keycloak/README.md`](../auth_servers/keycloak/README.md). In short, a small Keycloak
 extension registers a custom grant type for
 `urn:ietf:params:oauth:grant-type:pre-authorized_code`. It runs ABCA and
 requires DPoP. It then redeems the plugin's code and issues a DPoP-bound token

@@ -3,7 +3,8 @@
 Load alongside ``oid4vc`` (``--plugin oid4vc --plugin oid4vc_keycloak``) and
 configure an authorization server entry with ``"type": "keycloak"``. Keycloak
 needs the OID4VCI pre-authorized code grant extension from
-``oid4vc/keycloak/extension``. See ``oid4vc/keycloak/README.md``.
+``oid4vc/auth_servers/keycloak/extension``.
+See ``oid4vc/auth_servers/keycloak/README.md``.
 """
 
 import logging
