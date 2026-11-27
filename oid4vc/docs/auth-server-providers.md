@@ -16,7 +16,7 @@ for credential formats.
 |---|---|---|---|---|---|
 | `builtin` | `BuiltinProvider` | `oid4vc` | random, minted by the plugin | `jwt_verify`, signed with the tenant's own `did:jwk` | `sub` |
 | `reference` | `ReferenceProvider` | `oid4vc` | `POST {private_url}/grants/pre-authorized-code` | RFC 7662 introspection | `sub` |
-| `keycloak` | `KeycloakProvider` | `oid4vc_keycloak` (separate plugin, `oid4vc_keycloak/`) | random, minted by the plugin, redeemed by Keycloak | local, realm JWKS (`iss`, `aud`, `exp`) | `refresh_id` claim |
+| `keycloak` | `KeycloakProvider` | `oid4vc_keycloak` (separate plugin; Keycloak extension in `auth_servers/keycloak/`) | random, minted by the plugin, redeemed by Keycloak | local, realm JWKS (`iss`, `aud`, `exp`) | `refresh_id` claim |
 
 Selection (`resolve_auth_provider`), highest priority first:
 
